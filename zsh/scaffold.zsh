@@ -3,7 +3,7 @@
 # ============================================================
 
 # Interactively fuzzy-select a project template from the catalog
-# ($ZDOTDIR/cheatsheets/templates.tsv) and print "url<TAB>tool"
+# ($ZDOTDIR/cheatsheets/templates.tsv) and print "url<TAB>tool<TAB>version"
 _ftemplate_select() {
     local catalog="$ZDOTDIR/cheatsheets/templates.tsv"
 
@@ -13,39 +13,59 @@ _ftemplate_select() {
     awk -F'\t' '
         # Skip comments, blank lines, and malformed rows
         /^[[:space:]]*(#|$)/ { next }
-        NF < 3 { next }
+        NF < 4 { next }
         {
             url = $1
             tool = $2
+            ver = $3
             sub(/[[:space:]]+$/, "", url)
             gsub(/^[[:space:]]+|[[:space:]]+$/, "", tool)
-            sub(/^[[:space:]]+/, "", $3)
-            printf "%s\t%s\t\033[36m%-7s\033[0m \033[90m|\033[0m %s\n", url, tool, tool, $3
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", ver)
+            sub(/^[[:space:]]+/, "", $4)
+
+            # Derive owner/repo from the url so the picker is searchable by repo name
+            n = split(url, seg, "/")
+            repo = url
+            if (n >= 2) {
+                repo = seg[n-1] "/" seg[n]
+                sub(/^gh:/, "", repo)
+                sub(/\.git$/, "", repo)
+            }
+
+            if (ver == "") {
+                tag = sprintf("\033[36m%-7s\033[0m", tool)
+            } else {
+                tag = sprintf("\033[36m%-7s\033[0m \033[33m@%s\033[0m", tool, ver)
+            }
+            printf "%s\t%s\t%s\t%s \033[90m|\033[0m %s \033[90m|\033[0m %s\n", url, tool, ver, tag, repo, $4
         }
     ' "$catalog" |
         fzf \
             --ansi \
             --delimiter=$'\t' \
-            --with-nth=3 \
+            --with-nth=4 \
             --prompt='🏗️  Templates > ' \
             --info=inline \
             --layout=reverse |
-        awk -F'\t' '{ print $1 "\t" $2 }'
+        awk -F'\t' '{ print $1 "\t" $2 "\t" $3 }'
 }
 
 # Scaffold a new project from the template catalog
-# 1. Fuzzy-pick a template (description shown, url kept as data)
+# 1. Fuzzy-pick a template (description shown, url + pinned version kept as data)
 # 2. Enter the project name
 # 3. Delegate to the global Makefile (copier_project / cruft_project)
 #    to reuse the venv + direnv bootstrap defined there
 fnew() {
-    local selection url tool project_name
+    local selection url tool version project_name remainder
+    local -a make_args
 
     selection=$(_ftemplate_select)
     [[ -z "$selection" ]] && return
 
     url=${selection%%$'\t'*}
-    tool=${selection##*$'\t'}
+    remainder=${selection#*$'\t'}
+    tool=${remainder%%$'\t'*}
+    version=${remainder##*$'\t'}
 
     if [[ "$tool" != copier && "$tool" != cruft ]]; then
         echo "Unknown scaffold tool '$tool' in templates.tsv (expected: copier or cruft)" >&2
@@ -60,8 +80,10 @@ fnew() {
         echo "Invalid name (use letters, digits, '.', '_' or '-'; no spaces)."
     done
 
-    make -f "$ZDOTDIR/cheatsheets/global_makefile.mk" \
-        "${tool}_project" \
-        PROJECT_NAME="$project_name" \
-        PROJECT_TEMPLATE_REPO="$url"
+    make_args=("${tool}_project" "PROJECT_NAME=$project_name" "PROJECT_TEMPLATE_REPO=$url")
+    if [[ -n "$version" ]]; then
+        make_args+=("PROJECT_TEMPLATE_VERSION=$version")
+    fi
+
+    make -f "$ZDOTDIR/cheatsheets/global_makefile.mk" "${make_args[@]}"
 }

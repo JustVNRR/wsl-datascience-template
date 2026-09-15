@@ -18,10 +18,12 @@ endef
 copier_project: ## Scaffold a project with Copier (interactive picker: fnew)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Copier..."
-	@copier copy $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
+	@copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
 	$(init_venv)
 	@echo "✅ Project $(PROJECT_NAME) ready!"
 
+# Optional pinned template ref/tag: --vcs-ref for Copier, --checkout for Cruft
+COPIER_REF_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--vcs-ref $(PROJECT_TEMPLATE_VERSION),)
 CHECKOUT_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--checkout $(PROJECT_TEMPLATE_VERSION),)
 
 cruft_project: ## Scaffold a project with Cruft/Cookiecutter (interactive picker: fnew)
