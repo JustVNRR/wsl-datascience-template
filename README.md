@@ -51,6 +51,12 @@ The environment ships with a highly modular, global Makefile designed for Data S
   - Use `gmake <target>` to run the global MLOps tasks.
   - Use `make <target>` to run tasks from a local `Makefile` specific to your current project folder.
 
+### Template Catalog (`fnew`)
+
+- Project templates are centralized in `cheatsheets/templates.tsv`: one per line (`url`, `tool`, `description`, tab-separated).
+- Type `fnew` anywhere to fuzzy-pick a template from the catalog, enter your project name, and scaffold it. `fnew` delegates to the `copier_project` / `cruft_project` global targets (virtual environment + direnv bootstrap included).
+- The catalog is re-scanned on every `fnew` call: add, edit, or remove lines to curate your own shortlist.
+
 ---
 
 ## Keybindings (ZLE Keyboard Shortcuts)
@@ -97,6 +103,7 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 
 ### Interactive Tools
 - `falias`: Interactive alias search using `fzf`. Shows alias definitions with inline formatting and loads selection directly into the prompt buffer.
+- `fnew`: Interactive project scaffolding. Fuzzy-pick a template from the catalog (`cheatsheets/templates.tsv`), name your project, and let the global Makefile bootstrap it.
 
 ---
 
@@ -119,7 +126,7 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 │   ├── cheatsheets/         # Auto-scanned directory for CTRL+H and global Makefile
 │   │   ├── .env.global      # Global fallback environment variables for MLOps
 │   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
-│   │   ├── bash_essentials.md
+│   │   ├── templates.tsv    # Curated project template catalog (fnew picker)
 │   │   ├── global_makefile.mk # Global entrypoint for the MLOps Makefile
 │   │   └── make/            # Modular Makefile rules (gcp, biquerry, cloud_run, etc.)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
@@ -131,6 +138,7 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 │   │   ├── starship.toml    # Starship visual configuration
 │   │   └── starship.zsh     # Starship initialization hook
 │   ├── python.zsh           # uv autocompletion
+│   ├── scaffold.zsh         # Interactive project scaffolding picker (fnew)
 │   └── unzip.zsh            # Interactive archive extraction handler
 ├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
 ├── first_boot.sh            # User creation, Systemd, passwordless sudo, Python setup

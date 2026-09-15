@@ -15,7 +15,7 @@ endef
 # PROJECT SETUP WORKFLOW
 # ==============================================================================
 
-copier_project: ## Scaffold using any Copier template
+copier_project: ## Scaffold a project with Copier (interactive picker: fnew)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Copier..."
 	@copier copy $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
@@ -24,7 +24,7 @@ copier_project: ## Scaffold using any Copier template
 
 CHECKOUT_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--checkout $(PROJECT_TEMPLATE_VERSION),)
 
-cruft_project: ## Scaffold using Cruft/Cookiecutter template
+cruft_project: ## Scaffold a project with Cruft/Cookiecutter (interactive picker: fnew)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Cruft..."
 	@cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
