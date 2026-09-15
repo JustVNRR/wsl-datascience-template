@@ -1,0 +1,53 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+add_newline = true
+
+format = """
+${custom.active_venv}$directory
+$git_branch$git_status$character"""
+
+# Désactive les modules automatiques parasites
+[package]
+disabled = true
+
+[python]
+disabled = true
+
+[docker_context]
+disabled = true
+
+[custom.active_venv]
+when = 'test -n "$VIRTUAL_ENV_PROMPT" || test -n "$VIRTUAL_ENV"'
+command = '''
+if [ -n "$VIRTUAL_ENV_PROMPT" ]; then
+    echo "$VIRTUAL_ENV_PROMPT" | tr -d '()' | xargs
+else
+    n=$(basename "$VIRTUAL_ENV")
+    [ "$n" = ".venv" ] && basename "$(dirname "$VIRTUAL_ENV")" || echo "$n"
+fi
+'''
+format = '([\($output\) ](bold cyan))'
+
+[directory]
+format = "[\\[$path\\]](bold yellow)"
+truncation_length = 0
+truncate_to_repo = false
+
+[git_branch]
+symbol = ""
+format = "[$symbol $branch](bold purple) "
+
+[git_status]
+format     = "($ahead_behind$staged$modified$untracked$deleted$conflicted)"
+ahead      = "[⇡$count ](bold cyan)"
+behind     = "[⇣$count ](bold cyan)"
+diverged   = "[⇡$ahead_count⇣$behind_count ](bold cyan)"
+staged     = "[+$count ](bold green)"
+modified   = "[●$count ](bold yellow)"
+untracked  = "[?$count ](bold white)"
+deleted    = "[✘$count ](bold red)"
+conflicted = "[⚡$count ](bold red)"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"

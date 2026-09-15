@@ -1,0 +1,16 @@
+# WSL and Docker build artifacts
+*.tar
+*.tar.gz
+*.vhdx
+
+# Zsh runtime compilation caches and history
+*.zcompdump*
+.zsh_history
+.bash_history
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

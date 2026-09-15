@@ -1,0 +1,12 @@
+# Auto-detect text files and normalize line endings to LF on commit
+* text=auto eol=lf
+
+# Explicitly ensure shell scripts and Linux dotfiles always retain LF
+*.sh text eol=lf
+*.zsh text eol=lf
+*.bash text eol=lf
+.zshrc text eol=lf
+Dockerfile text eol=lf
+
+# Keep Windows PowerShell scripts consistent
+*.ps1 text eol=crlf
