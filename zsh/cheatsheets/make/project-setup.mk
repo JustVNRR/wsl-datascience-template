@@ -2,13 +2,34 @@
 # REUSABLE RECIPES (MACROS)
 # ==============================================================================
 
+# init_venv: detect the project's dependency manifest and bootstrap its environment.
+# Exactly one branch installs dependencies:
+#   1. uv.lock, or a PEP 621 [project] table  ->  uv sync (creates .venv,
+#      installs dependencies + the dev group by default)
+#   2. requirements.txt                        ->  uv venv + uv pip install
+#      (+ requirements_dev.txt when present)
+#   3. no recognized manifest                  ->  bare uv venv, with a warning
+# The direnv hook is shared by all branches.
 define init_venv
-	@echo "🐍 Creating virtual environment..."
-	@cd $(PROJECT_NAME) && uv venv
+	@if [ -f $(PROJECT_NAME)/uv.lock ] || { [ -f $(PROJECT_NAME)/pyproject.toml ] && grep -qx '\[project\]' $(PROJECT_NAME)/pyproject.toml; }; then \
+		echo "🐍 uv project detected (uv.lock or [project] table) — running uv sync..."; \
+		cd $(PROJECT_NAME) && uv sync; \
+	elif [ -f $(PROJECT_NAME)/requirements.txt ]; then \
+		echo "🐍 Creating virtual environment..."; \
+		cd $(PROJECT_NAME) && uv venv; \
+		echo "📦 Installing dependencies (requirements.txt)..."; \
+		uv pip install -r requirements.txt; \
+		if [ -f requirements_dev.txt ]; then \
+			echo "📦 Installing dev dependencies (requirements_dev.txt)..."; \
+			uv pip install -r requirements_dev.txt; \
+		fi; \
+	else \
+		echo "⚠️  No dependency manifest found (uv.lock / pyproject.toml [project] / requirements.txt)."; \
+		echo "   Creating a bare venv — install your dependencies manually."; \
+		cd $(PROJECT_NAME) && uv venv; \
+	fi
 	@echo "🪄 Configuring direnv..."
 	@cd $(PROJECT_NAME) && echo "source .venv/bin/activate" > .envrc && direnv allow
-	@echo "📦 Installing base dependencies..."
-	@cd $(PROJECT_NAME) && if [ -f requirements.txt ]; then uv pip install -r requirements.txt; else echo "No requirements.txt found, skipping."; fi
 endef
 
 # ==============================================================================

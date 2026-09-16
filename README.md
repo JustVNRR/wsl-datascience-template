@@ -70,7 +70,7 @@ The environment ships with a highly modular, global Makefile designed for Data S
 ### Template Catalog (`fnew`)
 
 - Project templates are centralized in `cheatsheets/templates.tsv`: one per line (`url`, `tool`, `version`, `description`, tab-separated). The optional `version` column pins a template ref (e.g. `v1`), passed as `--vcs-ref` (Copier) or `--checkout` (Cruft) — useful when a template's default branch targets a different tool.
-- Type `fnew` anywhere to fuzzy-pick a template from the catalog, enter your project name, and scaffold it. `fnew` delegates to the `copier_project` / `cruft_project` global targets (virtual environment + direnv bootstrap included). The destination directory is always displayed and must be confirmed when you are outside `~/projects`.
+- Type `fnew` anywhere to fuzzy-pick a template from the catalog, enter your project name, and scaffold it. `fnew` delegates to the `copier_project` / `cruft_project` global targets (virtual environment + direnv bootstrap included, auto-detecting uv-native and requirements.txt projects). The destination directory is always displayed and must be confirmed when you are outside `~/projects`.
 - The catalog is re-scanned on every `fnew` call: add, edit, or remove lines to curate your own shortlist.
 
 ---
