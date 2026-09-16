@@ -66,7 +66,7 @@ fnew() {
         echo "⚠  Current directory: $PWD (outside ~/projects)"
         read "reply?Scaffold here anyway? [y/N] "
         if [[ "$reply" != [yY] ]]; then
-            echo "❌ Aborted by user."
+            echo "❌ Aborted by user." >&2
             return 1
         fi
     fi

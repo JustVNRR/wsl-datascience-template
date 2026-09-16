@@ -45,7 +45,7 @@ extract() {
             *.xz)        cp "$target" "$dest_dir/" && unxz "$dest_dir/$(basename "$target")" ;;
             *.tar.xz)    tar xvf "$target" -C "$dest_dir"     ;;
             *)
-                echo "❌ Unsupported archive format: '$target'"
+                echo "❌ Unsupported archive format: '$target'" >&2
                 rmdir "$dest_dir" 2>/dev/null
                 return 1
                 ;;
@@ -62,7 +62,7 @@ extract() {
         fi
 
     else
-        echo "❌ '$target' is not a valid file."
+        echo "❌ '$target' is not a valid file." >&2
         return 1
     fi
 }

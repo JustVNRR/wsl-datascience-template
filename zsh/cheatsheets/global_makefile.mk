@@ -45,6 +45,6 @@ define confirm_action
 	@$(foreach var,$(2),echo " 🔹 $(var) : \033[33m$($(var))\033[0m";)
 	@echo "======================================================="
 	@read -p "Confirm execution? [y/N] " ans; \
-	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "\n❌ Operation cancelled by user."; exit 1; fi
+	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "\n❌ Operation cancelled by user." >&2; exit 1; fi
 	@echo "✅ Operation confirmed.\n"
 endef

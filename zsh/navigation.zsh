@@ -46,7 +46,7 @@ fa() {
 # fb: Interactive Git branch checkout
 fb() {
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        echo "❌ Error: Not inside a Git repository."
+        echo "❌ Error: Not inside a Git repository." >&2
         return 1
     fi
     local branch
@@ -57,7 +57,7 @@ fb() {
 # fgl: Interactive Git commit log browser
 fgl() {
     if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        echo "❌ Error: Not inside a Git repository."
+        echo "❌ Error: Not inside a Git repository." >&2
         return 1
     fi
     local commit
