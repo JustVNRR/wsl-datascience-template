@@ -1,6 +1,6 @@
 # Ubuntu WSL Data Science Template
 
-An automated workflow to build and import lightweight, reproducible, and pre-configured Ubuntu 24.04 instances into WSL2 using Docker and PowerShell. Heavily optimized for Data Science, Python development, modern CLI tools, and seamless Google Cloud Platform (GCP) integration.
+A reproducible WSL2 workstation for data science, defined entirely in this repository: one PowerShell command builds a fresh Ubuntu 24.04 distro with the shell, the Python stack, and the GCP-oriented MLOps workflow already in place. The same environment can be rebuilt from scratch at any time.
 
 ## Features
 
