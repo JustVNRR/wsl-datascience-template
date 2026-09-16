@@ -59,6 +59,14 @@ The environment ships with a highly modular, global Makefile designed for Data S
 - `gmake lint-format`: auto-fix and format Python code.
 - `ruff` (installed at first boot via `uv tool`) and `shellcheck` (bundled in the image) — lint rules live in each project's `pyproject.toml`, only the tool lives on the machine.
 
+### Tests
+
+- `gmake test`: run the whole test suite.
+- `gmake test-fast`: fast lane only, no external infrastructure (the CI lane).
+- `gmake test-functional`: tests that need real local infrastructure (`.env`, Docker, a trained model...).
+- `gmake test-gcp`: tests that hit a real GCP environment (test/staging/prod).
+- The lanes rely on a marker convention (`functional`, `gcp`) declared in each project's `pyproject.toml` (`[tool.pytest.ini_options] markers`); unmarked tests run in every lane, so projects without the convention work out of the box. Unlike ruff, `pytest` lives in each project's virtual environment (`uv add --dev pytest`) since it must import the project's code and plugins.
+
 ### Template Catalog (`fnew`)
 
 - Project templates are centralized in `cheatsheets/templates.tsv`: one per line (`url`, `tool`, `version`, `description`, tab-separated). The optional `version` column pins a template ref (e.g. `v1`), passed as `--vcs-ref` (Copier) or `--checkout` (Cruft) — useful when a template's default branch targets a different tool.

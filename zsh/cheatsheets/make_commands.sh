@@ -51,3 +51,9 @@ gmake lint                                   # Run all lint checks (Python + she
 gmake lint-py                                # Check Python code with ruff (PY_TARGETS="..." to scope)
 gmake lint-sh                                # Check shell scripts with shellcheck (SH_TARGETS="..." to scope)
 gmake lint-format                            # Auto-fix and format Python code with ruff
+
+# --- 8. TESTS (PYTEST) ---
+gmake test                                   # Run the whole test suite
+gmake test-fast                              # Run fast tests only, without external infrastructure (CI lane)
+gmake test-functional                        # Run functional tests (real local infra needed, e.g. .env, Docker, model)
+gmake test-gcp                               # Run tests hitting a real GCP environment (test/staging/prod)
