@@ -4,15 +4,14 @@ An automated workflow to build and import lightweight, reproducible, and pre-con
 
 ## Features
 
-- **Base OS:** Ubuntu 24.04 LTS (purged default `ubuntu` user, UID 1000 assigned to your user).
-- **Data Science Ready:** Pre-configured with `uv` (fast Python manager), and all necessary C/C++ build dependencies (`llvm`, `build-essential`, `libssl-dev`, etc.) to compile Cython and wheels flawlessly.
-- **Node.js Integration:** Includes `nvm` with lazy-loading and automatic `.nvmrc` version switching to keep shell startup instantaneous.
-- **Shell & Prompt:** Zsh powered by Oh-My-Zsh and Starship prompt with full XDG compliance (`$ZDOTDIR` located in `~/.config/zsh`).
-- **Modern CLI Stack:** Rust-based replacements (`eza`, `bat`, `fzf`, `fd-find`, `zoxide`, `ripgrep`, `tealdeer`) with dynamic fallback to standard POSIX tools.
-- **First-Boot Wizard:** Automatic interactive setup on first launch (user creation, password definition, `sudo` access, timezone configuration, auto-generated `/etc/wsl.conf` with **Systemd enabled**, and pre-fetching of the latest Python release and dev tools (`copier`, `cruft`, `ruff`)).
-- **Workspace Skeleton:** A `~/projects` directory is provisioned for every new user via `/etc/skel`, ready to host scaffolded projects.
-- **Interoperability:** Native Windows PATH integration preserved (Docker Desktop, VS Code CLI `code`, `explorer.exe`).
-- **Clean Skeletons:** `/etc/skel` permissions strictly set (`root:root`) with automatic removal of lingering `.zcompdump` caches.
+- **Reproducible** — one PowerShell command builds and imports a fresh Ubuntu 24.04 distro, identical every time.
+- **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls`, `cat`, and `grep` ([shell environment](#shell-environment-zsh)).
+- **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Ctrl + H`.
+- **Data Science ready** — `uv` for Python, a full build toolchain to compile any wheel, and CV/OCR libraries preinstalled.
+- **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog and bootstraps the virtual environment and direnv.
+- **MLOps from anywhere** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests ([global makefile](#mlops-global-makefile-gmake)).
+- **Minimal setup** — first boot asks for your username and timezone; sudo, systemd, Python, and dev tools arrive automatically.
+- **Windows interop preserved** — Docker Desktop, `code`, and `explorer.exe` keep working from inside the distro.
 
 ---
 
