@@ -52,52 +52,19 @@ The environment ships with a highly modular, global Makefile designed for Data S
   - Use `gmake <target>` to run the global MLOps tasks.
   - Use `make <target>` to run tasks from a local `Makefile` specific to your current project folder.
 
-### Lint
+The makefile is split into one module per domain under `cheatsheets/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
 
-- `gmake lint`: run all checks (Python + shell), non-destructive. Launched without a scope it asks for confirmation — once, even though it chains both checks.
-- `gmake lint-py` / `gmake lint-sh`: single-domain check (`PY_TARGETS` / `SH_TARGETS` to scope), same confirmation when launched bare.
-- `gmake lint-format`: auto-fix and format Python code.
-- `ruff` (installed at first boot via `uv tool`) and `shellcheck` (bundled in the image) — lint rules live in each project's `pyproject.toml`, only the tool lives on the machine.
-
-### Tests
-
-- `gmake test`: run the whole test suite.
-- `gmake test-fast`: fast lane only, no external infrastructure (the CI lane).
-- `gmake test-functional`: tests that need real local infrastructure (`.env`, Docker, a trained model...).
-- `gmake test-gcp`: tests that hit a real GCP environment (test/staging/prod).
-- The lanes rely on a marker convention (`functional`, `gcp`) declared in each project's `pyproject.toml` (`[tool.pytest.ini_options] markers`); unmarked tests run in every lane, so projects without the convention work out of the box. Unlike ruff, `pytest` lives in each project's virtual environment (`uv add --dev pytest`) since it must import the project's code and plugins.
-
-### Project Scaffolding (`fnew`)
-
-`fnew` scaffolds a new project from a curated catalog of templates: it fuzzy-picks one, asks for a project name, then delegates to the `copier_project` / `cruft_project` global targets — which bootstrap the virtual environment (auto-detecting uv-native and requirements.txt projects) and direnv along the way. The destination directory is always displayed and must be confirmed when you launch it outside `~/projects`.
-
-Type `fnew` anywhere:
-```console
-$ fnew
-# → fuzzy-pick a template from the catalog (description + pinned version shown)
-Project name: my-analysis
-📁 Creating project in: /home/you/projects/my-analysis
-🏗️  Scaffolding project with Copier...
-🎤 ...then answer the template's own questions (repo name, description...)...
-🐍 uv project detected (uv.lock or [project] table) — running uv sync...
-🪄 Configuring direnv...
-✅ Project my-analysis ready!
-```
-
-The catalog lives in `cheatsheets/templates.tsv` — one template per line, tab-separated:
-```tsv
-# One template per line:  <url> <TAB> <tool> <TAB> <version> <TAB> <description>
-gh:owner/python-copier-template-ds	copier		Data Science project template
-gh:owner/cookiecutter-data-science	cruft	v1	Community DS template (pinned to v1)
-```
-
-The optional `version` column pins a template ref (e.g. `v1`), passed as `--vcs-ref` (Copier) or `--checkout` (Cruft) — useful when a template's default branch targets a different tool. The catalog is re-scanned on every `fnew` call: add, edit, or remove lines to curate your own shortlist.
-
-To skip the interactive picker, call the underlying target directly:
-```bash
-gmake copier_project PROJECT_NAME=my-analysis PROJECT_TEMPLATE_REPO=gh:owner/python-copier-template-ds
-gmake cruft_project PROJECT_NAME=my-analysis PROJECT_TEMPLATE_REPO=gh:owner/cookiecutter-data-science PROJECT_TEMPLATE_VERSION=v1
-```
+| Stage | Module | Main targets |
+| :--- | :--- | :--- |
+| Create | [Project scaffolding](docs/make/project-setup.md) | `fnew`, `copier_project`, `cruft_project` |
+| Verify | [Lint](docs/make/lint.md) | `lint`, `lint-py`, `lint-sh`, `lint-format` |
+| Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
+| Operate | [GCP infrastructure & IAM](docs/make/gcp.md) | `gcp_project_list`, `gcs_*`, `iam_setup_service_account` |
+| Operate | [BigQuery](docs/make/bigquery.md) | `bigquery_*` |
+| Operate | [Docker & Artifact Registry](docs/make/docker.md) | `docker_*`, `artifact_registry_*` |
+| Deploy | [Cloud Run](docs/make/cloud_run.md) | `cloudrun_*` |
+| Operate | [Compute Engine (VMs)](docs/make/gcloud_compute.md) | `vm_*` |
+| Collaborate | [GitHub PRs](docs/make/github.md) | `gh_pr_*` |
 
 ---
 
@@ -170,7 +137,7 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 │   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
 │   │   ├── templates.tsv    # Curated project template catalog (fnew picker)
 │   │   ├── global_makefile.mk # Global entrypoint for the MLOps Makefile
-│   │   └── make/            # Modular Makefile rules (gcp, biquerry, cloud_run, lint, etc.)
+│   │   └── make/            # Modular Makefile rules (gcp, bigquery, cloud_run, lint, etc.)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing and persistence policies
@@ -185,6 +152,8 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 ├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
 ├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
 ├── build.ps1                # PowerShell build, export, safety checks, and import script
+├── docs/
+│   └── make/                # Per-module documentation for the global Makefile
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
 └── README.md
