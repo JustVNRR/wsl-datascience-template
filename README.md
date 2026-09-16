@@ -162,8 +162,8 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 
 1. **Clone the repository:**
    ```powershell
-   git clone [https://github.com:JustVNRR/wsl-datascience-template.git](https://github.com:JustVNRR/wsl-datascience-template.git)
-   cd wsl-ubuntu-datascience-template
+   git clone https://github.com/JustVNRR/wsl-datascience-template.git
+   cd wsl-datascience-template
    ```
 
 2. **Build and register the instance:**
