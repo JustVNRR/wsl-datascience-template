@@ -51,14 +51,25 @@ _ftemplate_select() {
 }
 
 # Scaffold a new project from the template catalog
-# 1. Fuzzy-pick a template (description shown, url + pinned version kept as data)
-# 2. Enter the project name
-# 3. Confirm the destination (explicit confirmation required outside ~/projects)
+# 1. Fail fast: confirm the location when outside ~/projects (before any input)
+# 2. Fuzzy-pick a template (description shown, url + pinned version kept as data)
+# 3. Enter the project name
 # 4. Delegate to the global Makefile (copier_project / cruft_project)
 #    to reuse the venv + direnv bootstrap defined there
 fnew() {
     local selection url tool version project_name remainder reply
     local -a make_args
+
+    # Destination guard: fail fast, before any interaction, when scaffolding
+    # outside ~/projects (the full destination is echoed again before make)
+    if [[ "$PWD" != "$HOME"/projects && "$PWD" != "$HOME"/projects/* ]]; then
+        echo "⚠  Current directory: $PWD (outside ~/projects)"
+        read "reply?Scaffold here anyway? [y/N] "
+        if [[ "$reply" != [yY] ]]; then
+            echo "❌ Aborted by user."
+            return 1
+        fi
+    fi
 
     selection=$(_ftemplate_select)
     [[ -z "$selection" ]] && return
@@ -81,18 +92,7 @@ fnew() {
         echo "Invalid name (use letters, digits, '.', '_' or '-'; no spaces)."
     done
 
-    # Destination guard: always show where the project lands, and require an
-    # explicit confirmation when scaffolding outside ~/projects
-    if [[ "$PWD" == "$HOME"/projects || "$PWD" == "$HOME"/projects/* ]]; then
-        echo "📁 Creating project in: $PWD/$project_name"
-    else
-        echo "⚠  Destination: $PWD/$project_name (outside ~/projects)"
-        read "reply?Proceed anyway? [y/N] "
-        if [[ "$reply" != [yY] ]]; then
-            echo "❌ Aborted by user."
-            return 1
-        fi
-    fi
+    echo "📁 Creating project in: $PWD/$project_name"
 
     make_args=("${tool}_project" "PROJECT_NAME=$project_name" "PROJECT_TEMPLATE_REPO=$url")
     if [[ -n "$version" ]]; then
