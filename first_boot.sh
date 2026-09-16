@@ -30,12 +30,8 @@ while ! passwd "$NEW_USER"; do
     echo "[ERROR] Password setup failed (mismatch or empty). Let's try again."
 done
 
-# Grant administrative privileges
+# Grant administrative privileges (sudo prompts for the account password)
 usermod -aG sudo "$NEW_USER"
-
-# Configure passwordless sudo for WSL convenience
-echo "$NEW_USER ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$NEW_USER"
-chmod 0440 "/etc/sudoers.d/$NEW_USER"
 
 echo ""
 echo "Configuring timezone..."

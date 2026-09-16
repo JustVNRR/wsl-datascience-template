@@ -9,7 +9,7 @@ An automated workflow to build and import lightweight, reproducible, and pre-con
 - **Node.js Integration:** Includes `nvm` with lazy-loading and automatic `.nvmrc` version switching to keep shell startup instantaneous.
 - **Shell & Prompt:** Zsh powered by Oh-My-Zsh and Starship prompt with full XDG compliance (`$ZDOTDIR` located in `~/.config/zsh`).
 - **Modern CLI Stack:** Rust-based replacements (`eza`, `bat`, `fzf`, `fd-find`, `zoxide`, `ripgrep`, `tealdeer`) with dynamic fallback to standard POSIX tools.
-- **First-Boot Wizard:** Automatic interactive setup on first launch (user creation, password definition, passwordless `sudo` access, timezone configuration, auto-generated `/etc/wsl.conf` with **Systemd enabled**, and pre-fetching of the latest Python release and dev tools (`copier`, `cruft`, `ruff`)).
+- **First-Boot Wizard:** Automatic interactive setup on first launch (user creation, password definition, `sudo` access, timezone configuration, auto-generated `/etc/wsl.conf` with **Systemd enabled**, and pre-fetching of the latest Python release and dev tools (`copier`, `cruft`, `ruff`)).
 - **Workspace Skeleton:** A `~/projects` directory is provisioned for every new user via `/etc/skel`, ready to host scaffolded projects.
 - **Interoperability:** Native Windows PATH integration preserved (Docker Desktop, VS Code CLI `code`, `explorer.exe`).
 - **Clean Skeletons:** `/etc/skel` permissions strictly set (`root:root`) with automatic removal of lingering `.zcompdump` caches.
@@ -157,7 +157,7 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 │   ├── scaffold.zsh         # Interactive project scaffolding picker (fnew)
 │   └── unzip.zsh            # Interactive archive extraction handler
 ├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
-├── first_boot.sh            # User creation, Systemd, passwordless sudo, Python setup
+├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
 ├── build.ps1                # PowerShell build, export, safety checks, and import script
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
@@ -187,7 +187,7 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
    ```
 
 3. **Complete onboarding:**
-   During build execution, the script will prompt you for your preferred username and timezone. The setup wizard will automatically assign passwordless `sudo`, configure `systemd`, and fetch the latest Python release via `uv`.
+   During build execution, the script will prompt you for your preferred username and timezone. The setup wizard will automatically add you to the `sudo` group, configure `systemd`, and fetch the latest Python release via `uv`.
 
 4. **Launch your session:**
    Once the script finishes and cleans up temporary build archives, launch your environment:
