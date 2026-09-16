@@ -1,4 +1,4 @@
-# Ubuntu WSL Data Science Template
+# WSL Data Science Template with OMZ & GCP
 
 A reproducible WSL2 workstation for data science, defined entirely in this repository: one PowerShell command builds a fresh Ubuntu 24.04 distro with the shell, the Python stack, and the GCP-oriented MLOps workflow already in place. The same environment can be rebuilt from scratch at any time.
 
@@ -24,6 +24,8 @@ A reproducible WSL2 workstation for data science, defined entirely in this repos
 ---
 
 ## Quick Start
+
+Make sure Docker Desktop is running before you start.
 
 1. **Clone the repository:**
    ```powershell
