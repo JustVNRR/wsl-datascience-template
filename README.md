@@ -19,26 +19,35 @@ An automated workflow to build and import lightweight, reproducible, and pre-con
 ## Bundled Software & Stack
 
 ### Core System & CLI Utilities
-- **Core:** `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `tzdata`, `nano`, `tree`, `strace`, `tar`, `unzip`, `gzip`, `xz-utils`, `zstd`.
-- **Search & Navigation:** `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep).
-- **Inspection & Display:** `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor).
-- **DevOps & Cloud:** `gh` (GitHub CLI), `direnv`, `shellcheck`, `google-cloud-sdk`, `sqlite3`.
+
+| Category | Tools |
+| :--- | :--- |
+| Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `tzdata`, `nano`, `tree`, `strace`, `tar`, `unzip`, `gzip`, `xz-utils`, `zstd` |
+| Search & navigation | `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep) |
+| Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor) |
+| DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `google-cloud-sdk`, `sqlite3` |
 
 ### Python & Data Science
-- **Managers:** `uv` (Astral's fast Python package manager).
-- **Build Libraries:** `build-essential`, `llvm`, `make`, `python3-dev`, `libssl-dev`, `zlib1g-dev`, `libbz2-dev`, `libreadline-dev`, `libsqlite3-dev`, `tk-dev`, `libffi-dev`, `liblzma-dev`.
-- **Computer Vision & OCR:** `ffmpeg`, `imagemagick`, `tesseract-ocr`, `libtesseract-dev`.
+
+| Category | Tools |
+| :--- | :--- |
+| Package manager | `uv` (Astral's fast Python package manager) |
+| Build libraries | `build-essential`, `llvm`, `make`, `python3-dev`, `libssl-dev`, `zlib1g-dev`, `libbz2-dev`, `libreadline-dev`, `libsqlite3-dev`, `tk-dev`, `libffi-dev`, `liblzma-dev` |
+| Computer Vision & OCR | `ffmpeg`, `imagemagick`, `tesseract-ocr`, `libtesseract-dev` |
 
 ### Oh My Zsh Plugins
-- **`git`:** Git aliases and completion hooks.
-- **`common-aliases`:** High-frequency shortcuts for common Unix commands.
-- **`history-substring-search`:** Type any string and navigate matching historical commands via arrow keys.
-- **`fzf`:** Official fuzzy completion engine bindings.
-- **`ssh-agent`:** Quiet, lazy-loading SSH identity manager.
-- **`last-working-dir` (`lwd`):** Automatically restores your last active directory upon opening a new shell.
-- **`direnv` / `docker` / `docker-compose`:** Autocompletion and integration for environment and container management.
-- **`zsh-autosuggestions`:** Fish-like history autosuggestions.
-- **`zsh-syntax-highlighting`:** Fast Fish-like syntax highlighting directly on the command line.
+
+| Plugin | Role |
+| :--- | :--- |
+| `git` | Git aliases and completion hooks |
+| `common-aliases` | High-frequency shortcuts for common Unix commands |
+| `history-substring-search` | Type any string, then navigate matching historical commands with the arrow keys |
+| `fzf` | Official fuzzy completion engine bindings |
+| `ssh-agent` | Quiet, lazy-loading SSH identity manager |
+| `last-working-dir` (`lwd`) | Restores your last active directory when opening a new shell |
+| `direnv` / `docker` / `docker-compose` | Autocompletion and integration for environment and container management |
+| `zsh-autosuggestions` | Fish-like history autosuggestions |
+| `zsh-syntax-highlighting` | Fish-like syntax highlighting, live on the command line |
 
 ---
 
@@ -97,22 +106,33 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 ## Custom Aliases & Functions
 
 ### System & Navigation
-- `b`: Go back to previous directory (`cd -`).
-- `ports`: Show active listening network sockets (`sudo lsof -i -P -n | grep LISTEN`).
-- `reload`: Re-source the primary configuration (`source ~/.config/zsh/.zshrc`).
-- `zsh_conf`: Open configuration directory in VS Code (`code ~/.config/zsh`).
+
+| Alias | Action |
+| :--- | :--- |
+| `b` | Go back to the previous directory (`cd -`) |
+| `ports` | Show active listening network sockets (`sudo lsof -i -P -n \| grep LISTEN`) |
+| `reload` | Re-source the primary configuration (`source ~/.config/zsh/.zshrc`) |
+| `zsh_conf` | Open the configuration directory in VS Code (`code ~/.config/zsh`) |
 
 ### Modern Utilities
-- `ls`: Aliased to `eza --icons` (with graceful fallback).
-- `ll`: Aliased to `eza -lh --icons --git`.
-- `la`: Aliased to `eza -lah --icons --git`.
-- `tree`: Aliased to `eza --tree --icons`.
-- `cat`: Aliased to `bat` (syntax-highlighted output).
-- `grep`: Aliased to `rg --color=auto`.
+
+| Alias | Runs |
+| :--- | :--- |
+| `ls` | `eza --icons` |
+| `ll` | `eza -lh --icons --git` |
+| `la` | `eza -lah --icons --git` |
+| `tree` | `eza --tree --icons` |
+| `cat` | `bat` (syntax-highlighted output) |
+| `grep` | `rg --color=auto` |
+
+Each alias is only set when its underlying tool is installed.
 
 ### Interactive Tools
-- `falias`: Interactive alias search using `fzf`. Shows alias definitions with inline formatting and loads selection directly into the prompt buffer.
-- `fnew`: Interactive project scaffolding. Fuzzy-pick a template from the catalog (`cheatsheets/templates.tsv`), name your project, and let the global Makefile bootstrap it.
+
+| Command | Action |
+| :--- | :--- |
+| `falias` | Interactive alias search using `fzf` — loads the selection directly into the prompt buffer |
+| `fnew` | Interactive project scaffolding — fuzzy-pick a template from the catalog, name your project, and let the global Makefile bootstrap it |
 
 ---
 
