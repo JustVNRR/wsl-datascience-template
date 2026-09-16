@@ -8,7 +8,10 @@
 #   - zsh -n on all zsh config files (syntax only, nothing is executed)
 #   - make on the global makefile: reading it parses every make/*.mk include,
 #     then the help menu is asserted (expected targets present, no doc drift
-#     between make_commands.sh and gmake help)
+#     between the *_commands.sh cheatsheets and gmake help)
+#   - module documentation coverage: every make/*.mk module must have a
+#     docs/make/<name>.md page, linked from the README index and listed in
+#     the README project tree; every gmake target must appear in a cheatsheet
 #   - templates.tsv format: fnew's awk silently skips malformed rows (NF < 4),
 #     so a broken line would just disappear from the picker — validate here
 
@@ -57,17 +60,56 @@ jobs:
           done
           exit $missing
 
-      - name: Cheatsheet doc drift (make_commands.sh vs gmake help)
+      - name: Cheatsheet doc drift (*_commands.sh vs gmake help)
         run: |
-          grep -oE 'gmake [a-zA-Z_-]+' zsh/cheatsheets/make_commands.sh |
+          grep -oE 'gmake [a-zA-Z_-]+' zsh/cheatsheets/*_commands.sh |
             awk '{print $2}' | sort -u > documented.txt
           missing=0
           while read -r target; do
             grep -q "^  ${target}[[:space:]]" help.txt || {
-              echo "::error::'${target}' documented in make_commands.sh but missing from gmake help"
+              echo "::error::'${target}' documented in a *_commands.sh cheatsheet but missing from gmake help"
               missing=1
             }
           done < documented.txt
+          exit $missing
+
+      - name: Module documentation coverage
+        run: |
+          missing=0
+          # A module is fully documented when: its doc page exists, the README
+          # index links it, and the README tree lists the .mk file
+          for mk in zsh/cheatsheets/make/*.mk; do
+            name=$(basename "$mk" .mk)
+            [ -f "docs/make/${name}.md" ] || {
+              echo "::error::module '${name}' has no doc page (docs/make/${name}.md)"
+              missing=1
+            }
+            grep -q "docs/make/${name}.md" README.md || {
+              echo "::error::doc page of module '${name}' not linked from the README index"
+              missing=1
+            }
+            grep -q "${name}.mk" README.md || {
+              echo "::error::'${name}.mk' missing from the README project structure tree"
+              missing=1
+            }
+          done
+          # No orphan doc pages either
+          for doc in docs/make/*.md; do
+            name=$(basename "$doc" .md)
+            [ -f "zsh/cheatsheets/make/${name}.mk" ] || {
+              echo "::error::orphan doc page: ${doc} has no matching module"
+              missing=1
+            }
+          done
+          # Every target visible in gmake help (except the menu itself) must
+          # be documented in a *_commands.sh cheatsheet
+          awk '/^  /{print $1}' help.txt | grep -vx -e help -e make > help_targets.txt
+          while read -r target; do
+            grep -q "gmake ${target}\b" zsh/cheatsheets/*_commands.sh || {
+              echo "::error::target '${target}' not documented in any *_commands.sh cheatsheet"
+              missing=1
+            }
+          done < help_targets.txt
           exit $missing
 
       - name: Template catalog integrity (templates.tsv)
