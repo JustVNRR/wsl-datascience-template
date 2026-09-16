@@ -18,8 +18,9 @@
 # Fail fast when pytest is missing from the active environment (project venv)
 define assert_pytest
 	@command -v pytest >/dev/null 2>&1 || { \
-		echo "❌ pytest is not installed in the active environment." >&2; \
-		echo "   Add it to the project: uv add --dev pytest" >&2; \
+		echo "❌ pytest not found." >&2; \
+		echo "   Make sure you're in the project folder and try again." >&2; \
+		echo "   Or add pytest to the project: uv add --dev pytest" >&2; \
 		exit 1; \
 	}
 endef
