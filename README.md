@@ -107,12 +107,12 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 
 ### System & Navigation
 
-| Alias | Action |
-| :--- | :--- |
-| `b` | Go back to the previous directory (`cd -`) |
-| `ports` | Show active listening network sockets (`sudo lsof -i -P -n \| grep LISTEN`) |
-| `reload` | Re-source the primary configuration (`source ~/.config/zsh/.zshrc`) |
-| `zsh_conf` | Open the configuration directory in VS Code (`code ~/.config/zsh`) |
+| Alias | Runs | Description |
+| :--- | :--- | :--- |
+| `b` | `cd -` | Go back to the previous directory |
+| `ports` | `sudo lsof -i -P -n \| grep LISTEN` | Show active listening network sockets |
+| `reload` | `source ~/.config/zsh/.zshrc` | Re-source the primary configuration |
+| `zsh_conf` | `code ~/.config/zsh` | Open the configuration directory in VS Code |
 
 ### Modern Utilities
 
