@@ -45,3 +45,9 @@ gmake gh_pr_create                           # Create a new Pull Request on GitH
 gmake gh_pr_toreview                         # Mark a Pull Request as ready for review
 gmake gh_pr_wip                              # Convert a Pull Request back to draft status (WIP)
 gmake gh_pr_ls                               # List all open Pull Requests in the repository
+
+# --- 7. LINT (RUFF & SHELLCHECK) ---
+gmake lint                                   # Run all lint checks (Python + shell), non-destructive
+gmake lint-py                                # Check Python code with ruff (PY_TARGETS="..." to scope)
+gmake lint-sh                                # Check shell scripts with shellcheck (SH_TARGETS="..." to scope)
+gmake lint-format                            # Auto-fix and format Python code with ruff

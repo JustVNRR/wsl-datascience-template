@@ -57,7 +57,7 @@ WSLCONF
 
 # Pre-fetch default Python version and install CLI tools via uv for the new user
 echo "Setting up default Python runtime and tools via uv..."
-su - "$NEW_USER" -c "uv python install 3 && uv tool install copier && uv tool install cruft"
+su - "$NEW_USER" -c "uv python install 3 && uv tool install copier && uv tool install cruft && uv tool install ruff"
 
 # Export username for build script display
 echo -n "$NEW_USER" > /tmp/installed_user

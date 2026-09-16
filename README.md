@@ -9,7 +9,7 @@ An automated workflow to build and import lightweight, reproducible, and pre-con
 - **Node.js Integration:** Includes `nvm` with lazy-loading and automatic `.nvmrc` version switching to keep shell startup instantaneous.
 - **Shell & Prompt:** Zsh powered by Oh-My-Zsh and Starship prompt with full XDG compliance (`$ZDOTDIR` located in `~/.config/zsh`).
 - **Modern CLI Stack:** Rust-based replacements (`eza`, `bat`, `fzf`, `fd-find`, `zoxide`, `ripgrep`, `tealdeer`) with dynamic fallback to standard POSIX tools.
-- **First-Boot Wizard:** Automatic interactive setup on first launch (user creation, password definition, passwordless `sudo` access, timezone configuration, auto-generated `/etc/wsl.conf` with **Systemd enabled**, and pre-fetching of the latest Python release).
+- **First-Boot Wizard:** Automatic interactive setup on first launch (user creation, password definition, passwordless `sudo` access, timezone configuration, auto-generated `/etc/wsl.conf` with **Systemd enabled**, and pre-fetching of the latest Python release and dev tools (`copier`, `cruft`, `ruff`)).
 - **Workspace Skeleton:** A `~/projects` directory is provisioned for every new user via `/etc/skel`, ready to host scaffolded projects.
 - **Interoperability:** Native Windows PATH integration preserved (Docker Desktop, VS Code CLI `code`, `explorer.exe`).
 - **Clean Skeletons:** `/etc/skel` permissions strictly set (`root:root`) with automatic removal of lingering `.zcompdump` caches.
@@ -51,6 +51,13 @@ The environment ships with a highly modular, global Makefile designed for Data S
   - Type `gmake` (without any arguments) anywhere to display a beautifully formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
   - Use `gmake <target>` to run the global MLOps tasks.
   - Use `make <target>` to run tasks from a local `Makefile` specific to your current project folder.
+
+### Lint
+
+- `gmake lint`: run all checks (Python + shell), non-destructive. Launched without a scope it asks for confirmation — once, even though it chains both checks.
+- `gmake lint-py` / `gmake lint-sh`: single-domain check (`PY_TARGETS` / `SH_TARGETS` to scope), same confirmation when launched bare.
+- `gmake lint-format`: auto-fix and format Python code.
+- `ruff` (installed at first boot via `uv tool`) and `shellcheck` (bundled in the image) — lint rules live in each project's `pyproject.toml`, only the tool lives on the machine.
 
 ### Template Catalog (`fnew`)
 
@@ -129,7 +136,7 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 │   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
 │   │   ├── templates.tsv    # Curated project template catalog (fnew picker)
 │   │   ├── global_makefile.mk # Global entrypoint for the MLOps Makefile
-│   │   └── make/            # Modular Makefile rules (gcp, biquerry, cloud_run, etc.)
+│   │   └── make/            # Modular Makefile rules (gcp, biquerry, cloud_run, lint, etc.)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing and persistence policies
