@@ -188,16 +188,13 @@ try {
     Write-Host ""
 
     Write-Host "============================================================" -ForegroundColor Magenta
-    Write-Host " ⚠️ UI REQUIRED ACTION: TERMINAL FONT CONFIGURATION" -ForegroundColor Magenta
+    Write-Host " ⚠️ UI ACTION REQUIRED: TERMINAL PROFILE APPEARANCE" -ForegroundColor Magenta
     Write-Host "============================================================" -ForegroundColor Magenta
-    Write-Host " To see the icons properly (no missing squares/tofu):"
-    Write-Host " 1. Open Windows Terminal settings (Ctrl + ,)"
-    Write-Host " 2. Select '$DistroName' profile on the left"
-    Write-Host " 3. Go to 'Appearance' > 'Font face'"
-    Write-Host " 4. Select 'MesloLGS NF' and save"
-    Write-Host " 5. Close your terminal"
-    Write-Host " 6. Reopen it"
-    Write-Host " 7. Click the dropdown arrow (v) next to the new tab button, and select '$DistroName'."
+    Write-Host " Icons, glyphs, and colors require a Nerd Font (already installed"
+    Write-Host " for you: MesloLGS NF) and a dark color scheme, both configured in"
+    Write-Host " the Windows Terminal profile of '$DistroName'."
+    Write-Host " Full walkthrough: README > Quick Start > 'Configure your Windows"
+    Write-Host " Terminal profile appearance'."
     Write-Host ""
 }
 catch {

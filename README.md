@@ -189,7 +189,16 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 3. **Complete onboarding:**
    During build execution, the script will prompt you for your preferred username and timezone. The setup wizard will automatically add you to the `sudo` group, configure `systemd`, and fetch the latest Python release via `uv`.
 
-4. **Launch your session:**
+4. **Configure your Windows Terminal profile appearance:**
+   The prompt (Starship) and file listings (`eza`) render icons, glyphs, and colors that Windows Terminal cannot display with its default settings. Open the terminal settings (`Ctrl + ,`), select the profile of your new distro, and adjust:
+
+   - **Font face — Nerd Font (required):** icons come from a [Nerd Font](https://www.nerdfonts.com/), a font patched with thousands of icons and symbols. The build script has already installed **MesloLGS NF** for the current Windows user (no admin rights needed) — just select it under **Appearance → Font face**. Any other Nerd Font from the site works too. Without one, every icon shows as a missing-glyph box (`□`).
+   - **Color scheme (recommended):** Starship and `eza` use the terminal's 16 ANSI colors, and the scheme decides which RGB values they map to — pick a dark one under **Appearance → Color scheme** (e.g. *One Half Dark*) so the prompt reads as intended.
+   - **Profile icon (optional):** the **Icon** field on the profile's main settings page accepts a path to any local image (`.png`, `.ico`) — handy to tell your distro apart in the tab bar, with the Ubuntu logo for instance.
+
+   Close and reopen the terminal if the changes do not apply immediately.
+
+5. **Launch your session:**
    Once the script finishes and cleans up temporary build archives, launch your environment:
    ```powershell
    wsl -d <DistroName>
