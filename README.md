@@ -162,7 +162,7 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 
 1. **Clone the repository:**
    ```powershell
-   git clone [https://github.com/JustVNRR/wsl-ubuntu-datascience-gcp-template.git](https://github.com/JustVNRR/wsl-ubuntu-datascience-template.git)
+   git clone [https://github.com:JustVNRR/wsl-datascience-template.git](https://github.com:JustVNRR/wsl-datascience-template.git)
    cd wsl-ubuntu-datascience-template
    ```
 
