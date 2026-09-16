@@ -16,24 +16,64 @@ An automated workflow to build and import lightweight, reproducible, and pre-con
 
 ---
 
-## Bundled Software & Stack
+## Prerequisites
 
-### Core System & CLI Utilities
+- Windows 10/11 with **WSL2** installed and enabled.
+- **Docker Desktop** (or Docker Engine running via WSL).
+- PowerShell 5.1+ or PowerShell 7+.
 
-| Category | Tools |
-| :--- | :--- |
-| Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `tzdata`, `nano`, `tree`, `strace`, `tar`, `unzip`, `gzip`, `xz-utils`, `zstd` |
-| Search & navigation | `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep) |
-| Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor) |
-| DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `google-cloud-sdk`, `sqlite3` |
+---
 
-### Python & Data Science
+## Quick Start
 
-| Category | Tools |
-| :--- | :--- |
-| Package manager | `uv` (Astral's fast Python package manager) |
-| Build libraries | `build-essential`, `llvm`, `make`, `python3-dev`, `libssl-dev`, `zlib1g-dev`, `libbz2-dev`, `libreadline-dev`, `libsqlite3-dev`, `tk-dev`, `libffi-dev`, `liblzma-dev` |
-| Computer Vision & OCR | `ffmpeg`, `imagemagick`, `tesseract-ocr`, `libtesseract-dev` |
+1. **Clone the repository:**
+   ```powershell
+   git clone https://github.com/JustVNRR/wsl-datascience-template.git
+   cd wsl-datascience-template
+   ```
+
+2. **Build and register the instance:**
+
+   Default build (creates `ubuntu-datascience-build` installed at `D:\WSL\ubuntu-datascience-build`):
+   ```powershell
+   .\build.ps1
+   ```
+
+   Custom instance name and path:
+   ```powershell
+   .\build.ps1 -DistroName "ubuntu-ml-dev" -InstallPath "D:\WSL\ubuntu-ml-dev"
+   ```
+
+3. **Complete onboarding:**
+   During build execution, the script will prompt you for your preferred username and timezone. The setup wizard will automatically add you to the `sudo` group, configure `systemd`, and fetch the latest Python release via `uv`.
+
+4. **Configure your Windows Terminal profile appearance:**
+   Close and reopen Windows Terminal first — a freshly imported distro only appears in the profile list after a restart. Then open the settings (`Ctrl + ,`), select your distro's profile, and set:
+
+   | Setting | Value | Notes |
+   | :--- | :--- | :--- |
+   | **Appearance → Font face** | `MesloLGS NF` | Required for icons — without a [Nerd Font](https://www.nerdfonts.com/) they render as boxes. Already installed by the build script; any other Nerd Font works too. |
+   | **Appearance → Color scheme** | Your choice | Dark or light — just check the prompt stays readable. |
+   | Icon (profile page) | Any local image | Optional — e.g. the Ubuntu logo, to spot the profile in the tab bar. |
+
+5. **Launch your session:**
+   Once the script finishes and cleans up temporary build archives, launch your environment:
+   ```powershell
+   wsl -d <DistroName>
+   ```
+
+---
+
+## Shell Environment (zsh)
+
+The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
+
+| Topic | Doc | Highlights |
+| :--- | :--- | :--- |
+| Plugins | [Oh My Zsh plugins](docs/zsh/plugins.md) | `git`, `fzf`, autosuggestions, syntax highlighting |
+| Keybindings | [ZLE shortcuts](docs/zsh/keybindings.md) | fuzzy-open in VS Code, insert paths, aliases, cheatsheet commands |
+| Aliases | [Custom aliases](docs/zsh/aliases.md) | modern `ls` / `cat` / `grep`, `ports`, `reload` |
+| Interactive tools | [fzf-powered commands](docs/zsh/interactive.md) | fuzzy navigation, git pickers, `fcheat`, `extract` |
 
 ---
 
@@ -63,26 +103,24 @@ The makefile is split into one module per domain under `cheatsheets/make/`, each
 
 ---
 
-## Shell Environment (zsh)
+## Bundled Software & Stack
 
-The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
+### Core System & CLI Utilities
 
-| Topic | Doc | Highlights |
-| :--- | :--- | :--- |
-| Plugins | [Oh My Zsh plugins](docs/zsh/plugins.md) | `git`, `fzf`, autosuggestions, syntax highlighting |
-| Keybindings | [ZLE shortcuts](docs/zsh/keybindings.md) | fuzzy-open in VS Code, insert paths, aliases, cheatsheet commands |
-| Aliases | [Custom aliases](docs/zsh/aliases.md) | modern `ls` / `cat` / `grep`, `ports`, `reload` |
-| Interactive tools | [fzf-powered commands](docs/zsh/interactive.md) | fuzzy navigation, git pickers, `fcheat`, `extract` |
+| Category | Tools |
+| :--- | :--- |
+| Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `tzdata`, `nano`, `tree`, `strace`, `tar`, `unzip`, `gzip`, `xz-utils`, `zstd` |
+| Search & navigation | `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep) |
+| Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor) |
+| DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `google-cloud-sdk`, `sqlite3` |
 
----
+### Python & Data Science
 
----
-
-## Prerequisites
-
-- Windows 10/11 with **WSL2** installed and enabled.
-- **Docker Desktop** (or Docker Engine running via WSL).
-- PowerShell 5.1+ or PowerShell 7+.
+| Category | Tools |
+| :--- | :--- |
+| Package manager | `uv` (Astral's fast Python package manager) |
+| Build libraries | `build-essential`, `llvm`, `make`, `python3-dev`, `libssl-dev`, `zlib1g-dev`, `libbz2-dev`, `libreadline-dev`, `libsqlite3-dev`, `tk-dev`, `libffi-dev`, `liblzma-dev` |
+| Computer Vision & OCR | `ffmpeg`, `imagemagick`, `tesseract-ocr`, `libtesseract-dev` |
 
 ---
 
@@ -130,46 +168,6 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
 └── README.md
 ```
-
----
-
-## Quick Start
-
-1. **Clone the repository:**
-   ```powershell
-   git clone https://github.com/JustVNRR/wsl-datascience-template.git
-   cd wsl-datascience-template
-   ```
-
-2. **Build and register the instance:**
-
-   Default build (creates `ubuntu-datascience-build` installed at `D:\WSL\ubuntu-datascience-build`):
-   ```powershell
-   .\build.ps1
-   ```
-
-   Custom instance name and path:
-   ```powershell
-   .\build.ps1 -DistroName "ubuntu-ml-dev" -InstallPath "D:\WSL\ubuntu-ml-dev"
-   ```
-
-3. **Complete onboarding:**
-   During build execution, the script will prompt you for your preferred username and timezone. The setup wizard will automatically add you to the `sudo` group, configure `systemd`, and fetch the latest Python release via `uv`.
-
-4. **Configure your Windows Terminal profile appearance:**
-   Close and reopen Windows Terminal first — a freshly imported distro only appears in the profile list after a restart. Then open the settings (`Ctrl + ,`), select your distro's profile, and set:
-
-   | Setting | Value | Notes |
-   | :--- | :--- | :--- |
-   | **Appearance → Font face** | `MesloLGS NF` | Required for icons — without a [Nerd Font](https://www.nerdfonts.com/) they render as boxes. Already installed by the build script; any other Nerd Font works too. |
-   | **Appearance → Color scheme** | Your choice | Dark or light — just check the prompt stays readable. |
-   | Icon (profile page) | Any local image | Optional — e.g. the Ubuntu logo, to spot the profile in the tab bar. |
-
-5. **Launch your session:**
-   Once the script finishes and cleans up temporary build archives, launch your environment:
-   ```powershell
-   wsl -d <DistroName>
-   ```
 
 ---
 
