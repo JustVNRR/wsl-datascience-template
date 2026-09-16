@@ -31,7 +31,9 @@ Make sure Docker Desktop is running before you start.
    ```powershell
    git clone https://github.com/JustVNRR/wsl-datascience-template.git
    cd wsl-datascience-template
+   cp zsh/cheatsheets/.env.global.sample zsh/cheatsheets/.env.global
    ```
+   The copy is your local, gitignored global configuration — fill in your region and zone at your convenience.
 
 2. **Build and register the instance:**
 
@@ -82,7 +84,7 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
 The environment ships with a highly modular, global Makefile designed for Data Science and GCP workflows, accessible from anywhere via the `gmake` alias.
 
-- **`.env.global` Cascading Configuration:** The global workflow relies on a cascading environment variable pattern. It first loads `.env.global` (the configuration contract containing empty or safe default values). If a local `.env` file exists in your current working directory, it will automatically override the global values for that specific project.
+- **Cascading configuration:** every `gmake` invocation loads `.env.global` (your shared defaults: region, VM image, memory) and then the current project's `.env`, which always wins. Only values shared across all projects belong in the global — anything identifying a project (GCP project, resource names) lives in its `.env`. Both files are gitignored and start from committed samples in `cheatsheets/` (`.env.global.sample`, `.env.project.sample`).
 - **`gmake` vs `make`:** 
   - Type `gmake` (without any arguments) anywhere to display a beautifully formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
   - Use `gmake <target>` to run the global MLOps tasks.
@@ -134,7 +136,8 @@ The makefile is split into one module per domain under `cheatsheets/make/`, each
 │   ├── bindings.zsh         # ZLE widgets and keybindings
 │   ├── cheatsheet.zsh       # Interactive cheatsheet selector (fcheat)
 │   ├── cheatsheets/         # Auto-scanned directory for CTRL+H and global Makefile
-│   │   ├── .env.global      # Global fallback environment variables for MLOps
+│   │   ├── .env.global.sample  # Shared-defaults contract (copy to .env.global, gitignored)
+│   │   ├── .env.project.sample # Per-project contract (copy into a project as .env)
 │   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
 │   │   ├── templates.tsv    # Curated project template catalog (fnew picker)
 │   │   ├── global_makefile.mk # Global entrypoint for the MLOps Makefile

@@ -14,3 +14,8 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Local environment files (filled-in copies of the *.sample contracts)
+.env
+.env.*
+!*.sample
