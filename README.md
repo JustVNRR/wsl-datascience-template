@@ -10,6 +10,7 @@ An automated workflow to build and import lightweight, reproducible, and pre-con
 - **Shell & Prompt:** Zsh powered by Oh-My-Zsh and Starship prompt with full XDG compliance (`$ZDOTDIR` located in `~/.config/zsh`).
 - **Modern CLI Stack:** Rust-based replacements (`eza`, `bat`, `fzf`, `fd-find`, `zoxide`, `ripgrep`, `tealdeer`) with dynamic fallback to standard POSIX tools.
 - **First-Boot Wizard:** Automatic interactive setup on first launch (user creation, password definition, passwordless `sudo` access, timezone configuration, auto-generated `/etc/wsl.conf` with **Systemd enabled**, and pre-fetching of the latest Python release).
+- **Workspace Skeleton:** A `~/projects` directory is provisioned for every new user via `/etc/skel`, ready to host scaffolded projects.
 - **Interoperability:** Native Windows PATH integration preserved (Docker Desktop, VS Code CLI `code`, `explorer.exe`).
 - **Clean Skeletons:** `/etc/skel` permissions strictly set (`root:root`) with automatic removal of lingering `.zcompdump` caches.
 
@@ -54,7 +55,7 @@ The environment ships with a highly modular, global Makefile designed for Data S
 ### Template Catalog (`fnew`)
 
 - Project templates are centralized in `cheatsheets/templates.tsv`: one per line (`url`, `tool`, `version`, `description`, tab-separated). The optional `version` column pins a template ref (e.g. `v1`), passed as `--vcs-ref` (Copier) or `--checkout` (Cruft) — useful when a template's default branch targets a different tool.
-- Type `fnew` anywhere to fuzzy-pick a template from the catalog, enter your project name, and scaffold it. `fnew` delegates to the `copier_project` / `cruft_project` global targets (virtual environment + direnv bootstrap included).
+- Type `fnew` anywhere to fuzzy-pick a template from the catalog, enter your project name, and scaffold it. `fnew` delegates to the `copier_project` / `cruft_project` global targets (virtual environment + direnv bootstrap included). The destination directory is always displayed and must be confirmed when you are outside `~/projects`.
 - The catalog is re-scanned on every `fnew` call: add, edit, or remove lines to curate your own shortlist.
 
 ---

@@ -53,10 +53,11 @@ _ftemplate_select() {
 # Scaffold a new project from the template catalog
 # 1. Fuzzy-pick a template (description shown, url + pinned version kept as data)
 # 2. Enter the project name
-# 3. Delegate to the global Makefile (copier_project / cruft_project)
+# 3. Confirm the destination (explicit confirmation required outside ~/projects)
+# 4. Delegate to the global Makefile (copier_project / cruft_project)
 #    to reuse the venv + direnv bootstrap defined there
 fnew() {
-    local selection url tool version project_name remainder
+    local selection url tool version project_name remainder reply
     local -a make_args
 
     selection=$(_ftemplate_select)
@@ -79,6 +80,19 @@ fnew() {
         fi
         echo "Invalid name (use letters, digits, '.', '_' or '-'; no spaces)."
     done
+
+    # Destination guard: always show where the project lands, and require an
+    # explicit confirmation when scaffolding outside ~/projects
+    if [[ "$PWD" == "$HOME"/projects || "$PWD" == "$HOME"/projects/* ]]; then
+        echo "📁 Creating project in: $PWD/$project_name"
+    else
+        echo "⚠  Destination: $PWD/$project_name (outside ~/projects)"
+        read "reply?Proceed anyway? [y/N] "
+        if [[ "$reply" != [yY] ]]; then
+            echo "❌ Aborted by user."
+            return 1
+        fi
+    fi
 
     make_args=("${tool}_project" "PROJECT_NAME=$project_name" "PROJECT_TEMPLATE_REPO=$url")
     if [[ -n "$version" ]]; then

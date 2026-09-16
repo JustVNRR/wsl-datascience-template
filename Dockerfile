@@ -122,6 +122,7 @@ RUN echo 'export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"' > /etc/skel/.z
     && mkdir -p /etc/skel/.ssh \
     && mkdir -p /etc/skel/.local/state/zsh \
     && mkdir -p /etc/skel/.cache/zsh \
+    && mkdir -p /etc/skel/projects \
     && chmod 700 /etc/skel/.ssh
 
 # 6. Deploy first-boot onboarding script and trigger it via root bashrc
