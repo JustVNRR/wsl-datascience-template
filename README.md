@@ -214,11 +214,13 @@ Each alias is only set when its underlying tool is installed.
    During build execution, the script will prompt you for your preferred username and timezone. The setup wizard will automatically add you to the `sudo` group, configure `systemd`, and fetch the latest Python release via `uv`.
 
 4. **Configure your Windows Terminal profile appearance:**
-   The prompt (Starship) and file listings (`eza`) render icons, glyphs, and colors that Windows Terminal cannot display with its default settings. Close and reopen Windows Terminal first — a freshly imported distro only appears in the settings profile list after a restart. Then open the settings (`Ctrl + ,`), select your distro's profile, and adjust:
+   Close and reopen Windows Terminal first — a freshly imported distro only appears in the profile list after a restart. Then open the settings (`Ctrl + ,`), select your distro's profile, and set:
 
-   - **Font face — Nerd Font (required):** icons come from a [Nerd Font](https://www.nerdfonts.com/), a font patched with thousands of icons and symbols. The build script has already installed **MesloLGS NF** for the current Windows user (no admin rights needed) — just select it under **Appearance → Font face**. Any other Nerd Font from the site works too. Without one, every icon shows as a missing-glyph box (`□`).
-   - **Color scheme (your choice):** Starship and `eza` emit named ANSI colors, and the scheme decides which RGB values they map to — dark or light, any well-designed scheme works, the prompt simply follows the terminal palette. The only pitfall is on light backgrounds, where some mappings (e.g. yellow or white) can look washed out — under **Appearance → Color scheme**, pick one whose 16 colors contrast well with its background.
-   - **Profile icon (optional):** the **Icon** field on the profile's main settings page accepts a path to any local image (`.png`, `.ico`) — handy to tell your distro apart in the tab bar, with the Ubuntu logo for instance.
+   | Setting | Value | Notes |
+   | :--- | :--- | :--- |
+   | **Appearance → Font face** | `MesloLGS NF` | Required for icons — without a [Nerd Font](https://www.nerdfonts.com/) they render as boxes. Already installed by the build script; any other Nerd Font works too. |
+   | **Appearance → Color scheme** | Your choice | Dark or light — just check the prompt stays readable. |
+   | Icon (profile page) | Any local image | Optional — e.g. the Ubuntu logo, to spot the profile in the tab bar. |
 
 5. **Launch your session:**
    Once the script finishes and cleans up temporary build archives, launch your environment:
