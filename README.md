@@ -35,20 +35,6 @@ An automated workflow to build and import lightweight, reproducible, and pre-con
 | Build libraries | `build-essential`, `llvm`, `make`, `python3-dev`, `libssl-dev`, `zlib1g-dev`, `libbz2-dev`, `libreadline-dev`, `libsqlite3-dev`, `tk-dev`, `libffi-dev`, `liblzma-dev` |
 | Computer Vision & OCR | `ffmpeg`, `imagemagick`, `tesseract-ocr`, `libtesseract-dev` |
 
-### Oh My Zsh Plugins
-
-| Plugin | Role |
-| :--- | :--- |
-| `git` | Git aliases and completion hooks |
-| `common-aliases` | High-frequency shortcuts for common Unix commands |
-| `history-substring-search` | Type any string, then navigate matching historical commands with the arrow keys |
-| `fzf` | Official fuzzy completion engine bindings |
-| `ssh-agent` | Quiet, lazy-loading SSH identity manager |
-| `last-working-dir` (`lwd`) | Restores your last active directory when opening a new shell |
-| `direnv` / `docker` / `docker-compose` | Autocompletion and integration for environment and container management |
-| `zsh-autosuggestions` | Fish-like history autosuggestions |
-| `zsh-syntax-highlighting` | Fish-like syntax highlighting, live on the command line |
-
 ---
 
 ## MLOps Global Makefile (`gmake`)
@@ -77,62 +63,18 @@ The makefile is split into one module per domain under `cheatsheets/make/`, each
 
 ---
 
-## Keybindings (ZLE Keyboard Shortcuts)
+## Shell Environment (zsh)
 
-The environment comes with custom ZLE widgets bound to ergonomic keyboard combinations:
+The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
-### VS Code Integrations (Host Interop)
-| Shortcut | Action | Description |
+| Topic | Doc | Highlights |
 | :--- | :--- | :--- |
-| `Alt + o` | Fuzzy-open visible file | Interactively search visible files and open the selected item in VS Code |
-| `Alt + a` | Fuzzy-open any file | Interactively search all files (including hidden/dotfiles) and open in VS Code |
-| `Alt + Shift + C` | Open Zsh Config | Directly open `$ZDOTDIR` (`~/.config/zsh`) in VS Code |
-| `Alt + r` | Open History File | Directly open the persistent `$HISTFILE` in VS Code |
-
-### Prompt Buffer Insertions & Helpers
-| Shortcut | Action | Description |
-| :--- | :--- | :--- |
-| `Ctrl + F` | Insert file path | Fuzzy-find a file path and insert it at the current cursor position (`LBUFFER`) |
-| `Ctrl + A` | Insert alias (`falias`) | Interactively pick an alias from a fuzzy menu and insert it into the prompt |
-| `Ctrl + H` | Insert cheatsheet (`fcheat`) | Search and inject a saved cheatsheet command. |
-
-**Note:**
-
-- At every Zsh startup, the `cheatsheets/` directory is scanned.
-- You can add, edit, or remove files in this folder to dynamically customize the commands available in the menu.
+| Plugins | [Oh My Zsh plugins](docs/zsh/plugins.md) | `git`, `fzf`, autosuggestions, syntax highlighting |
+| Keybindings | [ZLE shortcuts](docs/zsh/keybindings.md) | fuzzy-open in VS Code, insert paths, aliases, cheatsheet commands |
+| Aliases | [Custom aliases](docs/zsh/aliases.md) | modern `ls` / `cat` / `grep`, `ports`, `reload` |
+| Interactive tools | [fzf-powered commands](docs/zsh/interactive.md) | fuzzy navigation, git pickers, `fcheat`, `extract` |
 
 ---
-
-## Custom Aliases & Functions
-
-### System & Navigation
-
-| Alias | Runs | Description |
-| :--- | :--- | :--- |
-| `b` | `cd -` | Go back to the previous directory |
-| `ports` | `sudo lsof -i -P -n \| grep LISTEN` | Show active listening network sockets |
-| `reload` | `source ~/.config/zsh/.zshrc` | Re-source the primary configuration |
-| `zsh_conf` | `code ~/.config/zsh` | Open the configuration directory in VS Code |
-
-### Modern Utilities
-
-| Alias | Runs |
-| :--- | :--- |
-| `ls` | `eza --icons` |
-| `ll` | `eza -lh --icons --git` |
-| `la` | `eza -lah --icons --git` |
-| `tree` | `eza --tree --icons` |
-| `cat` | `bat` (syntax-highlighted output) |
-| `grep` | `rg --color=auto` |
-
-Each alias is only set when its underlying tool is installed.
-
-### Interactive Tools
-
-| Command | Action |
-| :--- | :--- |
-| `falias` | Interactive alias search using `fzf` — loads the selection directly into the prompt buffer |
-| `fnew` | Interactive project scaffolding — fuzzy-pick a template from the catalog, name your project, and let the global Makefile bootstrap it |
 
 ---
 
@@ -182,7 +124,8 @@ Each alias is only set when its underlying tool is installed.
 ├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
 ├── build.ps1                # PowerShell build, export, safety checks, and import script
 ├── docs/
-│   └── make/                # Per-module documentation for the global Makefile
+│   ├── make/                # Per-module documentation for the global Makefile
+│   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
 └── README.md
