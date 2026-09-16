@@ -10,6 +10,7 @@ gmake cloudrun_url                           # Fetch public URL of the deployed 
 gmake cloudrun_delete                        # Delete Cloud Run service
 
 # --- 2. GOOGLE BIGQUERY ---
+gmake bigquery_create_dataset                # Create the BigQuery dataset
 gmake bigquery_create_table                  # Create a new table in BigQuery
 gmake bigquery_show                          # Inspect table or dataset metadata
 gmake bigquery_delete_table                  # Delete a specific table in BigQuery
