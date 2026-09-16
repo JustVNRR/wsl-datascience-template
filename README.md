@@ -137,7 +137,16 @@ The environment comes with custom ZLE widgets bound to ergonomic keyboard combin
 │   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
 │   │   ├── templates.tsv    # Curated project template catalog (fnew picker)
 │   │   ├── global_makefile.mk # Global entrypoint for the MLOps Makefile
-│   │   └── make/            # Modular Makefile rules (gcp, bigquery, cloud_run, lint, etc.)
+│   │   └── make/            # One Makefile module per domain (documented in docs/make/)
+│   │       ├── project-setup.mk   # copier/cruft scaffolding + venv/direnv bootstrap
+│   │       ├── lint.mk            # ruff (Python) + shellcheck (shell) checks
+│   │       ├── tests.mk           # pytest lanes (fast / functional / gcp)
+│   │       ├── gcp.mk             # GCP projects, Cloud Storage buckets, IAM
+│   │       ├── bigquery.mk        # BigQuery datasets & tables
+│   │       ├── docker.mk          # Local/prod Docker builds, Artifact Registry
+│   │       ├── cloud_run.mk       # Cloud Run deploy, logs, URL
+│   │       ├── gcloud_compute.mk  # Compute Engine VM lifecycle
+│   │       └── github.mk          # GitHub PR workflow (gh CLI)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing and persistence policies
