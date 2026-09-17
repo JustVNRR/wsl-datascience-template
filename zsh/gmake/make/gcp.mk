@@ -2,6 +2,32 @@
 # GCP INFRASTRUCTURE & IAM COMMANDS
 # ==============================================================================
 
+gcp_auth_cli: ## Authenticate the gcloud CLI (gcloud, bq) with your Google account
+	@echo "🔑 Opening the Google login for the gcloud CLI..."
+	gcloud auth login
+
+gcp_auth_libs: ## Authenticate the Python client libraries (application-default credentials)
+	@echo "🔑 Opening the Google login for the application-default credentials..."
+	gcloud auth application-default login
+
+gcp_enable_global_env: ## Create .env.global (shared defaults) from the committed sample
+	@if [ -f $(THIS_DIR)/.env.global ]; then \
+		echo "ℹ️  $(THIS_DIR)/.env.global already exists — nothing done."; \
+	else \
+		echo "📝 Creating $(THIS_DIR)/.env.global from the sample..."; \
+		cp $(THIS_DIR)/.env.global.sample $(THIS_DIR)/.env.global; \
+		echo "✏️  Fill GCP_REGION and ZONE at minimum."; \
+	fi
+
+gcp_enable_project_env: ## Create the current project's .env from the sample (run from the project root)
+	@if [ -f .env ]; then \
+		echo "ℹ️  ./.env already exists — nothing done."; \
+	else \
+		echo "📝 Creating ./.env from the sample..."; \
+		cp $(THIS_DIR)/.env.project.sample .env; \
+		echo "✏️  Fill GCP_PROJECT at minimum."; \
+	fi
+
 gcp_project_list: ## List all GCP projects available to your account
 	@echo "📋 Listing GCP projects..."
 	gcloud projects list

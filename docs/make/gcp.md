@@ -12,6 +12,10 @@ New to GCP entirely? Start with the [onboarding guide](../gcp/onboarding.md).
 
 | Target | Action | Confirmation |
 |---|---|---|
+| `gcp_auth_cli` | Authenticate the gcloud CLI (`gcloud`, `bq`) with your Google account | — |
+| `gcp_auth_libs` | Authenticate the Python client libraries (application-default credentials) | — |
+| `gcp_enable_global_env` | Create `.env.global` (shared defaults) from the committed sample | — |
+| `gcp_enable_project_env` | Create the current project's `.env` from the sample (run from the project root) | — |
 | `gcp_project_list` | List all GCP projects available to your account | — |
 | `gcp_enable_compute` | Enable the Compute Engine API for the project | ⚠️ |
 | `gcp_enable_storage` | Enable the Cloud Storage API for the project | ⚠️ |

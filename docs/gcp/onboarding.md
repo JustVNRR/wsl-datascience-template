@@ -16,7 +16,7 @@ company project, ask your administrator for the roles of the modules you use.
 one-time login authorizes them.
 
 ```bash
-gcloud auth login
+gmake gcp_auth_cli
 ```
 
 A browser window opens (WSL interop — if none opens, copy the URL gcloud
@@ -35,7 +35,7 @@ Lists the projects your account can access — your first successful call.
 Once per machine — your shared defaults, from the committed sample:
 
 ```bash
-cp ~/.config/zsh/gmake/.env.global.sample ~/.config/zsh/gmake/.env.global
+gmake gcp_enable_global_env
 ```
 
 then fill `GCP_REGION` and `ZONE` at minimum.
@@ -43,7 +43,7 @@ then fill `GCP_REGION` and `ZONE` at minimum.
 Once per project — its identity, in the project folder:
 
 ```bash
-cp ~/.config/zsh/gmake/.env.project.sample ~/projects/<your-project-folder>/.env
+gmake gcp_enable_project_env
 ```
 
 then fill `GCP_PROJECT` at minimum; add each module's variables as you need
@@ -72,7 +72,7 @@ use their own credential, separate from step 1: the *application-default
 credentials*. This one-time login creates it.
 
 ```bash
-gcloud auth application-default login
+gmake gcp_auth_libs
 ```
 
 If `GOOGLE_APPLICATION_CREDENTIALS` is set in `.env.global`, the libraries
