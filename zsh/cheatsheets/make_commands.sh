@@ -3,11 +3,16 @@
 # ==========================================
 
 # --- 1. GOOGLE CLOUD RUN ---
-gmake cloudrun_deploy                        # Deploy container to Google Cloud Run
+gmake cloudrun_deploy                        # Deploy container to Cloud Run (private by default; CLOUDRUN_PUBLIC=true for a public URL)
 gmake cloudrun_logs                          # View and stream Cloud Run service logs
 gmake cloudrun_list                          # List all active Cloud Run services
 gmake cloudrun_url                           # Fetch public URL of the deployed API service
 gmake cloudrun_delete                        # Delete Cloud Run service
+
+# --- 1-B. CALLING A PRIVATE SERVICE (authenticated access) ---
+curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" <SERVICE_URL> # Call a private Cloud Run service (identity token of the current account)
+gcloud run services add-iam-policy-binding <SERVICE> --member=user:<EMAIL> --role=roles/run.invoker --region=<REGION> # Grant a user access to a private service
+gcloud run services remove-iam-policy-binding <SERVICE> --member=allUsers --role=roles/run.invoker --region=<REGION> # Make an already-deployed public service private again
 
 # --- 2. GOOGLE BIGQUERY ---
 gmake bigquery_create_dataset                # Create the BigQuery dataset

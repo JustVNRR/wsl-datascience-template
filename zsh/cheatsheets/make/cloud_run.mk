@@ -2,16 +2,21 @@
 # CLOUD RUN COMMANDS
 # ==============================================================================
 
-cloudrun_deploy: ## Deploy the container to Google Cloud Run
+# Access mode for cloudrun_deploy: CLOUDRUN_PUBLIC=true (project .env) exposes
+# a public URL; empty or any other value deploys a private, authenticated service.
+CLOUDRUN_IS_PUBLIC = $(filter true True TRUE,$(CLOUDRUN_PUBLIC))
+CLOUDRUN_UNAUTH_FLAG = $(if $(CLOUDRUN_IS_PUBLIC),--allow-unauthenticated,--no-allow-unauthenticated)
+
+cloudrun_deploy: ## Deploy the container to Cloud Run (private unless CLOUDRUN_PUBLIC=true)
 	$(call check_vars, GAR_IMAGE GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_MEMORY)
-	$(call confirm_action, Déploiement Cloud Run, GAR_IMAGE GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_MEMORY)
-	@echo "🚀 Deploying $(GAR_IMAGE) to Cloud Run..."
+	$(call confirm_action, Déploiement Cloud Run, GAR_IMAGE GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_MEMORY CLOUDRUN_PUBLIC)
+	@echo "🚀 Deploying $(GAR_IMAGE) to Cloud Run ($(if $(CLOUDRUN_IS_PUBLIC),public,private))..."
 	gcloud run deploy $(GAR_IMAGE) \
 		--image $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod \
 		--memory $(GAR_MEMORY) \
 		--region $(GCP_REGION) \
 		--project $(GCP_PROJECT) \
-		--allow-unauthenticated
+		$(CLOUDRUN_UNAUTH_FLAG)
 
 cloudrun_list: ## List all active Cloud Run services in the project
 	$(call check_vars, GCP_PROJECT)
