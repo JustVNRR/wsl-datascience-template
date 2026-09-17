@@ -162,6 +162,7 @@ The makefile is split into one module per domain under `gmake/make/`, each docum
 ├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
 ├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
 ├── build.ps1                # PowerShell build, export, safety checks, and import script
+├── unregister.ps1           # Counterpart removal: distro, install folder, Terminal leftovers
 ├── docs/
 │   ├── gcp/                 # GCP onboarding guide (accounts, auth, first steps)
 │   ├── make/                # Per-module documentation for the global Makefile
@@ -175,7 +176,8 @@ The makefile is split into one module per domain under `gmake/make/`, each docum
 
 ## Maintenance & Removal
 
-To completely delete and unregister an instance (warning: this permanently deletes all data inside the instance):
+To completely delete an instance and everything it left behind (warning: this permanently deletes all data inside the instance), use the build script's counterpart:
 ```powershell
-wsl --unregister <DistroName>
+.\unregister.ps1 -DistroName <DistroName>
 ```
+It unregisters the distro, deletes its installation folder, and cleans the Windows Terminal leftovers (ghost profile entries, appearance fragments). It also works after a manual `wsl --unregister`, in leftovers-only mode.
