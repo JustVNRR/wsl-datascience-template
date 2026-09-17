@@ -102,10 +102,10 @@ gcs_create_bucket: ## Create a new Cloud Storage bucket
 		--project=$(GCP_PROJECT)
 
 gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
-	$(call check_vars, BUCKET_NAME)
-	$(call confirm_action, Suppression DÉFINITIVE du Bucket et de son contenu, BUCKET_NAME)
+	$(call check_vars, BUCKET_NAME GCP_PROJECT)
+	$(call confirm_action, Suppression DÉFINITIVE du Bucket et de son contenu, BUCKET_NAME GCP_PROJECT)
 	@echo "💣 Deleting bucket gs://$(BUCKET_NAME)..."
-	gcloud storage rm --recursive gs://$(BUCKET_NAME)
+	gcloud storage rm --recursive gs://$(BUCKET_NAME) --project=$(GCP_PROJECT)
 
 iam_setup_service_account: ## Create the Service Account and assign IAM roles
 	$(call check_vars, SA_NAME GCP_PROJECT SA_EMAIL)
