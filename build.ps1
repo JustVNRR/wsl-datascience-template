@@ -193,6 +193,8 @@ try {
         }
     }
 
+    $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+
     # Prune ghost profiles: every rebuild orphans the previous profile into the
     # user's settings.json (Terminal persists it when its source disappears).
     # Remove this distro's entries that match no live WSL fragment. If Terminal
@@ -220,9 +222,24 @@ try {
         }
     }
 
+    # Prune our own fragment files whose distro no longer exists (same rule:
+    # the target guid must be live). One file per distro, named <DistroName>.json,
+    # so several distros can carry the template appearance side by side.
+    if ((Test-Path $OurFragmentDir) -and ($LiveGuids.Count -gt 0)) {
+        foreach ($File in (Get-ChildItem $OurFragmentDir -Filter *.json)) {
+            try {
+                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
+                $Target = ($Fragment.profiles | Where-Object { $_.updates } | Select-Object -First 1).updates
+                if ($Target -and ($LiveGuids -notcontains $Target)) {
+                    Remove-Item $File.FullName -Force
+                    Write-Host "  * Terminal profile : removed stale fragment $($File.Name)" -ForegroundColor Green
+                }
+            } catch { }
+        }
+    }
+
     if ($ProfileGuid) {
         $IconPath = Join-Path $InstallPath "terminal-icon.png"
-        $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
         New-Item -ItemType Directory -Force $OurFragmentDir | Out-Null
         # Layered over WSL's own profile via "updates"; the user's settings.json
         # is never touched. UTF-8 matters: PowerShell's default encoding is not.
@@ -239,7 +256,7 @@ try {
     ]
 }
 "@
-        Set-Content -Path (Join-Path $OurFragmentDir "profile.json") -Value $FragmentJson -Encoding Utf8
+        Set-Content -Path (Join-Path $OurFragmentDir "$DistroName.json") -Value $FragmentJson -Encoding Utf8
         Write-Host "  * Terminal profile : icon + font + color scheme + tab title applied (profile $ProfileGuid)" -ForegroundColor Green
         $TerminalProfileOk = $true
     } else {
