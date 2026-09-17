@@ -40,10 +40,10 @@ extract() {
             *.tbz2)      tar xvjf "$target" -C "$dest_dir"    ;;
             *.tgz)       tar xvzf "$target" -C "$dest_dir"    ;;
             *.zip)       unzip "$target" -d "$dest_dir"       ;;
-            *.Z)         cp "$target" "$dest_dir/" && uncompress "$dest_dir/$(basename "$target")" ;;
+            *.Z)         cp "$target" "$dest_dir/" && gunzip "$dest_dir/$(basename "$target")" ;;
             *.7z)        7z x "$target" -o"$dest_dir"         ;;
-            *.xz)        cp "$target" "$dest_dir/" && unxz "$dest_dir/$(basename "$target")" ;;
             *.tar.xz)    tar xvf "$target" -C "$dest_dir"     ;;
+            *.xz)        cp "$target" "$dest_dir/" && unxz "$dest_dir/$(basename "$target")" ;;
             *)
                 echo "❌ Unsupported archive format: '$target'" >&2
                 rmdir "$dest_dir" 2>/dev/null

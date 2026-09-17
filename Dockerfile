@@ -44,9 +44,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     openssh-client \
     strace \
+    lsof \
     tree \
     tar \
     unzip \
+    bzip2 \
+    unrar \
+    p7zip-full \
     gzip \
     xz-utils \
     zstd \
@@ -58,13 +62,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fzf \
     gh \
     jq \
-    python3-pygments \
     ripgrep \
     shellcheck \
     zoxide \
     # Cloud & Database CLI
     google-cloud-cli \
-    google-cloud-cli-app-engine-python \
     sqlite3 \
     # Build tools for compiling Python wheels & C-extensions
     build-essential \

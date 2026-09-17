@@ -112,7 +112,7 @@ The makefile is split into one module per domain under `cheatsheets/make/`, each
 
 | Category | Tools |
 | :--- | :--- |
-| Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `tzdata`, `nano`, `tree`, `strace`, `tar`, `unzip`, `gzip`, `xz-utils`, `zstd` |
+| Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `tzdata`, `nano`, `tree`, `strace`, `lsof`, `tar`, `unzip`, `bzip2`, `unrar`, `p7zip-full`, `gzip`, `xz-utils`, `zstd` |
 | Search & navigation | `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep) |
 | Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor) |
 | DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `google-cloud-sdk`, `sqlite3` |
