@@ -47,7 +47,9 @@ gmake gcp_enable_project_env
 ```
 
 then fill `GCP_PROJECT` at minimum; add each module's variables as you need
-them.
+them. If the project already has a `.env` of its own (e.g. for Docker), only
+the missing gmake variables are appended — existing values are never touched.
+From the parent folder, add `PROJECT_NAME=<folder>`.
 
 `gmake` always passes `--project` explicitly, so you never need
 `gcloud config set project` — the `.env` file is the single source of truth.

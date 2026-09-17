@@ -19,13 +19,24 @@ gcp_enable_global_env: ## Create .env.global (shared defaults) from the committe
 		echo "✏️  Fill GCP_REGION and ZONE at minimum."; \
 	fi
 
-gcp_enable_project_env: ## Create the current project's .env from the sample (run from the project root)
-	@if [ -f .env ]; then \
-		echo "ℹ️  ./.env already exists — nothing done."; \
-	else \
-		echo "📝 Creating ./.env from the sample..."; \
-		cp $(THIS_DIR)/.env.project.sample .env; \
+# Destination of gcp_enable_project_env: PROJECT_NAME (run from the parent folder) or the current directory
+PROJECT_ENV_DIR = $(if $(PROJECT_NAME),$(PROJECT_NAME),.)
+
+gcp_enable_project_env: ## Add the gmake variables to a project's .env, creating it if absent (opt: PROJECT_NAME)
+	@if [ ! -f $(PROJECT_ENV_DIR)/.env ]; then \
+		echo "📝 Creating $(PROJECT_ENV_DIR)/.env from the sample..."; \
+		cp $(THIS_DIR)/.env.project.sample $(PROJECT_ENV_DIR)/.env; \
 		echo "✏️  Fill GCP_PROJECT at minimum."; \
+	else \
+		missing=$$(awk -F= 'FNR==NR { if ($$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/) seen[$$1]=1; next } $$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/ && !($$1 in seen)' $(PROJECT_ENV_DIR)/.env $(THIS_DIR)/.env.project.sample); \
+		if [ -z "$$missing" ]; then \
+			echo "ℹ️  $(PROJECT_ENV_DIR)/.env already defines every gmake variable — nothing to add."; \
+		else \
+			echo "📝 Adding missing gmake variables to $(PROJECT_ENV_DIR)/.env..."; \
+			printf '\n# --- gmake variables (added by gcp_enable_project_env) ---\n' >> $(PROJECT_ENV_DIR)/.env; \
+			printf '%s\n' "$$missing" >> $(PROJECT_ENV_DIR)/.env; \
+			echo "✏️  Fill the variables you need — examples in $(THIS_DIR)/.env.project.sample."; \
+		fi; \
 	fi
 
 gcp_project_list: ## List all GCP projects available to your account
