@@ -171,6 +171,49 @@ try {
     Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor Cyan
     $FontAlreadyConfigured = Install-NerdFont
 
+    Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, tab title)..." -ForegroundColor Cyan
+    Copy-Item "$RepoRoot\assets\terminal-icon.png" "$InstallPath\terminal-icon.png" -Force
+
+    # Find the distro's Terminal profile GUID: WSL writes one fragment file per
+    # distro under Fragments\Microsoft.WSL (named {guid}.json, containing the
+    # profile). The guid is stable per distro name, but sort newest-first
+    # defensively in case stale files linger.
+    $WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
+    $ProfileGuid = $null
+    if (Test-Path $WslFragmentsDir) {
+        foreach ($File in (Get-ChildItem $WslFragmentsDir -Filter *.json | Sort-Object LastWriteTime -Descending)) {
+            try {
+                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
+                $Match = $Fragment.profiles | Where-Object { $_.name -eq $DistroName -and $_.guid }
+                if ($Match) { $ProfileGuid = $Match.guid; break }
+            } catch { }
+        }
+    }
+
+    if ($ProfileGuid) {
+        $IconPath = Join-Path $InstallPath "terminal-icon.png"
+        $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+        New-Item -ItemType Directory -Force $OurFragmentDir | Out-Null
+        # Layered over WSL's own profile via "updates"; the user's settings.json
+        # is never touched. UTF-8 matters: PowerShell's default encoding is not.
+        $FragmentJson = @"
+{
+    "profiles": [
+        {
+            "updates": "$ProfileGuid",
+            "icon": "$($IconPath -replace '\\','\\')",
+            "font": { "face": "MesloLGS NF" },
+            "suppressApplicationTitle": true
+        }
+    ]
+}
+"@
+        Set-Content -Path (Join-Path $OurFragmentDir "profile.json") -Value $FragmentJson -Encoding Utf8
+        Write-Host "  * Terminal profile : icon + font + tab title applied (profile $ProfileGuid)" -ForegroundColor Green
+    } else {
+        Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor Yellow
+    }
+
     Clear-Host
     Write-Host "============================================================" -ForegroundColor Green
     Write-Host "       WSL Data Science Instance Successfully Deployed!     " -ForegroundColor Green
@@ -188,13 +231,10 @@ try {
     Write-Host ""
 
     Write-Host "============================================================" -ForegroundColor Magenta
-    Write-Host " /!\ UI ACTION REQUIRED: TERMINAL PROFILE APPEARANCE" -ForegroundColor Magenta
+    Write-Host " /!\ UI ACTION REQUIRED: COLOR SCHEME" -ForegroundColor Magenta
     Write-Host "============================================================" -ForegroundColor Magenta
-    Write-Host " Icons, glyphs, and colors require a Nerd Font (already installed"
-    Write-Host " for you: MesloLGS NF) and a dark color scheme, both configured in"
-    Write-Host " the Windows Terminal profile of '$DistroName'."
-    Write-Host " Full walkthrough: README > Quick Start > 'Configure your Windows"
-    Write-Host " Terminal profile appearance'."
+    Write-Host " Pick a color scheme in the '$DistroName' profile settings (Ctrl+,)."
+    Write-Host " Font, icon, and tab title are already configured."
     Write-Host ""
 }
 catch {

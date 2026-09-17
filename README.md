@@ -10,7 +10,7 @@ A reproducible WSL2 workstation for data science, defined entirely in this repos
 - **Data Science ready** — `uv` for Python, a full build toolchain to compile any wheel, and CV/OCR libraries preinstalled.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog and bootstraps the virtual environment and direnv.
 - **MLOps from anywhere** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests ([global makefile](#mlops-global-makefile-gmake)).
-- **Minimal setup** — first boot asks for your username and timezone; sudo, systemd, Python, and dev tools arrive automatically.
+- **Minimal setup** — first boot asks for your username and timezone; sudo, systemd, Python, and dev tools arrive automatically, and the Windows Terminal profile (font, icon, tab title) is configured for you.
 - **Windows interop preserved** — Docker Desktop, `code`, and `explorer.exe` keep working from inside the distro.
 
 ---
@@ -50,14 +50,8 @@ Make sure Docker Desktop is running before you start.
 3. **Complete onboarding:**
    During build execution, the script will prompt you for your preferred username and timezone. The setup wizard will automatically add you to the `sudo` group, configure `systemd`, and fetch the latest Python release via `uv`.
 
-4. **Configure your Windows Terminal profile appearance:**
-   Close and reopen Windows Terminal first — a freshly imported distro only appears in the profile list after a restart. Then open the settings (`Ctrl + ,`), select your distro's profile, and set:
-
-   | Setting | Value | Notes |
-   | :--- | :--- | :--- |
-   | **Appearance → Font face** | `MesloLGS NF` | Required for icons — without a [Nerd Font](https://www.nerdfonts.com/) they render as boxes. Already installed by the build script; any other Nerd Font works too. |
-   | **Appearance → Color scheme** | Your choice | Dark or light — just check the prompt stays readable. |
-   | Icon (profile page) | Any local image | Optional — e.g. the Ubuntu logo, to spot the profile in the tab bar. |
+4. **Pick a color scheme in Windows Terminal:**
+   Close and reopen Windows Terminal first — a freshly imported distro only appears in the profile list after a restart. Then open the settings (`Ctrl + ,`), select your distro's profile, and choose an **Appearance → Color scheme** — dark or light, just check the prompt stays readable. Everything else is already done: the build installed the [Nerd Font](https://www.nerdfonts.com/) (`MesloLGS NF`, required for icons) and applied the profile's font, icon, and tab title automatically.
 
 5. **Launch your session:**
    Once the script finishes and cleans up temporary build archives, launch your environment:
@@ -166,6 +160,8 @@ The makefile is split into one module per domain under `gmake/make/`, each docum
 │   ├── python.zsh           # uv autocompletion
 │   ├── scaffold.zsh         # Interactive project scaffolding picker (fnew)
 │   └── unzip.zsh            # Interactive archive extraction handler
+├── assets/
+│   └── terminal-icon.png    # Default Windows Terminal profile icon (copied next to the VHDX)
 ├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
 ├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
 ├── build.ps1                # PowerShell build, export, safety checks, and import script
