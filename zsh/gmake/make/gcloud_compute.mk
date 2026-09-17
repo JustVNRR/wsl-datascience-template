@@ -15,23 +15,23 @@ vm_create: ## Create the VM (run iam_setup_service_account first if it needs GCP
 		--service-account=$(SA_EMAIL) \
 		--scopes=https://www.googleapis.com/auth/cloud-platform
 
-vm_setup: ## Send and execute the setup script on the VM
-	$(call check_vars, INSTANCE GCP_PROJECT ZONE PYTHON_VERSION VENV_NAME)
-	$(call confirm_action, Exécution du script d'installation sur la VM, INSTANCE GCP_PROJECT PYTHON_VERSION)
-	@echo "📦 Sending setup script to VM..."
-	gcloud compute scp scripts/setup_vm.sh $(INSTANCE):~/ \
+vm_run_script: ## Send and execute a shell script from the project on the VM (req: VM_SCRIPT)
+	$(call check_vars, INSTANCE GCP_PROJECT ZONE VM_SCRIPT)
+	$(call confirm_action, Exécution d'un script sur la VM, INSTANCE GCP_PROJECT ZONE VM_SCRIPT)
+	@echo "📦 Sending $(VM_SCRIPT) to VM..."
+	gcloud compute scp $(VM_SCRIPT) $(INSTANCE):~/ \
 		--project=$(GCP_PROJECT) \
 		--zone=$(ZONE)
-	@echo "⚙️ Executing script on the VM..."
+	@echo "⚙️ Executing on the VM (the script stays there if it fails)..."
 	gcloud compute ssh $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
 		--zone=$(ZONE) \
-		--command="bash ~/setup_vm.sh $(PYTHON_VERSION) $(VENV_NAME)"
-	@echo "🗑️ Cleaning up script on the VM..."
+		--command="bash ~/$(notdir $(VM_SCRIPT))"
+	@echo "🗑️ Cleaning up on the VM..."
 	gcloud compute ssh $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
 		--zone=$(ZONE) \
-		--command="rm ~/setup_vm.sh"
+		--command="rm ~/$(notdir $(VM_SCRIPT))"
 
 vm_connect: ## Connect to the VM via SSH with agent forwarding
 	$(call check_vars, INSTANCE GCP_PROJECT ZONE)

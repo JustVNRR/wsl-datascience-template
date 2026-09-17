@@ -32,7 +32,7 @@ gmake docker_push_prod                       # Push production image to Artifact
 
 # --- 4. GOOGLE COMPUTE ENGINE (VM) ---
 gmake vm_create                              # Provision a new Compute Engine virtual machine
-gmake vm_setup                               # Install and configure dependencies on the VM
+gmake vm_run_script                          # Send and execute a shell script from the project on the VM (VM_SCRIPT=...)
 gmake vm_connect                             # Open an SSH session into the virtual machine
 gmake vm_start                               # Start a stopped virtual machine instance
 gmake vm_stop                                # Gracefully shut down the virtual machine

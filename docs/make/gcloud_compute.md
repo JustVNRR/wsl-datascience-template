@@ -10,14 +10,17 @@ at every step.
 | Target | Action | Confirmation |
 |---|---|---|
 | `vm_create` | Create the VM (call `iam_setup_service_account` separately if it needs GCP API access) | ⚠️ billed |
-| `vm_setup` | Send and execute the setup script on the VM | ⚠️ |
+| `vm_run_script` | Send and execute a shell script from the project on the VM | ⚠️ |
 | `vm_connect` | Connect to the VM via SSH with agent forwarding | — |
 | `vm_start` | Start the VM (CPU billing resumes) | — |
 | `vm_stop` | Stop the VM (CPU no longer billed) | — |
 | `vm_delete` | Delete the VM permanently | ⚠️ destructive |
 
-`vm_setup` expects `scripts/setup_vm.sh` in the project and runs it on the
-VM with `$(PYTHON_VERSION)` and `$(VENV_NAME)`.
+`vm_run_script` sends a script of your choice (`VM_SCRIPT`, path relative to
+the project root) to the VM and executes it — the project owns the script, so
+put it in the repo (e.g. `scripts/setup_vm.sh`). The script is removed from
+the VM after a successful run, and left in place if it fails so you can SSH
+in and debug.
 
 The VM runs as the service account `$(SA_EMAIL)`, which is not provisioned
 automatically: when the VM needs GCP API access (BigQuery, Cloud Storage),
@@ -34,5 +37,4 @@ run [`iam_setup_service_account`](gcp.md) first.
 | `IMAGE_FAMILY` | `vm_create` | `ubuntu-2204-lts` (default) |
 | `IMAGE_PROJECT` | `vm_create` | `ubuntu-os-cloud` (default) |
 | `SA_NAME` | `vm_create`, `iam_setup_service_account` | `my-project-vm-sa` |
-| `PYTHON_VERSION` | `vm_setup` | `3.10` |
-| `VENV_NAME` | `vm_setup` | `.venv` |
+| `VM_SCRIPT` | `vm_run_script` | `scripts/setup_vm.sh` |

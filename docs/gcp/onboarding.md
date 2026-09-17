@@ -90,9 +90,8 @@ its full flow.
 - **Cloud Run** ([`cloud_run.md`](../make/cloud_run.md)): deploy a pushed
   image; services are private unless `CLOUDRUN_PUBLIC=true`.
 - **VMs** ([`gcloud_compute.md`](../make/gcloud_compute.md)): create, connect,
-  and set up the machine — `vm_setup` sends `scripts/setup_vm.sh` from your
-  project to the VM, and the template does not ship that file, so write a
-  small bootstrap script when you need it.
+  and set up the machine — `vm_run_script` sends a script of your choice
+  (`VM_SCRIPT=...`) from the project to the VM; the project owns the script.
 - **BigQuery** ([`bigquery.md`](../make/bigquery.md)): create the dataset,
   then the tables.
 
