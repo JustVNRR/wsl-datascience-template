@@ -41,6 +41,11 @@ gmake vm_delete                              # Permanently terminate and delete 
 # --- 5. GOOGLE CLOUD PLATFORM (GCP - GENERAL) ---
 gmake gcp_project_list                       # List all accessible GCP projects
 gmake gcp_enable_compute                     # Enable Compute Engine API for the active project
+gmake gcp_enable_storage                     # Enable Cloud Storage API for the active project
+gmake gcp_enable_bigquery                    # Enable BigQuery API for the active project
+gmake gcp_enable_cloudrun                    # Enable Cloud Run API for the active project
+gmake gcp_enable_artifact_registry           # Enable Artifact Registry API for the active project
+gmake gcp_enable_apis                        # Enable all the APIs used by the template modules at once
 gmake gcs_list_buckets                       # List all Google Cloud Storage (GCS) buckets
 gmake gcs_create_bucket                      # Provision a new Cloud Storage bucket
 gmake gcs_delete_bucket                      # Delete a Cloud Storage bucket

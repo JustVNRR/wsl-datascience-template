@@ -6,12 +6,19 @@ Projects, Cloud Storage buckets, and service accounts — the ground floor of
 the GCP modules. All targets read the cascading `.env.global` / `.env`
 configuration.
 
+New to GCP entirely? Start with the [onboarding guide](../gcp/onboarding.md).
+
 ## Targets
 
 | Target | Action | Confirmation |
 |---|---|---|
 | `gcp_project_list` | List all GCP projects available to your account | — |
 | `gcp_enable_compute` | Enable the Compute Engine API for the project | ⚠️ |
+| `gcp_enable_storage` | Enable the Cloud Storage API for the project | ⚠️ |
+| `gcp_enable_bigquery` | Enable the BigQuery API for the project | ⚠️ |
+| `gcp_enable_cloudrun` | Enable the Cloud Run API for the project | ⚠️ |
+| `gcp_enable_artifact_registry` | Enable the Artifact Registry API for the project | ⚠️ |
+| `gcp_enable_apis` | Enable every API the gmake modules use (the five above at once) | ⚠️ |
 | `gcs_list_buckets` | List all Cloud Storage buckets in the project | — |
 | `gcs_create_bucket` | Create a new Cloud Storage bucket | ⚠️ |
 | `gcs_delete_bucket` | Delete a bucket **and all its contents** | ⚠️ destructive |
