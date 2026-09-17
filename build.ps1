@@ -188,7 +188,7 @@ try {
     Write-Host ""
 
     Write-Host "============================================================" -ForegroundColor Magenta
-    Write-Host " ⚠️ UI ACTION REQUIRED: TERMINAL PROFILE APPEARANCE" -ForegroundColor Magenta
+    Write-Host " /!\ UI ACTION REQUIRED: TERMINAL PROFILE APPEARANCE" -ForegroundColor Magenta
     Write-Host "============================================================" -ForegroundColor Magenta
     Write-Host " Icons, glyphs, and colors require a Nerd Font (already installed"
     Write-Host " for you: MesloLGS NF) and a dark color scheme, both configured in"
