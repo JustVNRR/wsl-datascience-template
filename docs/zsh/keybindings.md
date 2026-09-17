@@ -19,7 +19,7 @@ Custom ZLE widgets bound to ergonomic combinations. Defined in
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
 | `Ctrl + F` | Insert file path | Fuzzy-find a file path and insert it at the current cursor position (`LBUFFER`) |
-| `Ctrl + A` | Insert alias (`falias`) | Interactively pick an alias from a fuzzy menu and insert it into the prompt |
+| `Ctrl + G` | Insert alias (`falias`) | Interactively pick an alias from a fuzzy menu and insert it into the prompt |
 | `Ctrl + H` | Insert cheatsheet (`fcheat`) | Search and inject a saved cheatsheet command |
 
 The fuzzy pickers behind these bindings are documented in

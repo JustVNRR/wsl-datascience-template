@@ -52,9 +52,9 @@ _fzf_file_no_hidden() {
 zle -N _fzf_file_no_hidden
 bindkey '^F' _fzf_file_no_hidden
 
-# Ctrl + A: Insert an alias at the current cursor position
+# Ctrl + G: Insert an alias at the current cursor position
 zle -N _falias_widget
-bindkey '^A' _falias_widget
+bindkey '^G' _falias_widget
 
 # Ctrl + H: Load a cheatsheet command directly into the prompt buffer
 zle -N _fcheat_widget

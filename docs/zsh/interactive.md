@@ -26,7 +26,7 @@ and aliases — plus a smart archive extractor.
 | Command | Action |
 | :--- | :--- |
 | `fcheat` | Fuzzy-search the `cheatsheets/*.sh` command lists and load a command into the prompt (also `Ctrl + H`) |
-| `falias` | Fuzzy-search your aliases and load one into the prompt (also `Ctrl + A`) |
+| `falias` | Fuzzy-search your aliases and load one into the prompt (also `Ctrl + G`) |
 
 The `cheatsheets/` directory is scanned at every shell startup: add, edit,
 or remove files there to curate your own command menu.
