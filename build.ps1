@@ -171,7 +171,7 @@ try {
     Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor Cyan
     $FontAlreadyConfigured = Install-NerdFont
 
-    Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, tab title)..." -ForegroundColor Cyan
+    Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor Cyan
     Copy-Item "$RepoRoot\assets\terminal-icon.png" "$InstallPath\terminal-icon.png" -Force
 
     # Find the distro's Terminal profile GUID: WSL writes one fragment file per
@@ -203,15 +203,18 @@ try {
             "updates": "$ProfileGuid",
             "icon": "$($IconPath -replace '\\','\\')",
             "font": { "face": "MesloLGS NF" },
+            "colorScheme": "One Half Dark",
             "suppressApplicationTitle": true
         }
     ]
 }
 "@
         Set-Content -Path (Join-Path $OurFragmentDir "profile.json") -Value $FragmentJson -Encoding Utf8
-        Write-Host "  * Terminal profile : icon + font + tab title applied (profile $ProfileGuid)" -ForegroundColor Green
+        Write-Host "  * Terminal profile : icon + font + color scheme + tab title applied (profile $ProfileGuid)" -ForegroundColor Green
+        $TerminalProfileOk = $true
     } else {
         Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor Yellow
+        $TerminalProfileOk = $false
     }
 
     Clear-Host
@@ -222,19 +225,18 @@ try {
     Write-Host "  * Distribution Name : " -NoNewline; Write-Host "$DistroName" -ForegroundColor Cyan
     Write-Host "  * Default User      : " -NoNewline; Write-Host "$ConfiguredUser" -ForegroundColor Cyan
     Write-Host "  * Install Path      : " -NoNewline; Write-Host "$InstallPath" -ForegroundColor DarkGray
+    Write-Host "  * Terminal profile  : " -NoNewline
+    if ($TerminalProfileOk) {
+        Write-Host "icon, font, color scheme, tab title (restart Windows Terminal to load)" -ForegroundColor Green
+    } else {
+        Write-Host "not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor Yellow
+    }
     Write-Host ""
 
     Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
     Write-Host "To launch your session, run:" -ForegroundColor Yellow
     Write-Host "  wsl -d $DistroName" -ForegroundColor White
     Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host ""
-
-    Write-Host "============================================================" -ForegroundColor Magenta
-    Write-Host " /!\ UI ACTION REQUIRED: COLOR SCHEME" -ForegroundColor Magenta
-    Write-Host "============================================================" -ForegroundColor Magenta
-    Write-Host " Pick a color scheme in the '$DistroName' profile settings (Ctrl+,)."
-    Write-Host " Font, icon, and tab title are already configured."
     Write-Host ""
 }
 catch {
