@@ -45,7 +45,7 @@ jobs:
 
       - name: Makefile parse + help menu
         run: |
-          make -f zsh/cheatsheets/global_makefile.mk help |
+          make -f zsh/gmake/global_makefile.mk help |
             sed 's/\x1b\[[0-9;]*m//g' > help.txt
           missing=0
           for target in test test-fast test-functional test-gcp \
@@ -78,7 +78,7 @@ jobs:
           missing=0
           # A module is fully documented when: its doc page exists, the README
           # index links it, and the README tree lists the .mk file
-          for mk in zsh/cheatsheets/make/*.mk; do
+          for mk in zsh/gmake/make/*.mk; do
             name=$(basename "$mk" .mk)
             [ -f "docs/make/${name}.md" ] || {
               echo "::error::module '${name}' has no doc page (docs/make/${name}.md)"
@@ -96,7 +96,7 @@ jobs:
           # No orphan doc pages either
           for doc in docs/make/*.md; do
             name=$(basename "$doc" .md)
-            [ -f "zsh/cheatsheets/make/${name}.mk" ] || {
+            [ -f "zsh/gmake/make/${name}.mk" ] || {
               echo "::error::orphan doc page: ${doc} has no matching module"
               missing=1
             }

@@ -99,5 +99,5 @@ fnew() {
         make_args+=("PROJECT_TEMPLATE_VERSION=$version")
     fi
 
-    make -f "$ZDOTDIR/cheatsheets/global_makefile.mk" "${make_args[@]}"
+    make -f "$ZDOTDIR/gmake/global_makefile.mk" "${make_args[@]}"
 }

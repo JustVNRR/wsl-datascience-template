@@ -31,7 +31,7 @@ Make sure Docker Desktop is running before you start.
    ```powershell
    git clone https://github.com/JustVNRR/wsl-datascience-template.git
    cd wsl-datascience-template
-   cp zsh/cheatsheets/.env.global.sample zsh/cheatsheets/.env.global
+   cp zsh/gmake/.env.global.sample zsh/gmake/.env.global
    ```
    The copy is your local, gitignored global configuration — fill in your region and zone at your convenience.
 
@@ -84,13 +84,13 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
 The environment ships with a highly modular, global Makefile designed for Data Science and GCP workflows, accessible from anywhere via the `gmake` alias.
 
-- **Cascading configuration:** every `gmake` invocation loads `.env.global` (your shared defaults: region, VM image, memory) and then the current project's `.env`, which always wins. Only values shared across all projects belong in the global — anything identifying a project (GCP project, resource names) lives in its `.env`. Both files are gitignored and start from committed samples in `cheatsheets/` (`.env.global.sample`, `.env.project.sample`).
+- **Cascading configuration:** every `gmake` invocation loads `.env.global` (your shared defaults: region, VM image, memory) and then the current project's `.env`, which always wins. Only values shared across all projects belong in the global — anything identifying a project (GCP project, resource names) lives in its `.env`. Both files are gitignored and start from committed samples in `gmake/` (`.env.global.sample`, `.env.project.sample`).
 - **`gmake` vs `make`:** 
   - Type `gmake` (without any arguments) anywhere to display a beautifully formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
   - Use `gmake <target>` to run the global MLOps tasks.
   - Use `make <target>` to run tasks from a local `Makefile` specific to your current project folder.
 
-The makefile is split into one module per domain under `cheatsheets/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
+The makefile is split into one module per domain under `gmake/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
@@ -135,11 +135,12 @@ The makefile is split into one module per domain under `cheatsheets/make/`, each
 │   ├── aliases.zsh          # Custom shortcuts and interactive falias picker
 │   ├── bindings.zsh         # ZLE widgets and keybindings
 │   ├── cheatsheet.zsh       # Interactive cheatsheet selector (fcheat)
-│   ├── cheatsheets/         # Auto-scanned directory for CTRL+H and global Makefile
+│   ├── cheatsheets/         # Auto-scanned data files: CTRL+H command lists (fcheat)
+│   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
+│   │   └── templates.tsv    # Curated project template catalog (fnew picker)
+│   ├── gmake/               # Global MLOps Makefile ecosystem (the gmake alias)
 │   │   ├── .env.global.sample  # Shared-defaults contract (copy to .env.global, gitignored)
 │   │   ├── .env.project.sample # Per-project contract (copy into a project as .env)
-│   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
-│   │   ├── templates.tsv    # Curated project template catalog (fnew picker)
 │   │   ├── global_makefile.mk # Global entrypoint for the MLOps Makefile
 │   │   └── make/            # One Makefile module per domain (documented in docs/make/)
 │   │       ├── project-setup.mk   # copier/cruft scaffolding + venv/direnv bootstrap
