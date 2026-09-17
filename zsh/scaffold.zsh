@@ -51,24 +51,20 @@ _ftemplate_select() {
 }
 
 # Scaffold a new project from the template catalog
-# 1. Fail fast: confirm the location when outside ~/projects (before any input)
+# 1. Fail fast: fnew only runs from ~/projects itself (before any input)
 # 2. Fuzzy-pick a template (description shown, url + pinned version kept as data)
 # 3. Enter the project name
 # 4. Delegate to the global Makefile (copier_project / cruft_project)
 #    to reuse the venv + direnv bootstrap defined there
 fnew() {
-    local selection url tool version project_name remainder reply
+    local selection url tool version project_name remainder
     local -a make_args
 
-    # Destination guard: fail fast, before any interaction, when scaffolding
-    # outside ~/projects (the full destination is echoed again before make)
-    if [[ "$PWD" != "$HOME"/projects && "$PWD" != "$HOME"/projects/* ]]; then
-        echo "⚠  Current directory: $PWD (outside ~/projects)"
-        read "reply?Scaffold here anyway? [y/N] "
-        if [[ "$reply" != [yY] ]]; then
-            echo "❌ Aborted by user." >&2
-            return 1
-        fi
+    # Destination guard: fail fast, before any interaction — projects are
+    # scaffolded from ~/projects itself (deeper would nest projects)
+    if [[ "$PWD" != "$HOME"/projects ]]; then
+        echo "❌ fnew runs from ~/projects itself (current: $PWD)" >&2
+        return 1
     fi
 
     selection=$(_ftemplate_select)

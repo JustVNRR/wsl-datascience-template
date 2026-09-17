@@ -9,10 +9,11 @@ environment and direnv bootstrapped along the way.
 
 | Target | Action |
 |---|---|
-| `copier_project` | Scaffold a project with Copier (the `fnew` picker delegates here) |
-| `cruft_project` | Scaffold a project with Cruft / Cookiecutter (the `fnew` picker delegates here) |
+| `copier_project` | Scaffold a project with Copier, from `~/projects` only (the `fnew` picker delegates here) |
+| `cruft_project` | Scaffold a project with Cruft / Cookiecutter, from `~/projects` only (the `fnew` picker delegates here) |
 
-Both targets scaffold into `./$(PROJECT_NAME)`, then run `init_venv`, which
+Both targets only run from `~/projects` itself and scaffold into
+`./$(PROJECT_NAME)`, then run `init_venv`, which
 auto-detects the project's dependency manifest:
 
 - `uv.lock`, or a `pyproject.toml` with a PEP 621 `[project]` table → `uv sync`
@@ -49,8 +50,8 @@ Project name: my-analysis
 ✅ Project my-analysis ready!
 ```
 
-The destination directory is always displayed and must be confirmed when you
-launch `fnew` outside `~/projects`.
+`fnew` only runs from `~/projects` itself — it refuses anywhere else, and so
+do the two targets it delegates to.
 
 ## The catalog
 

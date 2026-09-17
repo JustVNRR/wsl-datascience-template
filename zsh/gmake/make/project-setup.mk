@@ -35,8 +35,10 @@ endef
 # ==============================================================================
 # PROJECT SETUP WORKFLOW
 # ==============================================================================
+# Location: these targets only run from ~/projects itself — enforced by the
+# location gate in global_makefile.mk (same rule as fnew in scaffold.zsh).
 
-copier_project: ## Scaffold a project with Copier (interactive picker: fnew)
+copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Copier..."
 	@copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
@@ -47,7 +49,7 @@ copier_project: ## Scaffold a project with Copier (interactive picker: fnew)
 COPIER_REF_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--vcs-ref $(PROJECT_TEMPLATE_VERSION),)
 CHECKOUT_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--checkout $(PROJECT_TEMPLATE_VERSION),)
 
-cruft_project: ## Scaffold a project with Cruft/Cookiecutter (interactive picker: fnew)
+cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Cruft..."
 	@cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
