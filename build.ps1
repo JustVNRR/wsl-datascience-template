@@ -175,18 +175,48 @@ try {
     Copy-Item "$RepoRoot\assets\terminal-icon.png" "$InstallPath\terminal-icon.png" -Force
 
     # Find the distro's Terminal profile GUID: WSL writes one fragment file per
-    # distro under Fragments\Microsoft.WSL (named {guid}.json, containing the
-    # profile). The guid is stable per distro name, but sort newest-first
-    # defensively in case stale files linger.
+    # import under Fragments\Microsoft.WSL (named {guid}.json, containing the
+    # profile) - the guid changes on every rebuild. Scan newest-first and keep
+    # the full set of live guids for the ghost pruning below.
     $WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
     $ProfileGuid = $null
+    $LiveGuids = @()
     if (Test-Path $WslFragmentsDir) {
         foreach ($File in (Get-ChildItem $WslFragmentsDir -Filter *.json | Sort-Object LastWriteTime -Descending)) {
             try {
                 $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
-                $Match = $Fragment.profiles | Where-Object { $_.name -eq $DistroName -and $_.guid }
-                if ($Match) { $ProfileGuid = $Match.guid; break }
+                foreach ($Entry in $Fragment.profiles) {
+                    if ($Entry.guid) { $LiveGuids += $Entry.guid }
+                    if (-not $ProfileGuid -and $Entry.name -eq $DistroName -and $Entry.guid) { $ProfileGuid = $Entry.guid }
+                }
             } catch { }
+        }
+    }
+
+    # Prune ghost profiles: every rebuild orphans the previous profile into the
+    # user's settings.json (Terminal persists it when its source disappears).
+    # Remove this distro's entries that match no live WSL fragment. If Terminal
+    # writes the newest orphan after this point, the next build cleans it up.
+    if ($LiveGuids.Count -gt 0) {
+        foreach ($SettingsPath in @(
+            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
+            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
+            "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+        )) {
+            if (-not (Test-Path $SettingsPath)) { continue }
+            try {
+                $Settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
+                $All = @($Settings.profiles.list)
+                $Kept = @($All | Where-Object { -not ($_.source -eq "Microsoft.WSL" -and $_.name -eq $DistroName -and $LiveGuids -notcontains $_.guid) })
+                if ($Kept.Count -ne $All.Count) {
+                    Copy-Item $SettingsPath "$SettingsPath.bak" -Force
+                    $Settings.profiles.list = $Kept
+                    $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding Utf8
+                    Write-Host "  * Terminal profile : pruned $($All.Count - $Kept.Count) ghost '$DistroName' entries from settings.json" -ForegroundColor Green
+                }
+            } catch {
+                Write-Host "  * Terminal profile : could not prune ghosts from a settings.json (skipped)" -ForegroundColor Yellow
+            }
         }
     }
 
