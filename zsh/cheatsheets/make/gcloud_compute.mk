@@ -2,7 +2,7 @@
 # COMPUTE ENGINE (VM) COMMANDS
 # ==============================================================================
 
-vm_create: iam_setup_service_account ## Create the virtual machine with IAM rights
+vm_create: ## Create the VM (run iam_setup_service_account first if it needs GCP API access)
 	$(call check_vars, INSTANCE GCP_PROJECT ZONE IMAGE_FAMILY IMAGE_PROJECT MACHINE_TYPE SA_EMAIL)
 	$(call confirm_action, Création de la Machine Virtuelle (Facturée), INSTANCE GCP_PROJECT ZONE MACHINE_TYPE)
 	@echo "🖥️ Creating VM $(INSTANCE) with service account $(SA_EMAIL)..."

@@ -18,8 +18,9 @@ configuration.
 | `iam_setup_service_account` | Create the service account and assign IAM roles | ⚠️ |
 
 `iam_setup_service_account` grants the BigQuery Data Editor and Cloud Storage
-Object Admin roles. It also runs automatically as a prerequisite of
-`vm_create` (see [Compute Engine](gcloud_compute.md)).
+Object Admin roles. It does not run automatically: call it explicitly before
+`vm_create` when the VM needs GCP API access (see
+[Compute Engine](gcloud_compute.md)).
 
 ## Variables
 

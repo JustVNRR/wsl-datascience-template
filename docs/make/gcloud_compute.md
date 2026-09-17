@@ -9,7 +9,7 @@ at every step.
 
 | Target | Action | Confirmation |
 |---|---|---|
-| `vm_create` | Create the VM with IAM rights (runs `iam_setup_service_account` first) | ⚠️ billed |
+| `vm_create` | Create the VM (call `iam_setup_service_account` separately if it needs GCP API access) | ⚠️ billed |
 | `vm_setup` | Send and execute the setup script on the VM | ⚠️ |
 | `vm_connect` | Connect to the VM via SSH with agent forwarding | — |
 | `vm_start` | Start the VM (CPU billing resumes) | — |
@@ -18,6 +18,10 @@ at every step.
 
 `vm_setup` expects `scripts/setup_vm.sh` in the project and runs it on the
 VM with `$(PYTHON_VERSION)` and `$(VENV_NAME)`.
+
+The VM runs as the service account `$(SA_EMAIL)`, which is not provisioned
+automatically: when the VM needs GCP API access (BigQuery, Cloud Storage),
+run [`iam_setup_service_account`](gcp.md) first.
 
 ## Variables
 
@@ -29,6 +33,6 @@ VM with `$(PYTHON_VERSION)` and `$(VENV_NAME)`.
 | `MACHINE_TYPE` | `vm_create` | `e2-standard-2` |
 | `IMAGE_FAMILY` | `vm_create` | `ubuntu-2204-lts` (default) |
 | `IMAGE_PROJECT` | `vm_create` | `ubuntu-os-cloud` (default) |
-| `SA_NAME` | `vm_create` (via the IAM prerequisite) | `my-project-vm-sa` |
+| `SA_NAME` | `vm_create`, `iam_setup_service_account` | `my-project-vm-sa` |
 | `PYTHON_VERSION` | `vm_setup` | `3.10` |
 | `VENV_NAME` | `vm_setup` | `.venv` |
