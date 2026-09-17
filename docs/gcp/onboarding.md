@@ -49,7 +49,6 @@ gmake gcp_enable_project_env
 then fill `GCP_PROJECT` at minimum; add each module's variables as you need
 them. If the project already has a `.env` of its own (e.g. for Docker), only
 the missing gmake variables are appended — existing values are never touched.
-From the parent folder, add `PROJECT_NAME=<folder>`.
 
 `gmake` always passes `--project` explicitly, so you never need
 `gcloud config set project` — the `.env` file is the single source of truth.
@@ -101,6 +100,9 @@ its full flow.
 
 - **Credentials live inside the distro** (`~/.config/gcloud`). Recreating the
   distro loses both logins — redo steps 1 and 5 afterwards.
+- Operational targets refuse to run outside a project folder under
+  `~/projects` — the message says so. `GMAKE_ANYWHERE=1` bypasses the gate
+  for unconventional setups.
 - Free tiers exist but they all require billing to be enabled. Compute VMs 
   are billed per second of uptime, hence the explicit `vm_start` / `vm_stop` 
   targets.
