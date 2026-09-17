@@ -87,6 +87,7 @@ The environment ships with a highly modular, global Makefile designed for Data S
 First time touching GCP from this environment — account, billing, logins, API enabling? Follow the [GCP onboarding guide](docs/gcp/onboarding.md) before your first `gmake` target.
 
 - **Cascading configuration:** every `gmake` invocation loads `.env.global` (your shared defaults: region, VM image, memory) and then the current project's `.env`, which always wins. Only values shared across all projects belong in the global — anything identifying a project (GCP project, resource names) lives in its `.env`. Both files are gitignored and start from committed samples in `gmake/` (`.env.global.sample`, `.env.project.sample`). The split is enforced: project-identifying variables fail loudly in `.env.global` at load time, and a warning appears when a target runs with no project `.env` in the current directory.
+- **Project-scoped execution:** operational targets only run from the root of a project under `~/projects` — everywhere else, `gmake` refuses with an explicit message. Onboarding and scaffolding targets are exempt, and `GMAKE_ANYWHERE=1` bypasses the gate.
 - **`gmake` vs `make`:** 
   - Type `gmake` (without any arguments) anywhere to display a beautifully formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
   - Use `gmake <target>` to run the global MLOps tasks.
