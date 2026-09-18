@@ -243,6 +243,17 @@ To completely delete an instance and everything it left behind, use the build sc
 .\unregister.ps1 -DistroName <DistroName>
 ```
 
+The distro's virtual disk is deleted, so **nothing inside it survives**, and a
+rebuild destroys the existing instance the same way. Check this list before
+either:
+
+| Kept inside the distro | Before you unregister or rebuild |
+| :--- | :--- |
+| `~/projects/` | Nothing backs it up — push your work to a remote first |
+| `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
+| `~/.config/gcloud/` | Both logins are redoable in minutes ([onboarding](docs/gcp/onboarding.md)) |
+| `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake gcp_enable_global_env` recreates the file to refill |
+
 ---
 
 ## License

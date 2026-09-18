@@ -1,7 +1,9 @@
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory = $false)]
-    [string]$DistroName = "ubuntu-datascience-build"
+    # No default on purpose. A script that destroys a distribution must not
+    # pick its own target: naming it is the first deliberate act of the removal.
+    [Parameter(Mandatory = $true)]
+    [string]$DistroName
 )
 
 $ErrorActionPreference = "Stop"
