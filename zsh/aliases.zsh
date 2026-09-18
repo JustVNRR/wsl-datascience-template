@@ -18,7 +18,15 @@ alias ports='sudo lsof -i -P -n | grep LISTEN'
 
 # Quick configuration edits and reload (XDG compliant)
 alias zsh_conf='code ~/.config/zsh'
-alias reload='source ~/.config/zsh/.zshrc'
+
+# exec, not source: re-reading the configuration inside a LIVE shell makes zsh
+# expand the alias table it already holds while it re-parses Oh My Zsh's lib,
+# and OMZ defines GLOBAL aliases (P, L, G, H...) that expand anywhere. The `P`
+# of `zparseopts -D -E -a opts r m P` then becomes `2>&1 | pygmentize -l pytb`,
+# which breaks omz_urlencode at every single prompt. A fresh process reads the
+# configuration in the normal order - lib before plugins - and cannot hit that.
+# It also avoids double-registering the hooks the plugins install.
+alias reload='exec zsh'
 
 # ============================================================
 # 3. MODERN UTILITIES (RUST STACK)

@@ -11,7 +11,7 @@ Defined in `~/.config/zsh/aliases.zsh`, on top of Oh My Zsh's own `git` and
 | :--- | :--- | :--- |
 | `b` | `cd -` | Go back to the previous directory |
 | `ports` | `sudo lsof -i -P -n \| grep LISTEN` | Show active listening network sockets |
-| `reload` | `source ~/.config/zsh/.zshrc` | Re-source the primary configuration |
+| `reload` | `exec zsh` | Restart the shell, picking up configuration changes |
 | `zsh_conf` | `code ~/.config/zsh` | Open the configuration directory in VS Code |
 
 ### Modern Utilities
