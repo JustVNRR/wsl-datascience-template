@@ -1,17 +1,18 @@
 # WSL Data Science Template with OMZ & GCP
 
-A reproducible WSL2 workstation for data science, defined entirely in this repository: one PowerShell command builds a fresh Ubuntu 24.04 distro with the shell, the Python stack, and the GCP-oriented MLOps workflow already in place. The same environment can be rebuilt from scratch at any time.
+A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
+- the shell,
+- the Python stack,
+- the GCP-oriented MLOps workflow already in place.
 
 ## Features
 
-- **Reproducible** — one PowerShell command builds and imports a fresh Ubuntu 24.04 distro, identical every time.
+- **Minimal setup** — first boot asks for your username, password, region and timezone.
 - **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls`, `cat`, and `grep` ([shell environment](#shell-environment-zsh)).
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Ctrl + H`.
 - **Data Science ready** — `uv` for Python, a full build toolchain to compile any wheel, and CV/OCR libraries preinstalled.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog and bootstraps the virtual environment and direnv.
-- **MLOps from anywhere** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests ([global makefile](#mlops-global-makefile-gmake)).
-- **Minimal setup** — first boot asks for your username and timezone; sudo, systemd, Python, and dev tools arrive automatically, and the Windows Terminal profile (font, icon, color scheme, tab title) is configured for you.
-- **Windows interop preserved** — Docker Desktop, `code`, and `explorer.exe` keep working from inside the distro.
+- **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests ([global makefile](#mlops-global-makefile-gmake)).
 
 ---
 
@@ -47,11 +48,11 @@ Make sure Docker Desktop is running before you start.
    .\build.ps1 -DistroName "ubuntu-ml-dev" -InstallPath "D:\WSL\ubuntu-ml-dev"
    ```
 
-3. **Complete onboarding:**
-   During build execution, the script will prompt you for your preferred username and timezone. The setup wizard will automatically add you to the `sudo` group, configure `systemd`, and fetch the latest Python release via `uv`.
+3. **Launch your session:**
 
-4. **Launch your session:**
-   Close and reopen Windows Terminal first — a freshly imported distro only appears in the profile list after a restart, and its profile (icon, `MesloLGS NF` font, One Half Dark color scheme, tab title) is configured by the build. Then launch your environment:
+   - Close Windows Terminal first — a freshly imported distro only appears in the profile list after a restart.
+   - Launch your environment by choosing your distro's profile in a new Windows Terminal or by typing the following command in a powershell:
+
    ```powershell
    wsl -d <DistroName>
    ```
@@ -73,18 +74,23 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
 ## MLOps Global Makefile (`gmake`)
 
-The environment ships with a highly modular, global Makefile designed for Data Science and GCP workflows, accessible from anywhere via the `gmake` alias.
+Follow the [GCP onboarding guide](docs/gcp/onboarding.md) before your first `gmake` target.
 
-First time touching GCP from this environment — account, billing, logins, API enabling? Follow the [GCP onboarding guide](docs/gcp/onboarding.md) before your first `gmake` target.
+- **Cascading configuration:**
 
-- **Cascading configuration:** every `gmake` invocation loads `.env.global` (your shared defaults: region, VM image, memory) and then the current project's `.env`, which always wins. Only values shared across all projects belong in the global — anything identifying a project (GCP project, resource names) lives in its `.env`. Both files are gitignored and start from committed samples in `gmake/` (`.env.global.sample`, `.env.project.sample`). The split is enforced: project-identifying variables fail loudly in `.env.global` at load time, and a warning appears when a target runs with no project `.env` in the current directory.
-- **Project-scoped execution:** operational targets only run from the root of a project under `~/projects` — everywhere else, `gmake` refuses with an explicit message. Onboarding and scaffolding targets are exempt, and `GMAKE_ANYWHERE=1` bypasses the gate.
+   - Only values shared across all projects belong in the `.env.global`
+   - Anything identifying a project (GCP project, resource names) lives in its `.env`.
+   - Both files are gitignored and start from committed samples in `gmake/` (`.env.global.sample`, `.env.project.sample`). 
+
+- **Project-scoped execution:** 
+
 - **`gmake` vs `make`:** 
-  - Type `gmake` (without any arguments) anywhere to display a beautifully formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
-  - Use `gmake <target>` to run the global MLOps tasks.
-  - Use `make <target>` to run tasks from a local `Makefile` specific to your current project folder.
+  - Type `gmake` (without any arguments) to display a formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
+  - Use `fnew (recommanded)`, `gmake copier_project` or `gmake cruf_project` from `~/projects` to scaffold a project template.
+  - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the global `Makefile` in `~/.config/zsh/gcp`.
+  - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in to your current project folder.
 
-The makefile is split into one module per domain under `gmake/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
+The global makefile is split into one module per domain under `gmake/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
@@ -176,8 +182,7 @@ The makefile is split into one module per domain under `gmake/make/`, each docum
 
 ## Maintenance & Removal
 
-To completely delete an instance and everything it left behind (warning: this permanently deletes all data inside the instance), use the build script's counterpart:
+To completely delete an instance and everything it left behind, use the build script's counterpart:
 ```powershell
 .\unregister.ps1 -DistroName <DistroName>
 ```
-It unregisters the distro, deletes its installation folder, and cleans the Windows Terminal leftovers (ghost profile entries, appearance fragments). It also works after a manual `wsl --unregister`, in leftovers-only mode.
