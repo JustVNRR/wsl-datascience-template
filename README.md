@@ -118,7 +118,6 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 | Category | Tools |
 | :--- | :--- |
 | Google Cloud CLI | [GCP onboarding guide](docs/optional_tooling/gcp_onboarding.md) |
-| Ollama | [Ollama onboarding guide](docs/optional_tooling/ollama_onboarding.md) |
 
 ### Python & Data Science
 
