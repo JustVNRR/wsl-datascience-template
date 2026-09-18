@@ -93,9 +93,10 @@ use that service-account key file instead and this step is unnecessary.
 From here, what you run depends on the workflow — each module page documents
 its full flow.
 
-- **Docker → Artifact Registry** ([`docker.md`](../make/docker.md)): run
-  `docker_auth` once per machine and create the repository once per project;
-  then build and push your production image.
+- **Docker → Artifact Registry** ([`artifact_registry.md`](../make/artifact_registry.md),
+  [`docker.md`](../make/docker.md)): run `docker_auth` once per machine and
+  create the repository once per project; then build and push your production
+  image.
 - **Cloud Run** ([`cloud_run.md`](../make/cloud_run.md)): deploy a pushed
   image; services are private unless `CLOUDRUN_PUBLIC=true`.
 - **VMs** ([`gcloud_compute.md`](../make/gcloud_compute.md)): create, connect,

@@ -73,7 +73,8 @@ GCLOUD := $(shell command -v gcloud 2>/dev/null)
 GCLOUD_MODULES := $(THIS_DIR)/make/gcp.mk \
                   $(THIS_DIR)/make/bigquery.mk \
                   $(THIS_DIR)/make/cloud_run.mk \
-                  $(THIS_DIR)/make/gcloud_compute.mk
+                  $(THIS_DIR)/make/gcloud_compute.mk \
+                  $(THIS_DIR)/make/artifact_registry.mk
 GCLOUD_ABSENT_MODULES := $(THIS_DIR)/make/install.mk
 
 CORE_MODULES := $(filter-out $(GCLOUD_MODULES) $(GCLOUD_ABSENT_MODULES),$(wildcard $(THIS_DIR)/make/*.mk))

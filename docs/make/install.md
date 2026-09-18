@@ -20,8 +20,9 @@ tool is noise, and the way out has to exist for the tool to be an option at all.
 
 `gmake help` is not written by hand: it is built by reading the **text** of the
 files make loaded. The modules that need the Google Cloud CLI (`gcp`,
-`bigquery`, `cloud_run`, `gcloud_compute`) are therefore loaded only when that
-CLI is on the PATH — and unloaded, they contribute no line at all.
+`bigquery`, `cloud_run`, `gcloud_compute`, `artifact_registry`) are therefore
+loaded only when that CLI is on the PATH — and unloaded, they contribute no
+line at all.
 
 That is the whole point: on a fresh distro those four modules leave the menu
 instead of advertising commands that would fail with `command not found`.
@@ -44,7 +45,10 @@ condition does not hold, so `install_commands.sh` and `uninstall_commands.sh`
 never show up together ([interactive tools](../zsh/interactive.md)).
 
 Only the modules whose CLI is missing from the image are gated: `gh` ships in
-the image, and `docker` works through Docker Desktop's WSL integration.
+the image, and `docker` works through Docker Desktop's WSL integration. A
+module therefore carries one condition, never two — `docker.mk` keeps what
+needs nothing but docker, and the three registry targets that call `gcloud`
+have their own module ([artifact registry](artifact_registry.md)).
 
 What is detected is a **binary**, not an authentication: a `gcloud` that is
 installed but not logged in still shows its targets, and they fail with
