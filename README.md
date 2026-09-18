@@ -90,6 +90,7 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
+| Setup | [Optional tooling](docs/make/install.md) | `gcp_install`, `gcp_uninstall` |
 | Create | [Project scaffolding](docs/make/project-setup.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | Verify | [Lint](docs/make/lint.md) | `lint`, `lint-py`, `lint-sh`, `lint-format` |
 | Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
@@ -146,6 +147,7 @@ the repository at runtime.
 │   │   ├── .env.project.sample # Per-project contract (copy into a project as .env)
 │   │   ├── global_makefile.mk # Global entrypoint for the MLOps Makefile
 │   │   └── make/            # One Makefile module per domain (documented in docs/make/)
+│   │       ├── install.mk         # optional tooling: install a CLI the image does not ship
 │   │       ├── project-setup.mk   # copier/cruft scaffolding + venv/direnv bootstrap
 │   │       ├── lint.mk            # ruff (Python) + shellcheck (shell) checks
 │   │       ├── tests.mk           # pytest lanes (fast / functional / gcp)

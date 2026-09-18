@@ -26,9 +26,9 @@ PROJECT_ENV := $(wildcard .env)
 # 2. Location gate: where gmake targets are allowed to run.
 #   - operational targets: from the root of a project (a direct child of ~/projects)
 #   - scaffolding targets (copier_project, cruft_project, ccds_project): from ~/projects itself
-#   - onboarding targets and help: from anywhere
+#   - onboarding and install targets, and help: from anywhere
 # GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
-GATE_EXEMPT_GOALS := help gcp_auth_cli gcp_auth_libs gcp_enable_global_env gcp_project_list
+GATE_EXEMPT_GOALS := help gcp_install gcp_uninstall gcp_auth_cli gcp_auth_libs gcp_enable_global_env gcp_project_list
 ifneq (,$(filter copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(CURDIR))
@@ -51,13 +51,51 @@ export
 SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
 
 # 5. Modular Sub-makefile Imports (loaded relative to this file)
-include $(THIS_DIR)/make/*.mk
+#
+# The glob stays the rule: a new make/*.mk is picked up without editing this
+# file. Only the modules that need a CLI the image does not ship are named
+# here, plus its counterpart - the module carrying the way to install it.
+#
+# `gmake help` is built by reading the *text* of the files make loaded, not
+# from the targets make defined. A module that was not loaded contributes no
+# line at all: that is what makes the menu follow the machine, and why the two
+# faces are two files rather than one conditional. An ifeq around a target
+# would leave that target's description in the text, and the menu would show
+# both faces at once.
+#
+# Nothing is recorded anywhere: the question is asked again on every run, so
+# installing the CLI by any means (see `gmake gcp_install`) brings the modules
+# back, and removing it takes them away again. A command-line variable wins
+# over the := below, which is how CI checks both states at once:
+# `GCLOUD=x gmake help` and `GCLOUD= gmake help`.
+GCLOUD := $(shell command -v gcloud 2>/dev/null)
+
+GCLOUD_MODULES := $(THIS_DIR)/make/gcp.mk \
+                  $(THIS_DIR)/make/bigquery.mk \
+                  $(THIS_DIR)/make/cloud_run.mk \
+                  $(THIS_DIR)/make/gcloud_compute.mk
+GCLOUD_ABSENT_MODULES := $(THIS_DIR)/make/install.mk
+
+CORE_MODULES := $(filter-out $(GCLOUD_MODULES) $(GCLOUD_ABSENT_MODULES),$(wildcard $(THIS_DIR)/make/*.mk))
+
+include $(CORE_MODULES)
+ifeq ($(GCLOUD),)
+include $(GCLOUD_ABSENT_MODULES)
+else
+include $(GCLOUD_MODULES)
+endif
 
 # --- Automatic Help Menu ---
 .DEFAULT_GOAL := help
 
+# Sorted by target name rather than by the order the modules were read: a
+# command is where its name says it is, whichever file defines it. The families
+# stay together anyway - gcp_*, gcs_*, vm_*, bigquery_*, cloudrun_* share their
+# prefix - and a target only appears when the tool behind it is installed, so
+# its neighbours are the ones it actually belongs with.
 help: ## Show this help menu
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN { printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n" }'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | sort -f
 
 # ==============================================================================
 # DYNAMIC SAFETY MACROS

@@ -11,7 +11,11 @@
 #     delimiter and breaks the whole file's parse
 #   - make on the global makefile: reading it parses every make/*.mk include,
 #     then the help menu is asserted (expected targets present, no doc drift
-#     between the *_commands.sh cheatsheets and gmake help)
+#     between the *_commands.sh cheatsheets and gmake help). A gated target
+#     can exist in one install state only, so the menu is captured both with
+#     the CLI (GCLOUD=x) and without it (GCLOUD=) and the two are
+#     concatenated; the bare run is then asserted on its own (gated targets
+#     gone, gcp_install there, gcp_uninstall not)
 #   - documentation coverage: every make/*.mk module must have a
 #     docs/make/<name>.md page, linked from the README index and listed in
 #     the README project tree; every gmake target must appear in a cheatsheet;
@@ -65,8 +69,17 @@ jobs:
 
       - name: Makefile parse + help menu
         run: |
-          make -f zsh/gmake/global_makefile.mk help |
-            sed 's/\x1b\[[0-9;]*m//g' > help.txt
+          # The menu follows what is installed, so it is captured in both
+          # states and concatenated: gcp_install exists in one, gcp_uninstall
+          # in the other, and the two steps below compare the cheatsheets
+          # against this union. GCLOUD=x forces the four gated modules in (a
+          # command-line variable wins over the makefile's :=); GCLOUD= is
+          # what this runner actually looks like. These checks are about the
+          # repository, not about the machine running them.
+          {
+            make -f zsh/gmake/global_makefile.mk GCLOUD=x help
+            make -f zsh/gmake/global_makefile.mk GCLOUD= help
+          } | sed 's/\x1b\[[0-9;]*m//g' > help.txt
           missing=0
           for target in test test-fast test-functional test-gcp \
                         lint lint-py lint-sh lint-format \
@@ -79,6 +92,29 @@ jobs:
             }
           done
           exit $missing
+
+      - name: Optional module gate (nothing installed, no targets, and the way in)
+        run: |
+          # The half the concatenation above cannot reach: with no CLI
+          # installed, the gated modules leave the menu, gcp_install is the
+          # only line left telling a user the capability exists - and the way
+          # out has no business being offered before the way in.
+          make -f zsh/gmake/global_makefile.mk GCLOUD= help |
+            sed 's/\x1b\[[0-9;]*m//g' > help-bare.txt
+          bad=0
+          if grep -qE '^  (gcp_auth_cli|cloudrun_deploy|vm_create|bigquery_show)[[:space:]]' help-bare.txt; then
+            echo "::error::a gated target is still in the menu without its CLI"
+            bad=1
+          fi
+          grep -qE '^  gcp_install[[:space:]]' help-bare.txt || {
+            echo "::error::gcp_install must stay in the menu when nothing is installed"
+            bad=1
+          }
+          if grep -qE '^  gcp_uninstall[[:space:]]' help-bare.txt; then
+            echo "::error::gcp_uninstall must not be offered when the CLI is absent"
+            bad=1
+          fi
+          exit $bad
 
       - name: Cheatsheet doc drift (*_commands.sh vs gmake help)
         run: |

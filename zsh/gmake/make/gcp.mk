@@ -104,6 +104,18 @@ gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
 	@echo "💣 Deleting bucket gs://$(BUCKET_NAME)..."
 	gcloud storage rm --recursive gs://$(BUCKET_NAME) --project=$(GCP_PROJECT)
 
+# The way out, and the reason it lives here: this module is loaded only when
+# gcloud is present, so the exit is offered exactly when there is something to
+# remove - and never before the way in.
+# remove, not purge: the package goes, /etc keeps the APT repository (which is
+# what makes `gmake gcp_install` a one-liner later), and ~/.config/gcloud keeps
+# the logins - they are the user's data, not the package's.
+gcp_uninstall: ## Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gcloud logins)
+	$(call confirm_action,Uninstall the Google Cloud CLI (frees ~409 MB))
+	@sudo apt-get remove -y google-cloud-cli
+	@echo "✅ Removed. Run gmake again: the GCP targets are gone from the menu."
+	@echo "   Your logins (~/.config/gcloud) were left alone - delete that directory to forget them."
+
 iam_setup_service_account: ## Create the Service Account and assign IAM roles
 	$(call check_vars, SA_NAME GCP_PROJECT SA_EMAIL)
 	$(call confirm_action, Création du Service Account et attribution des droits IAM, SA_NAME SA_EMAIL GCP_PROJECT)

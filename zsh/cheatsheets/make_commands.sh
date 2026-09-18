@@ -2,6 +2,10 @@
 # MAKEFILE CHEATSHEET (via alias gmake)
 # ==========================================
 
+# --- 0. OPTIONAL TOOLING (one target or the other, never both) ---
+gmake gcp_install                            # Install the Google Cloud CLI (adds the GCP targets to gmake)
+gmake gcp_uninstall                          # Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gcloud logins)
+
 # --- 1. GOOGLE CLOUD RUN ---
 gmake cloudrun_deploy                        # Deploy container to Cloud Run (private by default; CLOUDRUN_PUBLIC=true for a public URL)
 gmake cloudrun_logs                          # View and stream Cloud Run service logs
