@@ -1,9 +1,11 @@
 # ==========================================
-# GCP ONBOARDING & AUTH CHEATSHEET
+# GOOGLE CLOUD CHEATSHEET
 # requires: gcloud
 # ==========================================
-# Raw gcloud commands for the one-time setup — the full walkthrough lives in
-# docs/gcp/onboarding.md (make targets live in make_commands.sh)
+# The raw gcloud commands for the one-time setup, then the gmake targets that
+# drive the same services — the full walkthrough lives in docs/gcp/onboarding.md.
+# Offered only while the CLI is installed: install_commands.sh is the face
+# you get without it.
 
 # --- 1. AUTHENTICATION (once per distro, lost if the distro is recreated) ---
 gcloud auth login                              # Login 1: identify YOURSELF to the gcloud/bq tools (everything the global Makefile calls) — browser flow
@@ -21,3 +23,52 @@ gcloud billing projects describe <PROJECT_ID>  # Check whether billing is enable
 gcloud services list --enabled                 # List the APIs already enabled on the active project
 gcloud iam service-accounts list               # List the service accounts (robot identities) of the active project
 gcloud iam service-accounts keys create <FILE.json> --iam-account=<SA_EMAIL> # Create a JSON key for a service account (the bootcamp file) — treat it as a password
+
+# --- 4. GOOGLE CLOUD PLATFORM (GCP - GENERAL) ---
+gmake gcp_auth_cli                           # Authenticate the gcloud CLI (gcloud, bq) with your Google account
+gmake gcp_auth_libs                          # Authenticate the Python client libraries (application-default credentials)
+gmake gcp_enable_global_env                  # Create .env.global (shared defaults) from the committed sample
+gmake gcp_enable_project_env                 # Add the template variables to the current project's .env, creating it if absent
+gmake gcp_project_list                       # List all accessible GCP projects
+gmake gcp_enable_compute                     # Enable Compute Engine API for the active project
+gmake gcp_enable_storage                     # Enable Cloud Storage API for the active project
+gmake gcp_enable_bigquery                    # Enable BigQuery API for the active project
+gmake gcp_enable_cloudrun                    # Enable Cloud Run API for the active project
+gmake gcp_enable_artifact_registry           # Enable Artifact Registry API for the active project
+gmake gcp_enable_apis                        # Enable all the APIs used by the template modules at once
+gmake gcs_list_buckets                       # List all Google Cloud Storage (GCS) buckets
+gmake gcs_create_bucket                      # Provision a new Cloud Storage bucket
+gmake gcs_delete_bucket                      # Delete a Cloud Storage bucket
+gmake iam_setup_service_account              # Create and configure an IAM service account
+
+# --- 5. GOOGLE BIGQUERY ---
+gmake bigquery_create_dataset                # Create the BigQuery dataset
+gmake bigquery_create_table                  # Create a new table in BigQuery
+gmake bigquery_show                          # Inspect table or dataset metadata
+gmake bigquery_delete_table                  # Delete a specific table in BigQuery
+gmake bigquery_delete_dataset                # Delete an entire dataset and its contents in BigQuery
+
+# --- 6. GOOGLE CLOUD RUN ---
+gmake cloudrun_deploy                        # Deploy container to Cloud Run (private by default; CLOUDRUN_PUBLIC=true for a public URL)
+gmake cloudrun_logs                          # View and stream Cloud Run service logs
+gmake cloudrun_list                          # List all active Cloud Run services
+gmake cloudrun_url                           # Fetch public URL of the deployed API service
+gmake cloudrun_delete                        # Delete Cloud Run service
+
+# --- 6-B. CALLING A PRIVATE SERVICE (authenticated access) ---
+curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" <SERVICE_URL> # Call a private Cloud Run service (identity token of the current account)
+gcloud run services add-iam-policy-binding <SERVICE> --member=user:<EMAIL> --role=roles/run.invoker --region=<REGION> # Grant a user access to a private service
+gcloud run services remove-iam-policy-binding <SERVICE> --member=allUsers --role=roles/run.invoker --region=<REGION> # Make an already-deployed public service private again
+
+# --- 7. GOOGLE COMPUTE ENGINE (VM) ---
+gmake vm_create                              # Provision a new Compute Engine virtual machine
+gmake vm_run_script                          # Send and execute a shell script from the project on the VM (VM_SCRIPT=...)
+gmake vm_connect                             # Open an SSH session into the virtual machine
+gmake vm_start                               # Start a stopped virtual machine instance
+gmake vm_stop                                # Gracefully shut down the virtual machine
+gmake vm_delete                              # Permanently terminate and delete the virtual machine
+
+# --- 8. DOCKER & ARTIFACT REGISTRY (the gcloud-driven half) ---
+gmake artifact_registry_create               # Create repository in Google Artifact Registry
+gmake artifact_registry_role                 # Configure IAM permissions for Artifact Registry
+gmake docker_auth                            # Authenticate Docker client with Google Cloud credentials
