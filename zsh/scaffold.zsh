@@ -102,8 +102,8 @@ fnew() {
         version=${remainder##*$'\t'}
     fi
 
-    if [[ "$tool" != copier && "$tool" != cruft ]]; then
-        echo "❌ Unknown scaffold tool '$tool' (expected: copier or cruft)" >&2
+    if [[ "$tool" != copier && "$tool" != cruft && "$tool" != ccds ]]; then
+        echo "❌ Unknown scaffold tool '$tool' (expected: copier, cruft or ccds)" >&2
         return 1
     fi
 

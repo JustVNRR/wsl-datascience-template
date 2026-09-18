@@ -90,7 +90,7 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
-| Create | [Project scaffolding](docs/make/project-setup.md) | `fnew`, `copier_project`, `cruft_project` |
+| Create | [Project scaffolding](docs/make/project-setup.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | Verify | [Lint](docs/make/lint.md) | `lint`, `lint-py`, `lint-sh`, `lint-format` |
 | Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
 | Operate | [GCP infrastructure & IAM](docs/make/gcp.md) | `gcp_project_list`, `gcs_*`, `iam_setup_service_account` |
@@ -208,7 +208,7 @@ deleting the distro deletes all of it.
 
 ~/.local/share/oh-my-zsh/    # Cloned at build time
 ~/.nvm/                      # Cloned at build time
-~/.local/bin/                # uv tools: copier, cruft, ruff
+~/.local/bin/                # uv tools: copier, cruft, ccds, ruff
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
 /etc/wsl.conf                # Default user, systemd (first_boot.sh)
 ```

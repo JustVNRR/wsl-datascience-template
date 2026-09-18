@@ -55,3 +55,17 @@ cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fn
 	@cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
 	$(init_venv)
 	@echo "✅ Project $(PROJECT_NAME) ready!"
+
+# The `ccds` CLI (cookiecutter-data-science v2) wants its extra context as
+# key=value AFTER the template argument, and it asks before running the
+# template's hooks - --accept-hooks yes keeps it non-interactive, like copier
+# and cruft, which run hooks without asking.
+# repo_name is passed explicitly: the template derives it from project_name by
+# lowercasing, so a name with an uppercase letter would generate a directory
+# that init_venv then cannot find.
+ccds_project: ## Scaffold a project with CCDS v2 from ~/projects (fnew picker)
+	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
+	@echo "🏗️  Scaffolding project with ccds..."
+	@ccds --accept-hooks yes $(CHECKOUT_ARG) -o . $(PROJECT_TEMPLATE_REPO) project_name=$(PROJECT_NAME) repo_name=$(PROJECT_NAME)
+	$(init_venv)
+	@echo "✅ Project $(PROJECT_NAME) ready!"

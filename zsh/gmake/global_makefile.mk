@@ -25,18 +25,18 @@ PROJECT_ENV := $(wildcard .env)
 
 # 2. Location gate: where gmake targets are allowed to run.
 #   - operational targets: from the root of a project (a direct child of ~/projects)
-#   - scaffolding targets (copier_project, cruft_project): from ~/projects itself
+#   - scaffolding targets (copier_project, cruft_project, ccds_project): from ~/projects itself
 #   - onboarding targets and help: from anywhere
 # GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
 GATE_EXEMPT_GOALS := help gcp_auth_cli gcp_auth_libs gcp_enable_global_env gcp_project_list
-ifneq (,$(filter copier_project cruft_project,$(MAKECMDGOALS)))
+ifneq (,$(filter copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(CURDIR))
 $(error ❌ ERROR: Scaffolding runs from ~/projects itself (current directory: $(CURDIR)) — set GMAKE_ANYWHERE=1 to bypass)
 endif
 endif
 endif
-ifneq (,$(filter-out $(GATE_EXEMPT_GOALS) copier_project cruft_project,$(MAKECMDGOALS)))
+ifneq (,$(filter-out $(GATE_EXEMPT_GOALS) copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(patsubst %/,%,$(dir $(CURDIR))))
 $(error ❌ ERROR: gmake targets run from the root of a project under ~/projects (current directory: $(CURDIR)) — set GMAKE_ANYWHERE=1 to bypass)

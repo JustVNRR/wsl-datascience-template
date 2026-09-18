@@ -11,8 +11,9 @@ environment and direnv bootstrapped along the way.
 |---|---|
 | `copier_project` | Scaffold a project with Copier, from `~/projects` only (the `fnew` picker delegates here) |
 | `cruft_project` | Scaffold a project with Cruft / Cookiecutter, from `~/projects` only (the `fnew` picker delegates here) |
+| `ccds_project` | Scaffold a project with the `ccds` CLI (Cookiecutter Data Science v2), from `~/projects` only (the `fnew` picker delegates here) |
 
-Both targets only run from `~/projects` itself and scaffold into
+All three targets only run from `~/projects` itself and scaffold into
 `./$(PROJECT_NAME)`, then run `init_venv`, which
 auto-detects the project's dependency manifest:
 
@@ -32,7 +33,7 @@ into the project.
 |---|---|---|
 | `PROJECT_NAME` | yes | Destination directory, created relative to the current directory |
 | `PROJECT_TEMPLATE_REPO` | yes | Anything Copier/Cruft accepts (`gh:` shorthand or full git URL) |
-| `PROJECT_TEMPLATE_VERSION` | no | Pin a template ref/tag — passed as `--vcs-ref` (Copier) or `--checkout` (Cruft) |
+| `PROJECT_TEMPLATE_VERSION` | no | Pin a template ref/tag — passed as `--vcs-ref` (Copier) or `--checkout` (Cruft and ccds) |
 
 ## The `fnew` picker
 
@@ -61,6 +62,7 @@ A template does not have to be in the catalog to be used:
 cd ~/projects
 fnew gh:owner/repo            # Copier by default
 fnew gh:owner/repo cruft      # ...or Cruft, for a cookiecutter template
+fnew gh:owner/repo ccds       # ...or the ccds CLI (cookiecutter-data-science v2)
 fnew gh:owner/repo cruft v1   # ...pinned to a ref
 ```
 
@@ -69,12 +71,12 @@ costs only the project directory you just created — there is no catalog entry
 to clean up afterwards. Use it first: how a template behaves is hard to judge
 from its README, and you only find out by scaffolding with it.
 
-The ref is not optional decoration: without it, a template is taken from its
-**default branch**, which is not always the thing you want. Cookiecutter Data
-Science is the case to know — its default branch now only answers "use `ccds`
-instead", and `v1` is the ref that still generates a project. That is what the
-catalog pins, and why the same template works from the catalog and not from a
-bare URL.
+The ref is not optional decoration: without it a template is taken from its
+**default branch**, which is not always what you want. Cookiecutter Data
+Science is the case to know. Its default branch carries the `ccds` scaffold;
+the plain cookiecutter template lives on the `v1` tag, deprecated by its own
+maintainers but still updatable with `cruft`. One repository, two entries, one
+per tool — and neither works with the other's.
 
 ## The catalog
 
@@ -96,6 +98,20 @@ the line is there.
 
 The optional `version` column pins a template ref — useful when a template's
 default branch targets a different tool.
+
+### The three tools
+
+They are not interchangeable, and one repository can appear once per tool:
+
+| Tool | What it runs | Worth knowing |
+| :--- | :--- | :--- |
+| `copier` | `copier copy` | stores your answers in `.copier-answers.yml`, so `copier update` can replay them |
+| `cruft` | `cruft create` | cookiecutter-based; `cruft update` keeps a generated project in step with its template |
+| `ccds` | the `ccds` command | the current Cookiecutter Data Science scaffold, on a branch that is no longer a plain cookiecutter template |
+
+The tool column decides which `gmake` target runs: a template that only exists
+as a cookiecutter template cannot be scaffolded with `copier`, and the reverse
+is true too. When the same repository appears twice, the descriptions say why.
 
 ### Adding a line
 

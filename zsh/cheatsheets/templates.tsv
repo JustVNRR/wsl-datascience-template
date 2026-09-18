@@ -2,8 +2,8 @@
 # PROJECT TEMPLATE CATALOG
 # ==============================================================================
 # One template per line:  <url> <TAB> <tool> <TAB> <version> <TAB> <description>
-#   url         anything copier/cruft accepts (gh: shorthand or full git URL)
-#   tool        copier | cruft   (dispatches to the matching gmake target)
+#   url         anything copier/cruft/ccds accepts (gh: shorthand or full git URL)
+#   tool        copier | cruft | ccds   (dispatches to the matching gmake target)
 #   version     optional pinned ref/tag (e.g. v1); leave empty for the default
 #   description shown in the `fnew` interactive picker
 #
@@ -14,9 +14,10 @@
 # a short list that means something beats a long one nobody verified.
 #
 # Nothing here suits you? You do not need an entry to use a template:
-#   fnew gh:owner/repo [copier|cruft]      # reads and writes nothing
+#   fnew gh:owner/repo [copier|cruft|ccds]      # reads and writes nothing
 # and if it earns its place, append a line below - TABs, not spaces, or the
 # picker ignores the row (it says so on stderr when it does).
 # ==============================================================================
-https://github.com/drivendataorg/cookiecutter-data-science	cruft	v1	DrivenData's DS reference (active, CI scaffolds a project)
+https://github.com/drivendataorg/cookiecutter-data-science	ccds		DrivenData's DS reference v2 (current; CI scaffolds a project)
+https://github.com/drivendataorg/cookiecutter-data-science	cruft	v1	Same template, v1 (deprecated upstream, kept for cruft update)
 gh:NLeSC/python-template	copier		Netherlands eScience Center research template (active, CI scaffolds a project)

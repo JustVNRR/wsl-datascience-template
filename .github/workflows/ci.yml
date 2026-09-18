@@ -16,8 +16,9 @@
 #     docs/make/<name>.md page, linked from the README index and listed in
 #     the README project tree; every gmake target must appear in a cheatsheet;
 #     every .github/workflows/*.yml must be named in the README
-#   - templates.tsv format: fnew's awk silently skips malformed rows (NF < 4),
-#     so a broken line would just disappear from the picker — validate here
+#   - templates.tsv format: every row must have 4 tab-separated columns and a
+#     known tool (copier/cruft/ccds). The picker skips a malformed row and warns
+#     on stderr, but only when someone runs fnew - this check never misses one
 
 name: Static checks
 
@@ -149,8 +150,8 @@ jobs:
               if (NF != 4) {
                 print "Malformed row (4 tab-separated columns expected): " $0
                 bad = 1
-              } else if ($2 != "copier" && $2 != "cruft") {
-                print "Unknown tool '"'"'" $2 "'"'"' (expected copier or cruft): " $0
+              } else if ($2 !~ /^(copier|cruft|ccds)$/) {
+                print "Unknown tool: " $2 " (expected copier, cruft or ccds): " $0
                 bad = 1
               }
             }
