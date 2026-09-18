@@ -1,4 +1,4 @@
-# WSL Data Science Template with OMZ & GCP
+# WSL DataScience Template
 
 A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
@@ -96,7 +96,8 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 | Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
 | Operate | [GCP infrastructure & IAM](docs/make/gcp.md) | `gcp_project_list`, `gcs_*`, `iam_setup_service_account` |
 | Operate | [BigQuery](docs/make/bigquery.md) | `bigquery_*` |
-| Operate | [Docker & Artifact Registry](docs/make/docker.md) | `docker_*`, `artifact_registry_*` |
+| Operate | [Docker](docs/make/docker.md) | `docker_build_*`, `docker_run_local`, `docker_push_prod` |
+| Operate | [Artifact Registry](docs/make/artifact_registry.md) | `docker_auth`, `artifact_registry_*` |
 | Deploy | [Cloud Run](docs/make/cloud_run.md) | `cloudrun_*` |
 | Operate | [Compute Engine (VMs)](docs/make/gcloud_compute.md) | `vm_*` |
 | Collaborate | [GitHub PRs](docs/make/github.md) | `gh_pr_*` |
@@ -157,7 +158,8 @@ the repository at runtime.
 │   │       ├── tests.mk           # pytest lanes (fast / functional / gcp)
 │   │       ├── gcp.mk             # GCP projects, Cloud Storage buckets, IAM
 │   │       ├── bigquery.mk        # BigQuery datasets & tables
-│   │       ├── docker.mk          # Local/prod Docker builds, Artifact Registry
+│   │       ├── docker.mk          # image builds and local runs (docker only)
+│   │       ├── artifact_registry.mk # the registry targets that call gcloud
 │   │       ├── cloud_run.mk       # Cloud Run deploy, logs, URL
 │   │       ├── gcloud_compute.mk  # Compute Engine VM lifecycle
 │   │       └── github.mk          # GitHub PR workflow (gh CLI)
