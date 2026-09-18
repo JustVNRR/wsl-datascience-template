@@ -20,6 +20,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Configure third-party APT repositories (GitHub CLI, Google Cloud SDK, eza)
+#
+# The Google Cloud SDK repository is configured here but its package is not
+# installed below: it weighs 409 MB and not every project uses Google Cloud.
+# `gmake gcp_install` adds it on demand. Preparing the repository at build time
+# is what keeps that target to a single apt-get, with nothing to fetch, sign or
+# trust at runtime.
 RUN mkdir -p -m 755 /etc/apt/keyrings \
     # GitHub CLI
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
@@ -65,8 +71,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ripgrep \
     shellcheck \
     zoxide \
-    # Cloud & Database CLI
-    google-cloud-cli \
+    # Database CLI (the Google Cloud CLI is not installed here - see section 2:
+    # its apt repository is ready, `gmake gcp_install` pulls the package)
     sqlite3 \
     # Build tools for compiling Python wheels & C-extensions
     build-essential \

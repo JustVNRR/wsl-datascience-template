@@ -54,12 +54,14 @@ The menu is sorted by target name: a command is where its name says it is,
 whichever module defines it. The families stay together anyway, since they
 share their prefix.
 
-## After a rebuild
+## A rebuild, or another machine
 
-The CLI lives inside the distro: a rebuild takes it away with everything else
-(see [Maintenance & Removal](../../README.md#maintenance--removal)). Rerun
-`gcp_install` — a few minutes, and nothing else to redo. The same is true of a
-distro you carry elsewhere as a VHDX.
+The CLI is not in the image, so every fresh distro starts without it: the four
+GCP modules are absent from the menu until `gcp_install` runs again. One
+command, and nothing else to redo — your logins in `~/.config/gcloud` survive
+it if you did not recreate the distro, and a VHDX you carry elsewhere takes
+both the CLI and the logins with it (see
+[Maintenance & Removal](../../README.md#maintenance--removal)).
 
 ## In CI
 

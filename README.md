@@ -3,7 +3,7 @@
 A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
 - the Python stack,
-- the GCP-oriented MLOps workflow already in place.
+- the MLOps workflow — the Google Cloud CLI is one `gmake gcp_install` away.
 
 ## Features
 
@@ -12,7 +12,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Ctrl + H`.
 - **Data Science ready** — `uv` for Python, the C build toolchain needed to compile most wheels, and CV/OCR tooling preinstalled.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
-- **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests ([global makefile](#mlops-global-makefile-gmake)).
+- **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests. The Google Cloud ones appear once their CLI is installed ([global makefile](#mlops-global-makefile-gmake), [optional tooling](docs/make/install.md)).
 
 ---
 
@@ -112,7 +112,11 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 | Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `tzdata`, `nano`, `tree`, `strace`, `lsof`, `tar`, `unzip`, `bzip2`, `unrar`, `p7zip-full`, `gzip`, `xz-utils`, `zstd` |
 | Search & navigation | `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep) |
 | Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor) |
-| DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `google-cloud-cli`, `sqlite3` |
+| DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `sqlite3` |
+
+The Google Cloud CLI is deliberately absent — 409 MB that not every project
+needs. `gmake gcp_install` installs it, and the `gmake` menu follows on the
+next run ([optional tooling](docs/make/install.md)).
 
 ### Python & Data Science
 
@@ -254,7 +258,7 @@ either:
 | `~/projects/` | Nothing backs it up — push your work to a remote first |
 | `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
 | `~/.config/gcloud/` | Both logins are redoable in minutes ([onboarding](docs/gcp/onboarding.md)) |
-| `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake gcp_enable_global_env` recreates the file to refill |
+| `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake gcp_install`, then `gmake gcp_enable_global_env`, recreate the file to refill |
 | `~/.config/zsh/cheatsheets/templates.tsv` | Only for rows you added inside the distro: the file is redeployed from the repository at build time — move the line into `zsh/` to keep it |
 
 ---

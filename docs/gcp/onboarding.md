@@ -10,10 +10,19 @@ Registry and VMs refuse to run — even inside their free tiers. On a personal
 project you are the Owner and nothing below will ask you for permissions; on a
 company project, ask your administrator for the roles of the modules you use.
 
-## Step 1 — authenticate the gcloud CLI
+## Step 1 — install the gcloud CLI, then authenticate it
 
-`gmake` targets call `gcloud` and `bq` under your Google account — this
-one-time login authorizes them.
+The image does not ship the Google Cloud CLI: it weighs 409 MB and not every
+project uses Google Cloud. `gmake` therefore loads its four GCP modules only
+when that CLI is present, and offers the way in when it is not — on a fresh
+distro the menu shows `gcp_install` where the GCP targets will be.
+
+```bash
+gmake gcp_install
+```
+
+Run `gmake` again: the thirty-one GCP targets are there. They call `gcloud`
+and `bq` under your Google account — this one-time login authorizes them.
 
 ```bash
 gmake gcp_auth_cli
@@ -97,8 +106,9 @@ its full flow.
 
 ## Good to know
 
-- **Credentials live inside the distro** (`~/.config/gcloud`). Recreating the
-  distro loses both logins — redo steps 1 and 5 afterwards.
+- **The CLI and the credentials live inside the distro** (`/usr/bin/gcloud`,
+  `~/.config/gcloud`). Recreating the distro loses both — run
+  `gmake gcp_install`, then redo steps 1 and 5.
 - Operational targets refuse to run outside a project folder under
   `~/projects` — the message says so. `GMAKE_ANYWHERE=1` bypasses the gate
   for unconventional setups.
