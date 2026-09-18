@@ -167,6 +167,7 @@ the repository at runtime.
 │   ├── scaffold.zsh         # Interactive project scaffolding picker (fnew)
 │   └── unzip.zsh            # Interactive archive extraction handler
 ├── assets/
+│   ├── make-icon.ps1        # Regenerates the icon below (standalone PowerShell)
 │   └── terminal-icon.png    # Windows Terminal profile icon (copied next to the VHDX)
 ├── docs/
 │   ├── gcp/                 # GCP onboarding guide (accounts, auth, first steps)

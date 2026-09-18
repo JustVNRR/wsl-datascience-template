@@ -51,13 +51,15 @@ jobs:
         run: |
           # tr deletes every ASCII byte: whatever is left is not ASCII. A BOM
           # would be flagged too, which is the intended reading of the rule.
+          # find, not a ./*.ps1 glob: the rule must cover the whole tree, and a
+          # root glob would silently stop checking anything below it.
           bad=0
-          for f in ./*.ps1; do
+          while IFS= read -r -d '' f; do
             if [ -n "$(LC_ALL=C tr -d '\000-\177' < "$f")" ]; then
               echo "::error file=${f}::non-ASCII byte found - keep .ps1 files 100% ASCII"
               bad=1
             fi
-          done
+          done < <(find . -type f -name '*.ps1' -not -path './.git/*' -print0)
           exit $bad
 
       - name: Makefile parse + help menu
