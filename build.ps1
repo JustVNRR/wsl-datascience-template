@@ -98,6 +98,34 @@ Set-Location -Path $RepoRoot
 $ImageTag = "wsl-datascience-template:latest"
 $ContainerName = "wsl-temp-export-$([guid]::NewGuid().ToString().Substring(0, 8))"
 
+# 0. Preflight: Docker must answer BEFORE the destructive confirmation below,
+# which asks the user to type the distro name. Failing here aborts cleanly,
+# with nothing confirmed and nothing touched.
+# "Continue" + "*> $null" is deliberate: under $ErrorActionPreference = "Stop",
+# docker's stderr becomes a TERMINATING error, and a plain 2>$null does not
+# silence it - the user would see a raw daemon error instead of this message.
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+    Write-Host ""
+    Write-Host "[ABORT] Docker is not installed, or not on the PATH." -ForegroundColor Red
+    Write-Host "        Install Docker Desktop (see Prerequisites in the README), then run this script again." -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "==> 0. Checking Docker..." -ForegroundColor Cyan
+$PreviousEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+$null = docker info *> $null
+$DockerExitCode = $LASTEXITCODE
+$ErrorActionPreference = $PreviousEAP
+
+if ($DockerExitCode -ne 0) {
+    Write-Host ""
+    Write-Host "[ABORT] Docker is not responding." -ForegroundColor Red
+    Write-Host "        Start Docker Desktop, wait for it to finish starting, then run this script again." -ForegroundColor Yellow
+    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    exit 1
+}
+
 # 1. Place temporary export tar next to InstallPath to prevent filling drive C:
 $ParentInstallDir = Split-Path -Path $InstallPath -Parent
 if (-not (Test-Path -Path $ParentInstallDir)) {
@@ -149,7 +177,13 @@ try {
     Invoke-External { docker export -o $TarPath $ContainerName } "Docker export failed."
 
     Write-Host "==> 4. Preparing installation folder: $InstallPath" -ForegroundColor Cyan
-    wsl.exe --unregister $DistroName 2>$null
+    # Same trap as the Docker probe above: 2>$null does not silence wsl.exe,
+    # which writes a mojibake UTF-16 error whenever the distro does not exist
+    # yet - i.e. on every first build. The exit code is ignored on purpose.
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $null = wsl.exe --unregister $DistroName *> $null
+    $ErrorActionPreference = $PreviousEAP
     if (Test-Path -Path $InstallPath) {
         Remove-Item -Recurse -Force $InstallPath
     }
@@ -169,7 +203,9 @@ try {
     wsl.exe --terminate $DistroName
 
     Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor Cyan
-    $FontAlreadyConfigured = Install-NerdFont
+    # The function prints its own status line; discard the boolean it returns
+    # (a bare call would print True/False to the console).
+    Install-NerdFont | Out-Null
 
     Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor Cyan
     Copy-Item "$RepoRoot\assets\terminal-icon.png" "$InstallPath\terminal-icon.png" -Force
@@ -217,7 +253,8 @@ try {
                     Write-Host "  * Terminal profile : pruned $($All.Count - $Kept.Count) ghost '$DistroName' entries from settings.json" -ForegroundColor Green
                 }
             } catch {
-                Write-Host "  * Terminal profile : could not prune ghosts from a settings.json (skipped)" -ForegroundColor Yellow
+                Write-Host "  * Terminal profile : ghost entries NOT pruned in $SettingsPath" -ForegroundColor Yellow
+                Write-Host "                       (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor DarkGray
             }
         }
     }

@@ -134,7 +134,10 @@ foreach ($SettingsPath in @(
             $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding Utf8
             $GhostsPruned += $All.Count - $Kept.Count
         }
-    } catch { }
+    } catch {
+        Write-Host "  * settings.json : ghost entries NOT pruned in $SettingsPath" -ForegroundColor Yellow
+        Write-Host "                    (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor DarkGray
+    }
 }
 if ($GhostsPruned -gt 0) {
     Write-Host "  * settings.json : pruned $GhostsPruned ghost '$DistroName' entries" -ForegroundColor Green
