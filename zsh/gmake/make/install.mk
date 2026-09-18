@@ -14,4 +14,6 @@
 gcp_install: ## Install the Google Cloud CLI (adds the GCP targets to gmake)
 	$(call confirm_action,Install the Google Cloud CLI (~409 MB installed))
 	@sudo apt-get update && sudo apt-get install -y --no-install-recommends google-cloud-cli
-	@echo "✅ Installed. Run gmake again: the four GCP modules are back in the menu."
+	@echo "✅ Google Cloud CLI installed."
+	@echo "   The Google Cloud commands are in the gmake menu now."
+	@echo "   Next: gmake gcp_auth_cli (signs the CLI in to your Google account)."

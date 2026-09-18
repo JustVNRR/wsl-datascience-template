@@ -113,7 +113,8 @@ gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
 gcp_uninstall: ## Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gcloud logins)
 	$(call confirm_action,Uninstall the Google Cloud CLI (frees ~409 MB))
 	@sudo apt-get remove -y google-cloud-cli
-	@echo "✅ Removed. Run gmake again: the GCP targets are gone from the menu."
+	@echo "✅ Google Cloud CLI removed."
+	@echo "   The Google Cloud commands have left the gmake menu."
 	@echo "   Your logins (~/.config/gcloud) were left alone - delete that directory to forget them."
 
 iam_setup_service_account: ## Create the Service Account and assign IAM roles
