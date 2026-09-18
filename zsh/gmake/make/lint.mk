@@ -25,15 +25,16 @@ lint: lint-confirm lint-sh lint-py ## Run all checks (Python + shell), non-destr
 
 # Internal prerequisite of `lint`: the single full-scan confirmation prompt
 lint-confirm:
-	@if [ "$(LINT_CONFIRMED)" != "1" ] && { [ "$(PY_TARGETS)" = "." ] || [ "$(SH_TARGETS)" = "." ]; }; then \
-		echo "⚠️  No scope given: lint will scan the ENTIRE current directory ($(CURDIR))."; \
+	@if [ "$(PY_TARGETS)" = "." ] || [ "$(SH_TARGETS)" = "." ]; then \
+		echo "⚠️  No scope given for:$(if $(filter .,$(PY_TARGETS)), python)$(if $(filter .,$(SH_TARGETS)), shell)"; \
+		echo "    The scan covers the ENTIRE current directory ($(CURDIR))."; \
 		echo "    To scope it, relaunch with e.g. gmake lint PY_TARGETS=\"src/\" SH_TARGETS=\"scripts/\""; \
 		read -p "Continue with the full scan? [y/N] " ans; \
 		if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "❌ Cancelled by user." >&2; exit 1; fi; \
 	fi
 
 lint-py: ## Check Python code with ruff (optional: PY_TARGETS="...")
-	@if [ "$(LINT_CONFIRMED)" != "1" ] && [ "$(LINT_AGGREGATE)" != "1" ] && [ "$(PY_TARGETS)" = "." ]; then \
+	@if [ "$(LINT_AGGREGATE)" != "1" ] && [ "$(PY_TARGETS)" = "." ]; then \
 		echo "⚠️  No scope given: lint-py will scan the ENTIRE current directory ($(CURDIR))."; \
 		echo "    To scope it, relaunch with e.g. gmake lint-py PY_TARGETS=\"src/\""; \
 		read -p "Continue with the full scan? [y/N] " ans; \
@@ -48,23 +49,25 @@ lint-py: ## Check Python code with ruff (optional: PY_TARGETS="...")
 	ruff format --check $(PY_TARGETS)
 
 lint-sh: ## Check shell scripts with shellcheck (optional: SH_TARGETS="...")
-	@if [ "$(LINT_CONFIRMED)" != "1" ] && [ "$(LINT_AGGREGATE)" != "1" ] && [ "$(SH_TARGETS)" = "." ]; then \
+	@if [ "$(LINT_AGGREGATE)" != "1" ] && [ "$(SH_TARGETS)" = "." ]; then \
 		echo "⚠️  No scope given: lint-sh will scan the ENTIRE current directory ($(CURDIR))."; \
 		echo "    To scope it, relaunch with e.g. gmake lint-sh SH_TARGETS=\"scripts/\""; \
 		read -p "Continue with the full scan? [y/N] " ans; \
 		if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "❌ Cancelled by user." >&2; exit 1; fi; \
 	fi
-	@# Resolve scan roots (accepts files or directories, e.g. SH_TARGETS="scripts/")
-	$(eval RESOLVED_SH := $(shell find $(SH_TARGETS) -type f -name "*.sh" -not -path "*/.*/*" -not -path "*/venv/*" 2>/dev/null))
-	@if [ -z "$(RESOLVED_SH)" ]; then \
+	@# Resolve the scan roots at RUN time - a shell variable, never $(shell ...):
+	@# make expands a whole recipe before any of its lines runs, so a make-level
+	@# find would execute before the confirmation prompt above could be answered.
+	@files=$$(find $(SH_TARGETS) -type f -name "*.sh" -not -path "*/.*/*" -not -path "*/venv/*" 2>/dev/null); \
+	if [ -z "$$files" ]; then \
 		echo "ℹ️  No shell scripts found to analyze."; \
 	else \
 		command -v shellcheck >/dev/null 2>&1 || { \
 			echo "❌ shellcheck is not installed. Debian/Ubuntu/WSL: sudo apt-get install shellcheck — macOS: brew install shellcheck" >&2; \
 			exit 1; \
 		}; \
-		echo "🔍 Running ShellCheck on: $(RESOLVED_SH)"; \
-		shellcheck -x $(RESOLVED_SH); \
+		echo "🔍 Running ShellCheck on: $$files"; \
+		shellcheck -x $$files; \
 	fi
 
 lint-format: ## Auto-fix and format Python code with ruff (optional: PY_TARGETS="...")
