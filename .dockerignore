@@ -1,0 +1,17 @@
+# What never enters the build context. The image only needs zsh/ and
+# first_boot.sh (see the COPY lines in the Dockerfile); everything else is
+# either noise sent to the Docker daemon or user configuration that must not
+# be baked into /etc/skel.
+.git
+.github
+.claude
+docs
+
+# Build artifacts
+*.tar
+*.vhdx
+
+# A local .env.global is one machine's configuration. COPY zsh would bake it
+# into /etc/skel, so every distro, for every user, would inherit it.
+.env
+.env.global

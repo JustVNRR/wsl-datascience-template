@@ -180,8 +180,10 @@ the repository at runtime.
 ├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
 ├── build.ps1                # PowerShell build, export, safety checks, and import script
 ├── unregister.ps1           # Counterpart removal: distro, install folder, Terminal leftovers
+├── .dockerignore            # Keeps the context lean, keeps .env.global out of the image
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
+├── LICENSE                  # MIT
 └── README.md
 ```
 
@@ -239,3 +241,9 @@ To completely delete an instance and everything it left behind, use the build sc
 ```powershell
 .\unregister.ps1 -DistroName <DistroName>
 ```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
