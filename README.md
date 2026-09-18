@@ -10,7 +10,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Minimal setup** — first boot asks for your username, password, region and timezone.
 - **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls`, `cat`, and `grep` ([shell environment](#shell-environment-zsh)).
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Ctrl + H`.
-- **Data Science ready** — `uv` for Python, a full build toolchain to compile any wheel, and CV/OCR libraries preinstalled.
+- **Data Science ready** — `uv` for Python, the C build toolchain needed to compile most wheels, and CV/OCR tooling preinstalled.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog and bootstraps the virtual environment and direnv.
 - **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests ([global makefile](#mlops-global-makefile-gmake)).
 
@@ -32,9 +32,7 @@ Make sure Docker Desktop is running before you start.
    ```powershell
    git clone https://github.com/JustVNRR/wsl-datascience-template.git
    cd wsl-datascience-template
-   cp zsh/gmake/.env.global.sample zsh/gmake/.env.global
    ```
-   The copy is your local, gitignored global configuration — fill in your region and zone at your convenience.
 
 2. **Build and register the instance:**
 
@@ -78,17 +76,15 @@ Follow the [GCP onboarding guide](docs/gcp/onboarding.md) before your first `gma
 
 - **Cascading configuration:**
 
-   - Only values shared across all projects belong in the `.env.global`
+   - Only values shared across all projects belong in the shared `.env.global`
    - Anything identifying a project (GCP project, resource names) lives in its `.env`.
-   - Both files are gitignored and start from committed samples in `gmake/` (`.env.global.sample`, `.env.project.sample`). 
+   - Both files are gitignored and start from committed samples in `gmake/` (`.env.global.sample`, `.env.project.sample`).
 
-- **Project-scoped execution:** 
-
-- **`gmake` vs `make`:** 
+- **`gmake` vs `make`:**
   - Type `gmake` (without any arguments) to display a formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
-  - Use `fnew (recommanded)`, `gmake copier_project` or `gmake cruf_project` from `~/projects` to scaffold a project template.
-  - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the global `Makefile` in `~/.config/zsh/gcp`.
-  - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in to your current project folder.
+  - Use `fnew (recommended)`, `gmake copier_project` or `gmake cruft_project` from `~/projects` to scaffold a project template.
+  - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the global `Makefile` in `~/.config/zsh/gmake`.
+  - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in your current project folder.
 
 The global makefile is split into one module per domain under `gmake/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
 
@@ -115,22 +111,29 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 | Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `tzdata`, `nano`, `tree`, `strace`, `lsof`, `tar`, `unzip`, `bzip2`, `unrar`, `p7zip-full`, `gzip`, `xz-utils`, `zstd` |
 | Search & navigation | `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep) |
 | Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor) |
-| DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `google-cloud-sdk`, `sqlite3` |
+| DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `google-cloud-cli`, `sqlite3` |
 
 ### Python & Data Science
 
 | Category | Tools |
 | :--- | :--- |
 | Package manager | `uv` (Astral's fast Python package manager) |
-| Build libraries | `build-essential`, `llvm`, `make`, `python3-dev`, `libssl-dev`, `zlib1g-dev`, `libbz2-dev`, `libreadline-dev`, `libsqlite3-dev`, `tk-dev`, `libffi-dev`, `liblzma-dev` |
+| Build libraries | `build-essential`, `python3-dev`, `libffi-dev`, `libssl-dev` |
 | Computer Vision & OCR | `ffmpeg`, `imagemagick`, `tesseract-ocr`, `libtesseract-dev` |
 
 ---
 
 ## Project Structure
 
+Two distinct trees: the **repository** you clone and version, and the **distro**
+the build produces. The shell environment is the link between them — `zsh/` is a
+source directory that `build.ps1` copies into the image; nothing reads it from
+the repository at runtime.
+
+### The repository
+
 ```text
-├── .config/zsh/
+├── zsh/                     # Shell environment, deployed into the distro at build time
 │   ├── .zshrc               # Main orchestrator (loads OMZ, modules, prompts)
 │   ├── aliases.zsh          # Custom shortcuts and interactive falias picker
 │   ├── bindings.zsh         # ZLE widgets and keybindings
@@ -164,18 +167,45 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 │   ├── scaffold.zsh         # Interactive project scaffolding picker (fnew)
 │   └── unzip.zsh            # Interactive archive extraction handler
 ├── assets/
-│   └── terminal-icon.png    # Default Windows Terminal profile icon (copied next to the VHDX)
-├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
-├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
-├── build.ps1                # PowerShell build, export, safety checks, and import script
-├── unregister.ps1           # Counterpart removal: distro, install folder, Terminal leftovers
+│   └── terminal-icon.png    # Windows Terminal profile icon (copied next to the VHDX)
 ├── docs/
 │   ├── gcp/                 # GCP onboarding guide (accounts, auth, first steps)
 │   ├── make/                # Per-module documentation for the global Makefile
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
+├── .github/
+│   └── workflows/ci.yml     # Static checks (shellcheck, zsh -n, make parse, doc drift)
+├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
+├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
+├── build.ps1                # PowerShell build, export, safety checks, and import script
+├── unregister.ps1           # Counterpart removal: distro, install folder, Terminal leftovers
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
 └── README.md
+```
+
+### Inside the distro
+
+Written by the build or by `gmake` targets. None of it is versioned, and
+deleting the distro deletes all of it.
+
+```text
+~/.config/zsh/               # = zsh/ from the repository
+├── gmake/
+│   ├── .env.global          # Shared defaults (gmake gcp_enable_global_env)
+│   ├── global_makefile.mk
+│   └── make/*.mk
+└── .zshrc, modules, prompts/, cheatsheets/
+
+~/projects/<project>/        # One directory per project
+├── .env                     # This project's identity (gmake gcp_enable_project_env)
+├── .envrc                   # direnv hook (fnew / gmake copier_project)
+└── .venv/
+
+~/.local/share/oh-my-zsh/    # Cloned at build time
+~/.nvm/                      # Cloned at build time
+~/.local/bin/                # uv tools: copier, cruft, ruff
+~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
+/etc/wsl.conf                # Default user, systemd (first_boot.sh)
 ```
 
 ---
