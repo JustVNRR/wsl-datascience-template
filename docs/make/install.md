@@ -2,85 +2,11 @@
 
 [← Back to the README](../../README.md#mlops-global-makefile-gmake)
 
-Install and remove, on demand, the CLIs the image does not ship — a lean base
-should not mean a dead end, and an option you cannot undo is not an option.
+This module holds one target: `gcp_install`, which installs the Google Cloud
+CLI. It is offered only while that CLI is absent, so a fresh distro shows the
+way in instead of commands that cannot run. Its counterpart, `gcp_uninstall`,
+lives in [the gcp module](gcp.md) — loaded only when the CLI is there.
 
-## Targets
-
-| Target | Lives in | In the menu when | Action |
-|---|---|---|---|
-| `gcp_install` | `make/install.mk` | `gcloud` is absent | Install the Google Cloud CLI (~409 MB), then rerun `gmake` |
-| `gcp_uninstall` | `make/gcp.mk` | `gcloud` is installed | Remove the package (~409 MB freed); the APT repository and your logins stay |
-
-Exactly one of the two is visible at any time. The menu lists what can be done
-**now**, not what could be done: an install line next to an already installed
-tool is noise, and the way out has to exist for the tool to be an option at all.
-
-## How a module appears and disappears
-
-`gmake help` is not written by hand: it is built by reading the **text** of the
-files make loaded. The modules that need the Google Cloud CLI (`gcp`,
-`bigquery`, `cloud_run`, `gcloud_compute`, `artifact_registry`) are therefore
-loaded only when that CLI is on the PATH — and unloaded, they contribute no
-line at all.
-
-That is the whole point: on a fresh distro those four modules leave the menu
-instead of advertising commands that would fail with `command not found`.
-`gcp_install` is there instead, because `install.mk` is loaded in that same
-state — the capability is hidden until it is installed, never hidden until you
-know it exists.
-
-This is also why the two faces are two files. A conditional inside one file
-would not hide anything: the menu reads text, so an `ifeq` around a target
-leaves that target's description in the file, and both faces would show up at
-once.
-
-Nothing is recorded anywhere. `gmake` asks the system again on every run, so
-any install route works — `gcp_install`, a manual `apt-get install`, a
-tarball. The menu follows at the next `gmake`, in both directions.
-
-The `Ctrl + H` cheatsheets follow the same rule, with the same granularity: a
-sheet declares `# requires: gcloud` (or `!gcloud`) and is left out when the
-condition does not hold, so `install_commands.sh` and `uninstall_commands.sh`
-never show up together ([interactive tools](../zsh/interactive.md)).
-
-Only the modules whose CLI is missing from the image are gated: `gh` ships in
-the image, and `docker` works through Docker Desktop's WSL integration. A
-module therefore carries one condition, never two — `docker.mk` keeps what
-needs nothing but docker, and the three registry targets that call `gcloud`
-have their own module ([artifact registry](artifact_registry.md)).
-
-What is detected is a **binary**, not an authentication: a `gcloud` that is
-installed but not logged in still shows its targets, and they fail with
-Google's own message ([onboarding](../gcp/onboarding.md) covers that step).
-
-The APT repository itself — Google's signing key and its file in
-`/etc/apt/sources.list.d` — stays in the image, a few kilobytes. Only the
-package is left out, so there is no repository to configure at runtime, and
-reinstalling later is the same one-liner.
-
-The menu is sorted by target name: a command is where its name says it is,
-whichever module defines it. The families stay together anyway, since they
-share their prefix.
-
-## A rebuild, or another machine
-
-The CLI is not in the image, so every fresh distro starts without it: the four
-GCP modules are absent from the menu until `gcp_install` runs again. One
-command, and nothing else to redo — your logins in `~/.config/gcloud` survive
-it if you did not recreate the distro, and a VHDX you carry elsewhere takes
-both the CLI and the logins with it (see
-[Maintenance & Removal](../../README.md#maintenance--removal)).
-
-## In CI
-
-The static checks run on a machine that has none of these CLIs, and a target
-can exist in only one install state. The menu is therefore captured twice and
-concatenated before the cheatsheets are compared against it:
-
-```bash
-{ GCLOUD=x gmake help; GCLOUD= gmake help; }   # both states, in one file
-```
-
-A variable set on the command line wins over the makefile's `:=`, so `GCLOUD=x`
-loads the gated modules anyway. The bare run is then asserted separately.
+The guides live with the tools they install:
+[Google Cloud](../optional_tooling/gcp_onboarding.md) ·
+[Ollama](../optional_tooling/ollama_onboarding.md).

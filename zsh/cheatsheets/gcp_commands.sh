@@ -3,7 +3,7 @@
 # requires: gcloud
 # ==========================================
 # The raw gcloud commands for the one-time setup, then the gmake targets that
-# drive the same services — the full walkthrough lives in docs/gcp/onboarding.md.
+# drive the same services — the full walkthrough lives in docs/optional_tooling/gcp_onboarding.md.
 # Offered only while the CLI is installed: install_commands.sh is the face
 # you get without it.
 

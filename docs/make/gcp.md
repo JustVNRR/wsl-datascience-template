@@ -6,7 +6,7 @@ Projects, Cloud Storage buckets, and service accounts — the ground floor of
 the GCP modules. All targets read the cascading `.env.global` / `.env`
 configuration.
 
-New to GCP entirely? Start with the [onboarding guide](../gcp/onboarding.md).
+New to GCP entirely? Start with the [onboarding guide](../optional_tooling/gcp_onboarding.md).
 
 ## Targets
 

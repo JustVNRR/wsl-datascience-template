@@ -1,6 +1,6 @@
 # GCP Onboarding
 
-[← Back to the README](../../README.md#mlops-global-makefile-gmake)
+[← Back to the README](../../README.md#optional-tooling)
 
 ## Step 0 — outside the distro, once
 
