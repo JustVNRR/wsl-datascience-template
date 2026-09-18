@@ -212,6 +212,27 @@ deleting the distro deletes all of it.
 
 ---
 
+## Continuous Integration
+
+Two GitHub Actions workflows, in `.github/workflows/`:
+
+| Workflow | Runs on | What it proves |
+| :--- | :--- | :--- |
+| `ci.yml` — Static checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the makefile parses with a complete help menu, and the docs and cheatsheets stay in sync with the `gmake` modules |
+| `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
+
+They check the **repository**, not a running distro — neither replaces a real
+`.\build.ps1` run.
+
+The weekly run is the point of `image.yml`: it does not check your last edit, it
+catches **upstream drift** — a package that moved, a URL that changed — while the
+repository sits untouched, so an upcoming rebuild does not surprise you.
+
+Each workflow is documented in full at the top of its own file: read that before
+changing one.
+
+---
+
 ## Maintenance & Removal
 
 To completely delete an instance and everything it left behind, use the build script's counterpart:

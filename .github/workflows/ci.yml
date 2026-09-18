@@ -12,9 +12,10 @@
 #   - make on the global makefile: reading it parses every make/*.mk include,
 #     then the help menu is asserted (expected targets present, no doc drift
 #     between the *_commands.sh cheatsheets and gmake help)
-#   - module documentation coverage: every make/*.mk module must have a
+#   - documentation coverage: every make/*.mk module must have a
 #     docs/make/<name>.md page, linked from the README index and listed in
-#     the README project tree; every gmake target must appear in a cheatsheet
+#     the README project tree; every gmake target must appear in a cheatsheet;
+#     every .github/workflows/*.yml must be named in the README
 #   - templates.tsv format: fnew's awk silently skips malformed rows (NF < 4),
 #     so a broken line would just disappear from the picker — validate here
 
@@ -89,7 +90,7 @@ jobs:
           done < documented.txt
           exit $missing
 
-      - name: Module documentation coverage
+      - name: Documentation coverage
         run: |
           missing=0
           # A module is fully documented when: its doc page exists, the README
@@ -126,6 +127,15 @@ jobs:
               missing=1
             }
           done < help_targets.txt
+          # Every workflow must be named in the README, so the CI section there
+          # cannot silently lose one (same rule as the make/*.mk modules)
+          for wf in .github/workflows/*.yml; do
+            name=$(basename "$wf")
+            grep -q "$name" README.md || {
+              echo "::error::workflow '${name}' is not named in the README"
+              missing=1
+            }
+          done
           exit $missing
 
       - name: Template catalog integrity (templates.tsv)
