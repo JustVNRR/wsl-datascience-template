@@ -6,6 +6,9 @@
 #   - shellcheck on real shell scripts (cheatsheets/*.sh are fcheat data files
 #     parsed by awk, not executable shell — excluded)
 #   - zsh -n on all zsh config files (syntax only, nothing is executed)
+#   - .ps1 files stay 100% ASCII: PowerShell 5.1 reads a BOM-less script as
+#     Windows-1252, where one non-ASCII byte (an em-dash) becomes a string
+#     delimiter and breaks the whole file's parse
 #   - make on the global makefile: reading it parses every make/*.mk include,
 #     then the help menu is asserted (expected targets present, no doc drift
 #     between the *_commands.sh cheatsheets and gmake help)
@@ -42,6 +45,19 @@ jobs:
         run: |
           find zsh -type f \( -name '*.zsh' -o -name '.zshrc' \) -print0 |
             xargs -0 -r -n1 zsh -n
+
+      - name: PowerShell scripts (ASCII only)
+        run: |
+          # tr deletes every ASCII byte: whatever is left is not ASCII. A BOM
+          # would be flagged too, which is the intended reading of the rule.
+          bad=0
+          for f in ./*.ps1; do
+            if [ -n "$(LC_ALL=C tr -d '\000-\177' < "$f")" ]; then
+              echo "::error file=${f}::non-ASCII byte found - keep .ps1 files 100% ASCII"
+              bad=1
+            fi
+          done
+          exit $bad
 
       - name: Makefile parse + help menu
         run: |

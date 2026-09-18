@@ -173,7 +173,9 @@ the repository at runtime.
 │   ├── make/                # Per-module documentation for the global Makefile
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── .github/
-│   └── workflows/ci.yml     # Static checks (shellcheck, zsh -n, make parse, doc drift)
+│   └── workflows/
+│       ├── ci.yml           # Static checks (shellcheck, zsh -n, make parse, doc drift)
+│       └── image.yml        # Rootfs image build (push/PR + weekly, catches upstream drift)
 ├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
 ├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
 ├── build.ps1                # PowerShell build, export, safety checks, and import script

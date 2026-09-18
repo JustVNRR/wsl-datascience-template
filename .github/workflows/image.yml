@@ -1,0 +1,34 @@
+# ==============================================================================
+# ROOTFS IMAGE BUILD
+# ==============================================================================
+# The static checks (ci.yml) never read the Dockerfile: nothing there notices an
+# apt package that moved, a download URL that changed, or a COPY path that no
+# longer exists. A broken recipe therefore only shows up at the worst possible
+# moment — when someone rebuilds a distro.
+#   - push / pull request: catches a recipe broken by an edit
+#   - weekly: catches upstream drift, with the repository untouched since the
+#     previous run
+# The image is built but never exported or imported: this job only proves that
+# the recipe still resolves.
+# Note: GitHub disables a scheduled workflow after 60 days without repository
+# activity — re-enable it from the Actions tab if the repository sleeps.
+
+name: Image build
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build the rootfs image
+        run: docker build --tag wsl-datascience-template:ci .
