@@ -6,18 +6,20 @@
 # ($ZDOTDIR/cheatsheets/templates.tsv) and print "url<TAB>tool<TAB>version"
 _ftemplate_select() {
     local catalog="$ZDOTDIR/cheatsheets/templates.tsv"
+    local skipped
 
     # Silent exit when the catalog is missing or empty
     [[ -s "$catalog" ]] || return 1
 
-    awk -F'\t' '
-        # Skip comments and blank lines
-        /^[[:space:]]*(#|$)/ { next }
+    # Rows the picker will skip, collected BEFORE it runs: the warning is printed
+    # once it closes. fzf owns the whole screen while it is open, so a message
+    # emitted before it would only flash.
+    skipped=$(awk -F'\t' '/^[[:space:]]*(#|$)/ { next } NF < 4 { print }' "$catalog")
 
-        # A malformed row silently vanishes from the picker, which then looks
-        # exactly like an empty catalog: count it and warn in END, on stderr
-        # (stdout is the candidate list fzf is reading).
-        NF < 4 { malformed++; if (!example) example = $0; next }
+    awk -F'\t' '
+        # Skip comments, blank lines and malformed rows (the caller warns)
+        /^[[:space:]]*(#|$)/ { next }
+        NF < 4 { next }
 
         {
             url = $1
@@ -45,13 +47,6 @@ _ftemplate_select() {
             printf "%s\t%s\t%s\t%s \033[90m|\033[0m %s \033[90m|\033[0m %s\n", url, tool, ver, tag, repo, $4
         }
 
-        END {
-            if (malformed) {
-                printf "⚠️  %d malformed row(s) ignored in %s\n", malformed, FILENAME > "/dev/stderr"
-                printf "    %s\n", example > "/dev/stderr"
-                printf "    A row needs 4 TAB-separated columns: url, tool, version, description.\n" > "/dev/stderr"
-            }
-        }
     ' "$catalog" |
         fzf \
             --ansi \
@@ -61,6 +56,16 @@ _ftemplate_select() {
             --info=inline \
             --layout=reverse |
         awk -F'\t' '{ print $1 "\t" $2 "\t" $3 }'
+
+    # A malformed row silently vanishes from the picker, which then looks exactly
+    # like an empty catalog: name it, now that the screen is ours again.
+    if [[ -n "$skipped" ]]; then
+        local -a lines
+        lines=("${(f)skipped}")
+        printf "⚠️  %d malformed row(s) ignored in %s\n" "${#lines}" "$catalog" >&2
+        printf "    %s\n" "${lines[1]}" >&2
+        printf "    A row needs 4 TAB-separated columns: url, tool, version, description.\n" >&2
+    fi
 }
 
 # Scaffold a new project, from the template catalog or from an explicit URL
