@@ -11,7 +11,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls`, `cat`, and `grep` ([shell environment](#shell-environment-zsh)).
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Ctrl + H`.
 - **Data Science ready** — `uv` for Python, the C build toolchain needed to compile most wheels, and CV/OCR tooling preinstalled.
-- **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog and bootstraps the virtual environment and direnv.
+- **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
 - **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests ([global makefile](#mlops-global-makefile-gmake)).
 
 ---
@@ -253,6 +253,7 @@ either:
 | `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
 | `~/.config/gcloud/` | Both logins are redoable in minutes ([onboarding](docs/gcp/onboarding.md)) |
 | `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake gcp_enable_global_env` recreates the file to refill |
+| `~/.config/zsh/cheatsheets/templates.tsv` | Only for rows you added inside the distro: the file is redeployed from the repository at build time — move the line into `zsh/` to keep it |
 
 ---
 

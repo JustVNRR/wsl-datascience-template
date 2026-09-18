@@ -7,9 +7,16 @@
 #   version     optional pinned ref/tag (e.g. v1); leave empty for the default
 #   description shown in the `fnew` interactive picker
 #
-# This file is scanned on every `fnew` call: add, edit, or remove lines freely.
+# An entry belongs here when a CHECKABLE FACT justifies it - the project is
+# maintained, its owner answers for it, its CI creates and tests a real
+# project - and not by a hunch. Write that fact in the description, so the
+# next reader knows why the line is there. A starting point, not a ranking:
+# a short list that means something beats a long one nobody verified.
+#
+# Nothing here suits you? You do not need an entry to use a template:
+#   fnew gh:owner/repo [copier|cruft]      # reads and writes nothing
+# and if it earns its place, append a line below - TABs, not spaces, or the
+# picker ignores the row (it says so on stderr when it does).
 # ==============================================================================
-gh:felixgwilliams/python-copier-template-ds	copier		Data Science project template (Python)
-gh:softboiler/copier-pipeline	copier		Data pipeline template
-gh:UABPeriopAI/MLOpsTemplate	copier		MLOps template (production ML)
-https://github.com/drivendata/cookiecutter-data-science	cruft	v1	Community reference DS template (pinned to v1: v2 targets the ccds CLI)
+https://github.com/drivendataorg/cookiecutter-data-science	cruft	v1	DrivenData's DS reference (active, CI scaffolds a project)
+gh:NLeSC/python-template	copier		Netherlands eScience Center research template (active, CI scaffolds a project)

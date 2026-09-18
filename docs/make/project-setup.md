@@ -53,20 +53,67 @@ Project name: my-analysis
 `fnew` only runs from `~/projects` itself — it refuses anywhere else, and so
 do the two targets it delegates to.
 
-## The catalog
+## Trying a template without adding it
 
-The catalog lives in `cheatsheets/templates.tsv` — one template per line,
-tab-separated:
+A template does not have to be in the catalog to be used:
 
-```tsv
-# One template per line:  <url> <TAB> <tool> <TAB> <version> <TAB> <description>
-gh:owner/python-copier-template-ds	copier		Data Science project template
-gh:owner/cookiecutter-data-science	cruft	v1	Community DS template (pinned to v1)
+```bash
+cd ~/projects
+fnew gh:owner/repo            # Copier by default
+fnew gh:owner/repo cruft      # ...or Cruft, for a cookiecutter template
+fnew gh:owner/repo cruft v1   # ...pinned to a ref
 ```
 
+This path reads and writes nothing. A template that turns out not to suit you
+costs only the project directory you just created — there is no catalog entry
+to clean up afterwards. Use it first: how a template behaves is hard to judge
+from its README, and you only find out by scaffolding with it.
+
+The ref is not optional decoration: without it, a template is taken from its
+**default branch**, which is not always the thing you want. Cookiecutter Data
+Science is the case to know — its default branch now only answers "use `ccds`
+instead", and `v1` is the ref that still generates a project. That is what the
+catalog pins, and why the same template works from the catalog and not from a
+bare URL.
+
+## The catalog
+
+The catalog (`cheatsheets/templates.tsv`) is the short list of templates worth
+keeping: one per line, tab-separated.
+
+An entry belongs there when a **checkable fact** justifies it:
+
+- the project is maintained (recent release or commits);
+- an identifiable owner answers for it (an organisation, rather than an
+  anonymous account);
+- its CI creates and tests a real project — the strongest signal, and the one
+  that separates a maintained template from someone's personal folder.
+
+Popularity alone is not one of those facts: the most starred cookiecutter
+template for data science is also one of the oldest, and star counts never go
+down. Write the fact in the description column, so the next reader knows why
+the line is there.
+
 The optional `version` column pins a template ref — useful when a template's
-default branch targets a different tool. The catalog is re-scanned on every
-`fnew` call: add, edit, or remove lines to curate your own shortlist.
+default branch targets a different tool.
+
+### Adding a line
+
+`fnew` ignores any line that is not four tab-separated columns, and says so on
+stderr — a row typed with spaces would otherwise simply never appear in the
+picker, which looks exactly like an empty catalog. The safe way to append one
+is a `printf` with an explicit `\t`, which cannot turn into spaces:
+
+```bash
+printf '%s\t%s\t%s\t%s\n' \
+  'gh:owner/repo' 'copier' '' 'What it is (and the fact that justifies it)' \
+  >> ~/.config/zsh/cheatsheets/templates.tsv
+```
+
+That writes to the copy inside the distro, which is redeployed from
+`zsh/cheatsheets/templates.tsv` at build time. An entry meant to survive a
+rebuild therefore belongs in the repository — same rule as everything else
+under `zsh/`.
 
 ## Skipping the picker
 

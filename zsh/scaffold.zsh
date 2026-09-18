@@ -11,9 +11,14 @@ _ftemplate_select() {
     [[ -s "$catalog" ]] || return 1
 
     awk -F'\t' '
-        # Skip comments, blank lines, and malformed rows
+        # Skip comments and blank lines
         /^[[:space:]]*(#|$)/ { next }
-        NF < 4 { next }
+
+        # A malformed row silently vanishes from the picker, which then looks
+        # exactly like an empty catalog: count it and warn in END, on stderr
+        # (stdout is the candidate list fzf is reading).
+        NF < 4 { malformed++; if (!example) example = $0; next }
+
         {
             url = $1
             tool = $2
@@ -39,6 +44,14 @@ _ftemplate_select() {
             }
             printf "%s\t%s\t%s\t%s \033[90m|\033[0m %s \033[90m|\033[0m %s\n", url, tool, ver, tag, repo, $4
         }
+
+        END {
+            if (malformed) {
+                printf "⚠️  %d malformed row(s) ignored in %s\n", malformed, FILENAME > "/dev/stderr"
+                printf "    %s\n", example > "/dev/stderr"
+                printf "    A row needs 4 TAB-separated columns: url, tool, version, description.\n" > "/dev/stderr"
+            }
+        }
     ' "$catalog" |
         fzf \
             --ansi \
@@ -50,12 +63,20 @@ _ftemplate_select() {
         awk -F'\t' '{ print $1 "\t" $2 "\t" $3 }'
 }
 
-# Scaffold a new project from the template catalog
+# Scaffold a new project, from the template catalog or from an explicit URL
 # 1. Fail fast: fnew only runs from ~/projects itself (before any input)
-# 2. Fuzzy-pick a template (description shown, url + pinned version kept as data)
+# 2. Template: the first argument, or fuzzy-picked from the catalog
 # 3. Enter the project name
 # 4. Delegate to the global Makefile (copier_project / cruft_project)
 #    to reuse the venv + direnv bootstrap defined there
+#
+#   fnew                        # pick from the catalog
+#   fnew gh:owner/repo          # try a template that is not in the catalog
+#   fnew gh:owner/repo cruft v1 # ...with the other tool (default: copier) and a pinned ref
+#
+# The URL form reads and writes nothing: a template that turns out not to suit
+# costs only the project directory, and the catalog stays the short list of
+# what was worth keeping.
 fnew() {
     local selection url tool version project_name remainder
     local -a make_args
@@ -67,16 +88,22 @@ fnew() {
         return 1
     fi
 
-    selection=$(_ftemplate_select)
-    [[ -z "$selection" ]] && return
+    if [[ -n "$1" ]]; then
+        url="$1"
+        tool="${2:-copier}"
+        version="${3:-}"
+    else
+        selection=$(_ftemplate_select)
+        [[ -z "$selection" ]] && return
 
-    url=${selection%%$'\t'*}
-    remainder=${selection#*$'\t'}
-    tool=${remainder%%$'\t'*}
-    version=${remainder##*$'\t'}
+        url=${selection%%$'\t'*}
+        remainder=${selection#*$'\t'}
+        tool=${remainder%%$'\t'*}
+        version=${remainder##*$'\t'}
+    fi
 
     if [[ "$tool" != copier && "$tool" != cruft ]]; then
-        echo "Unknown scaffold tool '$tool' in templates.tsv (expected: copier or cruft)" >&2
+        echo "❌ Unknown scaffold tool '$tool' (expected: copier or cruft)" >&2
         return 1
     fi
 
