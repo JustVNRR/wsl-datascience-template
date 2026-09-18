@@ -119,6 +119,12 @@ The Google Cloud CLI is deliberately absent — 409 MB that not every project
 needs. `gmake gcp_install` installs it, and the `gmake` menu follows on the
 next run ([optional tooling](docs/make/install.md)).
 
+A local model server is absent for the same reason, with a bigger number
+attached: [Ollama and its models](docs/ollama.md) are several gigabytes, and
+they belong to the projects that want them rather than to everyone's image.
+That page covers installing it inside the distro, where the models then live,
+and the alternative of a server on Windows.
+
 ### Python & Data Science
 
 | Category | Tools |
