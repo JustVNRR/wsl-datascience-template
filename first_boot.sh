@@ -54,8 +54,11 @@ WSLCONF
 # Pre-fetch default Python version and install CLI tools via uv for the new user
 echo "Setting up default Python runtime and tools via uv..."
 su - "$NEW_USER" -c "uv python install 3 && uv tool install copier && uv tool install cruft && uv tool install ruff"
-# cookiecutter-data-science provides the `ccds` command: the current scaffold of
-# the Cookiecutter Data Science template, one of the catalog's three tools
+# The scaffold tools behind the template catalog. cookiecutter is the ancestor
+# the others build on: installing its command too means a template whose README
+# says `cookiecutter <url>` works exactly as written. cookiecutter-data-science
+# provides `ccds`, the current Cookiecutter Data Science scaffold.
+su - "$NEW_USER" -c "uv tool install cookiecutter"
 su - "$NEW_USER" -c "uv tool install cookiecutter-data-science"
 
 # Export username for build script display

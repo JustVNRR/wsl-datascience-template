@@ -208,7 +208,7 @@ deleting the distro deletes all of it.
 
 ~/.local/share/oh-my-zsh/    # Cloned at build time
 ~/.nvm/                      # Cloned at build time
-~/.local/bin/                # uv tools: copier, cruft, ccds, ruff
+~/.local/bin/                # uv tools: copier, cruft, ccds, cookiecutter, ruff
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
 /etc/wsl.conf                # Default user, systemd (first_boot.sh)
 ```

@@ -113,6 +113,25 @@ The tool column decides which `gmake` target runs: a template that only exists
 as a cookiecutter template cannot be scaffolded with `copier`, and the reverse
 is true too. When the same repository appears twice, the descriptions say why.
 
+### Where they come from
+
+One family, not three rivals. **Cookiecutter** came first (2013): a template is
+a git repository holding a `cookiecutter.json` and files with
+`{{ cookiecutter.project_name }}` holes in them. It asks its questions, writes
+the project, and stops there — it has no way to update a project it already
+generated. Everything else is that idea plus something:
+
+- `cruft` runs the cookiecutter engine (the library ships inside it) and records
+  what it generated in `.cruft.json`, which is what makes `cruft update`
+  possible later;
+- `ccds` is cookiecutter plus the DrivenData template and its own questions;
+- `copier` is a separate implementation of the same idea, not built on
+  cookiecutter, with conventions of its own.
+
+The `cookiecutter` command is installed as well, so a template whose README
+tells you to run it works as written. `cruft create` does the same thing — and
+leaves a `.cruft.json` behind, which you may not want for a one-off.
+
 ### Adding a line
 
 `fnew` ignores any line that is not four tab-separated columns, and says so on
