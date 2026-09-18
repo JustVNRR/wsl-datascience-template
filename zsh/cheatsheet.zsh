@@ -2,8 +2,42 @@
 # CHEATSHEETS (FCHEAT)
 # ============================================================
 
+# The cheatsheets the picker should offer, minus those whose `# requires:`
+# header is not met. The condition can be negated - `# requires: !gcloud` hides
+# the sheet when the tool IS there, which is what a sheet about installing that
+# tool wants. Nothing is recorded: the question is asked again every time the
+# picker opens, the way `gmake` asks it at every run.
+_fcheat_files() {
+    local file requires binary
+
+    for file in "$ZDOTDIR"/cheatsheets/*.sh(N); do
+        requires=$(awk '/^#[[:space:]]*requires:/ {
+            sub(/^#[[:space:]]*requires:[[:space:]]*/, "")
+            sub(/[[:space:]]+$/, "")
+            print
+            exit
+        }' "$file")
+
+        if [[ -z "$requires" ]]; then
+            print -r -- "$file"
+        elif [[ "$requires" == '!'* ]]; then
+            binary=${requires#!}
+            command -v "$binary" >/dev/null 2>&1 || print -r -- "$file"
+        elif command -v "$requires" >/dev/null 2>&1; then
+            print -r -- "$file"
+        fi
+    done
+}
+
 # Interactively fuzzy-select a command via fzf and return only the raw command
 _fcheat_select() {
+    local raw
+    local -a sheets
+
+    raw=$(_fcheat_files)
+    [[ -z "$raw" ]] && return 1
+    sheets=("${(@f)raw}")
+
     awk -F'#' '
         /^[[:space:]]*#/ || /^[[:space:]]*$/ {
             next
@@ -19,7 +53,7 @@ _fcheat_select() {
             printf "%s\t\033[36m%-40s\033[90m | \033[0m%s\n",
                 command, command, description
         }
-    ' "$ZDOTDIR"/cheatsheets/*.sh(N) 2>/dev/null |
+    ' "${sheets[@]}" 2>/dev/null |
         sort -f -t $'\t' -k1,1V |
         fzf \
             --ansi \

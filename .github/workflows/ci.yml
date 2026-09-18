@@ -118,7 +118,11 @@ jobs:
 
       - name: Cheatsheet doc drift (*_commands.sh vs gmake help)
         run: |
-          grep -oE 'gmake [a-zA-Z_-]+' zsh/cheatsheets/*_commands.sh |
+          # Comment lines are skipped, as the picker itself does: a sheet's
+          # header documents nothing, and prose in it can name a target without
+          # offering it - `# requires: gcloud`, or a sentence about the menu.
+          grep -hvE '^[[:space:]]*#' zsh/cheatsheets/*_commands.sh |
+            grep -oE 'gmake [a-zA-Z_-]+' |
             awk '{print $2}' | sort -u > documented.txt
           missing=0
           while read -r target; do
@@ -160,8 +164,11 @@ jobs:
           # Every target visible in gmake help (except the menu itself) must
           # be documented in a *_commands.sh cheatsheet
           awk '/^  /{print $1}' help.txt | grep -vx -e help -e make > help_targets.txt
+          # Same cut as the drift check: what the picker offers is what has to
+          # document the menu, comments excluded.
+          grep -hvE '^[[:space:]]*#' zsh/cheatsheets/*_commands.sh > sheet_lines.txt
           while read -r target; do
-            grep -q "gmake ${target}\b" zsh/cheatsheets/*_commands.sh || {
+            grep -q "gmake ${target}\b" sheet_lines.txt || {
               echo "::error::target '${target}' not documented in any *_commands.sh cheatsheet"
               missing=1
             }

@@ -38,6 +38,11 @@ Nothing is recorded anywhere. `gmake` asks the system again on every run, so
 any install route works — `gcp_install`, a manual `apt-get install`, a
 tarball. The menu follows at the next `gmake`, in both directions.
 
+The `Ctrl + H` cheatsheets follow the same rule, with the same granularity: a
+sheet declares `# requires: gcloud` (or `!gcloud`) and is left out when the
+condition does not hold, so `install_commands.sh` and `uninstall_commands.sh`
+never show up together ([interactive tools](../zsh/interactive.md)).
+
 Only the modules whose CLI is missing from the image are gated: `gh` ships in
 the image, and `docker` works through Docker Desktop's WSL integration.
 

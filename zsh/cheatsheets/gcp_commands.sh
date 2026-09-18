@@ -1,5 +1,6 @@
 # ==========================================
 # GCP ONBOARDING & AUTH CHEATSHEET
+# requires: gcloud
 # ==========================================
 # Raw gcloud commands for the one-time setup — the full walkthrough lives in
 # docs/gcp/onboarding.md (make targets live in make_commands.sh)
