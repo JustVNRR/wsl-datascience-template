@@ -118,13 +118,12 @@ RUN ARCH=$(dpkg --print-architecture) \
     && curl -fsSL "https://github.com/tealdeer-rs/tealdeer/releases/latest/download/tealdeer-linux-${STARSHIP_ARCH}-musl" -o /usr/local/bin/tldr \
     && chmod +x /usr/local/bin/tldr
 
-# 5. Clone Oh-My-Zsh, custom plugins, and NVM into user skeleton
+# 5. Clone Oh-My-Zsh and its custom plugins into the user skeleton
 RUN git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /etc/skel/.local/share/oh-my-zsh \
     && git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions.git \
        /etc/skel/.local/share/oh-my-zsh/custom/plugins/zsh-autosuggestions \
     && git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting.git \
-       /etc/skel/.local/share/oh-my-zsh/custom/plugins/zsh-syntax-highlighting \
-    && git clone --depth=1 https://github.com/nvm-sh/nvm.git /etc/skel/.nvm
+       /etc/skel/.local/share/oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 
 # Copy modular Zsh configuration to the user skeleton directory
 COPY zsh /etc/skel/.config/zsh

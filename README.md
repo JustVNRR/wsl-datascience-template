@@ -167,7 +167,6 @@ the repository at runtime.
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing and persistence policies
 │   ├── navigation.zsh       # Advanced directory hopping (cdv, cda, fv, fa)
-│   ├── nvm.zsh              # Lazy-loaded Node Version Manager and .nvmrc hooks
 │   ├── prompts/
 │   │   ├── starship.toml    # Starship visual configuration
 │   │   └── starship.zsh     # Starship initialization hook
@@ -215,7 +214,6 @@ deleting the distro deletes all of it.
 └── .venv/
 
 ~/.local/share/oh-my-zsh/    # Cloned at build time
-~/.nvm/                      # Cloned at build time
 ~/.local/bin/                # uv tools: copier, cruft, ccds, cookiecutter, ruff
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
 /etc/wsl.conf                # Default user, systemd (first_boot.sh)

@@ -56,7 +56,6 @@ source "$ZDOTDIR/scaffold.zsh"     # Interactive project scaffolding picker (fne
 source "$ZDOTDIR/bindings.zsh"
 
 # --- 5. DEVELOPMENT RUNTIMES ---
-source "$ZDOTDIR/nvm.zsh"
 source "$ZDOTDIR/python.zsh"
 
 # --- 6. PROMPT ENGINE ---
