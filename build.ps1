@@ -166,6 +166,10 @@ if ($ExistingDistros -contains $DistroName) {
     }
 }
 
+# Set once the distro is registered. The finally block reads it to tell a
+# deployment from a failure, and the exit code below is derived from it.
+$Deployed = $false
+
 try {
     Write-Host "==> 1. Building Docker rootfs image..." -ForegroundColor Cyan
     Invoke-External { docker build -t $ImageTag . } "Docker build failed."
@@ -322,6 +326,8 @@ try {
     Write-Host "  wsl -d $DistroName" -ForegroundColor White
     Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
     Write-Host ""
+
+    $Deployed = $true
 }
 catch {
     Write-Host ""
@@ -333,24 +339,45 @@ catch {
 }
 finally {
     Write-Host "==> Cleaning up temporary build artifacts..." -ForegroundColor Yellow
-    docker rm -f $ContainerName 2>$null | Out-Null
+
+    # The trap of step 0 again: under $ErrorActionPreference = "Stop" docker
+    # writes its errors as TERMINATING ones, and one raised here would bury the
+    # message the catch block has just printed.
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    docker rm -f $ContainerName *> $null
+    $ErrorActionPreference = $PreviousEAP
 
     if (Test-Path -Path $TarPath) {
         Remove-Item -Path $TarPath -Force -ErrorAction SilentlyContinue
     }
 
-    # Prompt whether to retain or purge the local Docker image
-    Write-Host ""
-    Write-Host "Keep local Docker image ('$ImageTag')?" -ForegroundColor Cyan
-    Write-Host "  [Enter] : Keep image (speeds up future builds via caching)" -ForegroundColor DarkGray
-    Write-Host "  [n]     : Remove image to free up disk space" -ForegroundColor DarkGray
-    $KeepDockerImage = Read-Host "Keep image? [Y/n]"
+    if ($Deployed) {
+        # Prompt whether to retain or purge the local Docker image
+        Write-Host ""
+        Write-Host "Keep local Docker image ('$ImageTag')?" -ForegroundColor Cyan
+        Write-Host "  [Enter] : Keep image (speeds up future builds via caching)" -ForegroundColor DarkGray
+        Write-Host "  [n]     : Remove image to free up disk space" -ForegroundColor DarkGray
+        $KeepDockerImage = Read-Host "Keep image? [Y/n]"
 
-    if ($KeepDockerImage -match "^[nN]$") {
-        Write-Host "==> Removing Docker image '$ImageTag'..." -ForegroundColor Yellow
-        docker rmi -f $ImageTag 2>$null | Out-Null
-        Write-Host "Docker image removed successfully." -ForegroundColor Green
+        if ($KeepDockerImage -match "^[nN]$") {
+            Write-Host "==> Removing Docker image '$ImageTag'..." -ForegroundColor Yellow
+            $PreviousEAP = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
+            docker rmi -f $ImageTag *> $null
+            $ErrorActionPreference = $PreviousEAP
+            Write-Host "Docker image removed successfully." -ForegroundColor Green
+        } else {
+            Write-Host "Docker image retained." -ForegroundColor Green
+        }
     } else {
-        Write-Host "Docker image retained." -ForegroundColor Green
+        # Nothing was deployed: the image is what a retry starts from, and
+        # there is no deployment to ask about.
+        Write-Host ""
+        Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor DarkGray
     }
 }
+
+# A failed deployment must not look like a success to whatever called this
+# script - a shortcut, a wrapper, a future CI job.
+if (-not $Deployed) { exit 1 }
