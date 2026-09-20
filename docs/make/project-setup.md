@@ -52,7 +52,7 @@ Project name: my-analysis
 ```
 
 `fnew` only runs from `~/projects` itself — it refuses anywhere else, and so
-do the two targets it delegates to.
+do the three targets it delegates to.
 
 ## Trying a template without adding it
 

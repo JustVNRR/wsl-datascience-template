@@ -22,8 +22,10 @@ Declare the markers your project uses in its `pyproject.toml`
 - `functional` — needs real local infra (`.env`, Docker, a trained model...)
 - `gcp` — hits a real GCP environment (test/staging/prod)
 
-Unmarked tests run in every lane, so projects without the convention still
-work out of the box (pytest only warns about unknown markers).
+Unmarked tests run in `test` and `test-fast` only. The other two lanes select
+their marker, so a project that declares none collects nothing there — pytest
+reports "no tests ran" and exits with code 5. Nothing to configure on the
+project side either way: pytest only warns about markers it does not know.
 
 ## Where pytest lives
 

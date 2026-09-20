@@ -10,8 +10,10 @@
 #   (none)      fast unit tests, no external infrastructure (CI lane)
 #   functional  needs real local infra (.env, Docker, a trained model...)
 #   gcp         hits a real GCP environment (test/staging/prod)
-# Unmarked tests run in every lane, so projects without the convention still
-# work out of the box (pytest only warns about unknown markers).
+# Unmarked tests run in `test` and `test-fast`; the functional and gcp lanes
+# select their marker, so a project that declares none collects nothing there
+# (pytest exits 5). The convention stays optional: pytest only warns about
+# markers it does not know.
 
 .PHONY: test test-fast test-functional test-gcp
 

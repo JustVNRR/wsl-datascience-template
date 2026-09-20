@@ -80,7 +80,7 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
 - **`gmake` vs `make`:**
   - Type `gmake` (without any arguments) to display a formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
-  - Use `fnew (recommended)`, `gmake copier_project` or `gmake cruft_project` from `~/projects` to scaffold a project template.
+  - Use `fnew (recommended)`, `gmake copier_project`, `gmake cruft_project` or `gmake ccds_project` from `~/projects` to scaffold a project template.
   - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the global `Makefile` in `~/.config/zsh/gmake`.
   - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in your current project folder.
 
@@ -110,7 +110,7 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 | :--- | :--- |
 | Core | `zsh`, `sudo`, `adduser`, `ca-certificates`, `curl`, `wget`, `openssh-client`, `iputils-ping`, `tzdata`, `nano`, `less`, `tree`, `strace`, `lsof`, `tar`, `unzip`, `bzip2`, `unrar`, `p7zip-full`, `gzip`, `xz-utils`, `zstd` |
 | Search & navigation | `fzf` (fuzzy search), `fd-find` (linked to `fd`), `zoxide` (directory hopping), `ripgrep` (ultra-fast grep) |
-| Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor) |
+| Inspection & display | `eza` (modern `ls` replacement), `batcat` (syntax highlighting, linked to `bat`), `jq` (JSON processor), `tldr` (command examples, an alternative to man pages) |
 | DevOps & cloud | `gh` (GitHub CLI), `direnv`, `shellcheck`, `sqlite3` |
 
 ### Optional Tooling
@@ -178,8 +178,8 @@ the repository at runtime.
 │   ├── make-icon.ps1        # Regenerates the icon below (standalone PowerShell)
 │   └── terminal-icon.png    # Windows Terminal profile icon (copied next to the VHDX)
 ├── docs/
-│   ├── gcp/                 # GCP onboarding guide (accounts, auth, first steps)
 │   ├── make/                # Per-module documentation for the global Makefile
+│   ├── optional_tooling/    # Onboarding for the tools the image does not ship
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── .github/
 │   └── workflows/

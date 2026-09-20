@@ -161,6 +161,16 @@ jobs:
               missing=1
             }
           done
+          # Every docs/ folder the README names must exist: a renamed directory
+          # used to survive unnoticed (docs/gcp/, after the onboarding page
+          # moved to docs/optional_tooling/)
+          grep -oE 'docs/[a-z_]+/' README.md | sort -u > readme_docs.txt
+          while read -r d; do
+            [ -d "$d" ] || {
+              echo "::error::README names '${d}', which does not exist"
+              missing=1
+            }
+          done < readme_docs.txt
           # Every target visible in gmake help (except the menu itself) must
           # be documented in a *_commands.sh cheatsheet
           awk '/^  /{print $1}' help.txt | grep -vx -e help -e make > help_targets.txt

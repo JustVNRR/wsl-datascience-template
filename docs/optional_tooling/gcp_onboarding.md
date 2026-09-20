@@ -21,7 +21,7 @@ distro the menu shows `gcp_install` where the GCP targets will be.
 gmake gcp_install
 ```
 
-Run `gmake` again: the thirty-one GCP targets are there. They call `gcloud`
+Run `gmake` again: the GCP targets are there. They call `gcloud`
 and `bq` under your Google account — this one-time login authorizes them.
 
 ```bash

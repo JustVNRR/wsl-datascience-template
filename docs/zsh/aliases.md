@@ -22,7 +22,7 @@ Defined in `~/.config/zsh/aliases.zsh`, on top of Oh My Zsh's own `git` and
 | `ll` | `eza -lh --icons --git` |
 | `la` | `eza -lah --icons --git` |
 | `tree` | `eza --tree --icons` |
-| `cat` | `bat` (syntax-highlighted output) |
+| `cat` | `batcat` (syntax-highlighted output) |
 | `grep` | `rg --color=auto` |
 
 Each alias is only set when its underlying tool is installed.

@@ -72,7 +72,7 @@ _ftemplate_select() {
 # 1. Fail fast: fnew only runs from ~/projects itself (before any input)
 # 2. Template: the first argument, or fuzzy-picked from the catalog
 # 3. Enter the project name
-# 4. Delegate to the global Makefile (copier_project / cruft_project)
+# 4. Delegate to the global Makefile (copier_project / cruft_project / ccds_project)
 #    to reuse the venv + direnv bootstrap defined there
 #
 #   fnew                        # pick from the catalog
