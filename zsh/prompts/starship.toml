@@ -6,7 +6,7 @@ format = """
 ${custom.active_venv}$directory
 $git_branch$git_status$character"""
 
-# Désactive les modules automatiques parasites
+# Turn off the modules Starship would otherwise show on its own
 [package]
 disabled = true
 

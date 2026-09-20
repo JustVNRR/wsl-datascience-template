@@ -9,7 +9,7 @@ CLOUDRUN_UNAUTH_FLAG = $(if $(CLOUDRUN_IS_PUBLIC),--allow-unauthenticated,--no-a
 
 cloudrun_deploy: ## Deploy the container to Cloud Run (private unless CLOUDRUN_PUBLIC=true)
 	$(call check_vars, GAR_IMAGE GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_MEMORY)
-	$(call confirm_action, Déploiement Cloud Run, GAR_IMAGE GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_MEMORY CLOUDRUN_PUBLIC)
+	$(call confirm_action, Deploy to Cloud Run, GAR_IMAGE GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_MEMORY CLOUDRUN_PUBLIC)
 	@echo "🚀 Deploying $(GAR_IMAGE) to Cloud Run ($(if $(CLOUDRUN_IS_PUBLIC),public,private))..."
 	gcloud run deploy $(GAR_IMAGE) \
 		--image $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod \
@@ -41,7 +41,7 @@ cloudrun_logs: ## Tail the real-time logs of the Cloud Run service
 
 cloudrun_delete: ## Delete the Cloud Run service and take the API offline
 	$(call check_vars, GAR_IMAGE GCP_REGION GCP_PROJECT)
-	$(call confirm_action, Suppression définitive du service Cloud Run, GAR_IMAGE GCP_REGION GCP_PROJECT)
+	$(call confirm_action, Delete the Cloud Run service, GAR_IMAGE GCP_REGION GCP_PROJECT)
 	@echo "🗑️ Deleting Cloud Run service $(GAR_IMAGE)..."
 	gcloud run services delete $(GAR_IMAGE) \
 		--region $(GCP_REGION) \

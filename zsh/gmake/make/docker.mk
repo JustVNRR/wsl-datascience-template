@@ -31,6 +31,6 @@ docker_build_prod: ## Build the Docker image for production (linux/amd64)
 
 docker_push_prod: ## Push the production image to Artifact Registry
 	$(call check_vars, GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_IMAGE)
-	$(call confirm_action, Déploiement de l'image de Production, GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_IMAGE)
+	$(call confirm_action, Push the production image to Artifact Registry, GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_IMAGE)
 	@echo "🚀 Pushing image to Artifact Registry..."
 	docker push $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod

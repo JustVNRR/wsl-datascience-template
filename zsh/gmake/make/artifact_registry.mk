@@ -9,7 +9,7 @@
 
 artifact_registry_create: ## Create the Docker repository in Artifact Registry
 	$(call check_vars, ARTIFACTSREPO GCP_REGION GCP_PROJECT)
-	$(call confirm_action, Création du dépôt Artifact Registry, ARTIFACTSREPO GCP_REGION GCP_PROJECT)
+	$(call confirm_action, Create the Artifact Registry repository, ARTIFACTSREPO GCP_REGION GCP_PROJECT)
 	@echo "📦 Creating Artifact Registry repository $(ARTIFACTSREPO)..."
 	gcloud artifacts repositories create $(ARTIFACTSREPO) \
 		--repository-format=docker \
@@ -19,7 +19,7 @@ artifact_registry_create: ## Create the Docker repository in Artifact Registry
 
 artifact_registry_role: ## Grant yourself permission to push to Artifact Registry
 	$(call check_vars, GCP_PROJECT)
-	$(call confirm_action, Modification des droits IAM (Artifact Registry Writer), GCP_PROJECT)
+	$(call confirm_action, Grant the Artifact Registry Writer role, GCP_PROJECT)
 	@echo "🔐 Adding Artifact Registry Writer role to your account..."
 	gcloud projects add-iam-policy-binding $(GCP_PROJECT) \
 		--member="user:$$(gcloud config get-value account)" \

@@ -4,7 +4,7 @@
 
 bigquery_create_dataset: ## Create the BigQuery dataset
 	$(call check_vars, BQ_REGION GCP_PROJECT BQ_DATASET)
-	$(call confirm_action, Création du Dataset BigQuery, BQ_REGION GCP_PROJECT BQ_DATASET)
+	$(call confirm_action, Create the BigQuery dataset, BQ_REGION GCP_PROJECT BQ_DATASET)
 	@echo "🗄️ Creating BigQuery dataset $(BQ_DATASET)..."
 	bq mk \
 		--location=$(BQ_REGION) \
@@ -13,7 +13,7 @@ bigquery_create_dataset: ## Create the BigQuery dataset
 
 bigquery_create_table: ## Create a new table in the dataset (req: TABLE_NAME)
 	$(call check_vars, BQ_REGION GCP_PROJECT BQ_DATASET TABLE_NAME)
-	$(call confirm_action, Création d'une Table BigQuery, BQ_REGION GCP_PROJECT BQ_DATASET TABLE_NAME)
+	$(call confirm_action, Create a BigQuery table, BQ_REGION GCP_PROJECT BQ_DATASET TABLE_NAME)
 	@echo "📊 Creating table $(TABLE_NAME) in dataset $(BQ_DATASET)..."
 	bq mk \
 		--location=$(BQ_REGION) \
@@ -35,12 +35,12 @@ bigquery_show: ## Show details of the project, dataset, or table (opt: TABLE_NAM
 
 bigquery_delete_table: ## Delete a specific table (req: TABLE_NAME)
 	$(call check_vars, GCP_PROJECT BQ_DATASET TABLE_NAME)
-	$(call confirm_action, Suppression d'une Table BigQuery, GCP_PROJECT BQ_DATASET TABLE_NAME)
+	$(call confirm_action, Delete the BigQuery table, GCP_PROJECT BQ_DATASET TABLE_NAME)
 	@echo "🗑️ Deleting table $(BQ_DATASET).$(TABLE_NAME)..."
 	bq rm -f -t $(GCP_PROJECT):$(BQ_DATASET).$(TABLE_NAME)
 
 bigquery_delete_dataset: ## Delete the dataset and all its tables
 	$(call check_vars, GCP_PROJECT BQ_DATASET)
-	$(call confirm_action, Suppression DÉFINITIVE du Dataset et son contenu, GCP_PROJECT BQ_DATASET)
+	$(call confirm_action, Delete the dataset and everything in it, GCP_PROJECT BQ_DATASET)
 	@echo "💣 Deleting dataset $(BQ_DATASET) and all its contents..."
 	bq rm -r -f -d $(GCP_PROJECT):$(BQ_DATASET)

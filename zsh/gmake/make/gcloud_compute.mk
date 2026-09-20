@@ -4,7 +4,7 @@
 
 vm_create: ## Create the VM (run iam_setup_service_account first if it needs GCP API access)
 	$(call check_vars, INSTANCE GCP_PROJECT ZONE IMAGE_FAMILY IMAGE_PROJECT MACHINE_TYPE SA_EMAIL)
-	$(call confirm_action, Création de la Machine Virtuelle (Facturée), INSTANCE GCP_PROJECT ZONE MACHINE_TYPE)
+	$(call confirm_action, Create the VM (billed), INSTANCE GCP_PROJECT ZONE MACHINE_TYPE)
 	@echo "🖥️ Creating VM $(INSTANCE) with service account $(SA_EMAIL)..."
 	gcloud compute instances create $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
@@ -17,7 +17,7 @@ vm_create: ## Create the VM (run iam_setup_service_account first if it needs GCP
 
 vm_run_script: ## Send and execute a shell script from the project on the VM (req: VM_SCRIPT)
 	$(call check_vars, INSTANCE GCP_PROJECT ZONE VM_SCRIPT)
-	$(call confirm_action, Exécution d'un script sur la VM, INSTANCE GCP_PROJECT ZONE VM_SCRIPT)
+	$(call confirm_action, Run a script on the VM, INSTANCE GCP_PROJECT ZONE VM_SCRIPT)
 	@echo "📦 Sending $(VM_SCRIPT) to VM..."
 	gcloud compute scp $(VM_SCRIPT) $(INSTANCE):~/ \
 		--project=$(GCP_PROJECT) \
@@ -54,7 +54,7 @@ vm_stop: ## Stop the virtual machine (Save CPU billing)
 
 vm_delete: ## Delete the virtual machine permanently
 	$(call check_vars, INSTANCE GCP_PROJECT ZONE)
-	$(call confirm_action, Suppression DÉFINITIVE de la Machine Virtuelle, INSTANCE GCP_PROJECT ZONE)
+	$(call confirm_action, Delete the VM permanently, INSTANCE GCP_PROJECT ZONE)
 	@echo "💣 Deleting machine $(INSTANCE) permanently..."
 	gcloud compute instances delete $(INSTANCE) \
 		--project=$(GCP_PROJECT) \
