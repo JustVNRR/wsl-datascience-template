@@ -51,6 +51,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     strace \
     lsof \
+    # Pager and network probe the shell expects: git, systemctl and journalctl
+    # page through `less` (a Recommends that --no-install-recommends drops),
+    # and the bash cheatsheet documents both of these commands
+    less \
+    iputils-ping \
     tree \
     tar \
     unzip \

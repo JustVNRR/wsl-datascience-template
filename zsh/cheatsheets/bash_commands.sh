@@ -33,7 +33,7 @@ tail -f <FILE_NAME>                                           # Follow appended 
 grep "<TEXT>" <FILE_NAME>                                     # Search for pattern inside a specific file
 grep -c "<TEXT>" <FILE_NAME>                                  # Count number of lines matching pattern
 grep -l "<TEXT>" *                                            # List only names of matching files in directory
-grep -ri "<TEXT>" <DIR_PATH>                                  # Search recursively (-r) case-insensitively (-i)
+grep -i "<TEXT>" <DIR_PATH>                                   # Case-insensitive search of a directory (ripgrep: recursive by default)
 cut -d'<DELIM>' -f<COL> <FILE_NAME>                           # Extract specific column using delimiter (e.g. -d':' -f1)
 sort <FILE_NAME>                                              # Sort and display file lines alphabetically
 sort <FILE_NAME> | uniq -c | sort -nr                         # Count duplicate line occurrences (descending order)
@@ -78,11 +78,10 @@ ping <DOMAIN_OR_IP>                                           # Test host ICMP n
 
 # --- 8. SHELL ENVIRONMENT & EDITOR HOOKS (ZSH) ---
 code "$ZDOTDIR"                                               # Open Zsh configuration directory in VS Code
-source ~/.zshrc                                               # Reload and apply .zshrc configuration immediately
-. ~/.zshrc                                                    # Exact shorthand syntax for source command
-exec zsh                                                      # Replace shell session with fresh instance (clears memory)
-code "$ZDOTDIR/.zsh_history"                                  # Open persistent history file in VS Code for manual edits
-> "$ZDOTDIR/.zsh_history"                                     # Truncate persistent history file completely
+reload                                                        # Apply config changes: restarts the shell (exec zsh under the hood)
+exec zsh                                                      # The same thing spelled out, when the alias is not loaded
+code "$HISTFILE"                                              # Open persistent history file in VS Code for manual edits
+> "$HISTFILE"                                                 # Truncate persistent history file completely
 nano <FILE_NAME>                                              # Open file inside Nano terminal editor
 
 # --- 9. PACKAGE MANAGEMENT (APT - DEBIAN / UBUNTU) ---

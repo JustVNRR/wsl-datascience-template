@@ -90,7 +90,7 @@ gpf                                          # [git push --force-with-lease] For
 # --- 6. STASHING ---
 gsta                                         # [git stash] Stash uncommitted changes in working directory
 gstp                                         # [git stash pop] Restore and drop most recent stashed state
-gstal                                        # [git stash list] List all stashed changesets
+gstl                                         # [git stash list] List all stashed changesets
 
 # --- 7. UNDOING CHANGES & REBASE ---
 grst <FILE_PATH>                             # [git restore --staged] Unstage file changes (reverse git add)
