@@ -3,9 +3,16 @@
 # either noise sent to the Docker daemon or user configuration that must not
 # be baked into /etc/skel.
 .git
+.gitattributes
+.gitignore
 .github
 .claude
+assets
+build.ps1
 docs
+LICENSE
+README.md
+unregister.ps1
 
 # Build artifacts
 *.tar
