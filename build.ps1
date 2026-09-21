@@ -355,10 +355,8 @@ finally {
     if ($Deployed) {
         # Prompt whether to retain or purge the local Docker image
         Write-Host ""
-        Write-Host "Keep local Docker image ('$ImageTag')?" -ForegroundColor Cyan
-        Write-Host "  [Enter] : Keep image (speeds up future builds via caching)" -ForegroundColor DarkGray
-        Write-Host "  [n]     : Remove image to free up disk space" -ForegroundColor DarkGray
-        $KeepDockerImage = Read-Host "Keep image? [Y/n]"
+        Write-Host ("-" * 60) -ForegroundColor DarkGray
+        $KeepDockerImage = Read-Host "Keep Docker image [Y/n]?"
 
         if ($KeepDockerImage -match "^[nN]$") {
             Write-Host "==> Removing Docker image '$ImageTag'..." -ForegroundColor Yellow
@@ -374,7 +372,53 @@ finally {
         # Nothing was deployed: the image is what a retry starts from, and
         # there is no deployment to ask about.
         Write-Host ""
+        Write-Host ("-" * 60) -ForegroundColor DarkGray
         Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor DarkGray
+    }
+}
+
+# Docker Desktop injects its docker client into the distros it lists, and reads
+# that list only when it starts. Being in that list proves nothing: a rebuild
+# takes the client away and leaves the name behind. So the question is asked
+# every time rather than answered from the file - and it belongs to another
+# program, which is why nothing is written without a yes.
+if ($Deployed) {
+    $DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
+    if (Test-Path $DockerSettings) {
+        try {
+            Write-Host ""
+            $AddToDocker = Read-Host "Restart Docker Desktop to add support for '$DistroName'? [y/N]"
+            if ($AddToDocker -match "^[yY]$") {
+                $DockerConfig = Get-Content $DockerSettings -Raw | ConvertFrom-Json
+                Copy-Item $DockerSettings "$DockerSettings.bak" -Force
+                # Rebuilt without this distro and without empty entries, then
+                # appended once: a name already there would be added twice.
+                $DockerConfig.IntegratedWslDistros =
+                    @($DockerConfig.IntegratedWslDistros | Where-Object { $_ -and $_ -ne $DistroName }) + $DistroName
+                # Written beside the file and swapped in, so an interrupted
+                # write cannot leave Docker Desktop with half a JSON - and with
+                # WriteAllText rather than Set-Content, because PowerShell's
+                # -Encoding Utf8 prepends a byte-order mark that this file,
+                # written by Docker Desktop, does not carry.
+                $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
+                [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
+                Move-Item "$DockerSettings.tmp" $DockerSettings -Force
+
+                $PreviousEAP = $ErrorActionPreference
+                $ErrorActionPreference = "Continue"
+                $null = docker desktop restart *> $null
+                $DockerExitCode = $LASTEXITCODE
+                $ErrorActionPreference = $PreviousEAP
+
+                if ($DockerExitCode -eq 0) {
+                    Write-Host "Docker Desktop successfully restarted." -ForegroundColor Green
+                } else {
+                    Write-Host "Restart failed. Restart it manually." -ForegroundColor Yellow
+                }
+            }
+        } catch {
+            Write-Host "Docker Desktop settings not updated ($($_.Exception.Message))" -ForegroundColor Yellow
+        }
     }
 }
 
