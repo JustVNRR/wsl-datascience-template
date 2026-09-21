@@ -21,3 +21,4 @@
 https://github.com/drivendataorg/cookiecutter-data-science	ccds		DrivenData's DS reference v2 (current; CI scaffolds a project)
 https://github.com/drivendataorg/cookiecutter-data-science	cruft	v1	Same template, v1 (deprecated upstream, kept for cruft update)
 gh:NLeSC/python-template	copier		Netherlands eScience Center research template (active, CI scaffolds a project)
+gh:JustVNRR/mlops-template	copier		Our own MLOps template (CI scaffolds a project, lints, tests and builds its image)
