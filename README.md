@@ -20,7 +20,15 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 
 - Windows 10/11 with **WSL2** installed and enabled.
 - **Docker Desktop** (or Docker Engine running via WSL).
-- PowerShell 5.1+ or PowerShell 7+.
+- PowerShell 5.1+ or PowerShell 7+, allowed to run local scripts — check it:
+  ```powershell
+  Get-ExecutionPolicy # Should return RemoteSigned or Unrestricted
+  ```
+  If it returns `Restricted` or `AllSigned` run:
+
+  ```powershell
+  Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+  ```
 
 ---
 
