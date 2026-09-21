@@ -120,10 +120,18 @@ gcp_uninstall: ## Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gclo
 iam_setup_service_account: ## Create the Service Account and assign IAM roles
 	$(call check_vars, SA_NAME GCP_PROJECT)
 	$(call confirm_action, Create the service account and its IAM roles, SA_NAME SA_EMAIL GCP_PROJECT)
-	@echo "🤖 Creating or verifying Service Account..."
-	gcloud iam service-accounts create $(SA_NAME) \
-		--display-name="VM service account" \
-		--project=$(GCP_PROJECT) || true
+	@# Describe first, create only when absent - same shape as
+	@# artifact_registry_create, for the same reason: `|| true` used to hide
+	@# every failure (permission denied, API not enabled) behind a success, and
+	@# the bindings below then failed on an account that was never created.
+	@if gcloud iam service-accounts describe "$(SA_EMAIL)" --project="$(GCP_PROJECT)" >/dev/null 2>&1; then \
+		echo "ℹ️  Service account $(SA_EMAIL) already exists."; \
+	else \
+		echo "🤖 Creating Service Account $(SA_NAME)..."; \
+		gcloud iam service-accounts create $(SA_NAME) \
+			--display-name="VM service account" \
+			--project=$(GCP_PROJECT); \
+	fi
 	@echo "🔐 Adding BigQuery Data Editor role..."
 	gcloud projects add-iam-policy-binding $(GCP_PROJECT) \
 		--member="serviceAccount:$(SA_EMAIL)" \
