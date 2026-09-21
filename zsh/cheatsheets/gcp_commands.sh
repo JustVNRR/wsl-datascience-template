@@ -71,4 +71,6 @@ gmake vm_delete                              # Permanently terminate and delete 
 # --- 8. DOCKER & ARTIFACT REGISTRY (the gcloud-driven half) ---
 gmake artifact_registry_create               # Create repository in Google Artifact Registry
 gmake artifact_registry_role                 # Configure IAM permissions for Artifact Registry
-gmake docker_auth                            # Authenticate Docker client with Google Cloud credentials
+gmake artifact_registry_auth                 # Authenticate Docker client with Google Cloud credentials
+gmake artifact_registry_build                # Build production-optimized Docker image
+gmake artifact_registry_push                 # Push production image to Artifact Registry

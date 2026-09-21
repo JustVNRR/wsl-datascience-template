@@ -1,11 +1,12 @@
 # ==============================================================================
-# ARTIFACT REGISTRY
+# ARTIFACT REGISTRY — THE PRODUCTION IMAGE
 # ==============================================================================
-# The Google half of the Docker workflow. It is a module of its own for the
-# same reason the four GCP ones are: these targets call `gcloud`, so the module
-# is loaded only when it is present (section 5 of global_makefile.mk). What
-# needs nothing but docker - building and running images - stays in docker.mk,
-# because a module carries one condition, not two.
+# Everything here needs a GCP project, so none of it can run without the Google
+# CLI: three targets call `gcloud`, and the two that call `docker` only tag and
+# push to a `-docker.pkg.dev` path that `gcloud auth configure-docker` unlocks.
+# The module is therefore loaded only when the CLI is present (section 5 of
+# global_makefile.mk). The container itself is not a Google concern: building
+# and running it on your machine lives in docker.mk, which every project gets.
 
 artifact_registry_create: ## Create the Docker repository in Artifact Registry
 	$(call check_vars, ARTIFACTSREPO GCP_REGION GCP_PROJECT)
@@ -25,7 +26,23 @@ artifact_registry_role: ## Grant yourself permission to push to Artifact Registr
 		--member="user:$$(gcloud config get-value account)" \
 		--role="roles/artifactregistry.writer"
 
-docker_auth: ## Configure Docker to authenticate with Google Cloud
+artifact_registry_auth: ## Configure Docker to authenticate with Google Cloud
 	$(call check_vars, GCP_REGION)
 	@echo "🔑 Configuring Docker authentication for GCP..."
 	gcloud auth configure-docker $(GCP_REGION)-docker.pkg.dev --quiet
+
+artifact_registry_build: ## Build the Docker image for production (linux/amd64)
+	$(call check_vars, DOCKER_BASE_IMAGE PACKAGE_NAME GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_IMAGE)
+	@echo "🏗️ Building production image..."
+	docker build \
+		--platform linux/amd64 \
+		--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
+		--build-arg PACKAGE_NAME=$(PACKAGE_NAME) \
+		-t $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod \
+		.
+
+artifact_registry_push: ## Push the production image to Artifact Registry
+	$(call check_vars, GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_IMAGE)
+	$(call confirm_action, Push the production image to Artifact Registry, GCP_REGION GCP_PROJECT ARTIFACTSREPO GAR_IMAGE)
+	@echo "🚀 Pushing image to Artifact Registry..."
+	docker push $(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)/$(GAR_IMAGE):prod

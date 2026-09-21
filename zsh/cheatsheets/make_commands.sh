@@ -4,11 +4,9 @@
 # The gmake targets that need no Google Cloud CLI. The ones that do live in
 # gcp_commands.sh, which is offered only while that CLI is installed.
 
-# --- 1. DOCKER (LOCAL & PRODUCTION IMAGES) ---
+# --- 1. DOCKER (LOCAL IMAGES) ---
 gmake docker_build_local                     # Build Docker image for local development environment
 gmake docker_run_local                       # Run Docker container locally
-gmake docker_build_prod                      # Build production-optimized Docker image
-gmake docker_push_prod                       # Push production image to Artifact Registry
 
 # --- 2. GITHUB CLI (PULL REQUESTS) ---
 gmake gh_pr_create                           # Create a new Pull Request on GitHub

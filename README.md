@@ -102,8 +102,8 @@ The global makefile is split into one module per domain under `gmake/make/`, eac
 | Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
 | Operate | [GCP infrastructure & IAM](docs/make/gcp.md) | `gcp_project_list`, `gcs_*`, `iam_setup_service_account` |
 | Operate | [BigQuery](docs/make/bigquery.md) | `bigquery_*` |
-| Operate | [Docker](docs/make/docker.md) | `docker_build_*`, `docker_run_local`, `docker_push_prod` |
-| Operate | [Artifact Registry](docs/make/artifact_registry.md) | `docker_auth`, `artifact_registry_*` |
+| Operate | [Docker](docs/make/docker.md) | `docker_build_local`, `docker_run_local` |
+| Operate | [Artifact Registry](docs/make/artifact_registry.md) | `artifact_registry_*` |
 | Deploy | [Cloud Run](docs/make/cloud_run.md) | `cloudrun_*` |
 | Operate | [Compute Engine (VMs)](docs/make/gcloud_compute.md) | `vm_*` |
 | Collaborate | [GitHub PRs](docs/make/github.md) | `gh_pr_*` |
@@ -167,7 +167,7 @@ the repository at runtime.
 │   │       ├── gcp.mk             # GCP projects, Cloud Storage buckets, IAM
 │   │       ├── bigquery.mk        # BigQuery datasets & tables
 │   │       ├── docker.mk          # image builds and local runs (docker only)
-│   │       ├── artifact_registry.mk # the registry targets that call gcloud
+│   │       ├── artifact_registry.mk # the production image: build, push, auth, IAM
 │   │       ├── cloud_run.mk       # Cloud Run deploy, logs, URL
 │   │       ├── gcloud_compute.mk  # Compute Engine VM lifecycle
 │   │       └── github.mk          # GitHub PR workflow (gh CLI)
