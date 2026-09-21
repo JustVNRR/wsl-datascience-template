@@ -20,5 +20,9 @@ unregister.ps1
 
 # A local .env.global is one machine's configuration. COPY zsh would bake it
 # into /etc/skel, so every distro, for every user, would inherit it.
-.env
-.env.global
+# `**/` earns its place: a pattern without a slash only matches at the root of
+# the context, while the file this protects - zsh/gmake/.env.global - sits in a
+# subdirectory. The two *.sample files are the committed contracts and they
+# stay: `**/.env*` would have taken them along.
+**/.env
+**/.env.global
