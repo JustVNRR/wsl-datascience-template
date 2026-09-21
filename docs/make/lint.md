@@ -21,12 +21,14 @@ by default, with an auto-fix lane.
 | `PY_TARGETS` | `.` | Scan roots for Python (files or directories) |
 | `SH_TARGETS` | `.` | Scan roots for shell (files or directories) |
 
-## Full-scan confirmation
+## Auto-fix guard
 
-Launched without a scope, the lint targets would scan the entire current
-directory — so they ask for confirmation first. When `lint` is the goal, a
-single prompt covers both chained checks; the individual targets prompt on
-their own when launched bare. Scope instead:
+`lint`, `lint-py` and `lint-sh` only read: they run on the project as it is,
+whole project by default, no question asked. `lint-format` is the one target
+that **rewrites** files, so it refuses to start when the working tree is not
+committed — ruff's edits would otherwise mix with work in progress.
+
+The scan roots stay scopeable on every target:
 
 ```bash
 gmake lint PY_TARGETS="src/" SH_TARGETS="scripts/"
