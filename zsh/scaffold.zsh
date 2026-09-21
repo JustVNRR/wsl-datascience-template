@@ -113,7 +113,7 @@ fnew() {
     fi
 
     while true; do
-        read "project_name?Project name: "
+        read "project_name?Project folder: "
         if [[ "$project_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]]; then
             break
         fi

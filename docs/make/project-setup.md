@@ -42,7 +42,7 @@ Type `fnew` anywhere:
 ```console
 $ fnew
 # → fuzzy-pick a template from the catalog (description + pinned version shown)
-Project name: my-analysis
+Project folder: my-analysis
 📁 Creating project in: /home/you/projects/my-analysis
 🏗️  Scaffolding project with Copier...
 🎤 ...then answer the template's own questions (repo name, description...)...
