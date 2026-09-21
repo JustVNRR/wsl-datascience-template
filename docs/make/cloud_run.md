@@ -50,7 +50,7 @@ gcloud run services remove-iam-policy-binding <SERVICE> \
 | `GCP_REGION` | all targets | `europe-west1` |
 | `GCP_PROJECT` | all targets | `my-project-id` |
 | `ARTIFACTSREPO` | `cloudrun_deploy` | `my-artifacts` |
-| `GAR_MEMORY` | `cloudrun_deploy` | `2Gi` |
+| `CLOUDRUN_MEMORY` | `cloudrun_deploy` | `2Gi` |
 | `CLOUDRUN_PUBLIC` | `cloudrun_deploy` | empty (private) or `true` |
 
 After deployment, store the URL returned by `cloudrun_url` as `SERVICE_URL`
