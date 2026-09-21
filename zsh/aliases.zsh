@@ -33,11 +33,15 @@ alias reload='exec zsh'
 # ============================================================
 
 # eza (ls replacement with icons and Git status integration)
+# --icons=always, never a bare --icons: the flag takes an optional value
+# (always|auto|never), so a bare one swallows whatever follows it - `ls /tmp`
+# died on "invalid value '/tmp' for '--icons'". `auto` renders no icon here
+# even on a terminal, so `always` is what the flag meant before it took a value.
 if command -v eza >/dev/null 2>&1; then
-    alias ls='eza --icons'
-    alias ll='eza -lh --icons --git'
-    alias la='eza -lah --icons --git'
-    alias tree='eza --tree --icons'
+    alias ls='eza --icons=always'
+    alias ll='eza -lh --icons=always --git'
+    alias la='eza -lah --icons=always --git'
+    alias tree='eza --tree --icons=always'
 fi
 
 # bat (cat replacement featuring syntax highlighting)
