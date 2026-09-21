@@ -118,7 +118,7 @@ gcp_uninstall: ## Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gclo
 	@echo "   Your logins (~/.config/gcloud) were left alone - delete that directory to forget them."
 
 iam_setup_service_account: ## Create the Service Account and assign IAM roles
-	$(call check_vars, SA_NAME GCP_PROJECT SA_EMAIL)
+	$(call check_vars, SA_NAME GCP_PROJECT)
 	$(call confirm_action, Create the service account and its IAM roles, SA_NAME SA_EMAIL GCP_PROJECT)
 	@echo "🤖 Creating or verifying Service Account..."
 	gcloud iam service-accounts create $(SA_NAME) \

@@ -48,6 +48,9 @@ endif
 export
 
 # 4. Derive Service Account Email dynamically
+# Derived - so never list it in check_vars. $(value SA_EMAIL) returns the text
+# of this definition, which is never empty, and the check could never fire: the
+# variables to test are SA_NAME and GCP_PROJECT.
 SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
 
 # 5. Modular Sub-makefile Imports (loaded relative to this file)
