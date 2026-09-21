@@ -133,9 +133,13 @@ RUN git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /etc/skel/.local/
 # Copy modular Zsh configuration to the user skeleton directory
 COPY zsh /etc/skel/.config/zsh
 
-# Bootstrap ZDOTDIR and create skeleton SSH directory
+# Bootstrap ZDOTDIR and create the skeleton directories. The ubuntu base image
+# leaves a bash dotfile set (.bashrc, .bash_logout, .profile) in /etc/skel, and
+# every account created here would inherit it - for a shell this image never
+# runs. They go.
 RUN echo 'export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"' > /etc/skel/.zshenv \
     && echo 'skip_global_compinit=1' >> /etc/skel/.zshenv \
+    && rm -f /etc/skel/.bashrc /etc/skel/.bash_logout /etc/skel/.profile \
     && mkdir -p /etc/skel/.ssh \
     && mkdir -p /etc/skel/.local/state/zsh \
     && mkdir -p /etc/skel/.cache/zsh \
