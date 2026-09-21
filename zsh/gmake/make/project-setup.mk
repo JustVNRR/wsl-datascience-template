@@ -10,6 +10,11 @@
 #      (+ requirements_dev.txt when present)
 #   3. no recognized manifest                  ->  bare uv venv, with a warning
 # The direnv hook is shared by all branches.
+#
+# Branch 2 is the one to watch: its line ends with the test on
+# requirements_dev.txt, and a false test with no else returns 0. A failing
+# install above it would then be swallowed and reported as a success, which is
+# what the `|| exit 1` next to it prevents.
 define init_venv
 	@if [ -f $(PROJECT_NAME)/uv.lock ] || { [ -f $(PROJECT_NAME)/pyproject.toml ] && grep -qx '\[project\]' $(PROJECT_NAME)/pyproject.toml; }; then \
 		echo "🐍 uv project detected (uv.lock or [project] table) — running uv sync..."; \
@@ -18,7 +23,7 @@ define init_venv
 		echo "🐍 Creating virtual environment..."; \
 		cd $(PROJECT_NAME) && uv venv; \
 		echo "📦 Installing dependencies (requirements.txt)..."; \
-		uv pip install -r requirements.txt; \
+		uv pip install -r requirements.txt || exit 1; \
 		if [ -f requirements_dev.txt ]; then \
 			echo "📦 Installing dev dependencies (requirements_dev.txt)..."; \
 			uv pip install -r requirements_dev.txt; \
