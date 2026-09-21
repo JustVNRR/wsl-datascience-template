@@ -33,7 +33,7 @@ tail -f <FILE_NAME>                                           # Follow appended 
 grep "<TEXT>" <FILE_NAME>                                     # Search for pattern inside a specific file
 grep -c "<TEXT>" <FILE_NAME>                                  # Count number of lines matching pattern
 grep -l "<TEXT>" *                                            # List only names of matching files in directory
-grep -i "<TEXT>" <DIR_PATH>                                   # Case-insensitive search of a directory (ripgrep: recursive by default)
+grep -ri "<TEXT>" <DIR_PATH>                                  # Case-insensitive recursive search in a directory
 cut -d'<DELIM>' -f<COL> <FILE_NAME>                           # Extract specific column using delimiter (e.g. -d':' -f1)
 sort <FILE_NAME>                                              # Sort and display file lines alphabetically
 sort <FILE_NAME> | uniq -c | sort -nr                         # Count duplicate line occurrences (descending order)

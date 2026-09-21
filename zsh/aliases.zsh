@@ -45,10 +45,7 @@ if command -v batcat >/dev/null 2>&1; then
     alias cat='batcat'
 fi
 
-# ripgrep (fast grep alternative)
-if command -v rg >/dev/null 2>&1; then
-    alias grep='rg --color=auto'
-fi
+alias grep='grep --color=auto'
 
 # ============================================================
 # 4. ALIAS FUZZY PICKER (FALIAS)
