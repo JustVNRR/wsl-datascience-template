@@ -55,9 +55,10 @@ lint-sh: ## Check shell scripts with shellcheck (optional: SH_TARGETS="...")
 		read -p "Continue with the full scan? [y/N] " ans; \
 		if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "❌ Cancelled by user." >&2; exit 1; fi; \
 	fi
-	@# Resolve the scan roots at RUN time - a shell variable, never $(shell ...):
-	@# make expands a whole recipe before any of its lines runs, so a make-level
-	@# find would execute before the confirmation prompt above could be answered.
+	@# Resolve the scan roots at RUN time - a shell variable, never a make-level
+	@# shell call. A `#` comments for the shell, not for make: make expands a
+	@# whole recipe before any of its lines runs, so such a call would execute
+	@# before the confirmation prompt above could be answered.
 	@files=$$(find $(SH_TARGETS) -type f -name "*.sh" -not -path "*/.*/*" -not -path "*/venv/*" 2>/dev/null); \
 	if [ -z "$$files" ]; then \
 		echo "ℹ️  No shell scripts found to analyze."; \

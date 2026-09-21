@@ -51,6 +51,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     strace \
     lsof \
+    # first_boot.sh writes systemd=true into /etc/wsl.conf, and WSL only boots
+    # systemd when the distribution ships it. Without this package the
+    # declaration is inert: `systemctl` does not exist and PID 1 stays the WSL
+    # init. The ubuntu base image is trimmed and does not include it.
+    systemd \
     # Pager and network probe the shell expects: git, systemctl and journalctl
     # page through `less` (a Recommends that --no-install-recommends drops),
     # and the bash cheatsheet documents both of these commands
