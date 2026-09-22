@@ -19,3 +19,9 @@ desktop.ini
 .env
 .env.*
 !*.sample
+
+# Per-machine editor/tooling state. settings.local.json holds the permission
+# rules Claude Code picked up while working in this checkout: it names paths on
+# THIS machine and means nothing to a colleague, who would see it as an
+# untracked file to commit by mistake.
+.claude/settings.local.json
