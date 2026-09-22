@@ -45,7 +45,7 @@ tool by any means is enough.
 
 ### Archives
 
-`extract` unpacks any common archive (zip, tar.\*, gz, bz2, xz, 7z, rar…)
+`extract` unpacks any common archive (zip, tar.\*, gz, bz2, xz, zst, 7z, rar…)
 into a directory of your choice — the destination is pre-filled from the
 archive name and editable in place, and you are asked whether to delete the
 original archive afterwards. Run it bare to fuzzy-pick an archive in the

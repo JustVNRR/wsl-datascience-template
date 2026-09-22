@@ -8,16 +8,22 @@ extract() {
 
     # Fall back to fzf interactive search if no argument is passed ($# == 0)
     if [ $# -eq 0 ]; then
-        target=$(fdfind --type f -e zip -e rar -e gz -e tar -e bz2 -e 7z -e tgz -e tbz2 -e xz | fzf --prompt="📦 Select archive to extract > ")
+        target=$(fdfind --type f -e zip -e rar -e gz -e tar -e bz2 -e 7z -e tgz -e tbz2 -e xz -e zst | fzf --prompt="📦 Select archive to extract > ")
         [[ -z "$target" ]] && return 0
     else
         target="$1"
     fi
 
     if [ -f "$target" ]; then
-        # 1. Compute default destination folder name (stripping extensions)
-        default_dir="${target%.tar.*}"
-        default_dir="${default_dir%.*}"
+        # 1. Compute the default destination folder name. One strip, never two:
+        # the double suffix (.tar.gz) and the simple one (.zip) are alternatives,
+        # not steps. Chained, the second strip ate a dot of the archive's own
+        # name - results.v2.tar.gz proposed "results", the folder results.v1
+        # also lands in, and the two extractions mixed.
+        case "$target" in
+            *.tar.*) default_dir="${target%.tar.*}" ;;
+            *)       default_dir="${target%.*}"     ;;
+        esac
         dest_dir="$default_dir"
 
         # 2. Interactive target directory prompt via ZLE (pre-filled, editable in-place)
@@ -44,6 +50,10 @@ extract() {
             *.7z)        7z x "$target" -o"$dest_dir"         ;;
             *.tar.xz)    tar xvf "$target" -C "$dest_dir"     ;;
             *.xz)        cp "$target" "$dest_dir/" && unxz "$dest_dir/$(basename "$target")" ;;
+            *.tar.zst)   tar --zstd -xvf "$target" -C "$dest_dir" ;;
+            # --rm is not decoration: unlike gunzip, bunzip2 and unxz, zstd
+            # keeps its input by default, and the copy would stay behind.
+            *.zst)       cp "$target" "$dest_dir/" && zstd -d --rm "$dest_dir/$(basename "$target")" ;;
             *)
                 echo "❌ Unsupported archive format: '$target'" >&2
                 rmdir "$dest_dir" 2>/dev/null
