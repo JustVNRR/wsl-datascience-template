@@ -54,10 +54,16 @@ lint-format: ## Auto-fix and format Python code with ruff (optional: PY_TARGETS=
 	@# is not committed: ruff's edits would otherwise mix with work in progress.
 	@# Both halves matter - the first covers unstaged edits, the second what has
 	@# been staged but not committed.
-	@git diff --quiet && git diff --cached --quiet || { \
-		echo "❌ Uncommitted changes - commit or stash them first, or ruff will rewrite files you are still working on." >&2; \
-		exit 1; \
-	}
+	@# A project that is not a git repository yet has nothing to mix with: fnew
+	@# leaves one that way - it ships a .gitignore and a .gitattributes, and its
+	@# owner runs `git init` when they want one. The check steps aside there
+	@# rather than refuse a target that cannot do any harm.
+	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then \
+		git diff --quiet -- . && git diff --cached --quiet -- . || { \
+			echo "❌ Uncommitted changes - commit or stash them first, or ruff will rewrite files you are still working on." >&2; \
+			exit 1; \
+		}; \
+	fi
 	@echo "🧹 Formatting with Ruff on: $(PY_TARGETS)"
 	ruff check --fix $(PY_TARGETS)
 	ruff format $(PY_TARGETS)

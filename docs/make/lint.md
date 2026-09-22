@@ -26,7 +26,9 @@ by default, with an auto-fix lane.
 `lint`, `lint-py` and `lint-sh` only read: they run on the project as it is,
 whole project by default, no question asked. `lint-format` is the one target
 that **rewrites** files, so it refuses to start when the working tree is not
-committed — ruff's edits would otherwise mix with work in progress.
+committed — ruff's edits would otherwise mix with work in progress. A project
+that is not a git repository yet — what `fnew` leaves behind — has nothing to
+mix with: `lint-format` runs there.
 
 The scan roots stay scopeable on every target:
 
