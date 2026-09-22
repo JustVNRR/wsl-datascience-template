@@ -9,8 +9,8 @@ unalias lt 2>/dev/null
 # 2. CUSTOM SHORTCUTS & SYSTEM UTILITIES
 # ============================================================
 
-# Target the global Makefile inside $ZDOTDIR gmake directory
-alias gmake="make -f $ZDOTDIR/gmake/global_makefile.mk"
+# Target the gmake Makefile inside $ZDOTDIR gmake directory
+alias gmake="make -f $ZDOTDIR/gmake/Makefile"
 
 # Directory navigation & open network ports
 alias b='cd -'

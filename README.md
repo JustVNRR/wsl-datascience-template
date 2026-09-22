@@ -12,7 +12,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
 - **Data Science ready** — `uv` for Python, the C build toolchain needed to compile most wheels, and CV/OCR tooling preinstalled.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
-- **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests. The Google Cloud ones appear once their CLI is installed ([global makefile](#mlops-global-makefile-gmake), [optional tooling](#optional-tooling)).
+- **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests. The Google Cloud ones appear once their CLI is installed ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
 
 ---
 
@@ -78,7 +78,7 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
 ---
 
-## MLOps Global Makefile (`gmake`)
+## MLOps Makefile (`gmake`)
 
 - **Cascading configuration:**
 
@@ -87,12 +87,12 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
    - Both files are gitignored and start from committed samples in `gmake/` (`.env.global.sample`, `.env.project.sample`).
 
 - **`gmake` vs `make`:**
-  - Type `gmake` (without any arguments) to display a formatted help menu listing all available global targets (GCP compute, BigQuery, Docker, Cloud Run, etc.).
+  - Type `gmake` (without any arguments) to display a formatted help menu listing every gmake target (GCP compute, BigQuery, Docker, Cloud Run, etc.).
   - Use `fnew (recommended)`, `gmake copier_project`, `gmake cruft_project` or `gmake ccds_project` from `~/projects` to scaffold a project template.
-  - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the global `Makefile` in `~/.config/zsh/gmake`.
+  - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the `Makefile` in `~/.config/zsh/gmake`.
   - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in your current project folder.
 
-The global makefile is split into one module per domain under `gmake/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
+The gmake Makefile is split into one module per domain under `gmake/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
@@ -155,10 +155,10 @@ the repository at runtime.
 │   ├── cheatsheets/         # Auto-scanned data files: CTRL+H command lists (fcheat)
 │   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
 │   │   └── templates.tsv    # Curated project template catalog (fnew picker)
-│   ├── gmake/               # Global MLOps Makefile ecosystem (the gmake alias)
+│   ├── gmake/               # MLOps Makefile ecosystem (the gmake alias)
 │   │   ├── .env.global.sample  # Shared-defaults contract (copy to .env.global, gitignored)
 │   │   ├── .env.project.sample # Per-project contract (copy into a project as .env)
-│   │   ├── global_makefile.mk # Global entrypoint for the MLOps Makefile
+│   │   ├── Makefile           # Entrypoint for the MLOps Makefile
 │   │   └── make/            # One Makefile module per domain (documented in docs/make/)
 │   │       ├── install.mk         # optional tooling: install a CLI the image does not ship
 │   │       ├── project-setup.mk   # copier/cruft scaffolding + venv/direnv bootstrap
@@ -185,7 +185,7 @@ the repository at runtime.
 │   ├── make-icon.ps1        # Regenerates the icon below (standalone PowerShell)
 │   └── terminal-icon.png    # Windows Terminal profile icon (copied next to the VHDX)
 ├── docs/
-│   ├── make/                # Per-module documentation for the global Makefile
+│   ├── make/                # Per-module documentation for the gmake Makefile
 │   ├── optional_tooling/    # Onboarding for the tools the image does not ship
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── .github/
@@ -212,7 +212,7 @@ deleting the distro deletes all of it.
 ~/.config/zsh/               # = zsh/ from the repository
 ├── gmake/
 │   ├── .env.global          # Shared defaults (gmake gcp_enable_global_env)
-│   ├── global_makefile.mk
+│   ├── Makefile
 │   └── make/*.mk
 └── .zshrc, modules, prompts/, cheatsheets/
 

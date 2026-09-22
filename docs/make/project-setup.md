@@ -1,6 +1,6 @@
 # Project Scaffolding
 
-[← Back to the README](../../README.md#mlops-global-makefile-gmake)
+[← Back to the README](../../README.md#mlops-makefile-gmake)
 
 Scaffold a new project from a curated catalog of templates, with the virtual
 environment and direnv bootstrapped along the way.

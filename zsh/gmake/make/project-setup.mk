@@ -41,7 +41,7 @@ endef
 # PROJECT SETUP WORKFLOW
 # ==============================================================================
 # Location: these targets only run from ~/projects itself — enforced by the
-# location gate in global_makefile.mk (same rule as fnew in scaffold.zsh).
+# location gate in the gmake Makefile (same rule as fnew in scaffold.zsh).
 
 copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)

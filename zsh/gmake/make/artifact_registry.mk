@@ -5,7 +5,7 @@
 # CLI: three targets call `gcloud`, and the two that call `docker` only tag and
 # push to a `-docker.pkg.dev` path that `gcloud auth configure-docker` unlocks.
 # The module is therefore loaded only when the CLI is present (section 5 of
-# global_makefile.mk). The container itself is not a Google concern: building
+# the gmake Makefile). The container itself is not a Google concern: building
 # and running it on your machine lives in docker.mk, which every project gets.
 
 artifact_registry_create: ## Create the Docker repository in Artifact Registry

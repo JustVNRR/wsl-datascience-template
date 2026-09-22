@@ -1,6 +1,6 @@
 # Artifact Registry
 
-[← Back to the README](../../README.md#mlops-global-makefile-gmake)
+[← Back to the README](../../README.md#mlops-makefile-gmake)
 
 The Google half of the Docker workflow: the repository that stores the
 production image, the image itself, and what it takes to be allowed to push

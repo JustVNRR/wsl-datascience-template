@@ -3,7 +3,7 @@
 # ==============================================================================
 # This module is loaded only when the Google Cloud CLI is absent: it is the
 # counterpart of the five gated modules, and it is a file of its own for the
-# reason given in section 5 of global_makefile.mk - the menu reads the text of
+# reason given in section 5 of the gmake Makefile - the menu reads the text of
 # the files make loaded, so a conditional inside a file would show both faces
 # at once. The way out (gcp_uninstall) lives in gcp.mk, which is loaded only
 # when the CLI is there.

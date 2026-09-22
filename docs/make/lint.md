@@ -1,6 +1,6 @@
 # Lint
 
-[← Back to the README](../../README.md#mlops-global-makefile-gmake)
+[← Back to the README](../../README.md#mlops-makefile-gmake)
 
 Static checks for Python (`ruff`) and shell (`shellcheck`) — non-destructive
 by default, with an auto-fix lane.

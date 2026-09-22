@@ -1,6 +1,6 @@
 # GitHub Pull Requests
 
-[← Back to the README](../../README.md#mlops-global-makefile-gmake)
+[← Back to the README](../../README.md#mlops-makefile-gmake)
 
 A small pull-request workflow built on the GitHub CLI — requires an
 authenticated `gh` (`gh auth status`).
