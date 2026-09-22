@@ -7,13 +7,18 @@ echo "      Welcome to your Data Science WSL Environment"
 echo "============================================================"
 echo ""
 
-# Prompt for a valid Linux username (lowercase letters, digits, underscores, dashes)
+# Prompt for a valid Linux username (lowercase letters, digits, underscores,
+# dashes) that no account uses yet. adduser fails on a name that is already
+# taken - root, daemon, www-data, _apt - and set -e would then abort the whole
+# onboarding on adduser's raw error.
 while true; do
     read -rp "Enter your username: " NEW_USER
-    if [[ "$NEW_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
-        break
-    else
+    if [[ ! "$NEW_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
         echo "Invalid username (use lowercase letters, numbers, underscores, and dashes only)."
+    elif id "$NEW_USER" >/dev/null 2>&1; then
+        echo "The account '$NEW_USER' already exists - pick another name."
+    else
+        break
     fi
 done
 
