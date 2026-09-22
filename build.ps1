@@ -80,9 +80,14 @@ function Install-NerdFont {
 
         $DestFontPath = Join-Path $UserFontsDir $FontFile
 
-        # Copy file and add to registry with the full path
+        # The file and its registry entry are two separate facts: an interrupted
+        # run leaves one without the other. Guarding both with the same test
+        # skipped the registration, and Windows Terminal then asked for a font
+        # Windows did not know about - boxes in the prompt, and no message.
         if (-not (Test-Path $DestFontPath)) {
             Copy-Item -Path $TempFontPath -Destination $DestFontPath -Force
+        }
+        if (-not (Get-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -ErrorAction SilentlyContinue)) {
             New-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -Value $DestFontPath -PropertyType String -Force | Out-Null
         }
         Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed $FontName for current user." -ForegroundColor Green
