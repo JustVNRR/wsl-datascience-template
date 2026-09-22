@@ -2,7 +2,10 @@
 # PROJECT TEMPLATE CATALOG
 # ==============================================================================
 # One template per line:  <url> <TAB> <tool> <TAB> <version> <TAB> <description>
-#   url         anything copier/cruft/ccds accepts (gh: shorthand or full git URL)
+#   url         anything copier or ccds accepts (gh: shorthand or full git URL).
+#               A cruft row needs the full https:// address: cruft hands the
+#               string to git, which does not know the gh: shorthand (measured:
+#               "Could not resolve hostname gh:").
 #   tool        copier | cruft | ccds   (dispatches to the matching gmake target)
 #   version     optional pinned ref/tag (e.g. v1); leave empty for the default
 #   description shown in the `fnew` interactive picker

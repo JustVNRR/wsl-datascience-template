@@ -39,14 +39,30 @@ _ftemplate_select() {
                 sub(/\.git$/, "", repo)
             }
 
-            if (ver == "") {
-                tag = sprintf("\033[36m%-7s\033[0m", tool)
-            } else {
-                tag = sprintf("\033[36m%-7s\033[0m \033[33m@%s\033[0m", tool, ver)
-            }
-            printf "%s\t%s\t%s\t%s \033[90m|\033[0m %s \033[90m|\033[0m %s\n", url, tool, ver, tag, repo, $4
+            # Held until END: the columns are padded to the widest row, which is
+            # only known once the whole catalog has been read. fzf is handed the
+            # list in one go, so buffering the rows costs nothing.
+            i = ++count
+            urls[i] = url; tools[i] = tool; vers[i] = ver
+            descs[i] = $4; repos[i] = repo
+            labels[i] = (ver == "") ? tool : tool " @" ver
+            if (length(labels[i]) > wlabel) wlabel = length(labels[i])
+            if (length(repo) > wrepo) wrepo = length(repo)
         }
 
+        END {
+            for (i = 1; i <= count; i++) {
+                if (vers[i] == "") {
+                    tag = sprintf("\033[36m%s\033[0m%s", tools[i], spaces(wlabel - length(tools[i])))
+                } else {
+                    tag = sprintf("\033[36m%s\033[0m \033[33m@%s\033[0m%s", tools[i], vers[i], spaces(wlabel - length(labels[i])))
+                }
+                printf "%s\t%s\t%s\t%s  \033[90m|\033[0m  %s%s  \033[90m|\033[0m  %s\n", urls[i], tools[i], vers[i], tag, repos[i], spaces(wrepo - length(repos[i])), descs[i]
+            }
+        }
+
+        # n spaces; a printf of a negative width right-aligns, so it is clamped
+        function spaces(k) { return sprintf("%*s", k > 0 ? k : 0, "") }
     ' "$catalog" |
         fzf \
             --ansi \
