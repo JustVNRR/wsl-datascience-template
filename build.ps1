@@ -434,14 +434,15 @@ finally {
 # that list only when it starts. Being in that list proves nothing: a rebuild
 # takes the client away and leaves the name behind. So the question is asked
 # every time rather than answered from the file - and it belongs to another
-# program, which is why nothing is written without a yes.
+# program, which is why it is asked rather than assumed. It restarts Docker
+# Desktop, so it defaults to yes and Enter carries through.
 if ($Deployed) {
     $DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
     if (Test-Path $DockerSettings) {
         try {
             Write-Host ""
-            $AddToDocker = Read-Host "Restart Docker Desktop to add support for '$DistroName'? [y/N]"
-            if ($AddToDocker -match "^[yY]$") {
+            $AddToDocker = Read-Host "Restart Docker Desktop to add support for '$DistroName'? [Y/n]"
+            if ($AddToDocker -notmatch "^[nN]$") {
                 $DockerConfig = Get-Content $DockerSettings -Raw | ConvertFrom-Json
                 Copy-Item $DockerSettings "$DockerSettings.bak" -Force
                 # Rebuilt without this distro and without empty entries, then
@@ -473,6 +474,13 @@ if ($Deployed) {
             Write-Host "Docker Desktop settings not updated ($($_.Exception.Message))" -ForegroundColor Yellow
         }
     }
+
+    # The distro is built and registered: clear the run's output and hand the
+    # user a shell in it, which is what they came for. --cd ~ lands in their
+    # home rather than in the Windows folder the script was launched from -
+    # which it would otherwise map into the fresh distro.
+    Clear-Host
+    wsl.exe -d $DistroName --cd ~
 }
 
 # A failed deployment must not look like a success to whatever called this
