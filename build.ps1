@@ -61,23 +61,25 @@ function Install-NerdFont {
     }
 
     Write-Host "==> Starship prompt requires a Nerd Font. Downloading $FontName..." -ForegroundColor Yellow
-    
-    # 2. Download the font
-    $FontUrl = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
-    $TempFontPath = Join-Path $env:TEMP $FontFile
-    Invoke-WebRequest -Uri $FontUrl -OutFile $TempFontPath -UseBasicParsing
-    
-    # 3. Install the font PER-USER (No admin required!)
+
+    # 2. Download, then install the font PER-USER (no admin required). Both are
+    # best effort: the prompt looks worse without the font, but neither a download
+    # that fails nor a registry that refuses may turn a finished deployment into
+    # a failed one - this function never throws.
     try {
+        $FontUrl = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
+        $TempFontPath = Join-Path $env:TEMP $FontFile
+        Invoke-WebRequest -Uri $FontUrl -OutFile $TempFontPath -UseBasicParsing
+
         $UserFontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
-        
+
         # Create user fonts directory if it doesn't exist
         if (-not (Test-Path $UserFontsDir)) {
             New-Item -ItemType Directory -Path $UserFontsDir -Force | Out-Null
         }
-        
+
         $DestFontPath = Join-Path $UserFontsDir $FontFile
-        
+
         # Copy file and add to registry with the full path
         if (-not (Test-Path $DestFontPath)) {
             Copy-Item -Path $TempFontPath -Destination $DestFontPath -Force
@@ -400,11 +402,18 @@ finally {
             Write-Host "Docker image retained." -ForegroundColor Green
         }
     } else {
-        # Nothing was deployed: the image is what a retry starts from, and
-        # there is no deployment to ask about.
+        # Nothing was deployed: the image is what a retry starts from, and there
+        # is no deployment to ask about. The retry is only cheap while the run
+        # stopped before the import - past that point a distro exists, and the
+        # next run opens on the destruction prompt instead.
         Write-Host ""
         Write-Host ("-" * 60) -ForegroundColor DarkGray
-        Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor DarkGray
+        $StillRegistered = (wsl.exe --list --quiet 2>$null) | ForEach-Object { ($_ -replace "`0", "").Trim() }
+        if ($StillRegistered -contains $DistroName) {
+            Write-Host "A distribution named '$DistroName' is registered: the next run will offer to destroy and rebuild it." -ForegroundColor Yellow
+        } else {
+            Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor DarkGray
+        }
     }
 }
 
