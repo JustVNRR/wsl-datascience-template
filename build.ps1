@@ -126,6 +126,36 @@ if ($DockerExitCode -ne 0) {
     exit 1
 }
 
+# 0-bis. Preflight: -InstallPath must be a folder of its own. The deletion in
+# step 4 is recursive, so a forgotten name - `-InstallPath "D:\WSL"` - would
+# take every distribution installed under it. Checked here, before the
+# confirmation below and before anything is created, like the Docker probe:
+# this must hold on a first build too, where no distro exists yet and the
+# banner never shows.
+$FullInstallPath = [System.IO.Path]::GetFullPath($InstallPath).TrimEnd('\')
+
+if ($FullInstallPath -match '^[A-Za-z]:$') {
+    Write-Host ""
+    Write-Host "[ABORT] -InstallPath must name a folder, not a drive root: $InstallPath" -ForegroundColor Red
+    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    exit 1
+}
+
+foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
+    $Props = Get-ItemProperty $Key.PSPath
+    if ($Props.DistributionName -and $Props.DistributionName -ne $DistroName -and $Props.BasePath) {
+        $OtherPath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+        if ($OtherPath -eq $FullInstallPath -or $OtherPath.StartsWith("$FullInstallPath\", [System.StringComparison]::OrdinalIgnoreCase)) {
+            Write-Host ""
+            Write-Host "[ABORT] $InstallPath is, or contains, the install folder of '$($Props.DistributionName)'." -ForegroundColor Red
+            Write-Host "        Erasing it would take that distribution with it: $OtherPath" -ForegroundColor Yellow
+            Write-Host "        Give -InstallPath a folder of its own." -ForegroundColor Yellow
+            Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+            exit 1
+        }
+    }
+}
+
 # 1. Place temporary export tar next to InstallPath to prevent filling drive C:
 $ParentInstallDir = Split-Path -Path $InstallPath -Parent
 if (-not (Test-Path -Path $ParentInstallDir)) {
@@ -148,6 +178,7 @@ if ($ExistingDistros -contains $DistroName) {
     Write-Host ""
     Write-Host "  Proceeding will PERMANENTLY DESTROY this distribution:" -ForegroundColor Yellow
     Write-Host "    - Executing: wsl --unregister $DistroName" -ForegroundColor DarkGray
+    Write-Host "    - Erasing the install folder: $InstallPath" -ForegroundColor DarkGray
     Write-Host "    - IRREVERSIBLE DELETION of the virtual disk (VHDX)" -ForegroundColor DarkGray
     Write-Host "    - TOTAL LOSS of projects, SSH keys, and all files in /home" -ForegroundColor DarkGray
     Write-Host ""
