@@ -22,6 +22,12 @@ echo "Creating user account $NEW_USER..."
 # Create user silently (skips Full Name, Room Number, etc.)
 adduser --disabled-password --gecos "" --shell /usr/bin/zsh "$NEW_USER"
 
+# The trigger in /root/.bashrc runs this script again on every root shell, and
+# the account exists from here: a re-run could only fail on adduser. Disarm it
+# now rather than at the end, where a failure above would leave that loop
+# running.
+sed -i '/first_boot\.sh/d' /root/.bashrc 2>/dev/null || true
+
 echo ""
 echo "Please set a password for $NEW_USER:"
 # Loop until the password is successfully set
@@ -64,9 +70,9 @@ su - "$NEW_USER" -c "uv tool install cookiecutter-data-science"
 # Export username for build script display
 echo -n "$NEW_USER" > /tmp/installed_user
 
-# Remove setup trigger from root bashrc and delete setup script
-sed -i '/first_boot\.sh/d' /root/.bashrc 2>/dev/null || true
+# The trigger is gone already. The pages cache is a convenience, so a machine
+# without network must not lose the rest of the run - and the script deletes
+# itself last, once nothing below it can fail.
+su - "$NEW_USER" -c "tldr --update" || echo "  (tldr cache left as it was)"
 rm -f /root/first_boot.sh
-
-su - "$NEW_USER" -c "tldr --update"
 exit 0
