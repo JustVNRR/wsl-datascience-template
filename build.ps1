@@ -479,7 +479,13 @@ if ($Deployed) {
     # user a shell in it, which is what they came for. --cd ~ lands in their
     # home rather than in the Windows folder the script was launched from -
     # which it would otherwise map into the fresh distro.
+    # Two lines are printed first, so the shell opens on the answer to "who am
+    # I, where, and what now" instead of on an anonymous prompt. ~/projects
+    # comes from /etc/skel, and fnew refuses to run from anywhere else.
     Clear-Host
+    Write-Host "Welcome, $ConfiguredUser - you are now logged in to your brand new '$DistroName' WSL instance." -ForegroundColor Green
+    Write-Host "Run 'cd projects' and type 'fnew' to create your first project." -ForegroundColor Yellow
+    Write-Host ""
     wsl.exe -d $DistroName --cd ~
 }
 
