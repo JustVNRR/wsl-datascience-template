@@ -46,6 +46,7 @@ bindkey '^[r' _open_hist_file
 # one of the two was there for the taking, and ^Xg is the one without Shift.
 _fzf_file_no_hidden() {
     local result
+    zle -I
     result=$(fdfind --type f --exclude '.*' | fzf --preview "$_FZF_PREVIEW_CMD")
     if [[ -n "$result" ]]; then
         LBUFFER+="$result"

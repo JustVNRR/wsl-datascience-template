@@ -80,11 +80,16 @@ falias() {
 # ZLE Widget: Alt + y
 _falias_widget() {
     local alias_name
+    # -I before the picker: fzf paints only the bottom of the screen, and zsh
+    # must be told its idea of the display is stale. reset-prompt (not
+    # redisplay) redraws the prompt afterwards - the same pair the VS Code
+    # widgets use, and what fzf's own widget does.
+    zle -I
     alias_name=$(_falias_select)
     [[ -z "$alias_name" ]] && {
-        zle redisplay
+        zle reset-prompt
         return
     }
     LBUFFER+="$alias_name "
-    zle redisplay
+    zle reset-prompt
 }

@@ -82,14 +82,19 @@ fcheat() {
 _fcheat_widget() {
     local command
 
+    # -I before the picker, reset-prompt after: see the note in aliases.zsh
+    # (_falias_widget). fzf overwrites the bottom of the screen, and zsh has
+    # to be told before it redraws the prompt over what it still believes is
+    # there.
+    zle -I
     command=$(_fcheat_select)
 
     [[ -z "$command" ]] && {
-        zle redisplay
+        zle reset-prompt
         return
     }
 
     LBUFFER="$command"
     RBUFFER=""
-    zle redisplay
+    zle reset-prompt
 }
