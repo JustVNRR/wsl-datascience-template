@@ -198,7 +198,10 @@ if ($ExistingDistros -contains $DistroName) {
     Write-Host " ----------------------------------------------------------------------" -ForegroundColor DarkGray
     Write-Host ""
 
-    if ($Confirmation -ne $DistroName) {
+    # -cne, not -ne: PowerShell's -ne ignores case, while the banner above asks
+    # for the exact name. The point is that the name is read and typed, not
+    # that a reflexive Enter carries through.
+    if ($Confirmation -cne $DistroName) {
         Write-Host "[ABORT] Operation cancelled. No data was modified." -ForegroundColor Green
         exit 0
     }
@@ -401,8 +404,13 @@ finally {
             $PreviousEAP = $ErrorActionPreference
             $ErrorActionPreference = "Continue"
             docker rmi -f $ImageTag *> $null
+            $RemoveExitCode = $LASTEXITCODE
             $ErrorActionPreference = $PreviousEAP
-            Write-Host "Docker image removed successfully." -ForegroundColor Green
+            if ($RemoveExitCode -eq 0) {
+                Write-Host "Docker image removed." -ForegroundColor Green
+            } else {
+                Write-Host "The image could not be removed - a container is probably using it. It stays on disk." -ForegroundColor Yellow
+            }
         } else {
             Write-Host "Docker image retained." -ForegroundColor Green
         }

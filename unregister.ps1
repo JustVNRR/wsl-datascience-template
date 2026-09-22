@@ -173,6 +173,32 @@ if ($FragmentsRemoved -gt 0) {
 }
 
 # ==============================================================================
+# 5. DOCKER DESKTOP (its own list of integrated distros)
+# ==============================================================================
+# Docker Desktop injects its client into the distros it lists, and reads that
+# list when it starts. build.ps1 offers to add the name there; a removal that
+# left it behind would keep a name pointing at nothing.
+$DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
+if (Test-Path $DockerSettings) {
+    try {
+        $DockerConfig = Get-Content $DockerSettings -Raw | ConvertFrom-Json
+        if ($DockerConfig.IntegratedWslDistros -contains $DistroName) {
+            Copy-Item $DockerSettings "$DockerSettings.bak" -Force
+            $DockerConfig.IntegratedWslDistros = @($DockerConfig.IntegratedWslDistros | Where-Object { $_ -and $_ -ne $DistroName })
+            # Written beside the file and swapped in, and with WriteAllText
+            # rather than Set-Content: Docker Desktop's file carries no
+            # byte-order mark, and PowerShell's -Encoding Utf8 adds one.
+            $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
+            [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
+            Move-Item "$DockerSettings.tmp" $DockerSettings -Force
+            Write-Host "  * Docker Desktop : '$DistroName' removed from the integrated distros" -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "  * Docker Desktop : list not updated ($($_.Exception.Message))" -ForegroundColor Yellow
+    }
+}
+
+# ==============================================================================
 # SUMMARY
 # ==============================================================================
 Write-Host ""
