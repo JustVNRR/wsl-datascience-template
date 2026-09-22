@@ -77,7 +77,7 @@ fcheat() {
     print -z -- "$command"
 }
 
-# ZLE Widget: Ctrl + H
+# ZLE Widget: Alt + z
 # Replace prompt buffer with the selected cheatsheet command
 _fcheat_widget() {
     local command

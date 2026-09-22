@@ -22,13 +22,14 @@ _fa_widget() {
 zle -N _fa_widget
 bindkey '^[a' _fa_widget
 
-# Alt + Shift + C: Open the Zsh configuration directory in VS Code
+# Ctrl + X then v: Open the Zsh configuration directory in VS Code. `v` for VS
+# Code, and the slot was free: zsh binds neither ^Xv nor ^XV.
 _open_zsh_conf() {
     code "$ZDOTDIR"
     zle reset-prompt
 }
 zle -N _open_zsh_conf
-bindkey '^[C' _open_zsh_conf
+bindkey '^Xv' _open_zsh_conf
 
 # Alt + r: Open the persistent history file in VS Code (XDG compliant)
 _open_hist_file() {
@@ -40,7 +41,9 @@ bindkey '^[r' _open_hist_file
 
 # --- 2. PROMPT BUFFER INSERTION ---
 
-# Ctrl + F: Insert the path of a VISIBLE file at the current cursor position
+# Ctrl + X then g: Insert the path of a VISIBLE file at the current cursor
+# position. zsh bound ^Xg AND ^XG to list-expand - the same widget twice - so
+# one of the two was there for the taking, and ^Xg is the one without Shift.
 _fzf_file_no_hidden() {
     local result
     result=$(fdfind --type f --exclude '.*' | fzf --preview "$_FZF_PREVIEW_CMD")
@@ -50,12 +53,14 @@ _fzf_file_no_hidden() {
     zle reset-prompt
 }
 zle -N _fzf_file_no_hidden
-bindkey '^F' _fzf_file_no_hidden
+bindkey '^Xg' _fzf_file_no_hidden
 
-# Ctrl + G: Insert an alias at the current cursor position
+# Alt + y: Insert an alias at the current cursor position. ^[y was yank-pop,
+# which only does anything right after a Ctrl+Y.
 zle -N _falias_widget
-bindkey '^G' _falias_widget
+bindkey '^[y' _falias_widget
 
-# Ctrl + H: Load a cheatsheet command directly into the prompt buffer
+# Alt + z: Load a cheatsheet command directly into the prompt buffer. ^[z
+# relaunched the last named command, a zsh feature almost nobody uses.
 zle -N _fcheat_widget
-bindkey '^H' _fcheat_widget
+bindkey '^[z' _fcheat_widget

@@ -77,7 +77,7 @@ falias() {
     print -z -- "$alias_name "
 }
 
-# ZLE Widget: Ctrl + G
+# ZLE Widget: Alt + y
 _falias_widget() {
     local alias_name
     alias_name=$(_falias_select)

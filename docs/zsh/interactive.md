@@ -25,8 +25,8 @@ and aliases — plus a smart archive extractor.
 
 | Command | Action |
 | :--- | :--- |
-| `fcheat` | Fuzzy-search the `cheatsheets/*.sh` command lists and load a command into the prompt (also `Ctrl + H`) |
-| `falias` | Fuzzy-search your aliases and load one into the prompt (also `Ctrl + G`) |
+| `fcheat` | Fuzzy-search the `cheatsheets/*.sh` command lists and load a command into the prompt (also `Alt + z`) |
+| `falias` | Fuzzy-search your aliases and load one into the prompt (also `Alt + y`) |
 
 The `cheatsheets/` directory is scanned every time the picker opens: add, edit,
 or remove files there to curate your own command menu.
@@ -40,7 +40,7 @@ A sheet can declare what it needs, in a comment on a line of its own:
 The picker then leaves that file out when `gcloud` is absent. `# requires:
 !gcloud` does the reverse — for a sheet that only makes sense while the tool is
 *missing*, typically the one holding the command that installs it. Nothing is
-recorded: the question is asked again at every `Ctrl + H`, so installing the
+recorded: the question is asked again at every `Alt + z`, so installing the
 tool by any means is enough.
 
 ### Archives
