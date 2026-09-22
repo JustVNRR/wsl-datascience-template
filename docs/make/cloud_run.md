@@ -46,9 +46,9 @@ gcloud run services remove-iam-policy-binding <SERVICE> \
 
 | Variable | Required by | Example |
 |---|---|---|
-| `GAR_IMAGE` | all targets | `my-api` |
-| `GCP_REGION` | all targets | `europe-west1` |
-| `GCP_PROJECT` | all targets | `my-project-id` |
+| `GAR_IMAGE` | every target except `cloudrun_list` | `my-api` |
+| `GCP_REGION` | every target except `cloudrun_list` | `europe-west1` |
+| `GCP_PROJECT` | every target | `my-project-id` |
 | `ARTIFACTSREPO` | `cloudrun_deploy` | `my-artifacts` |
 | `CLOUDRUN_MEMORY` | `cloudrun_deploy` | `2Gi` |
 | `CLOUDRUN_PUBLIC` | `cloudrun_deploy` | empty (private) or `true` |

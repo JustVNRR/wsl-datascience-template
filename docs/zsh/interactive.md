@@ -11,8 +11,8 @@ and aliases — plus a smart archive extractor.
 | :--- | :--- |
 | `cdv` | Fuzzy `cd` into a visible directory |
 | `cda` | Fuzzy `cd` anywhere, hidden directories included (`.git` excluded) |
-| `fv` | Fuzzy-find a visible file and open it in VS Code (also `Alt + O`) |
-| `fa` | Same for all files, hidden included (also `Alt + A`) |
+| `fv` | Fuzzy-find a visible file and open it in VS Code (also `Alt + o`) |
+| `fa` | Same for all files, hidden included (also `Alt + a`) |
 
 ### Git
 

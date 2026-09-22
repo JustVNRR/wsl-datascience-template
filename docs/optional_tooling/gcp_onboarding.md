@@ -13,7 +13,7 @@ company project, ask your administrator for the roles of the modules you use.
 ## Step 1 — install the gcloud CLI, then authenticate it
 
 The image does not ship the Google Cloud CLI: it weighs 409 MB and not every
-project uses Google Cloud. `gmake` therefore loads its four GCP modules only
+project uses Google Cloud. `gmake` therefore loads its five GCP modules only
 when that CLI is present, and offers the way in when it is not — on a fresh
 distro the menu shows `gcp_install` where the GCP targets will be.
 
@@ -94,7 +94,7 @@ From here, what you run depends on the workflow — each module page documents
 its full flow.
 
 - **Docker → Artifact Registry** ([`artifact_registry.md`](../make/artifact_registry.md),
-  [`docker.md`](../make/docker.md)): run `artifact_registry_auth` once per machine and
+  [`docker.md`](../make/docker.md)): run `artifact_registry_auth` once per region and
   create the repository once per project; then build and push your production
   image.
 - **Cloud Run** ([`cloud_run.md`](../make/cloud_run.md)): deploy a pushed

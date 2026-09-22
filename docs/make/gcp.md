@@ -26,6 +26,7 @@ New to GCP entirely? Start with the [onboarding guide](../optional_tooling/gcp_o
 | `gcs_list_buckets` | List all Cloud Storage buckets in the project | — |
 | `gcs_create_bucket` | Create a new Cloud Storage bucket | ⚠️ |
 | `gcs_delete_bucket` | Delete a bucket **and all its contents** | ⚠️ destructive |
+| `gcp_uninstall` | Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gcloud logins) | ⚠️ |
 | `iam_setup_service_account` | Create the service account and assign IAM roles | ⚠️ |
 
 `iam_setup_service_account` grants the BigQuery Data Editor and Cloud Storage

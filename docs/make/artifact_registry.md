@@ -35,6 +35,7 @@ reads the same three variables — see [`docker.md`](docker.md).
 
 ## Typical flow
 
-`artifact_registry_auth` once per machine, `artifact_registry_create` +
+`artifact_registry_auth` once per region (it registers that region's registry
+address in Docker's configuration), `artifact_registry_create` +
 `artifact_registry_role` once per project, then `artifact_registry_build` →
 `artifact_registry_push` → [`cloudrun_deploy`](cloud_run.md).

@@ -72,7 +72,7 @@ jobs:
           # The menu follows what is installed, so it is captured in both
           # states and concatenated: gcp_install exists in one, gcp_uninstall
           # in the other, and the two steps below compare the cheatsheets
-          # against this union. GCLOUD=x forces the four gated modules in (a
+          # against this union. GCLOUD=x forces the five gated modules in (a
           # command-line variable wins over the makefile's :=); GCLOUD= is
           # what this runner actually looks like. These checks are about the
           # repository, not about the machine running them.

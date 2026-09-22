@@ -37,7 +37,7 @@ gmake lint-py PY_TARGETS="src/"
 
 ## Tools
 
-- `ruff` is installed globally at first boot via `uv tool install ruff`; lint
+- `ruff` is installed globally by the build via `uv tool install ruff`; lint
   rules live in each project's `pyproject.toml` (`[tool.ruff]`) — only the
   tool lives on the machine.
 - `shellcheck` is bundled in the template image.
