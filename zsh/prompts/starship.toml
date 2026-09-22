@@ -17,13 +17,25 @@ disabled = true
 disabled = true
 
 [custom.active_venv]
+# A custom module re-runs this command at every prompt: the name is computed
+# with the shell's own string operations, so the prompt does not launch
+# basename, dirname, tr and xargs just to trim two characters. Python's venv
+# sets the prompt to "(%s) " - parentheses AND a trailing space, so the space
+# is removed first.
 when = 'test -n "$VIRTUAL_ENV_PROMPT" || test -n "$VIRTUAL_ENV"'
 command = '''
 if [ -n "$VIRTUAL_ENV_PROMPT" ]; then
-    echo "$VIRTUAL_ENV_PROMPT" | tr -d '()' | xargs
+    p=${VIRTUAL_ENV_PROMPT% }
+    p=${p#\(}
+    printf '%s\n' "${p%\)}"
 else
-    n=$(basename "$VIRTUAL_ENV")
-    [ "$n" = ".venv" ] && basename "$(dirname "$VIRTUAL_ENV")" || echo "$n"
+    p=${VIRTUAL_ENV##*/}
+    if [ "$p" = ".venv" ]; then
+        d=${VIRTUAL_ENV%/*}
+        printf '%s\n' "${d##*/}"
+    else
+        printf '%s\n' "$p"
+    fi
 fi
 '''
 format = '([\($output\) ](bold cyan))'
