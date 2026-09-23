@@ -91,7 +91,7 @@ function Select-Distro {
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
-        Write-Host "        Build one with  .\build.ps1" -ForegroundColor Yellow
+        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
         exit 1
     }
 

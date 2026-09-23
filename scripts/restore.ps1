@@ -44,7 +44,7 @@ function Format-Size {
 if (-not (Test-Path $ArchiveFolder)) {
     Write-Host ""
     Write-Host "[ABORT] There are no archives: $ArchiveFolder does not exist." -ForegroundColor Red
-    Write-Host "        Nothing to restore. Take one with  .\archive.ps1" -ForegroundColor Yellow
+    Write-Host "        Nothing to restore. Take one with  .\wsl.ps1 archive" -ForegroundColor Yellow
     exit 1
 }
 
@@ -58,7 +58,7 @@ $Archives = @(Get-ChildItem -Path $ArchiveFolder -Directory |
 if ($Archives.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] The archives folder is empty: $ArchiveFolder" -ForegroundColor Red
-    Write-Host "        Nothing to restore. Take one with  .\archive.ps1" -ForegroundColor Yellow
+    Write-Host "        Nothing to restore. Take one with  .\wsl.ps1 archive" -ForegroundColor Yellow
     exit 1
 }
 
@@ -125,7 +125,7 @@ if ((Get-DistroNames) -contains $Name) {
     Write-Host ""
     Write-Host "[ABORT] An instance named '$Name' already exists." -ForegroundColor Red
     Write-Host "        Remove it first, then run this again:" -ForegroundColor Yellow
-    Write-Host "          .\unregister.ps1        (pick '$Name' in the list)" -ForegroundColor White
+    Write-Host "          .\wsl.ps1 unregister        (pick '$Name' in the list)" -ForegroundColor White
     exit 1
 }
 
@@ -157,7 +157,7 @@ try {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "        The archive is untouched. A half-registered '$Name' may be left" -ForegroundColor Yellow
-    Write-Host "        behind:  .\unregister.ps1        (pick '$Name' in the list)" -ForegroundColor Yellow
+    Write-Host "        behind:  .\wsl.ps1 unregister        (pick '$Name' in the list)" -ForegroundColor Yellow
     exit 1
 }
 

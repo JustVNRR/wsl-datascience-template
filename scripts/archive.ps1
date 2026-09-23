@@ -117,7 +117,7 @@ function Select-Distro {
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
-        Write-Host "        Build one with  .\build.ps1" -ForegroundColor Yellow
+        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
         exit 1
     }
 
@@ -304,7 +304,7 @@ Write-Host "  * Time             : " -NoNewline; Write-Host "$([int]$Elapsed.Tot
 Write-Host ""
 Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host "To restore it as a new instance:" -ForegroundColor Yellow
-Write-Host "  .\restore.ps1        (it lists the archives, this one included)" -ForegroundColor White
+Write-Host "  .\wsl.ps1 restore        (it lists the archives, this one included)" -ForegroundColor White
 Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host ""
 

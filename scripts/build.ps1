@@ -98,8 +98,9 @@ function Install-NerdFont {
     }
 }
 
-# Ensure script runs from its directory
-$RepoRoot = $PSScriptRoot
+# The repository root, one level above this script: it holds the Dockerfile,
+# and that is the context the build below must run in - not this folder.
+$RepoRoot = Split-Path -Path $PSScriptRoot -Parent
 Set-Location -Path $RepoRoot
 
 $ImageTag = "wsl-datascience-template:latest"

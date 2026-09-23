@@ -84,7 +84,7 @@ function Select-Distro {
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
-        Write-Host "        Build one with  .\build.ps1" -ForegroundColor Yellow
+        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
         exit 1
     }
 
@@ -214,7 +214,7 @@ if ($FreeBytes -lt $NeededBytes) {
     Write-Host ""
     Write-Host "[ABORT] Not enough room on $DriveLetter`:." -ForegroundColor Red
     Write-Host "        Needed: $(Format-Size $NeededBytes) - free: $(Format-Size $FreeBytes)." -ForegroundColor Yellow
-    Write-Host "        Free some space, or point -Destination at another drive." -ForegroundColor Yellow
+    Write-Host "        Free some space, then run this again." -ForegroundColor Yellow
     Write-Host "        Nothing was modified." -ForegroundColor DarkGray
     exit 1
 }
@@ -239,7 +239,7 @@ try {
     Write-Host "        The source was not modified." -ForegroundColor DarkGray
     if ($_.Exception.Message -like "*import*") {
         Write-Host "        A half-registered '$NewDistroName' may be left behind:" -ForegroundColor Yellow
-        Write-Host "        remove it with .\unregister.ps1 -DistroName $NewDistroName" -ForegroundColor Yellow
+        Write-Host "        remove it with  .\wsl.ps1 unregister        (pick '$NewDistroName' in the list)" -ForegroundColor Yellow
     }
     exit 1
 } finally {
