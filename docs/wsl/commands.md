@@ -19,7 +19,7 @@ Two rules run through all of them:
 - **No command touches a distribution that is not one of ours** — see below,
   which is the one thing worth reading before the rest.
 
-## The commands
+## All commands
 
 | Command | What it does |
 | :--- | :--- |
@@ -34,14 +34,11 @@ Two rules run through all of them:
 | [`.\wsl.ps1 shrink`](#shrink) | reclaim the space an instance has freed |
 | [`.\wsl.ps1 list`](#list) | show our instances, the archives, and what is orphaned |
 
-## Which instances are ours
+## Which WSL instances are ours
 
-A machine holds distributions that are not ours: Docker Desktop's own, a
-colleague's, the ones kept for another project. The Windows registry says what
-exists — it does not say what this repository built.
-
-So every instance these commands create carries a **marker** in its own folder,
-next to its virtual disk:
+Every instance created by `build`, `restore` or `duplicate` carries a
+**marker**, named `.wsl-datascience-template`, in its own folder next to its
+virtual disk:
 
 ```text
 D:\WSL\ubuntu-template\
@@ -49,15 +46,6 @@ D:\WSL\ubuntu-template\
 ├── terminal-icon.png
 └── .wsl-datascience-template
 ```
-
-`build`, `restore` and `duplicate` write it as soon as the instance is
-registered, and every command that lists instances looks for it. **A
-distribution that does not carry the marker never appears in a list** — which
-is what keeps Docker Desktop's own distro out of reach of `unregister`.
-
-There is no list to keep up to date: the marker travels with the instance,
-wherever it lives. An instance that loses its marker simply leaves our lists,
-and `adopt` is how one gets marked.
 
 ## Where things live
 
@@ -73,6 +61,25 @@ D:\WSL\
         ├── ubuntu-template.tar.gz   the instance's file system
         ├── instance.json            its font, colours, and Docker state
         └── terminal-icon.png        its icon
+```
+
+---
+
+## `list`
+
+Lists all WSL instances carrying the `.wsl-datascience-template` marker.
+
+```powershell
+.\wsl.ps1 list
+```
+
+```text
+Instances of this template:
+   1.  template-bac       running       1.1 GB  D:\WSL\template-bac
+   2.  ubuntu-template    stopped       2.4 GB  D:\WSL\ubuntu-template
+
+Archives in D:\WSL\archives (most recent first):
+      ubuntu-template            28.8 MB  2026-09-23 16:50
 ```
 
 ---
@@ -104,15 +111,11 @@ rebuild erases that instance and everything in it.
 
 ## `adopt`
 
-Marks an existing instance as one of ours.
+Marks an existing instance with the `.wsl-datascience-template` marker.
 
 ```powershell
 .\wsl.ps1 adopt
 ```
-
-Instances built before the marker existed — or installed by hand, outside this
-repository — carry nothing, so they appear in none of the lists. Adopting one
-is what brings it in:
 
 ```text
 Registered instances that are not this template's:
@@ -120,10 +123,6 @@ Registered instances that are not this template's:
    2.  docker-desktop                  1.4 GB  D:\WSL\DockerDesktopWSL\main
    0.  Cancel
 ```
-
-The folder is shown on every line: it is what tells an instance built here from
-Docker Desktop's. Adopting writes the marker file and **nothing else** — no
-file inside the instance, no Terminal profile, no setting.
 
 ---
 
@@ -337,26 +336,3 @@ fails, nothing is compacted**.
 It works on a running instance as well as a stopped one, and leaves it in the
 state it was found in.
 
----
-
-## `list`
-
-Shows what you have. It only reads — no question, nothing to modify, safe to
-run at any moment.
-
-```powershell
-.\wsl.ps1 list
-```
-
-```text
-Instances of this template:
-   1.  template-bac       running       1.1 GB  D:\WSL\template-bac
-   2.  ubuntu-template    stopped       2.4 GB  D:\WSL\ubuntu-template
-
-Archives in D:\WSL\archives (most recent first):
-      ubuntu-template            28.8 MB  2026-09-23 16:50
-```
-
-It also reports **marked folders that no instance claims** — what an
-interrupted removal leaves behind. Nothing else shows them, and no command
-removes them: they are deleted by hand.
