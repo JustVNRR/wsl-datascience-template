@@ -63,7 +63,9 @@ if ($Distro) {
     Write-Host " ----------------------------------------------------------------------" -ForegroundColor DarkGray
     Write-Host ""
 
-    if ($Confirmation -ne $DistroName) {
+    # -cne, not -ne: PowerShell's -ne ignores case, while the banner above asks
+    # for the exact name.
+    if ($Confirmation -cne $DistroName) {
         Write-Host "[ABORT] Operation cancelled. No data was modified." -ForegroundColor Green
         exit 0
     }
