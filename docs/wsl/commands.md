@@ -23,16 +23,17 @@ Two rules run through all of them:
 
 | Command | What it does |
 | :--- | :--- |
+| [`.\wsl.ps1 list`](#list) | show our instances, the archives, and what is left over |
 | [`.\wsl.ps1 build`](#build) | build an instance from the image (Docker, then WSL) |
 | [`.\wsl.ps1 adopt`](#adopt) | mark an instance that already exists as one of ours |
 | [`.\wsl.ps1 start`](#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](#stop) | stop a running instance |
+| [`.\wsl.ps1 shell`](#shell) | open a shell in one of our instances |
 | [`.\wsl.ps1 unregister`](#unregister) | remove an instance, and what it left on Windows |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](#duplicate) | copy an instance under another name |
 | [`.\wsl.ps1 shrink`](#shrink) | reclaim the space an instance has freed |
-| [`.\wsl.ps1 list`](#list) | show our instances, the archives, and what is orphaned |
 
 ## Which WSL instances are ours
 
@@ -169,6 +170,32 @@ Running instances - the ones that can be stopped:
 the disk stays exactly as it is — stopping ends the running processes, it does
 not touch the disk. The script asks once before doing it, and the default is to
 go ahead.
+
+---
+
+## `shell`
+
+Opens a shell in one of our instances — the quickest way in when you are
+already in a terminal.
+
+```powershell
+.\wsl.ps1 shell
+```
+
+The instance comes from the list, like everywhere else:
+
+```text
+Instances of this template:
+   1.  template-bac       running       1.1 GB  D:\WSL\template-bac
+   2.  ubuntu-template    stopped       2.4 GB  D:\WSL\ubuntu-template
+   0.  Cancel
+```
+
+An instance that was stopped is started on the way in: `start` first is not
+needed. The shell opens **in your home**, not in the Windows folder you ran the
+command from — the same thing the build does when a new instance is ready.
+
+`exit` in there brings you back to PowerShell.
 
 ---
 

@@ -191,8 +191,8 @@ the repository at runtime.
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
-│   └── *.ps1                # build, adopt, start, stop, unregister, archive, restore,
-│                            # duplicate, shrink, list
+│   └── *.ps1                # list, build, adopt, start, stop, shell, unregister,
+│                            # archive, restore, duplicate, shrink
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml           # Static checks (shellcheck, zsh -n, make parse, doc drift)
@@ -256,22 +256,23 @@ changing one.
 
 ## Instance Administration (wsl.ps1)
 
-Instances are built, started, stopped, copied, archived, restored, compacted
-and removed from `wsl.ps1`, at the root of the repository. The scripts
-themselves live in `scripts\` — `wsl.ps1` is the only thing to type.
+Instances are listed, built, started, stopped, opened, copied, archived,
+restored, compacted and removed from `wsl.ps1`, at the root of the repository.
+The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to type.
 
 | Command | What it does |
 | :--- | :--- |
+| [`.\wsl.ps1 list`](docs/wsl/commands.md#list) | show our instances, the archives, and what is left over |
 | [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image (Docker, then WSL) |
 | [`.\wsl.ps1 adopt`](docs/wsl/commands.md#adopt) | mark an instance that already exists as one of ours |
 | [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
+| [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell in one of our instances |
 | [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance, and what it left on Windows |
 | [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
 | [`.\wsl.ps1 shrink`](docs/wsl/commands.md#shrink) | reclaim the space an instance has freed |
-| [`.\wsl.ps1 list`](docs/wsl/commands.md#list) | show our instances, the archives, and what is orphaned |
 
 Run it without a command to see the same list. **No command takes an instance
 name**: they list what exists, numbered, and you pick. And only the instances

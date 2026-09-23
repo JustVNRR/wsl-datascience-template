@@ -127,12 +127,12 @@ if (Test-Path $Root) {
 
 if ($Forgotten.Count -gt 0) {
     Write-Host ""
-    Write-Host "Marked folders that no instance claims:" -ForegroundColor Yellow
+    Write-Host "Folders left behind by an instance that is gone:" -ForegroundColor Yellow
     foreach ($Folder in $Forgotten) {
         Write-Host ("      {0,-30} {1,10}  {2}" -f $Folder.Name,
             (Format-Size (Get-VhdxSize $Folder.FullName)), $Folder.FullName) -ForegroundColor Yellow
     }
-    Write-Host "      No command lists them and none removes them: delete them by hand." -ForegroundColor DarkGray
+    Write-Host "      No instance claims them, and no command removes them: delete them by hand." -ForegroundColor DarkGray
 }
 
 Write-Host ""

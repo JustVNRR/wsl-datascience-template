@@ -16,17 +16,20 @@
 
 $Scripts = Join-Path $PSScriptRoot "scripts"
 
+# The order is the one the documentation uses, and it starts with the command
+# that answers "what do I have?" - list, then the rest along an instance's life.
 $Commands = @(
+    @{ Name = "list";       What = "show the instances of this template, and the archives" },
     @{ Name = "build";      What = "build an instance from the image (Docker, then WSL)" },
     @{ Name = "adopt";      What = "mark an existing instance as one of this template's" },
     @{ Name = "start";      What = "start a stopped instance" },
     @{ Name = "stop";       What = "stop a running instance" },
+    @{ Name = "shell";      What = "open a shell in one of our instances" },
     @{ Name = "unregister"; What = "remove an instance, and what it left on Windows" },
     @{ Name = "archive";    What = "write an instance to a named archive" },
     @{ Name = "restore";    What = "rebuild an instance from an archive" },
     @{ Name = "duplicate";  What = "copy an instance under another name" },
-    @{ Name = "shrink";     What = "reclaim the space an instance has freed" },
-    @{ Name = "list";       What = "show the instances of this template, and the archives" }
+    @{ Name = "shrink";     What = "reclaim the space an instance has freed" }
 )
 
 if ($args.Count -eq 0) {
