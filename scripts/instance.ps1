@@ -1,8 +1,25 @@
 # ==============================================================================
-# WHAT WINDOWS KNOWS ABOUT AN INSTANCE (and a tar cannot carry)
+# WHICH INSTANCES ARE OURS, AND WHAT WINDOWS KNOWS ABOUT THEM
 # ==============================================================================
-# Two things live on the Windows side of an instance, and both are lost the
-# same way - silently:
+# The machine holds distributions that are not ours - Docker Desktop's own, or
+# the ones a colleague keeps for other projects - and they sit side by side
+# with ours in the same folders. The registry says what Windows knows; it does
+# not say what this repository built.
+#
+# So every instance we create carries a marker, in its own folder, next to
+# ext4.vhdx:
+#
+#   <install folder>\.wsl-datascience-template
+#
+# It is written by the three commands that create an instance - build, restore,
+# duplicate - and looked for by every command that lists instances. There is no
+# list to keep up to date: the mark travels with the instance, wherever it
+# lives, and an instance that loses it simply leaves our lists. adopt.ps1 is
+# how an instance built before this existed gets one.
+#
+# --------------------------------------------------------------------------
+# Two more things live on the Windows side of an instance, and both are lost
+# the same way - silently:
 #
 #   the look     an icon, a font and a colour scheme, written by build.ps1 into
 #                a Windows Terminal fragment that targets the guid of that
@@ -19,9 +36,48 @@
 #
 # and re-applied after an import.
 #
-# This file defines functions; it is not a command. The scripts that need it
-# say so at the top and load it with `. .\instance.ps1`.
+# This file defines functions; it is not a command. Every command of the family
+# loads it at the top - a missing instance.ps1 means the scripts\ folder is
+# incomplete, and the commands say so rather than run half blind.
 # ==============================================================================
+
+# The marker's name, kept here so that one file knows it and the others ask.
+# It is the repository's own name, like the Windows Terminal fragments folder,
+# so there is one string to remember in the whole project.
+$MarkerName = ".wsl-datascience-template"
+
+# Is this folder an instance of ours? A folder name proves nothing - it is the
+# marker file, and only it, that answers.
+function Test-TemplateInstance {
+    param([string]$Folder)
+
+    if (-not $Folder) { return $false }
+    return (Test-Path (Join-Path $Folder $MarkerName))
+}
+
+# Mark an instance as ours. Called right after an import, while the folder is
+# fresh - the point is that the mark is there before anything else can go
+# wrong, so the other commands see the instance even if a later step fails.
+function New-InstanceMarker {
+    param([string]$Folder, [string]$By)
+
+    if (-not (Test-Path $Folder)) { return }
+
+    # [ordered]: a hashtable would print its keys in a different order on every
+    # run, and a file whose lines move is a file nobody diffs twice.
+    $Marker = [ordered]@{
+        template = "wsl-datascience-template"
+        created  = (Get-Date).ToString("yyyy-MM-dd")
+        by       = $By
+    }
+
+    $Json = ($Marker | ConvertTo-Json) -replace "`r`n", "`n"
+    # Written byte-order-mark-free, like Docker Desktop's settings file:
+    # PowerShell's -Encoding Utf8 prepends one that the next reader is not
+    # expecting.
+    [System.IO.File]::WriteAllText((Join-Path $Folder $MarkerName), $Json,
+        (New-Object System.Text.UTF8Encoding($false)))
+}
 
 # Is a font face installed for this user or for the machine? Windows stores
 # them as registry values whose names carry the face ("MesloLGS NF (TrueType)").

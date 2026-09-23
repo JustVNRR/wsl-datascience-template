@@ -8,22 +8,25 @@
 #   .\wsl.ps1 archive -Format tar.xz
 #
 # None of the commands behind it takes an instance name on the command line:
-# they list what exists - or, for start and stop, what can still be acted on -
-# and you pick. scripts\instance.ps1 is not a command: it holds what the other
-# scripts share, and is not listed here.
+# they list what exists - this template's instances only, the ones carrying the
+# marker - or, for start and stop, what can still be acted on, and you pick.
+# scripts\instance.ps1 is not a command: it holds what the other scripts share,
+# and is not listed here.
 # ==============================================================================
 
 $Scripts = Join-Path $PSScriptRoot "scripts"
 
 $Commands = @(
     @{ Name = "build";      What = "build an instance from the image (Docker, then WSL)" },
+    @{ Name = "adopt";      What = "mark an existing instance as one of this template's" },
     @{ Name = "start";      What = "start a stopped instance" },
     @{ Name = "stop";       What = "stop a running instance" },
     @{ Name = "unregister"; What = "remove an instance, and what it left on Windows" },
     @{ Name = "archive";    What = "write an instance to a named archive" },
     @{ Name = "restore";    What = "rebuild an instance from an archive" },
     @{ Name = "duplicate";  What = "copy an instance under another name" },
-    @{ Name = "shrink";     What = "reclaim the space an instance has freed" }
+    @{ Name = "shrink";     What = "reclaim the space an instance has freed" },
+    @{ Name = "list";       What = "show the instances of this template, and the archives" }
 )
 
 if ($args.Count -eq 0) {

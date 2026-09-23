@@ -10,6 +10,17 @@ $ErrorActionPreference = "Stop"
 # Where the instances live, for the one case the list cannot serve.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
+# What the whole family shares: how to tell one of our instances from any other
+# registered one. A removal that cannot tell them apart is a removal aimed at
+# whatever the registry happens to hold.
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
+
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
     param([scriptblock]$Command, [string]$ErrorMessage)
@@ -76,13 +87,16 @@ function Get-VhdxSize {
 # comes back until the answer is one of the numbers - an empty answer cancels,
 # so a run with no console can never loop forever.
 function Select-Distro {
-    # Sorted by name: the registry order changes between runs, and a menu
-    # whose numbers move is a menu you cannot trust twice.
-    $All = Get-Distros | Sort-Object Name
+    # Sorted by name: the registry order changes between runs, and a menu whose
+    # numbers move is a menu you cannot trust twice. Filtered on the marker:
+    # the machine holds other distributions - Docker Desktop's, a colleague's -
+    # and none of them are ours to touch.
+    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
     if ($All.Count -eq 0) {
         Write-Host ""
-        Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
         Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
+        Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
         exit 1
     }
 
@@ -126,10 +140,12 @@ function Select-Distro {
 # The list is the only way in. With nothing registered there is nothing to
 # remove - and a folder left behind by an earlier removal is deleted by hand,
 # not by naming it.
-if ((Get-Distros).Count -eq 0) {
+$Ours = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath })
+if ($Ours.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
     Write-Host "        Nothing to remove." -ForegroundColor Yellow
+    Write-Host "        Build one with  .\wsl.ps1 build, or make an existing one ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
     Write-Host "        (A folder left behind by an earlier removal is deleted by hand: $Root)" -ForegroundColor DarkGray
     exit 1
 }

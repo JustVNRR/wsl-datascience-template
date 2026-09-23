@@ -19,6 +19,17 @@ if (-not $InstallPath) {
 
 $ErrorActionPreference = "Stop"
 
+# What the whole family shares: how to tell one of our instances from any other
+# registered one. Not a command, and not optional - without it this script
+# would build an instance no other command could recognise as ours.
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
+
 # Halts script execution if an external command (like docker or wsl) fails
 function Invoke-External {
     param([scriptblock]$Command, [string]$ErrorMessage)
@@ -237,6 +248,12 @@ try {
 
     Write-Host "==> 5. Importing into WSL ($DistroName)..." -ForegroundColor Cyan
     Invoke-External { wsl.exe --import $DistroName $InstallPath $TarPath --version 2 } "WSL import failed."
+
+    # Marked the moment it is registered, before the steps that can still fail:
+    # from here on the instance exists and is ours, and the other commands have
+    # to be able to see it - a build that stops at the font step leaves a real
+    # instance behind, not an invisible one.
+    New-InstanceMarker -Folder $InstallPath -By "build"
 
     Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor Cyan
     Invoke-External { wsl.exe -d $DistroName -u root /root/first_boot.sh } "The first_boot.sh configuration script failed."

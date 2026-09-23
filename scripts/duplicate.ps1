@@ -11,11 +11,16 @@ $ErrorActionPreference = "Stop"
 # the same rule build.ps1's default -InstallPath follows.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
-# What Windows knows about an instance - its look, and whether Docker Desktop
-# knows it - is captured from the source and re-applied to the copy, from the
-# one file that knows how.
-$LookAvailable = Test-Path (Join-Path $PSScriptRoot "instance.ps1")
-if ($LookAvailable) { . (Join-Path $PSScriptRoot "instance.ps1") }
+# What the whole family shares: how to tell one of our instances from any other
+# registered one, and what Windows knows about its look - captured off the
+# source here, and re-applied to the copy after the import.
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
 
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
@@ -78,13 +83,16 @@ function Get-VhdxSize {
 # comes back until the answer is one of the numbers - an empty answer cancels,
 # so a run with no console can never loop forever.
 function Select-Distro {
-    # Sorted by name: the registry order changes between runs, and a menu
-    # whose numbers move is a menu you cannot trust twice.
-    $All = Get-Distros | Sort-Object Name
+    # Sorted by name: the registry order changes between runs, and a menu whose
+    # numbers move is a menu you cannot trust twice. Filtered on the marker:
+    # the machine holds other distributions - Docker Desktop's, a colleague's -
+    # and none of them are ours to touch.
+    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
     if ($All.Count -eq 0) {
         Write-Host ""
-        Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
         Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
+        Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
         exit 1
     }
 
@@ -129,11 +137,8 @@ $SourceDistro = $Source.Name
 
 # Captured now, while the source's profile is still the one it was built with:
 # a copy that comes out bare is not a copy.
-$Look = $null
-if ($LookAvailable) {
-    $Look = Get-InstanceAppearance -Name $SourceDistro
-    $Look | Add-Member -NotePropertyName Docker -NotePropertyValue (Get-DockerState -Name $SourceDistro)
-}
+$Look = Get-InstanceAppearance -Name $SourceDistro
+$Look | Add-Member -NotePropertyName Docker -NotePropertyValue (Get-DockerState -Name $SourceDistro)
 
 # 0-bis. The copy's name. Typed, because there is nothing to pick from - it
 # does not exist yet. The question comes back until the name is usable.
@@ -251,12 +256,13 @@ try {
 $CopyVhdx = Join-Path $FullDestination "ext4.vhdx"
 $CopyBytes = if (Test-Path $CopyVhdx) { (Get-Item $CopyVhdx).Length } else { 0 }
 
+# Ours from here on, like the source it was copied from.
+New-InstanceMarker -Folder $FullDestination -By "duplicate"
+
 # The copy has its own profile now, and its own guid: the look is re-applied to
 # that one, from the values captured off the source before the export - and so
 # is Docker Desktop's knowledge of it, which is keyed by name.
-if ($LookAvailable -and $Look) {
-    Set-InstanceState -Name $NewDistroName -InstallPath $FullDestination -Appearance $Look
-}
+Set-InstanceState -Name $NewDistroName -InstallPath $FullDestination -Appearance $Look
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green

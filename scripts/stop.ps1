@@ -7,6 +7,16 @@ param ()
 
 $ErrorActionPreference = "Stop"
 
+# What the whole family shares: how to tell one of our instances from any other
+# registered one.
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
+
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
     param([scriptblock]$Command, [string]$ErrorMessage)
@@ -63,15 +73,15 @@ function Get-VhdxSize {
     return 0
 }
 
-# 1. Who can be stopped: the ones running at this moment, and only those. An
-# instance that is already stopped has nothing to do here. Sorted by name, like
-# every list in this family: a menu whose numbers move is a menu you cannot
-# trust twice.
-$All = @(Get-Distros | Sort-Object Name)
+# 1. Who can be stopped: our instances running at this moment, and only those -
+# one already stopped has nothing to do here. Sorted by name, like every list
+# in this family: a menu whose numbers move is a menu you cannot trust twice.
+$All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
 if ($All.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
     Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
+    Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
     exit 1
 }
 

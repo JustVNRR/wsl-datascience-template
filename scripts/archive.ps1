@@ -28,11 +28,16 @@ $ErrorActionPreference = "Stop"
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $ArchiveFolder = Join-Path $Root "archives"
 
-# What Windows knows about an instance - its look, and whether Docker Desktop
-# knows it - is not Linux and not in the tar: it travels next to it. The
-# functions live in instance.ps1, shared with the scripts that import.
-$LookAvailable = Test-Path (Join-Path $PSScriptRoot "instance.ps1")
-if ($LookAvailable) { . (Join-Path $PSScriptRoot "instance.ps1") }
+# What the whole family shares: how to tell one of our instances from any other
+# registered one, and what Windows knows about its look - which is not Linux
+# and not in the tar, so it has to travel next to it.
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
 
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
@@ -111,13 +116,16 @@ function Get-Distros {
 # comes back until the answer is one of the numbers - an empty answer cancels,
 # so a run with no console can never loop forever.
 function Select-Distro {
-    # Sorted by name: the registry order changes between runs, and a menu
-    # whose numbers move is a menu you cannot trust twice.
-    $All = Get-Distros | Sort-Object Name
+    # Sorted by name: the registry order changes between runs, and a menu whose
+    # numbers move is a menu you cannot trust twice. Filtered on the marker:
+    # the machine holds other distributions - Docker Desktop's, a colleague's -
+    # and none of them are ours to touch.
+    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
     if ($All.Count -eq 0) {
         Write-Host ""
-        Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
         Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
+        Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
         exit 1
     }
 
@@ -161,6 +169,15 @@ if ($DistroName) {
     if (-not $Distro) {
         Write-Host ""
         Write-Host "[ABORT] No registered distro named '$DistroName'." -ForegroundColor Red
+        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+        exit 1
+    }
+    # Named on the command line, so nothing has vouched for it: the same check
+    # the list does, and it comes before anything is written.
+    if (-not (Test-TemplateInstance -Folder $Distro.BasePath)) {
+        Write-Host ""
+        Write-Host "[ABORT] '$DistroName' is not an instance of this template." -ForegroundColor Red
+        Write-Host "        Make it ours first with  .\wsl.ps1 adopt" -ForegroundColor Yellow
         Write-Host "        Nothing was modified." -ForegroundColor DarkGray
         exit 1
     }
@@ -293,9 +310,7 @@ Write-Host "============================================================" -Foreg
 Write-Host ""
 # The look goes next to the tar, once the export has succeeded: a folder half
 # written is worse than one that says what is missing from it.
-if ($LookAvailable) {
-    Save-InstanceState -Name $DistroName -Folder $ArchiveDir
-}
+Save-InstanceState -Name $DistroName -Folder $ArchiveDir
 
 Write-Host "  * Archive          : " -NoNewline; Write-Host "$ArchiveDir" -ForegroundColor Cyan
 Write-Host "  * Tar              : " -NoNewline; Write-Host "$($Archive.Name) ($(Format-Size $Archive.Length))" -ForegroundColor Cyan

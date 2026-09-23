@@ -8,11 +8,16 @@ $ErrorActionPreference = "Stop"
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $ArchiveFolder = Join-Path $Root "archives"
 
-# What Windows knows about an instance - its look, and whether Docker Desktop
-# knows it - is stored next to the tar and re-applied here, from the one file
-# that knows how.
-$LookAvailable = Test-Path (Join-Path $PSScriptRoot "instance.ps1")
-if ($LookAvailable) { . (Join-Path $PSScriptRoot "instance.ps1") }
+# What the whole family shares: how to tell one of our instances from any other
+# registered one, and what Windows knows about its look - stored next to the
+# tar, and re-applied here.
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
 
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
@@ -161,11 +166,11 @@ try {
     exit 1
 }
 
-# The look, and Docker Desktop's knowledge of the instance: stored next to the
-# tar when the archive was taken, because a tar carries neither.
-if ($LookAvailable) {
-    Set-InstanceState -Name $Name -InstallPath $InstallPath -Folder $Chosen.FullName
-}
+# Our mark, so every other command sees the instance - then the look, and
+# Docker Desktop's knowledge of it, which a tar carries neither of.
+New-InstanceMarker -Folder $InstallPath -By "restore"
+
+Set-InstanceState -Name $Name -InstallPath $InstallPath -Folder $Chosen.FullName
 
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host "       '$Name' restored from an archive" -ForegroundColor Green
