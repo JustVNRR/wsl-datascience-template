@@ -1,12 +1,14 @@
 [CmdletBinding()]
-param (
-    # Optional. Without it, the command lists the instances that exist and you
-    # pick one. It still never chooses its own target, and the removal still
-    # asks for the name to be typed before anything happens.
-    [string]$DistroName
-)
+param ()
+
+# No parameter on purpose: the instance comes from the list, never from the
+# command line, and the removal still asks for the name to be typed before
+# anything happens. This script never chooses its own target.
 
 $ErrorActionPreference = "Stop"
+
+# Where the instances live, for the one case the list cannot serve.
+$Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
@@ -119,18 +121,25 @@ function Select-Distro {
 }
 
 # ==============================================================================
-# 1. WHICH DISTRO (named on the command line, or picked from the list)
+# 1. WHICH DISTRO (from the list, always)
 # ==============================================================================
-if ($DistroName) {
-    $Distro = Get-Distro $DistroName
-    if (-not $Distro) {
-        Write-Host "No registered distro named '$DistroName' - cleaning up leftovers only." -ForegroundColor Yellow
-        Write-Host ""
-    }
-} else {
-    $Distro = Select-Distro
-    $DistroName = $Distro.Name
+# The list is the only way in. With nothing registered there is nothing to
+# remove - and a folder left behind by an earlier removal is deleted by hand,
+# not by naming it.
+if ((Get-Distros).Count -eq 0) {
+    Write-Host ""
+    Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+    Write-Host "        If a removal left a folder behind, delete it by hand:" -ForegroundColor Yellow
+    Write-Host "        $Root" -ForegroundColor White
+    exit 1
 }
+
+$Distro = Select-Distro
+$DistroName = $Distro.Name
+
+# Taken before the removal, so that afterwards the two cases can be told apart
+$InstallPath = $Distro.BasePath
+$FolderExisted = Test-Path $InstallPath
 
 # ==============================================================================
 # 2. CONFIRMATION (destructive) - same style as build.ps1
@@ -194,33 +203,19 @@ if ($Distro) {
 # ==============================================================================
 # 3. INSTALLATION FOLDER (registry BasePath, or the default location)
 # ==============================================================================
-$InstallPath = if ($Distro) { $Distro.BasePath }
-               elseif (Test-Path "D:\") { "D:\WSL\$DistroName" }
-               else { "$env:USERPROFILE\WSL\$DistroName" }
-
-# Three outcomes, and they are not the same: an instance's folder that WSL
-# removed with the distribution itself is not a folder that was never there.
-$FolderState = "not found"
+# wsl --unregister removes the install folder with the distribution, so
+# anything left here is the exception. The cases are told apart: a folder WSL
+# removed with the distribution is not a folder that was never there.
 if (Test-Path $InstallPath) {
-    if ($Distro) {
-        Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor Cyan
-        Remove-Item -Recurse -Force $InstallPath
-        $FolderState = "removed"
-    } else {
-        $Reply = [string](Read-Host "==> Folder '$InstallPath' exists but no distro '$DistroName' is registered. Delete it anyway? [y/N]")
-        if ($Reply -match '^[yY]') {
-            Remove-Item -Recurse -Force $InstallPath
-            $FolderState = "removed"
-        } else {
-            Write-Host "    Folder kept." -ForegroundColor Yellow
-            $FolderState = "kept"
-        }
-    }
-} elseif ($Distro) {
-    Write-Host "==> Installation folder already gone - wsl --unregister removes it with the distribution ($InstallPath)." -ForegroundColor Cyan
+    Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor Cyan
+    Remove-Item -Recurse -Force $InstallPath
+    $FolderState = "removed"
+} elseif ($FolderExisted) {
+    Write-Host "==> Installation folder already gone - wsl --unregister removes it with the distribution." -ForegroundColor Cyan
     $FolderState = "removed with the distribution"
 } else {
     Write-Host "==> No installation folder found ($InstallPath)." -ForegroundColor Cyan
+    $FolderState = "not found"
 }
 
 # ==============================================================================

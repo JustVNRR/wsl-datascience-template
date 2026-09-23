@@ -1,13 +1,9 @@
 [CmdletBinding()]
 param (
-    # Optional: without it, the command lists the instances that exist and you
-    # pick one. Naming it by heart is a name you can get wrong.
-    [string]$SourceDistro,
-
-    # The copy's name, asked for if it was not given. It must be free: this
-    # script never unregisters anything.
-    [string]$NewDistroName
 )
+
+# No parameter on purpose: the source comes from the list, never from the
+# command line, and the copy's name is asked for.
 
 $ErrorActionPreference = "Stop"
 
@@ -120,46 +116,25 @@ function Select-Distro {
     }
 }
 
-# 0. Which instance to copy: named on the command line, or picked from the list
+# 0. Which instance to copy
 $AllDistros = Get-Distros
-
-if ($SourceDistro) {
-    $Source = $AllDistros | Where-Object { $_.Name -eq $SourceDistro } | Select-Object -First 1
-    if (-not $Source) {
-        Write-Host ""
-        Write-Host "[ABORT] No registered distro named '$SourceDistro'." -ForegroundColor Red
-        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-        exit 1
-    }
-} else {
-    $Source = Select-Distro
-    $SourceDistro = $Source.Name
-}
+$Source = Select-Distro
+$SourceDistro = $Source.Name
 
 # 0-bis. The copy's name. Typed, because there is nothing to pick from - it
-# does not exist yet - and it has to be usable and free.
-if (-not $NewDistroName) {
-    while ($true) {
-        $Answer = [string](Read-Host "Name of the copy")
-        if ([string]::IsNullOrWhiteSpace($Answer)) {
-            Write-Host ""
-            Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
-            exit 0
-        }
-        if ($Answer.Trim() -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
-            $NewDistroName = $Answer.Trim()
-            break
-        }
-        Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor Yellow
+# does not exist yet. The question comes back until the name is usable.
+while ($true) {
+    $Answer = [string](Read-Host "Name of the copy")
+    if ([string]::IsNullOrWhiteSpace($Answer)) {
+        Write-Host ""
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
+        exit 0
     }
-}
-
-if ($NewDistroName -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
-    Write-Host ""
-    Write-Host "[ABORT] '$NewDistroName' is not usable as an instance name" -ForegroundColor Red
-    Write-Host "        (letters, digits, '.', '_' and '-' only)." -ForegroundColor Yellow
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-    exit 1
+    if ($Answer.Trim() -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
+        $NewDistroName = $Answer.Trim()
+        break
+    }
+    Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor Yellow
 }
 
 # The copy must not land on a name that exists: this script never unregisters

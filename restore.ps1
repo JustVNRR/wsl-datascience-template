@@ -114,7 +114,7 @@ if ((Get-DistroNames) -contains $Name) {
     Write-Host ""
     Write-Host "[ABORT] An instance named '$Name' already exists." -ForegroundColor Red
     Write-Host "        Remove it first, then run this again:" -ForegroundColor Yellow
-    Write-Host "          .\unregister.ps1 -DistroName $Name" -ForegroundColor White
+    Write-Host "          .\unregister.ps1        (pick '$Name' in the list)" -ForegroundColor White
     exit 1
 }
 

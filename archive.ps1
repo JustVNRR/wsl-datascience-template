@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param (
-    # Optional: without it, the command lists the instances that exist and you
-    # pick one. Naming it by heart is a name you can get wrong.
+    # Not part of the interface: run bare, this command lists the instances and
+    # you pick one. The parameter exists because shrink.ps1 and unregister.ps1
+    # call it with the instance already chosen.
     [string]$DistroName,
 
     [ValidateSet("tar", "tar.gz", "tar.xz")]
@@ -285,7 +286,7 @@ Write-Host "  * Time             : " -NoNewline; Write-Host "$([int]$Elapsed.Tot
 Write-Host ""
 Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host "To restore it as a new instance:" -ForegroundColor Yellow
-Write-Host "  wsl --import <NewName> D:\WSL\<NewName> `"$($Archive.FullName)`" --version $($Distro.Version)" -ForegroundColor White
+Write-Host "  .\restore.ps1        (it lists the archives, this one included)" -ForegroundColor White
 Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host ""
 
@@ -323,7 +324,9 @@ if ($AfterExport -eq "Start") {
     # this repository asks for before anything destroys an instance.
     $UnregisterScript = Join-Path $PSScriptRoot "unregister.ps1"
     if (Test-Path $UnregisterScript) {
-        & $UnregisterScript -DistroName $DistroName
+        # unregister.ps1 takes no name: it lists and the user picks again.
+        Write-Host "Pick '$DistroName' in the list below, and type its name to confirm." -ForegroundColor DarkGray
+        & $UnregisterScript
         if ($LASTEXITCODE -eq 0) {
             Write-Host "The archive is the only copy of '$DistroName' left." -ForegroundColor DarkGray
         }

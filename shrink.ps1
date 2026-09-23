@@ -1,9 +1,8 @@
 [CmdletBinding()]
-param (
-    # Optional: without it, the command lists the instances that exist and you
-    # pick one. Naming it by heart is a name you can get wrong.
-    [string]$DistroName
-)
+param ()
+
+# No parameter on purpose: the instance comes from the list, never from the
+# command line. Typing a name by heart is a name you can get wrong.
 
 $ErrorActionPreference = "Stop"
 
@@ -130,19 +129,9 @@ function Select-Distro {
     }
 }
 
-# 1. Which instance. Named on the command line, or picked from the list.
-if ($DistroName) {
-    $Distro = Get-Distro $DistroName
-    if (-not $Distro) {
-        Write-Host ""
-        Write-Host "[ABORT] No registered distro named '$DistroName'." -ForegroundColor Red
-        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-        exit 1
-    }
-} else {
-    $Distro = Select-Distro
-    $DistroName = $Distro.Name
-}
+# 1. Which instance
+$Distro = Select-Distro
+$DistroName = $Distro.Name
 
 # Was it running when we arrived? Compacting works either way, but the archive
 # does not, and whatever we stopped is started again at the end.
