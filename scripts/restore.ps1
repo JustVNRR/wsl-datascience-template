@@ -49,7 +49,9 @@ function Format-Size {
 if (-not (Test-Path $ArchiveFolder)) {
     Write-Host ""
     Write-Host "[ABORT] There are no archives: $ArchiveFolder does not exist." -ForegroundColor Red
-    Write-Host "        Nothing to restore. Take one with  .\wsl.ps1 archive" -ForegroundColor Yellow
+    Write-Host "        Nothing to restore:" -ForegroundColor Yellow
+    Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor Yellow
+    Write-Host "            - Or move the existing ones back into $ArchiveFolder" -ForegroundColor Yellow
     exit 1
 }
 
@@ -63,7 +65,9 @@ $Archives = @(Get-ChildItem -Path $ArchiveFolder -Directory |
 if ($Archives.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] The archives folder is empty: $ArchiveFolder" -ForegroundColor Red
-    Write-Host "        Nothing to restore. Take one with  .\wsl.ps1 archive" -ForegroundColor Yellow
+    Write-Host "        Nothing to restore:" -ForegroundColor Yellow
+    Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor Yellow
+    Write-Host "            - Or move the existing ones back into $ArchiveFolder" -ForegroundColor Yellow
     exit 1
 }
 
