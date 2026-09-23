@@ -37,7 +37,7 @@ into the project.
 
 ## The `fnew` picker
 
-Type `fnew` anywhere:
+Type `fnew` from `~/projects`:
 
 ```console
 $ fnew

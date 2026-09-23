@@ -18,10 +18,10 @@ Defined in `~/.config/zsh/aliases.zsh`, on top of Oh My Zsh's own `git` and
 
 | Alias | Runs |
 | :--- | :--- |
-| `ls` | `eza --icons` |
-| `ll` | `eza -lh --icons --git` |
-| `la` | `eza -lah --icons --git` |
-| `tree` | `eza --tree --icons` |
+| `ls` | `eza --icons=always` |
+| `ll` | `eza -lh --icons=always --git` |
+| `la` | `eza -lah --icons=always --git` |
+| `tree` | `eza --tree --icons=always` |
 | `cat` | `batcat` (syntax-highlighted output) |
 | `grep` | `grep --color=auto` |
 
