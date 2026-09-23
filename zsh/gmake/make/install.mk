@@ -12,7 +12,7 @@
 # a few kilobytes. Only the package is left out, so this target is the package
 # and nothing else - no repository to configure at runtime.
 gcp_install: ## Install the Google Cloud CLI (adds the GCP targets to gmake)
-	$(call confirm_action,Install the Google Cloud CLI (~409 MB installed))
+	$(call confirm_action, Install the Google Cloud CLI (~409 MB installed))
 	@sudo apt-get update && sudo apt-get install -y --no-install-recommends google-cloud-cli
 	@echo "✅ Google Cloud CLI installed."
 	@echo "   The Google Cloud commands are in the gmake menu now."

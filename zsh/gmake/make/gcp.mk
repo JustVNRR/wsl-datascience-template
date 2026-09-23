@@ -111,7 +111,7 @@ gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
 # what makes `gmake gcp_install` a one-liner later), and ~/.config/gcloud keeps
 # the logins - they are the user's data, not the package's.
 gcp_uninstall: ## Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gcloud logins)
-	$(call confirm_action,Uninstall the Google Cloud CLI (frees ~409 MB))
+	$(call confirm_action, Uninstall the Google Cloud CLI (frees ~409 MB))
 	@sudo apt-get remove -y google-cloud-cli
 	@echo "✅ Google Cloud CLI removed."
 	@echo "   The Google Cloud commands have left the gmake menu."
