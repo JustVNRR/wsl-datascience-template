@@ -8,11 +8,11 @@
 .github
 .claude
 assets
-build.ps1
 docs
 LICENSE
 README.md
-unregister.ps1
+scripts
+wsl.ps1
 
 # Build artifacts
 *.tar
