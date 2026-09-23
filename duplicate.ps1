@@ -11,6 +11,12 @@ $ErrorActionPreference = "Stop"
 # the same rule build.ps1's default -InstallPath follows.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
+# What Windows knows about an instance - its look, and whether Docker Desktop
+# knows it - is captured from the source and re-applied to the copy, from the
+# one file that knows how.
+$LookAvailable = Test-Path (Join-Path $PSScriptRoot "instance.ps1")
+if ($LookAvailable) { . (Join-Path $PSScriptRoot "instance.ps1") }
+
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
     param([scriptblock]$Command, [string]$ErrorMessage)
@@ -120,6 +126,14 @@ function Select-Distro {
 $AllDistros = Get-Distros
 $Source = Select-Distro
 $SourceDistro = $Source.Name
+
+# Captured now, while the source's profile is still the one it was built with:
+# a copy that comes out bare is not a copy.
+$Look = $null
+if ($LookAvailable) {
+    $Look = Get-InstanceAppearance -Name $SourceDistro
+    $Look | Add-Member -NotePropertyName Docker -NotePropertyValue (Get-DockerState -Name $SourceDistro)
+}
 
 # 0-bis. The copy's name. Typed, because there is nothing to pick from - it
 # does not exist yet. The question comes back until the name is usable.
@@ -237,6 +251,13 @@ try {
 $CopyVhdx = Join-Path $FullDestination "ext4.vhdx"
 $CopyBytes = if (Test-Path $CopyVhdx) { (Get-Item $CopyVhdx).Length } else { 0 }
 
+# The copy has its own profile now, and its own guid: the look is re-applied to
+# that one, from the values captured off the source before the export - and so
+# is Docker Desktop's knowledge of it, which is keyed by name.
+if ($LookAvailable -and $Look) {
+    Set-InstanceState -Name $NewDistroName -InstallPath $FullDestination -Appearance $Look
+}
+
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host "       '$NewDistroName' is a copy of '$SourceDistro'" -ForegroundColor Green
@@ -246,12 +267,8 @@ Write-Host "  * Install folder   : " -NoNewline; Write-Host "$FullDestination" -
 Write-Host "  * Copy on disk     : " -NoNewline; Write-Host "$(Format-Size $CopyBytes)" -ForegroundColor Cyan
 Write-Host "  * WSL version      : " -NoNewline; Write-Host "$($Source.Version)" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  Two things the copy does not inherit:" -ForegroundColor Yellow
-Write-Host "    - Windows Terminal: it gets a profile of its own (restart Terminal to" -ForegroundColor DarkGray
-Write-Host "      see it). The template's icon, font and colour scheme belong to the" -ForegroundColor DarkGray
-Write-Host "      build, and are not copied." -ForegroundColor DarkGray
-Write-Host "    - Docker Desktop: add the instance in Settings > Resources > WSL" -ForegroundColor DarkGray
-Write-Host "      integration if you need the docker command inside the copy." -ForegroundColor DarkGray
+Write-Host "  Windows Terminal: the copy gets a profile of its own, with the icon," -ForegroundColor DarkGray
+Write-Host "  the font and the colours of the source. Restart Terminal to see it." -ForegroundColor DarkGray
 Write-Host ""
 
 # The source was running when this started: leave it the way it was found.

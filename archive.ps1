@@ -28,6 +28,12 @@ $ErrorActionPreference = "Stop"
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $ArchiveFolder = Join-Path $Root "archives"
 
+# What Windows knows about an instance - its look, and whether Docker Desktop
+# knows it - is not Linux and not in the tar: it travels next to it. The
+# functions live in instance.ps1, shared with the scripts that import.
+$LookAvailable = Test-Path (Join-Path $PSScriptRoot "instance.ps1")
+if ($LookAvailable) { . (Join-Path $PSScriptRoot "instance.ps1") }
+
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
     param([scriptblock]$Command, [string]$ErrorMessage)
@@ -185,33 +191,37 @@ if ((Get-DistroNames -Running) -contains $DistroName) {
     $StoppedByUs = $true
 }
 
-# 3. The name. Not a timestamp: an archive is a copy you name, and a dated pile
-# would only be one more thing to clean up. The instance's name is proposed,
-# a name already taken gets the next free suffix, and the user can type
-# another one - typing a name that exists is how an archive is replaced.
-$Extension = ".$Format"
+# 3. The name. An archive is a folder you name: it holds the tar AND the look
+# of the instance, because a tar cannot carry an icon or a colour scheme - they
+# are Windows settings. The instance's name is proposed, a name already taken
+# gets the next free suffix, and typing a name that exists is how an archive is
+# replaced.
 if (-not (Test-Path -Path $ArchiveFolder)) {
     New-Item -ItemType Directory -Path $ArchiveFolder -Force | Out-Null
 }
 
-$Proposal = "$DistroName$Extension"
+$Proposal = $DistroName
 $Suffix = 0
 while (Test-Path (Join-Path $ArchiveFolder $Proposal)) {
     $Suffix++
-    $Proposal = "$DistroName-$Suffix$Extension"
+    $Proposal = "$DistroName-$Suffix"
 }
 
 if ($Name) {
     $Chosen = $Name.Trim()
 } else {
-    $Existing = @(Get-ChildItem -Path $ArchiveFolder -File | Sort-Object Name)
+    $Existing = @(Get-ChildItem -Path $ArchiveFolder -Directory | Sort-Object Name)
     Write-Host ""
     if ($Existing.Count -eq 0) {
         Write-Host "No archive yet in $ArchiveFolder." -ForegroundColor DarkGray
     } else {
         Write-Host "Archives already in ${ArchiveFolder}:" -ForegroundColor Cyan
         foreach ($Entry in $Existing) {
-            Write-Host ("  {0,-45} {1,10}  {2}" -f $Entry.Name, (Format-Size $Entry.Length),
+            $Tar = Get-ChildItem -Path $Entry.FullName -Filter "*.tar*" -File |
+                Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            $Size = 0
+            if ($Tar) { $Size = $Tar.Length }
+            Write-Host ("  {0,-30} {1,10}  {2}" -f $Entry.Name, (Format-Size $Size),
                 $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm")) -ForegroundColor DarkGray
         }
     }
@@ -222,22 +232,23 @@ if ($Name) {
 
 if ($Chosen -match '[\\/]') {
     Write-Host ""
-    Write-Host "[ABORT] '$Chosen' is a path. Give a file name - it lands in:" -ForegroundColor Red
+    Write-Host "[ABORT] '$Chosen' is a path. Give a name - it lands in:" -ForegroundColor Red
     Write-Host "        $ArchiveFolder" -ForegroundColor Yellow
     Write-Host "        Nothing was modified." -ForegroundColor DarkGray
     exit 1
 }
-if (-not $Chosen.EndsWith($Extension)) {
-    $Chosen = "$Chosen$Extension"
-}
 
-$Destination = [System.IO.Path]::GetFullPath((Join-Path $ArchiveFolder $Chosen))
+$ArchiveDir = [System.IO.Path]::GetFullPath((Join-Path $ArchiveFolder $Chosen))
+$Destination = Join-Path $ArchiveDir "$Chosen.$Format"
 
 # The proposal above never lands on a taken name, so getting here means the
 # name was typed - and typing a name that exists is how you replace an archive.
 # Said out loud rather than done quietly.
-if (Test-Path -Path $Destination) {
-    Write-Host "  '$Chosen' exists: replacing it." -ForegroundColor Yellow
+if (Test-Path -Path $ArchiveDir) {
+    Write-Host "  '$Chosen' exists: replacing its archive." -ForegroundColor Yellow
+}
+if (-not (Test-Path -Path $ArchiveDir)) {
+    New-Item -ItemType Directory -Path $ArchiveDir -Force | Out-Null
 }
 
 # 4. Say what it costs before it costs it. The archive only holds what the
@@ -280,8 +291,15 @@ Write-Host "============================================================" -Foreg
 Write-Host "       Backup of '$DistroName' written" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "  * Archive          : " -NoNewline; Write-Host "$($Archive.FullName)" -ForegroundColor Cyan
-Write-Host "  * Size             : " -NoNewline; Write-Host "$(Format-Size $Archive.Length) (instance disk: $(Format-Size $DiskBytes))" -ForegroundColor Cyan
+# The look goes next to the tar, once the export has succeeded: a folder half
+# written is worse than one that says what is missing from it.
+if ($LookAvailable) {
+    Save-InstanceState -Name $DistroName -Folder $ArchiveDir
+}
+
+Write-Host "  * Archive          : " -NoNewline; Write-Host "$ArchiveDir" -ForegroundColor Cyan
+Write-Host "  * Tar              : " -NoNewline; Write-Host "$($Archive.Name) ($(Format-Size $Archive.Length))" -ForegroundColor Cyan
+Write-Host "  * Instance disk    : " -NoNewline; Write-Host "$(Format-Size $DiskBytes)" -ForegroundColor Cyan
 Write-Host "  * Time             : " -NoNewline; Write-Host "$([int]$Elapsed.TotalMinutes) min $($Elapsed.Seconds) s" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray

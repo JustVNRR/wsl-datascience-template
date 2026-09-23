@@ -8,6 +8,12 @@ $ErrorActionPreference = "Stop"
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $ArchiveFolder = Join-Path $Root "archives"
 
+# What Windows knows about an instance - its look, and whether Docker Desktop
+# knows it - is stored next to the tar and re-applied here, from the one file
+# that knows how.
+$LookAvailable = Test-Path (Join-Path $PSScriptRoot "instance.ps1")
+if ($LookAvailable) { . (Join-Path $PSScriptRoot "instance.ps1") }
+
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
     param([scriptblock]$Command, [string]$ErrorMessage)
@@ -42,9 +48,12 @@ if (-not (Test-Path $ArchiveFolder)) {
     exit 1
 }
 
-# Most recent first: the last archive taken is the one usually wanted back.
-$Archives = @(Get-ChildItem -Path $ArchiveFolder -Filter "*.tar*" -File |
-              Sort-Object LastWriteTime -Descending)
+# An archive is a folder - the tar, and the look of the instance it was taken
+# from - so what this lists is the folders that hold one. Most recent first:
+# the last archive taken is usually the one wanted back.
+$Archives = @(Get-ChildItem -Path $ArchiveFolder -Directory |
+    Where-Object { (Get-ChildItem -Path $_.FullName -Filter "*.tar*" -File).Count -gt 0 } |
+    Sort-Object LastWriteTime -Descending)
 
 if ($Archives.Count -eq 0) {
     Write-Host ""
@@ -57,8 +66,10 @@ Write-Host ""
 Write-Host "Archives in $ArchiveFolder (most recent first):" -ForegroundColor Cyan
 for ($i = 0; $i -lt $Archives.Count; $i++) {
     $Entry = $Archives[$i]
+    $Tar = Get-ChildItem -Path $Entry.FullName -Filter "*.tar*" -File |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
     Write-Host ("  {0,2}.  {1}  -  {2}, {3}" -f ($i + 1), $Entry.Name,
-        (Format-Size $Entry.Length), $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm"))
+        (Format-Size $Tar.Length), $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm"))
 }
 Write-Host "   0.  Cancel"
 
@@ -131,21 +142,29 @@ if (Test-Path $InstallPath) {
 
 # 4. Import. Version 2, like build.ps1: an archive does not carry the version
 # of the instance it came from, and WSL 1 is not what this repository builds.
+$ChosenTar = Get-ChildItem -Path $Chosen.FullName -Filter "*.tar*" -File |
+    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
 Write-Host ""
 Write-Host "==> Creating '$Name' from $($Chosen.Name)" -ForegroundColor Cyan
-Write-Host "  * Archive          : $($Chosen.FullName)" -ForegroundColor DarkGray
-Write-Host "  * Size             : $(Format-Size $Chosen.Length)" -ForegroundColor DarkGray
+Write-Host "  * Archive          : $($ChosenTar.FullName) ($(Format-Size $ChosenTar.Length))" -ForegroundColor DarkGray
 Write-Host "  * Install folder   : $InstallPath" -ForegroundColor DarkGray
 Write-Host ""
 
 try {
-    Invoke-External { wsl.exe --import $Name $InstallPath $Chosen.FullName --version 2 } "The import failed."
+    Invoke-External { wsl.exe --import $Name $InstallPath $ChosenTar.FullName --version 2 } "The import failed."
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "        The archive is untouched. A half-registered '$Name' may be left" -ForegroundColor Yellow
-    Write-Host "        behind:  .\unregister.ps1 -DistroName $Name" -ForegroundColor Yellow
+    Write-Host "        behind:  .\unregister.ps1        (pick '$Name' in the list)" -ForegroundColor Yellow
     exit 1
+}
+
+# The look, and Docker Desktop's knowledge of the instance: stored next to the
+# tar when the archive was taken, because a tar carries neither.
+if ($LookAvailable) {
+    Set-InstanceState -Name $Name -InstallPath $InstallPath -Folder $Chosen.FullName
 }
 
 Write-Host "============================================================" -ForegroundColor Green
@@ -155,10 +174,7 @@ Write-Host ""
 Write-Host "  * Install folder   : " -NoNewline; Write-Host "$InstallPath" -ForegroundColor Cyan
 Write-Host "  * From             : " -NoNewline; Write-Host "$($Chosen.Name)" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  The archive is kept. Two things the new instance does not inherit:" -ForegroundColor Yellow
-Write-Host "    - Windows Terminal: it gets a profile of its own (restart Terminal to" -ForegroundColor DarkGray
-Write-Host "      see it). The template's icon, font and colour scheme belong to the" -ForegroundColor DarkGray
-Write-Host "      build, and are not copied." -ForegroundColor DarkGray
-Write-Host "    - Docker Desktop: add the instance in Settings > Resources > WSL" -ForegroundColor DarkGray
-Write-Host "      integration if you need the docker command inside it." -ForegroundColor DarkGray
+Write-Host "  The archive is kept." -ForegroundColor Yellow
+Write-Host "  Windows Terminal: restart it to see the icon, the font and the colour" -ForegroundColor DarkGray
+Write-Host "  scheme that came back with the archive." -ForegroundColor DarkGray
 Write-Host ""
