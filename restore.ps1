@@ -38,7 +38,7 @@ function Format-Size {
 if (-not (Test-Path $ArchiveFolder)) {
     Write-Host ""
     Write-Host "[ABORT] There are no archives: $ArchiveFolder does not exist." -ForegroundColor Red
-    Write-Host "        Take one with  .\archive.ps1 -DistroName <name>" -ForegroundColor Yellow
+    Write-Host "        Nothing to restore. Take one with  .\archive.ps1" -ForegroundColor Yellow
     exit 1
 }
 
@@ -49,7 +49,7 @@ $Archives = @(Get-ChildItem -Path $ArchiveFolder -Filter "*.tar*" -File |
 if ($Archives.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] The archives folder is empty: $ArchiveFolder" -ForegroundColor Red
-    Write-Host "        Take one with  .\archive.ps1 -DistroName <name>" -ForegroundColor Yellow
+    Write-Host "        Nothing to restore. Take one with  .\archive.ps1" -ForegroundColor Yellow
     exit 1
 }
 

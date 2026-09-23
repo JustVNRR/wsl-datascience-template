@@ -129,8 +129,8 @@ function Select-Distro {
 if ((Get-Distros).Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
-    Write-Host "        If a removal left a folder behind, delete it by hand:" -ForegroundColor Yellow
-    Write-Host "        $Root" -ForegroundColor White
+    Write-Host "        Nothing to remove." -ForegroundColor Yellow
+    Write-Host "        (A folder left behind by an earlier removal is deleted by hand: $Root)" -ForegroundColor DarkGray
     exit 1
 }
 
