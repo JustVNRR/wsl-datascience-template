@@ -83,6 +83,26 @@ Archives in D:\WSL\archives (most recent first):
       ubuntu-template            28.8 MB  2026-09-23 16:50
 ```
 
+When there is one, it also reports a third thing: **folders left behind by an
+instance that is gone.**
+
+Removing an instance happens in two steps — Windows forgets the distribution,
+then the folder and its multi-gigabyte disk are erased. The second step
+sometimes fails: a file in the disk is still held by something else, Docker
+Desktop or an Explorer window left open on it. Windows no longer knows the
+instance, but the folder is still there, marker included, taking up room.
+
+Nothing else shows it. Every list starts from the Windows registry, and that
+instance is not in it any more; no command can remove it either, because they
+all act on registered instances. `list` says it exists, what it weighs, and
+that it is deleted by hand:
+
+```text
+Folders left behind by an instance that is gone:
+      vieux-test                        1.2 GB  D:\WSL\vieux-test
+      No instance claims them, and no command removes them: delete them by hand.
+```
+
 ---
 
 ## `build`
