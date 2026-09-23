@@ -4,20 +4,24 @@
 commands themselves live in `scripts\`.
 
 ```powershell
-.\wsl.ps1               # what it can do
-.\wsl.ps1 archive       # run one
+.\wsl.ps1               # list all available commands
 ```
 
-Running it bare prints the list of commands; an unknown one is refused, with
-that same list as the answer.
+```text
+WSL DataScience template
 
-Two rules run through all of them:
-
-- **No command takes an instance name.** They list what exists, numbered, and
-  you pick — `0` cancels, and so does an empty answer. A name is never typed
-  from memory.
-- **No command touches a distribution that is not one of ours** — see below,
-  which is the one thing worth reading before the rest.
+  list         show the instances of this template, and the archives
+  build        build an instance from the image (Docker, then WSL)
+  adopt        mark an existing instance as one of this template's
+  start        start a stopped instance
+  stop         stop a running instance
+  shell        open a shell in one of our instances
+  unregister   remove an instance, and what it left on Windows
+  archive      write an instance to a named archive
+  restore      rebuild an instance from an archive
+  duplicate    copy an instance under another name
+  shrink       reclaim the space an instance has freed
+```
 
 ## All commands
 
@@ -83,19 +87,16 @@ Archives in D:\WSL\archives (most recent first):
       ubuntu-template            28.8 MB  2026-09-23 16:50
 ```
 
-When there is one, it also reports a third thing: **folders left behind by an
-instance that is gone.**
+### Folders left behind by an unregistered instance
 
-Removing an instance happens in two steps — Windows forgets the distribution,
-then the folder and its multi-gigabyte disk are erased. The second step
-sometimes fails: a file in the disk is still held by something else, Docker
-Desktop or an Explorer window left open on it. Windows no longer knows the
-instance, but the folder is still there, marker included, taking up room.
+Removing an instance happens in two steps:
 
-Nothing else shows it. Every list starts from the Windows registry, and that
-instance is not in it any more; no command can remove it either, because they
-all act on registered instances. `list` says it exists, what it weighs, and
-that it is deleted by hand:
+- Windows forgets the distribution.
+- Then the folder and its multi-gigabyte disk are erased.
+
+The second step sometimes fails. Windows no longer knows the instance, but the folder is still there, marker included, taking up room.
+
+In that case `list` says it exists, what it weighs, and that it has to be deleted by hand:
 
 ```text
 Folders left behind by an instance that is gone:

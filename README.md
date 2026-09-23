@@ -54,15 +54,6 @@ Make sure Docker Desktop is running before you start.
    .\wsl.ps1 build -DistroName "ubuntu-ml-dev" -InstallPath "D:\WSL\ubuntu-ml-dev"
    ```
 
-3. **Launch your session:**
-
-   - Close Windows Terminal first — a freshly imported distro only appears in the profile list after a restart.
-   - Launch your environment by choosing your distro's profile in a new Windows Terminal or by typing the following command in a powershell:
-
-   ```powershell
-   wsl -d <DistroName>
-   ```
-
 ---
 
 ## Shell Environment (zsh)
