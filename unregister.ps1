@@ -74,7 +74,9 @@ function Get-VhdxSize {
 # comes back until the answer is one of the numbers - an empty answer cancels,
 # so a run with no console can never loop forever.
 function Select-Distro {
-    $All = Get-Distros
+    # Sorted by name: the registry order changes between runs, and a menu
+    # whose numbers move is a menu you cannot trust twice.
+    $All = Get-Distros | Sort-Object Name
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
@@ -196,21 +198,27 @@ $InstallPath = if ($Distro) { $Distro.BasePath }
                elseif (Test-Path "D:\") { "D:\WSL\$DistroName" }
                else { "$env:USERPROFILE\WSL\$DistroName" }
 
-$FolderRemoved = $false
+# Three outcomes, and they are not the same: an instance's folder that WSL
+# removed with the distribution itself is not a folder that was never there.
+$FolderState = "not found"
 if (Test-Path $InstallPath) {
     if ($Distro) {
         Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor Cyan
         Remove-Item -Recurse -Force $InstallPath
-        $FolderRemoved = $true
+        $FolderState = "removed"
     } else {
-        $Reply = Read-Host "==> Folder '$InstallPath' exists but no distro '$DistroName' is registered. Delete it anyway? [y/N]"
+        $Reply = [string](Read-Host "==> Folder '$InstallPath' exists but no distro '$DistroName' is registered. Delete it anyway? [y/N]")
         if ($Reply -match '^[yY]') {
             Remove-Item -Recurse -Force $InstallPath
-            $FolderRemoved = $true
+            $FolderState = "removed"
         } else {
             Write-Host "    Folder kept." -ForegroundColor Yellow
+            $FolderState = "kept"
         }
     }
+} elseif ($Distro) {
+    Write-Host "==> Installation folder already gone - wsl --unregister removes it with the distribution ($InstallPath)." -ForegroundColor Cyan
+    $FolderState = "removed with the distribution"
 } else {
     Write-Host "==> No installation folder found ($InstallPath)." -ForegroundColor Cyan
 }
@@ -325,12 +333,12 @@ Write-Host "============================================================" -Foreg
 Write-Host ""
 Write-Host "  * Distro          : " -NoNewline; Write-Host "$DistroName" -ForegroundColor Cyan
 Write-Host "  * Install folder  : " -NoNewline
-if ($FolderRemoved) {
-    Write-Host "removed" -ForegroundColor Green
-} elseif (Test-Path $InstallPath) {
-    Write-Host "kept" -ForegroundColor Yellow
+if ($FolderState -eq "removed") {
+    Write-Host "$FolderState" -ForegroundColor Green
+} elseif ($FolderState -eq "kept") {
+    Write-Host "$FolderState" -ForegroundColor Yellow
 } else {
-    Write-Host "not found" -ForegroundColor DarkGray
+    Write-Host "$FolderState" -ForegroundColor DarkGray
 }
 Write-Host "  * Terminal ghosts : " -NoNewline; Write-Host "$GhostsPruned pruned" -ForegroundColor Cyan
 Write-Host "  * Fragments       : " -NoNewline; Write-Host "$FragmentsRemoved removed" -ForegroundColor Cyan

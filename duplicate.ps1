@@ -1,11 +1,11 @@
 [CmdletBinding()]
 param (
-    # No default on purpose: naming the instance to copy is the first act.
-    [Parameter(Mandatory = $true)]
+    # Optional: without it, the command lists the instances that exist and you
+    # pick one. Naming it by heart is a name you can get wrong.
     [string]$SourceDistro,
 
-    # The copy's name. Must be free: this script never unregisters anything.
-    [Parameter(Mandatory = $true)]
+    # The copy's name, asked for if it was not given. It must be free: this
+    # script never unregisters anything.
     [string]$NewDistroName
 )
 
@@ -64,21 +64,100 @@ function Format-Size {
     return ("{0:N0} KB" -f ($Bytes / 1KB))
 }
 
-# 0. The new name has to look like a name, and be free
+function Get-VhdxSize {
+    param([string]$Folder)
+    $Vhdx = Join-Path $Folder "ext4.vhdx"
+    if (Test-Path $Vhdx) { return (Get-Item $Vhdx).Length }
+    return 0
+}
+
+# The choice every command in this family offers: the instances that exist,
+# numbered, with what is worth knowing about each, and a way out. The question
+# comes back until the answer is one of the numbers - an empty answer cancels,
+# so a run with no console can never loop forever.
+function Select-Distro {
+    # Sorted by name: the registry order changes between runs, and a menu
+    # whose numbers move is a menu you cannot trust twice.
+    $All = Get-Distros | Sort-Object Name
+    if ($All.Count -eq 0) {
+        Write-Host ""
+        Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+        Write-Host "        Build one with  .\build.ps1" -ForegroundColor Yellow
+        exit 1
+    }
+
+    $Running = Get-DistroNames -Running
+
+    Write-Host ""
+    Write-Host "Instances registered on this machine:" -ForegroundColor Cyan
+    for ($Index = 0; $Index -lt $All.Count; $Index++) {
+        $Entry = $All[$Index]
+        $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
+        Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}" -f ($Index + 1), $Entry.Name, $State,
+            (Format-Size (Get-VhdxSize $Entry.BasePath)))
+    }
+    Write-Host "   0.  Cancel"
+
+    while ($true) {
+        $Answer = [string](Read-Host "Which one? (0 to cancel)")
+        if ([string]::IsNullOrWhiteSpace($Answer)) {
+            Write-Host ""
+            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+            exit 0
+        }
+        $Number = 0
+        if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
+            if ($Number -eq 0) {
+                Write-Host ""
+                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+                exit 0
+            }
+            if ($Number -ge 1 -and $Number -le $All.Count) {
+                return $All[$Number - 1]
+            }
+        }
+        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
+    }
+}
+
+# 0. Which instance to copy: named on the command line, or picked from the list
+$AllDistros = Get-Distros
+
+if ($SourceDistro) {
+    $Source = $AllDistros | Where-Object { $_.Name -eq $SourceDistro } | Select-Object -First 1
+    if (-not $Source) {
+        Write-Host ""
+        Write-Host "[ABORT] No registered distro named '$SourceDistro'." -ForegroundColor Red
+        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+        exit 1
+    }
+} else {
+    $Source = Select-Distro
+    $SourceDistro = $Source.Name
+}
+
+# 0-bis. The copy's name. Typed, because there is nothing to pick from - it
+# does not exist yet - and it has to be usable and free.
+if (-not $NewDistroName) {
+    while ($true) {
+        $Answer = [string](Read-Host "Name of the copy")
+        if ([string]::IsNullOrWhiteSpace($Answer)) {
+            Write-Host ""
+            Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
+            exit 0
+        }
+        if ($Answer.Trim() -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
+            $NewDistroName = $Answer.Trim()
+            break
+        }
+        Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor Yellow
+    }
+}
+
 if ($NewDistroName -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
     Write-Host ""
     Write-Host "[ABORT] '$NewDistroName' is not usable as an instance name" -ForegroundColor Red
     Write-Host "        (letters, digits, '.', '_' and '-' only)." -ForegroundColor Yellow
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-    exit 1
-}
-
-$AllDistros = Get-Distros
-
-$Source = $AllDistros | Where-Object { $_.Name -eq $SourceDistro } | Select-Object -First 1
-if (-not $Source) {
-    Write-Host ""
-    Write-Host "[ABORT] No registered distro named '$SourceDistro'." -ForegroundColor Red
     Write-Host "        Nothing was modified." -ForegroundColor DarkGray
     exit 1
 }
@@ -88,7 +167,7 @@ if (-not $Source) {
 if ($AllDistros | Where-Object { $_.Name -eq $NewDistroName }) {
     Write-Host ""
     Write-Host "[ABORT] An instance named '$NewDistroName' already exists." -ForegroundColor Red
-    Write-Host "        Pick another -NewDistroName." -ForegroundColor Yellow
+    Write-Host "        Pick another name." -ForegroundColor Yellow
     Write-Host "        Nothing was modified." -ForegroundColor DarkGray
     exit 1
 }

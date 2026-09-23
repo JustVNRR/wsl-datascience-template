@@ -86,7 +86,9 @@ function Get-Distros {
 # comes back until the answer is one of the numbers - an empty answer cancels,
 # so a run with no console can never loop forever.
 function Select-Distro {
-    $All = Get-Distros
+    # Sorted by name: the registry order changes between runs, and a menu
+    # whose numbers move is a menu you cannot trust twice.
+    $All = Get-Distros | Sort-Object Name
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
