@@ -70,6 +70,28 @@ if ($Distro) {
         exit 0
     }
 
+    # What is about to be destroyed is worth a copy, and this is the last
+    # moment to take one. archive.ps1 writes it to <Root>\archives, asks to
+    # stop the instance if it is still running, and leaves it stopped.
+    Write-Host ""
+    $ArchiveIt = [string](Read-Host "Archive it before deleting? [y/N]")
+    if ($ArchiveIt -match "^[yY]") {
+        $ArchiveScript = Join-Path $PSScriptRoot "archive.ps1"
+        if (-not (Test-Path $ArchiveScript)) {
+            Write-Host ""
+            Write-Host "[ABORT] archive.ps1 is not next to this script - not deleting anything." -ForegroundColor Red
+            Write-Host "        The instance is untouched." -ForegroundColor DarkGray
+            exit 1
+        }
+        & $ArchiveScript -DistroName $DistroName -Name $DistroName -AfterExport Leave
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ""
+            Write-Host "[ABORT] The archive did not complete - not deleting anything." -ForegroundColor Red
+            Write-Host "        The instance is untouched." -ForegroundColor DarkGray
+            exit 1
+        }
+    }
+
     Write-Host "==> Unregistering the distro..." -ForegroundColor Cyan
     Invoke-External { wsl.exe --unregister $DistroName } "WSL unregister failed."
 }
