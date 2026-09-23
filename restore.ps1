@@ -60,29 +60,31 @@ for ($i = 0; $i -lt $Archives.Count; $i++) {
     Write-Host ("  {0,2}.  {1}  -  {2}, {3}" -f ($i + 1), $Entry.Name,
         (Format-Size $Entry.Length), $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm"))
 }
+Write-Host "   0.  Cancel"
 
 # 2. Pick one by number. An empty answer cancels, as everywhere else in this
 # repository; a wrong number asks again, but not forever.
 $Chosen = $null
-$Attempts = 0
 while (-not $Chosen) {
-    $Answer = [string](Read-Host "Which archive? (1-$($Archives.Count), Enter to cancel)")
+    $Answer = [string](Read-Host "Which archive? (1-$($Archives.Count), 0 to cancel)")
     if ([string]::IsNullOrWhiteSpace($Answer)) {
         Write-Host ""
         Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
         exit 0
     }
     $Number = 0
-    if ([int]::TryParse($Answer.Trim(), [ref]$Number) -and $Number -ge 1 -and $Number -le $Archives.Count) {
-        $Chosen = $Archives[$Number - 1]
-    } else {
-        $Attempts++
-        Write-Host "  '$Answer' is not one of the choices." -ForegroundColor Yellow
-        if ($Attempts -ge 5) {
+    if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
+        if ($Number -eq 0) {
             Write-Host ""
-            Write-Host "[ABORT] Five answers, none of them a choice. Nothing was created." -ForegroundColor Red
-            exit 1
+            Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
+            exit 0
         }
+        if ($Number -ge 1 -and $Number -le $Archives.Count) {
+            $Chosen = $Archives[$Number - 1]
+        }
+    }
+    if (-not $Chosen) {
+        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
     }
 }
 

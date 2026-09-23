@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param (
-    # No default on purpose. A script that destroys a distribution must not
-    # pick its own target: naming it is the first deliberate act of the removal.
-    [Parameter(Mandatory = $true)]
+    # Optional. Without it, the command lists the instances that exist and you
+    # pick one. It still never chooses its own target, and the removal still
+    # asks for the name to be typed before anything happens.
     [string]$DistroName
 )
 
@@ -17,24 +17,117 @@ function Invoke-External {
     }
 }
 
-# ==============================================================================
-# 1. LOCATE THE DISTRO IN THE REGISTRY (name, uuid, real install folder)
-# ==============================================================================
-$Distro = $null
-foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-    $Props = Get-ItemProperty $Key.PSPath
-    if ($Props.DistributionName -eq $DistroName) {
-        $Distro = [PSCustomObject]@{
-            Uuid     = $Key.PSChildName
-            BasePath = ($Props.BasePath -replace '^\\\\\?\\', '')
+# Reading what wsl.exe prints while it may write on its error stream: under
+# $ErrorActionPreference = "Stop" a redirection turns that stderr into a
+# TERMINATING error. "Continue" for the call, then put it back - the same
+# guard build.ps1 uses around `docker info` and `wsl --unregister`.
+function Get-DistroNames {
+    param([switch]$Running)
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $WslArgs = @("--list", "--quiet")
+    if ($Running) { $WslArgs += "--running" }
+    $Names = (wsl.exe @WslArgs 2>$null) |
+        ForEach-Object { ($_ -replace "`0", "").Trim() } |
+        Where-Object { $_ }
+    $ErrorActionPreference = $PreviousEAP
+    return @($Names)
+}
+
+# Every registered instance, with its folder and its WSL version (1 or 2)
+function Get-Distros {
+    $Found = @()
+    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
+        $Props = Get-ItemProperty $Key.PSPath
+        if ($Props.DistributionName) {
+            $Found += [PSCustomObject]@{
+                Name     = $Props.DistributionName
+                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
+                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+            }
         }
-        break
+    }
+    return @($Found)
+}
+
+function Get-Distro {
+    param([string]$Name)
+    return (Get-Distros | Where-Object { $_.Name -eq $Name } | Select-Object -First 1)
+}
+
+function Format-Size {
+    param([double]$Bytes)
+    if ($Bytes -ge 1GB) { return ("{0:N1} GB" -f ($Bytes / 1GB)) }
+    if ($Bytes -ge 1MB) { return ("{0:N1} MB" -f ($Bytes / 1MB)) }
+    return ("{0:N0} KB" -f ($Bytes / 1KB))
+}
+
+function Get-VhdxSize {
+    param([string]$Folder)
+    $Vhdx = Join-Path $Folder "ext4.vhdx"
+    if (Test-Path $Vhdx) { return (Get-Item $Vhdx).Length }
+    return 0
+}
+
+# The choice every command in this family offers: the instances that exist,
+# numbered, with what is worth knowing about each, and a way out. The question
+# comes back until the answer is one of the numbers - an empty answer cancels,
+# so a run with no console can never loop forever.
+function Select-Distro {
+    $All = Get-Distros
+    if ($All.Count -eq 0) {
+        Write-Host ""
+        Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+        Write-Host "        Build one with  .\build.ps1" -ForegroundColor Yellow
+        exit 1
+    }
+
+    $Running = Get-DistroNames -Running
+
+    Write-Host ""
+    Write-Host "Instances registered on this machine:" -ForegroundColor Cyan
+    for ($Index = 0; $Index -lt $All.Count; $Index++) {
+        $Entry = $All[$Index]
+        $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
+        Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}" -f ($Index + 1), $Entry.Name, $State,
+            (Format-Size (Get-VhdxSize $Entry.BasePath)))
+    }
+    Write-Host "   0.  Cancel"
+
+    while ($true) {
+        $Answer = [string](Read-Host "Which one? (0 to cancel)")
+        if ([string]::IsNullOrWhiteSpace($Answer)) {
+            Write-Host ""
+            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+            exit 0
+        }
+        $Number = 0
+        if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
+            if ($Number -eq 0) {
+                Write-Host ""
+                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+                exit 0
+            }
+            if ($Number -ge 1 -and $Number -le $All.Count) {
+                return $All[$Number - 1]
+            }
+        }
+        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
     }
 }
 
-if (-not $Distro) {
-    Write-Host "No registered distro named '$DistroName' - cleaning up leftovers only." -ForegroundColor Yellow
-    Write-Host ""
+# ==============================================================================
+# 1. WHICH DISTRO (named on the command line, or picked from the list)
+# ==============================================================================
+if ($DistroName) {
+    $Distro = Get-Distro $DistroName
+    if (-not $Distro) {
+        Write-Host "No registered distro named '$DistroName' - cleaning up leftovers only." -ForegroundColor Yellow
+        Write-Host ""
+    }
+} else {
+    $Distro = Select-Distro
+    $DistroName = $Distro.Name
 }
 
 # ==============================================================================

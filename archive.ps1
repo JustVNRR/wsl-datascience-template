@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param (
-    # No default on purpose: naming the instance is the first deliberate act.
-    [Parameter(Mandatory = $true)]
+    # Optional: without it, the command lists the instances that exist and you
+    # pick one. Naming it by heart is a name you can get wrong.
     [string]$DistroName,
 
     [ValidateSet("tar", "tar.gz", "tar.xz")]
@@ -76,13 +76,88 @@ function Format-Size {
     return ("{0:N0} KB" -f ($Bytes / 1KB))
 }
 
-# 1. The instance must exist, and its disk is what we are about to read
-$Distro = Get-Distro $DistroName
-if (-not $Distro) {
+function Get-VhdxSize {
+    param([string]$Folder)
+    $Vhdx = Join-Path $Folder "ext4.vhdx"
+    if (Test-Path $Vhdx) { return (Get-Item $Vhdx).Length }
+    return 0
+}
+
+# Every registered instance, with its folder and its WSL version (1 or 2)
+function Get-Distros {
+    $Found = @()
+    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
+        $Props = Get-ItemProperty $Key.PSPath
+        if ($Props.DistributionName) {
+            $Found += [PSCustomObject]@{
+                Name     = $Props.DistributionName
+                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
+                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+            }
+        }
+    }
+    return @($Found)
+}
+
+# The choice every command in this family offers: the instances that exist,
+# numbered, with what is worth knowing about each, and a way out. The question
+# comes back until the answer is one of the numbers - an empty answer cancels,
+# so a run with no console can never loop forever.
+function Select-Distro {
+    $All = Get-Distros
+    if ($All.Count -eq 0) {
+        Write-Host ""
+        Write-Host "[ABORT] No WSL instance is registered on this machine." -ForegroundColor Red
+        Write-Host "        Build one with  .\build.ps1" -ForegroundColor Yellow
+        exit 1
+    }
+
+    $Running = Get-DistroNames -Running
+
     Write-Host ""
-    Write-Host "[ABORT] No registered distro named '$DistroName'." -ForegroundColor Red
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-    exit 1
+    Write-Host "Instances registered on this machine:" -ForegroundColor Cyan
+    for ($Index = 0; $Index -lt $All.Count; $Index++) {
+        $Entry = $All[$Index]
+        $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
+        Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}" -f ($Index + 1), $Entry.Name, $State,
+            (Format-Size (Get-VhdxSize $Entry.BasePath)))
+    }
+    Write-Host "   0.  Cancel"
+
+    while ($true) {
+        $Answer = [string](Read-Host "Which one? (0 to cancel)")
+        if ([string]::IsNullOrWhiteSpace($Answer)) {
+            Write-Host ""
+            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+            exit 0
+        }
+        $Number = 0
+        if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
+            if ($Number -eq 0) {
+                Write-Host ""
+                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+                exit 0
+            }
+            if ($Number -ge 1 -and $Number -le $All.Count) {
+                return $All[$Number - 1]
+            }
+        }
+        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
+    }
+}
+
+# 1. Which instance. Named on the command line, or picked from the list.
+if ($DistroName) {
+    $Distro = Get-Distro $DistroName
+    if (-not $Distro) {
+        Write-Host ""
+        Write-Host "[ABORT] No registered distro named '$DistroName'." -ForegroundColor Red
+        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+        exit 1
+    }
+} else {
+    $Distro = Select-Distro
+    $DistroName = $Distro.Name
 }
 
 $VhdxPath = Join-Path $Distro.BasePath "ext4.vhdx"
