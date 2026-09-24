@@ -302,6 +302,39 @@ if ($Code -ne 0) {
     exit $Code
 }
 
+# 6. What the pack left on the system side. Its remove.sh took back what it had
+# named; what stays is what arrived as a DEPENDENCY - nobody's to name, and
+# heavy: the vision pack leaves 203 packages and 462 MB behind. apt knows which
+# of them nothing installed depends on any more, but it will not touch them
+# unless asked, and it cannot see a program living outside its own graph (a
+# venv, a tool under /usr/local). scripts\cleanup_orphans.sh asks both
+# questions and only then removes - the script travels into the instance the
+# same way a pack does, because a bash script handed over as text loses its
+# quotes on the way through wsl.exe.
+$Cleanup = Join-Path $PSScriptRoot "cleanup_orphans.sh"
+$CleanupCode = 0
+if (Test-Path $Cleanup) {
+    $RemoteScript = "/tmp/cleanup_orphans.sh"
+    Invoke-InInstance -DistroName $DistroName -Command @("cp", "cleanup_orphans.sh", $RemoteScript) `
+        -WorkingDirectory $PSScriptRoot -ExitCode ([ref]$Code) -Quiet
+
+    if ($Code -eq 0) {
+        Write-Host ""
+        Write-Host "==> Taking back what '$PackName' left on the system side..." -ForegroundColor Cyan
+        Write-Host "    Its remove.sh named what it installed; what remains is what came in" -ForegroundColor DarkGray
+        Write-Host "    as a dependency. Nothing goes that apt - or a program outside apt -" -ForegroundColor DarkGray
+        Write-Host "    still needs." -ForegroundColor DarkGray
+        Invoke-InInstance -DistroName $DistroName -Command @("bash", $RemoteScript) -ExitCode ([ref]$CleanupCode)
+        Invoke-InInstance -DistroName $DistroName -Command @("rm", "-f", $RemoteScript) -ExitCode ([ref]$Code) -Quiet
+        if ($CleanupCode -ne 0) {
+            # The pack is out either way; this is the tidy-up, not the removal.
+            Write-Host ""
+            Write-Host "[WARN] The cleanup stopped early (exit code $CleanupCode)." -ForegroundColor Yellow
+            Write-Host "       '$PackName' is gone, but some of its dependencies may remain." -ForegroundColor Yellow
+        }
+    }
+}
+
 Write-Host ""
 Write-Host "==> '$PackName' is gone from '$DistroName'." -ForegroundColor Green
 Write-Host "    Open a shell in it: the gmake menu no longer offers its commands." -ForegroundColor DarkGray

@@ -53,9 +53,12 @@ when a given binary was on the PATH — had to go: it made a pack's commands
 appear or disappear for a reason that was not the pack's presence.
 
 Removing is the same story from the other end: `.\wsl.ps1 remove_pack` runs the
-pack's own `remove.sh` first, then deletes the folder. What the install wrote to
-the system leaves with it; what it wrote in your files — a login, a `.env` you
-filled in — stays, because it is yours and not the pack's.
+pack's own `remove.sh` first, then deletes the folder, then takes back the
+dependencies that came in with the pack and that no `remove.sh` ever named —
+they are the bulk of the weight (the vision pack leaves 203 packages and
+462 MB behind). What the install wrote in your files — a login, a `.env` you
+filled in — stays, because it is yours and not the pack's. The rule that
+decides what may go is in [Instance commands](wsl/commands.md#remove_pack).
 
 Both commands are documented in
 [Instance commands](wsl/commands.md#add_pack).
@@ -76,10 +79,12 @@ and the last pack to want it takes it away with it.
 
 Two things a `remove.sh` never does:
 
-- **`autoremove`.** apt removes the package it is given and leaves its
-  dependencies alone — measured: taking `tesseract-ocr` away leaves
-  `libtesseract5` behind. `autoremove` would take everything that no longer
-  looks wanted, which is a judgement call apt cannot make about our packs.
+- **`autoremove` from inside a `remove.sh`.** apt removes the package it is
+  given and leaves its dependencies alone — measured: taking `tesseract-ocr`
+  away leaves `libtesseract5` behind. Those dependencies are taken back, but by
+  `remove_pack`, not by the pack: "does anything still need this?" is a question
+  about the whole instance — apt for what apt installed, `ldd` for the programs
+  living outside its graph — and a pack cannot see the instance it lands in.
 - **Remove a library.** apt *does* take the programs that depend on it along
   when a library goes (measured, and it says so before doing it). A pack names
   programs.
