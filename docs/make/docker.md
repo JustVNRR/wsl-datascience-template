@@ -22,7 +22,8 @@ when that CLI is installed.
 
 | Variable | Required by | Example |
 |---|---|---|
-| `GAR_IMAGE` | all Docker targets | `my-api` |
+| `DOCKER_LOCAL_IMAGE` | local Docker target | `my-api` |
+| `GAR_IMAGE` | GCP Docker target | `my-api` |
 | `DOCKER_BASE_IMAGE` | both build targets | `python:3.10.6-slim` |
 | `PACKAGE_NAME` | both build targets | `my-package` |
 
