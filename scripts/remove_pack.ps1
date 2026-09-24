@@ -184,6 +184,11 @@ function Select-Distro {
 # packs\ in this checkout: a pack installed by an older copy of the repository,
 # or one this repository no longer carries, is still removable - its remove.sh
 # travelled with it.
+#
+# Wrap the call in @(): PowerShell unrolls a one-element list into its element,
+# and the caller then holds a string - where [0] is its first LETTER, not the
+# pack. Cost of finding out the other way: a menu that offers 'g', and a
+# deletion aimed at a folder of that name.
 function Get-InstalledPacks {
     param([string]$DistroName, [string]$PacksDirectory)
     return Get-InInstanceOutput -DistroName $DistroName -Command @("ls", "-1", $PacksDirectory)
@@ -207,7 +212,7 @@ if (-not $InstanceHome) {
 $PacksDirectory = "$InstanceHome/.config/packs"
 
 # 2. Which pack
-$Installed = Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory
+$Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 if ($Installed.Count -eq 0) {
     Write-Host ""
     Write-Host "[OK] '$DistroName' carries no pack - there is nothing to remove." -ForegroundColor Green

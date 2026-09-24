@@ -218,6 +218,11 @@ function Get-AvailablePacks {
 # Which packs an instance already has. The folder IS the state: the gmake
 # Makefile reads ~/.config/packs/*/ to decide what to load, so a folder that is
 # there is an installed pack, and one that is not is not.
+#
+# Wrap the call in @(): PowerShell unrolls a one-element list into its element,
+# and the caller then holds a string - where [0] is its first LETTER, not the
+# pack. Cost of finding out the other way: a menu that offers 'g', and a
+# deletion aimed at a folder of that name.
 function Get-InstalledPacks {
     param([string]$DistroName, [string]$PacksDirectory)
     return Get-InInstanceOutput -DistroName $DistroName -Command @("ls", "-1", $PacksDirectory)
@@ -251,7 +256,7 @@ if ($Available.Count -eq 0) {
     exit 1
 }
 
-$Installed = Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory
+$Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 $Candidates = @($Available | Where-Object { $Installed -notcontains $_.Name })
 
 if ($Candidates.Count -eq 0) {
