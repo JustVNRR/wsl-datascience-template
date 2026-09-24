@@ -101,6 +101,10 @@ it grows, and a pack leaves with its folder:
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
+| `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
+
+The `vision` pack is the one that brings no target at all: it installs ffmpeg,
+ImageMagick and Tesseract, and their commands go to the cheatsheet picker.
 
 What a pack is, what it must contain, and how to add one:
 [`docs/packs.md`](docs/packs.md). One reaches an instance with
