@@ -301,32 +301,27 @@ while (-not $Pack) {
 $PackName = $Pack.Name
 $Target = "$PacksDirectory/$PackName"
 
-# 3. The pack's folder, copied into the instance. It comes from this checkout -
-# the same files the image used to carry - and the instance's own `wslpath` does
-# the translation: where the Windows drives are mounted is its business, not
-# ours.
-$WslPackPath = (Get-InInstanceOutput -DistroName $DistroName -Command @("wslpath", "-a", $Pack.Path) | Select-Object -First 1)
-if (-not $WslPackPath) {
-    Write-Host ""
-    Write-Host "[ABORT] '$DistroName' could not translate $($Pack.Path) into a path of its own." -ForegroundColor Red
-    Write-Host "        Is the drive this checkout lives on mounted in there?" -ForegroundColor Yellow
-    exit 1
-}
-
+# 3. The pack's folder, copied into the instance: the same files the image used
+# to carry. It is copied from inside - the pack's own folder becomes the working
+# directory, which wsl.exe knows how to do with a Windows path (`--cd`), and `.`
+# is then all there is to name. No path is translated here on purpose: the
+# obvious candidate is `wslpath`, which the instance does not carry at all (the
+# Ubuntu base image has no wslu, and nothing installs it).
 Write-Host ""
 Write-Host "==> Installing '$PackName' in '$DistroName'..." -ForegroundColor Cyan
 Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor DarkGray
 
 $Code = 0
-Invoke-InInstance -DistroName $DistroName -Command @("mkdir", "-p", $PacksDirectory) -ExitCode ([ref]$Code) -Quiet
+Invoke-InInstance -DistroName $DistroName -Command @("mkdir", "-p", $Target) -ExitCode ([ref]$Code) -Quiet
 if ($Code -ne 0) {
-    Write-Host "[ABORT] Could not create $PacksDirectory in '$DistroName' (exit code $Code)." -ForegroundColor Red
+    Write-Host "[ABORT] Could not create $Target in '$DistroName' (exit code $Code)." -ForegroundColor Red
     exit $Code
 }
 
-Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", $WslPackPath, "$PacksDirectory/") -ExitCode ([ref]$Code)
+Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", ".", "$Target/") -WorkingDirectory $Pack.Path -ExitCode ([ref]$Code)
 if ($Code -ne 0) {
     Write-Host "[ABORT] Could not copy the pack's files into '$DistroName' (exit code $Code)." -ForegroundColor Red
+    Write-Host "        The message above is the instance's own answer." -ForegroundColor Yellow
     exit $Code
 }
 
