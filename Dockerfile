@@ -84,11 +84,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     libffi-dev \
     libssl-dev \
-    # Computer Vision & OCR dependencies
-    ffmpeg \
-    imagemagick \
-    tesseract-ocr \
-    libtesseract-dev \
+    # No ffmpeg, ImageMagick or Tesseract here: they are the `vision` pack's,
+    # and they arrive on the instance that asks for them, with
+    # `.\wsl.ps1 add_pack`. What this image carries is what every project needs.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

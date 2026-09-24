@@ -10,7 +10,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Minimal setup** — the build asks for your username and password; Ubuntu then asks for your region and city.
 - **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls` and `cat` ([shell environment](#shell-environment-zsh)).
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
-- **Data Science ready** — `uv` for Python, the C build toolchain needed to compile most wheels, and CV/OCR tooling preinstalled.
+- **Data Science ready** — `uv` for Python and the C build toolchain needed to compile most wheels. Vision and OCR tooling comes with the `vision` pack.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
 - **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests. The Google Cloud ones appear once their CLI is installed ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
 
@@ -101,6 +101,10 @@ it grows, and a pack leaves with its folder:
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
+| `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
+
+The `vision` pack is the one that brings no target at all: it installs ffmpeg,
+ImageMagick and Tesseract, and their commands go to the cheatsheet picker.
 
 What a pack is, what it must contain, and how to add one:
 [`docs/packs.md`](docs/packs.md). One reaches an instance with
@@ -125,6 +129,7 @@ What a pack is, what it must contain, and how to add one:
 | Category | Tools |
 | :--- | :--- |
 | Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Vision & OCR | [Vision & OCR](packs/vision/docs/vision.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 
 ### Python & Data Science
 
@@ -132,7 +137,6 @@ What a pack is, what it must contain, and how to add one:
 | :--- | :--- |
 | Package manager | `uv` (Astral's fast Python package manager) |
 | Build libraries | `build-essential`, `python3-dev`, `libffi-dev`, `libssl-dev` |
-| Computer Vision & OCR | `ffmpeg`, `imagemagick`, `tesseract-ocr`, `libtesseract-dev` |
 
 ---
 
@@ -183,14 +187,20 @@ the repository at runtime.
 │   ├── wsl/                 # Instance administration: the commands, their options, examples
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── packs/                   # Optional tooling, one folder per pack
-│   └── gcp/                 # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
+│   ├── gcp/                 # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
+│   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
+│   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   ├── env.global.sample  # the pack's shared defaults (GCP_REGION, CLOUDRUN_MEMORY…)
+│   │   ├── env.project.sample # the pack's project variables (GCP_PROJECT, BUCKET_NAME…)
+│   │   ├── make/            # the pack's modules, loaded as soon as the folder is there
+│   │   ├── cheatsheets/     # the pack's fcheat sheets, each with its `# requires:` header
+│   │   └── docs/            # the pack's pages, onboarding walkthrough included
+│   └── vision/              # ffmpeg, ImageMagick, Tesseract: media and OCR tools
+│       ├── pack.conf        # what it installs, and the line `add_pack` shows
 │       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │       ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
-│       ├── env.global.sample  # the pack's shared defaults (GCP_REGION, CLOUDRUN_MEMORY…)
-│       ├── env.project.sample # the pack's project variables (GCP_PROJECT, BUCKET_NAME…)
-│       ├── make/            # the pack's modules, loaded as soon as the folder is there
-│       ├── cheatsheets/     # the pack's fcheat sheets, each with its `# requires:` header
-│       └── docs/            # the pack's pages, onboarding walkthrough included
+│       ├── cheatsheets/     # their commands, in the fcheat picker
+│       └── docs/            # the pack's page
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
 │   └── *.ps1                # list, build, adopt, start, stop, shell, add_pack,
