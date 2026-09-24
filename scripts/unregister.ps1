@@ -1,12 +1,25 @@
 [CmdletBinding()]
-param (
-    # No default on purpose. A script that destroys a distribution must not
-    # pick its own target: naming it is the first deliberate act of the removal.
-    [Parameter(Mandatory = $true)]
-    [string]$DistroName
-)
+param ()
+
+# No parameter on purpose: the instance comes from the list, never from the
+# command line, and the removal still asks for the name to be typed before
+# anything happens. This script never chooses its own target.
 
 $ErrorActionPreference = "Stop"
+
+# Where the instances live, for the one case the list cannot serve.
+$Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
+
+# What the whole family shares: how to tell one of our instances from any other
+# registered one. A removal that cannot tell them apart is a removal aimed at
+# whatever the registry happens to hold.
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
 
 # Halts script execution if an external command (like wsl) fails
 function Invoke-External {
@@ -17,25 +30,132 @@ function Invoke-External {
     }
 }
 
-# ==============================================================================
-# 1. LOCATE THE DISTRO IN THE REGISTRY (name, uuid, real install folder)
-# ==============================================================================
-$Distro = $null
-foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-    $Props = Get-ItemProperty $Key.PSPath
-    if ($Props.DistributionName -eq $DistroName) {
-        $Distro = [PSCustomObject]@{
-            Uuid     = $Key.PSChildName
-            BasePath = ($Props.BasePath -replace '^\\\\\?\\', '')
+# Reading what wsl.exe prints while it may write on its error stream: under
+# $ErrorActionPreference = "Stop" a redirection turns that stderr into a
+# TERMINATING error. "Continue" for the call, then put it back - the same
+# guard build.ps1 uses around `docker info` and `wsl --unregister`.
+function Get-DistroNames {
+    param([switch]$Running)
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $WslArgs = @("--list", "--quiet")
+    if ($Running) { $WslArgs += "--running" }
+    $Names = (wsl.exe @WslArgs 2>$null) |
+        ForEach-Object { ($_ -replace "`0", "").Trim() } |
+        Where-Object { $_ }
+    $ErrorActionPreference = $PreviousEAP
+    return @($Names)
+}
+
+# Every registered instance, with its folder and its WSL version (1 or 2)
+function Get-Distros {
+    $Found = @()
+    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
+        $Props = Get-ItemProperty $Key.PSPath
+        if ($Props.DistributionName) {
+            $Found += [PSCustomObject]@{
+                Name     = $Props.DistributionName
+                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
+                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+            }
         }
-        break
+    }
+    return @($Found)
+}
+
+function Get-Distro {
+    param([string]$Name)
+    return (Get-Distros | Where-Object { $_.Name -eq $Name } | Select-Object -First 1)
+}
+
+function Format-Size {
+    param([double]$Bytes)
+    if ($Bytes -ge 1GB) { return ("{0:N1} GB" -f ($Bytes / 1GB)) }
+    if ($Bytes -ge 1MB) { return ("{0:N1} MB" -f ($Bytes / 1MB)) }
+    return ("{0:N0} KB" -f ($Bytes / 1KB))
+}
+
+function Get-VhdxSize {
+    param([string]$Folder)
+    $Vhdx = Join-Path $Folder "ext4.vhdx"
+    if (Test-Path $Vhdx) { return (Get-Item $Vhdx).Length }
+    return 0
+}
+
+# The choice every command in this family offers: the instances that exist,
+# numbered, with what is worth knowing about each, and a way out. The question
+# comes back until the answer is one of the numbers - an empty answer cancels,
+# so a run with no console can never loop forever.
+function Select-Distro {
+    # Sorted by name: the registry order changes between runs, and a menu whose
+    # numbers move is a menu you cannot trust twice. Filtered on the marker:
+    # the machine holds other distributions - Docker Desktop's, a colleague's -
+    # and none of them are ours to touch.
+    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
+    if ($All.Count -eq 0) {
+        Write-Host ""
+        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
+        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
+        Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
+        exit 1
+    }
+
+    $Running = Get-DistroNames -Running
+
+    Write-Host ""
+    Write-Host "Instances registered on this machine:" -ForegroundColor Cyan
+    for ($Index = 0; $Index -lt $All.Count; $Index++) {
+        $Entry = $All[$Index]
+        $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
+        Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}" -f ($Index + 1), $Entry.Name, $State,
+            (Format-Size (Get-VhdxSize $Entry.BasePath)))
+    }
+    Write-Host "   0.  Cancel"
+
+    while ($true) {
+        $Answer = [string](Read-Host "Which one? (0 to cancel)")
+        if ([string]::IsNullOrWhiteSpace($Answer)) {
+            Write-Host ""
+            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+            exit 0
+        }
+        $Number = 0
+        if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
+            if ($Number -eq 0) {
+                Write-Host ""
+                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+                exit 0
+            }
+            if ($Number -ge 1 -and $Number -le $All.Count) {
+                return $All[$Number - 1]
+            }
+        }
+        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
     }
 }
 
-if (-not $Distro) {
-    Write-Host "No registered distro named '$DistroName' - cleaning up leftovers only." -ForegroundColor Yellow
+# ==============================================================================
+# 1. WHICH DISTRO (from the list, always)
+# ==============================================================================
+# The list is the only way in. With nothing registered there is nothing to
+# remove - and a folder left behind by an earlier removal is deleted by hand,
+# not by naming it.
+$Ours = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath })
+if ($Ours.Count -eq 0) {
     Write-Host ""
+    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
+    Write-Host "        Nothing to remove." -ForegroundColor Yellow
+    Write-Host "        Build one with  .\wsl.ps1 build, or make an existing one ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
+    Write-Host "        (A folder left behind by an earlier removal is deleted by hand: $Root)" -ForegroundColor DarkGray
+    exit 1
 }
+
+$Distro = Select-Distro
+$DistroName = $Distro.Name
+
+# Taken before the removal, so that afterwards the two cases can be told apart
+$InstallPath = $Distro.BasePath
+$FolderExisted = Test-Path $InstallPath
 
 # ==============================================================================
 # 2. CONFIRMATION (destructive) - same style as build.ps1
@@ -70,6 +190,28 @@ if ($Distro) {
         exit 0
     }
 
+    # What is about to be destroyed is worth a copy, and this is the last
+    # moment to take one. archive.ps1 writes it to <Root>\archives, asks to
+    # stop the instance if it is still running, and leaves it stopped.
+    Write-Host ""
+    $ArchiveIt = [string](Read-Host "Archive it before deleting? [y/N]")
+    if ($ArchiveIt -match "^[yY]") {
+        $ArchiveScript = Join-Path $PSScriptRoot "archive.ps1"
+        if (-not (Test-Path $ArchiveScript)) {
+            Write-Host ""
+            Write-Host "[ABORT] archive.ps1 is not next to this script - not deleting anything." -ForegroundColor Red
+            Write-Host "        The instance is untouched." -ForegroundColor DarkGray
+            exit 1
+        }
+        & $ArchiveScript -DistroName $DistroName -Name $DistroName -AfterExport Leave
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ""
+            Write-Host "[ABORT] The archive did not complete - not deleting anything." -ForegroundColor Red
+            Write-Host "        The instance is untouched." -ForegroundColor DarkGray
+            exit 1
+        }
+    }
+
     Write-Host "==> Unregistering the distro..." -ForegroundColor Cyan
     Invoke-External { wsl.exe --unregister $DistroName } "WSL unregister failed."
 }
@@ -77,27 +219,19 @@ if ($Distro) {
 # ==============================================================================
 # 3. INSTALLATION FOLDER (registry BasePath, or the default location)
 # ==============================================================================
-$InstallPath = if ($Distro) { $Distro.BasePath }
-               elseif (Test-Path "D:\") { "D:\WSL\$DistroName" }
-               else { "$env:USERPROFILE\WSL\$DistroName" }
-
-$FolderRemoved = $false
+# wsl --unregister removes the install folder with the distribution, so
+# anything left here is the exception. The cases are told apart: a folder WSL
+# removed with the distribution is not a folder that was never there.
 if (Test-Path $InstallPath) {
-    if ($Distro) {
-        Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor Cyan
-        Remove-Item -Recurse -Force $InstallPath
-        $FolderRemoved = $true
-    } else {
-        $Reply = Read-Host "==> Folder '$InstallPath' exists but no distro '$DistroName' is registered. Delete it anyway? [y/N]"
-        if ($Reply -match '^[yY]') {
-            Remove-Item -Recurse -Force $InstallPath
-            $FolderRemoved = $true
-        } else {
-            Write-Host "    Folder kept." -ForegroundColor Yellow
-        }
-    }
+    Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor Cyan
+    Remove-Item -Recurse -Force $InstallPath
+    $FolderState = "removed"
+} elseif ($FolderExisted) {
+    Write-Host "==> Installation folder already gone - wsl --unregister removes it with the distribution." -ForegroundColor Cyan
+    $FolderState = "removed with the distribution"
 } else {
     Write-Host "==> No installation folder found ($InstallPath)." -ForegroundColor Cyan
+    $FolderState = "not found"
 }
 
 # ==============================================================================
@@ -210,12 +344,12 @@ Write-Host "============================================================" -Foreg
 Write-Host ""
 Write-Host "  * Distro          : " -NoNewline; Write-Host "$DistroName" -ForegroundColor Cyan
 Write-Host "  * Install folder  : " -NoNewline
-if ($FolderRemoved) {
-    Write-Host "removed" -ForegroundColor Green
-} elseif (Test-Path $InstallPath) {
-    Write-Host "kept" -ForegroundColor Yellow
+if ($FolderState -eq "removed") {
+    Write-Host "$FolderState" -ForegroundColor Green
+} elseif ($FolderState -eq "kept") {
+    Write-Host "$FolderState" -ForegroundColor Yellow
 } else {
-    Write-Host "not found" -ForegroundColor DarkGray
+    Write-Host "$FolderState" -ForegroundColor DarkGray
 }
 Write-Host "  * Terminal ghosts : " -NoNewline; Write-Host "$GhostsPruned pruned" -ForegroundColor Cyan
 Write-Host "  * Fragments       : " -NoNewline; Write-Host "$FragmentsRemoved removed" -ForegroundColor Cyan

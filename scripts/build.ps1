@@ -1,23 +1,34 @@
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory = $false)]
-    [string]$DistroName = "ubuntu-datascience-build",
-
-    [Parameter(Mandatory = $false)]
-    [string]$InstallPath
+    # This command took -DistroName and -InstallPath until 2026-09-24. Both are
+    # gone: it asks for the name, then for the folder, and creates nothing
+    # outside that answer. What lands here is an old command line, kept only so
+    # the refusal below can say so - PowerShell's own binding error would name
+    # a parameter and explain nothing.
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [object[]]$Ignored
 )
 
-# Dynamically set the install path if not provided by the user
-if (-not $InstallPath) {
-    if (Test-Path "D:\") {
-        $InstallPath = "D:\WSL\$DistroName"
-    } else {
-        # Fallback to the C: drive in the user's profile
-        $InstallPath = "$env:USERPROFILE\WSL\$DistroName"
-    }
-}
-
 $ErrorActionPreference = "Stop"
+
+# What the whole family shares: how to tell one of our instances from any other
+# registered one. Not a command, and not optional - without it this script
+# would build an instance no other command could recognise as ours.
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
+
+if ($Ignored) {
+    Write-Host ""
+    Write-Host "[ABORT] This command takes no options any more: it asks for the name." -ForegroundColor Red
+    Write-Host "        Run it on its own:  .\wsl.ps1 build" -ForegroundColor Yellow
+    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    exit 1
+}
 
 # Halts script execution if an external command (like docker or wsl) fails
 function Invoke-External {
@@ -98,8 +109,9 @@ function Install-NerdFont {
     }
 }
 
-# Ensure script runs from its directory
-$RepoRoot = $PSScriptRoot
+# The repository root, one level above this script: it holds the Dockerfile,
+# and that is the context the build below must run in - not this folder.
+$RepoRoot = Split-Path -Path $PSScriptRoot -Parent
 Set-Location -Path $RepoRoot
 
 $ImageTag = "wsl-datascience-template:latest"
@@ -118,7 +130,6 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-Write-Host "==> 0. Checking Docker..." -ForegroundColor Cyan
 $PreviousEAP = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 $null = docker info *> $null
@@ -133,34 +144,108 @@ if ($DockerExitCode -ne 0) {
     exit 1
 }
 
-# 0-bis. Preflight: -InstallPath must be a folder of its own. The deletion in
-# step 4 is recursive, so a forgotten name - `-InstallPath "D:\WSL"` - would
-# take every distribution installed under it. Checked here, before the
-# confirmation below and before anything is created, like the Docker probe:
-# this must hold on a first build too, where no distro exists yet and the
-# banner never shows.
-$FullInstallPath = [System.IO.Path]::GetFullPath($InstallPath).TrimEnd('\')
+# 0-bis. What is being built, asked. The name and the folder come from two
+# questions, and both answers are checked here - before the banner below and
+# before anything is created. The checks hold on a first build too, where no
+# distro exists yet and the banner never shows.
+Write-Host ""
+Write-Host "==> Creating a new instance" -ForegroundColor Cyan
 
-if ($FullInstallPath -match '^[A-Za-z]:$') {
-    Write-Host ""
-    Write-Host "[ABORT] -InstallPath must name a folder, not a drive root: $InstallPath" -ForegroundColor Red
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-    exit 1
+$DistroName = $null
+while (-not $DistroName) {
+    $Answer = [string](Read-Host "Name of the instance (CTRL+C to abort)")
+    if ([string]::IsNullOrWhiteSpace($Answer)) {
+        Write-Host ""
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        exit 0
+    }
+    $Answer = $Answer.Trim()
+    if ($Answer -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
+        $DistroName = $Answer
+    } else {
+        Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor Yellow
+    }
 }
 
+# Where it will live. The proposal is the folder every command of this family
+# writes to, and it is shown and confirmed rather than typed: the common answer
+# is yes, and the folder question is there for the other case - a second drive,
+# or a folder of your own.
+$Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
+
+# What Windows already knows, read once: the checks below ask it two things -
+# whether this path is another instance's folder, and whether it is the folder
+# of the instance of that very name, which is the one case where the build is
+# allowed to erase what it finds there.
+$Registered = @()
 foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
     $Props = Get-ItemProperty $Key.PSPath
-    if ($Props.DistributionName -and $Props.DistributionName -ne $DistroName -and $Props.BasePath) {
-        $OtherPath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-        if ($OtherPath -eq $FullInstallPath -or $OtherPath.StartsWith("$FullInstallPath\", [System.StringComparison]::OrdinalIgnoreCase)) {
-            Write-Host ""
-            Write-Host "[ABORT] $InstallPath is, or contains, the install folder of '$($Props.DistributionName)'." -ForegroundColor Red
-            Write-Host "        Erasing it would take that distribution with it: $OtherPath" -ForegroundColor Yellow
-            Write-Host "        Give -InstallPath a folder of its own." -ForegroundColor Yellow
-            Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-            exit 1
+    if ($Props.DistributionName) {
+        $Registered += [PSCustomObject]@{
+            Name = $Props.DistributionName
+            Path = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
         }
     }
+}
+
+$Folder = $Root
+$InstallPath = $null
+while (-not $InstallPath) {
+    # A path Windows refuses is a typo, not a reason to stop: it is reported
+    # with the others rather than letting the exception end the run.
+    $Full = $null
+    try {
+        $Full = [System.IO.Path]::GetFullPath((Join-Path $Folder $DistroName)).TrimEnd('\')
+    } catch { }
+
+    # Nothing there but our own build: step 4 erases this path recursively, so
+    # a folder holding another instance would take that instance with it.
+    $Elsewhere = $null
+    if ($Full) {
+        $Elsewhere = $Registered | Where-Object {
+            $_.Name -ne $DistroName -and
+            ($_.Path -eq $Full -or $_.Path.StartsWith("$Full\", [System.StringComparison]::OrdinalIgnoreCase))
+        } | Select-Object -First 1
+    }
+
+    # Something is already there, and it is not this instance's folder: the
+    # rebuild is the only case where this folder is ours to erase, and it is
+    # the instance's own name that says so. Anything else is somebody's, and
+    # step 4 erases what it finds there.
+    $ItsOwn = $Registered | Where-Object { $_.Name -eq $DistroName -and $_.Path -eq $Full } | Select-Object -First 1
+    $Occupied = $false
+    if ($Full -and (Test-Path $Full) -and (-not $ItsOwn)) {
+        $Occupied = @(Get-ChildItem -Path $Full -Force -ErrorAction SilentlyContinue).Count -gt 0
+    }
+
+    if (-not $Full) {
+        Write-Host "  '$Folder' is not a usable path." -ForegroundColor Yellow
+    } elseif ($Elsewhere) {
+        Write-Host "  $Full is, or holds, the folder of '$($Elsewhere.Name)'." -ForegroundColor Yellow
+        Write-Host "  Erasing it would take that instance with it." -ForegroundColor Yellow
+    } elseif ($Occupied) {
+        Write-Host "  $Full already exists, please choose another location." -ForegroundColor Yellow
+    } else {
+        # Shown before it is created, and confirmed: the common answer is yes,
+        # and a no is a change of mind about the location, not about anything
+        # this script has done - nothing has been written yet.
+        $Answer = [string](Read-Host "Create [$Full]? [Y/n]")
+        if ($Answer -notmatch "^[nN]") {
+            $InstallPath = $Full
+            continue
+        }
+    }
+
+    # Another folder, then - asked the same way whether the path was refused or
+    # simply not wanted. An empty answer cancels, like every question that has
+    # nothing to propose.
+    $Answer = [string](Read-Host "Folder for '$DistroName' (or Enter to cancel)")
+    if ([string]::IsNullOrWhiteSpace($Answer)) {
+        Write-Host ""
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        exit 0
+    }
+    $Folder = $Answer.Trim()
 }
 
 # 1. Place temporary export tar next to InstallPath to prevent filling drive C:
@@ -236,6 +321,12 @@ try {
 
     Write-Host "==> 5. Importing into WSL ($DistroName)..." -ForegroundColor Cyan
     Invoke-External { wsl.exe --import $DistroName $InstallPath $TarPath --version 2 } "WSL import failed."
+
+    # Marked the moment it is registered, before the steps that can still fail:
+    # from here on the instance exists and is ours, and the other commands have
+    # to be able to see it - a build that stops at the font step leaves a real
+    # instance behind, not an invisible one.
+    New-InstanceMarker -Folder $InstallPath -By "build"
 
     Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor Cyan
     Invoke-External { wsl.exe -d $DistroName -u root /root/first_boot.sh } "The first_boot.sh configuration script failed."
@@ -483,7 +574,8 @@ if ($Deployed) {
     # I, where, and what now" instead of on an anonymous prompt. ~/projects
     # comes from /etc/skel, and fnew refuses to run from anywhere else.
     Clear-Host
-    Write-Host "Welcome, $ConfiguredUser - you are now logged in to your brand new '$DistroName' WSL instance." -ForegroundColor Green
+    Write-Host "Welcome, $ConfiguredUser." -ForegroundColor Green
+    Write-Host "You are now logged in to $DistroName." -ForegroundColor Green
     Write-Host "Run 'cd projects' and type 'fnew' to create your first project." -ForegroundColor Yellow
     Write-Host ""
     wsl.exe -d $DistroName --cd ~

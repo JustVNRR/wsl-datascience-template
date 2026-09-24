@@ -3,7 +3,7 @@
 A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
 - the Python stack,
-- the MLOps workflow — the Google Cloud CLI is one `gmake gcp_install` away.
+- the MLOps workflow with GCP (run `gmake gcp_install` first).
 
 ## Features
 
@@ -44,24 +44,12 @@ Make sure Docker Desktop is running before you start.
 
 2. **Build and register the instance:**
 
-   Default build (creates `ubuntu-datascience-build` installed at `D:\WSL\ubuntu-datascience-build`):
    ```powershell
-   .\build.ps1
+   .\wsl.ps1 build
    ```
 
-   Custom instance name and path:
-   ```powershell
-   .\build.ps1 -DistroName "ubuntu-ml-dev" -InstallPath "D:\WSL\ubuntu-ml-dev"
-   ```
-
-3. **Launch your session:**
-
-   - Close Windows Terminal first — a freshly imported distro only appears in the profile list after a restart.
-   - Launch your environment by choosing your distro's profile in a new Windows Terminal or by typing the following command in a powershell:
-
-   ```powershell
-   wsl -d <DistroName>
-   ```
+   It asks for the instance's name, then confirms where it will live —
+   `D:\WSL\<name>` by default. Ctrl+C aborts.
 
 ---
 
@@ -141,7 +129,7 @@ The gmake Makefile is split into one module per domain under `gmake/make/`, each
 
 Two distinct trees: the **repository** you clone and version, and the **distro**
 the build produces. The shell environment is the link between them — `zsh/` is a
-source directory that `build.ps1` copies into the image; nothing reads it from
+source directory that the build copies into the image; nothing reads it from
 the repository at runtime.
 
 ### The repository
@@ -187,15 +175,19 @@ the repository at runtime.
 ├── docs/
 │   ├── make/                # Per-module documentation for the gmake Makefile
 │   ├── optional_tooling/    # Onboarding for the tools the image does not ship
+│   ├── wsl/                 # Instance administration: the commands, their options, examples
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
+├── scripts/                 # Instance administration, one file per command
+│   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
+│   └── *.ps1                # list, build, adopt, start, stop, shell, unregister,
+│                            # archive, restore, duplicate, shrink
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml           # Static checks (shellcheck, zsh -n, make parse, doc drift)
 │       └── image.yml        # Rootfs image build (push/PR + weekly, catches upstream drift)
 ├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
 ├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
-├── build.ps1                # PowerShell build, export, safety checks, and import script
-├── unregister.ps1           # Counterpart removal: distro, install folder, Terminal leftovers
+├── wsl.ps1                  # The way in: one command at the root, the scripts in scripts\
 ├── .dockerignore            # Keeps the context lean, keeps .env.global out of the image
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
 ├── .gitignore               # Prevents committing build artifacts (*.tar, *.vhdx)
@@ -239,7 +231,7 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
 They check the **repository**, not a running distro — neither replaces a real
-`.\build.ps1` run.
+`.\wsl.ps1 build` run.
 
 The weekly run is the point of `image.yml`: it does not check your last edit, it
 catches **upstream drift** — a package that moved, a URL that changed — while the
@@ -250,24 +242,28 @@ changing one.
 
 ---
 
-## Maintenance & Removal
+## Instance Administration (wsl.ps1)
 
-To completely delete an instance and everything it left behind, use the build script's counterpart:
-```powershell
-.\unregister.ps1 -DistroName <DistroName>
-```
+Instances are listed, built, started, stopped, opened, copied, archived,
+restored, compacted and removed from `wsl.ps1`, at the root of the repository.
+The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to type.
 
-The distro's virtual disk is deleted, so **nothing inside it survives**, and a
-rebuild destroys the existing instance the same way. Check this list before
-either:
-
-| Kept inside the distro | Before you unregister or rebuild |
+| Command | What it does |
 | :--- | :--- |
-| `~/projects/` | Nothing backs it up — push your work to a remote first |
-| `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
-| `~/.config/gcloud/` | Both logins are redoable in minutes ([onboarding](docs/optional_tooling/gcp_onboarding.md)) |
-| `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake gcp_install`, then `gmake gcp_enable_global_env`, recreate the file to refill |
-| `~/.config/zsh/cheatsheets/templates.tsv` | Only for rows you added inside the distro: the file is redeployed from the repository at build time — move the line into `zsh/` to keep it |
+| [`.\wsl.ps1 list`](docs/wsl/commands.md#list) | show our instances, the archives, and what is left over |
+| [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image (Docker, then WSL) |
+| [`.\wsl.ps1 adopt`](docs/wsl/commands.md#adopt) | mark an instance that already exists as one of ours |
+| [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
+| [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
+| [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell in one of our instances |
+| [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance, and what it left on Windows |
+| [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
+| [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
+| [`.\wsl.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
+| [`.\wsl.ps1 shrink`](docs/wsl/commands.md#shrink) | reclaim the space an instance has freed |
+
+Each command, with its options, its examples and what it prints, is documented
+in [**Instance commands**](docs/wsl/commands.md).
 
 ---
 
