@@ -48,7 +48,7 @@ copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
 	@echo "🏗️  Scaffolding project with Copier..."
 	@copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
 	$(init_venv)
-	@echo "✅ Project $(PROJECT_NAME) ready!"
+	@echo "✅ Project ready in $(PROJECT_NAME)/"
 
 # Optional pinned template ref/tag: --vcs-ref for Copier, --checkout for Cruft
 COPIER_REF_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--vcs-ref $(PROJECT_TEMPLATE_VERSION),)
@@ -59,7 +59,7 @@ cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fn
 	@echo "🏗️  Scaffolding project with Cruft..."
 	@cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
 	$(init_venv)
-	@echo "✅ Project $(PROJECT_NAME) ready!"
+	@echo "✅ Project ready in $(PROJECT_NAME)/"
 
 # The `ccds` CLI (cookiecutter-data-science v2) wants its extra context as
 # key=value AFTER the template argument, and it asks before running the
@@ -73,4 +73,4 @@ ccds_project: ## Scaffold a project with CCDS v2 from ~/projects (fnew picker)
 	@echo "🏗️  Scaffolding project with ccds..."
 	@ccds --accept-hooks yes $(CHECKOUT_ARG) -o . $(PROJECT_TEMPLATE_REPO) project_name=$(PROJECT_NAME) repo_name=$(PROJECT_NAME)
 	$(init_venv)
-	@echo "✅ Project $(PROJECT_NAME) ready!"
+	@echo "✅ Project ready in $(PROJECT_NAME)/"
