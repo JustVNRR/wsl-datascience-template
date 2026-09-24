@@ -93,9 +93,10 @@ gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
 # package's.
 gcp_uninstall: ## Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gcloud logins)
 	$(call confirm_action, Uninstall the Google Cloud CLI (frees ~409 MB))
-	@sudo apt-get remove -y google-cloud-cli
 	@echo "➖ Removing the Google APT repository..."
-	@sudo rm -f /etc/apt/keyrings/cloud.google.gpg /etc/apt/sources.list.d/google-cloud-sdk.list
+	@sudo bash -c 'set -e; \
+		apt-get remove -y google-cloud-cli; \
+		rm -f /etc/apt/keyrings/cloud.google.gpg /etc/apt/sources.list.d/google-cloud-sdk.list'
 	@echo "✅ Google Cloud CLI removed."
 	@echo "   The Google Cloud commands have left the gmake menu."
 	@echo "   Your logins (~/.config/gcloud) were left alone - delete that directory to forget them."
