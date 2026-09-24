@@ -347,4 +347,8 @@ if ($InstallCode -ne 0) {
 Write-Host ""
 Write-Host "==> '$PackName' is installed in '$DistroName'." -ForegroundColor Green
 Write-Host "    Open a shell in it to use it:  .\wsl.ps1 shell" -ForegroundColor DarkGray
+# The pack's samples travelled with its folder, but nothing has merged them into
+# the user's own .env files - those are theirs, and no install writes into them.
+# Said here, once, because it is the one step an install leaves over.
+Write-Host "    Then, in there:  gmake env_global_enable   (adds the pack's variables)" -ForegroundColor DarkGray
 exit 0

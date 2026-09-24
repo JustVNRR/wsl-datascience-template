@@ -278,6 +278,11 @@ installation.
 Nothing has to be reopened afterwards: `gmake` reads the pack's files at every
 run, and `fcheat` re-reads its cheatsheets at every opening.
 
+One step is left for you, and the command names it at the end: `gmake
+env_global_enable`, inside the instance, merges the pack's environment samples
+into your `.env.global`. Nothing writes into that file on your behalf — it is
+yours, and so is the project's `.env`.
+
 If the installation fails, the pack's files are removed and the script says so.
 What the install had already put in place stays; running `add_pack` again picks
 up where it stopped.
