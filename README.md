@@ -49,7 +49,7 @@ Make sure Docker Desktop is running before you start.
    ```
 
    It asks for the instance's name, then for the folder that will hold its
-   disk — `D:\WSL\<name>` by default. Ctrl+C aborts at either question.
+   disk — `D:\WSL\<name>` by default. Ctrl+C aborts.
 
 ---
 

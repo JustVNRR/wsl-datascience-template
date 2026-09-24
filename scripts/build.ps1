@@ -130,7 +130,6 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-Write-Host "==> 0. Checking Docker..." -ForegroundColor Cyan
 $PreviousEAP = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 $null = docker info *> $null
@@ -151,11 +150,10 @@ if ($DockerExitCode -ne 0) {
 # distro exists yet and the banner never shows.
 Write-Host ""
 Write-Host "==> Creating a new instance" -ForegroundColor Cyan
-Write-Host "  Ctrl+C aborts at either question. Nothing is written before the build starts." -ForegroundColor DarkGray
 
 $DistroName = $null
 while (-not $DistroName) {
-    $Answer = [string](Read-Host "Name of the instance")
+    $Answer = [string](Read-Host "Name of the instance (CTRL+C to abort)")
     if ([string]::IsNullOrWhiteSpace($Answer)) {
         Write-Host ""
         Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
@@ -218,12 +216,12 @@ while (-not $InstallPath) {
 
     # Something is already there, and it is not this instance's folder: the
     # rebuild is the only case where this folder is ours to erase, and it is
-    # the instance's own name that says so.
+    # the instance's own name that says so. Anything else is somebody's, and
+    # step 4 erases what it finds there.
     $ItsOwn = $Registered | Where-Object { $_.Name -eq $DistroName -and $_.Path -eq $Full } | Select-Object -First 1
     if ((Test-Path $Full) -and (-not $ItsOwn)) {
         if (@(Get-ChildItem -Path $Full -Force -ErrorAction SilentlyContinue).Count -gt 0) {
-            Write-Host "  $Full already exists, and belongs to no instance of this template." -ForegroundColor Yellow
-            Write-Host "  Delete it by hand, or give another name or folder." -ForegroundColor Yellow
+            Write-Host "  $Full already exists, please choose another location." -ForegroundColor Yellow
             continue
         }
     }

@@ -120,8 +120,7 @@ It takes no options: it asks, twice.
 
 ```text
 ==> Creating a new instance
-  Ctrl+C aborts at either question. Nothing is written before the build starts.
-Name of the instance: ubuntu-ml-dev
+Name of the instance (CTRL+C to abort): ubuntu-ml-dev
 Folder for 'ubuntu-ml-dev' [D:\WSL]:
 ```
 
@@ -134,8 +133,7 @@ asked again:
 
 - the folder is, or holds, the folder of another instance — erasing it would
   take that instance with it;
-- the folder already exists and belongs to no instance of this template —
-  delete it by hand, or give another name or folder.
+- the folder already exists — choose another location.
 
 Docker Desktop must be running: the script checks before asking anything.
 
