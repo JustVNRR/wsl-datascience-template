@@ -209,8 +209,9 @@ deleting the distro deletes all of it.
 └── .zshrc, modules, prompts/, cheatsheets/
 
 ~/projects/<project>/        # One directory per project
-├── .env                     # This project's identity (gmake gcp_enable_project_env)
-├── .envrc                   # direnv hook (fnew / gmake copier_project)
+├── .env.sample              # The template's list of variables (copied once to .env)
+├── .env                     # This project's identity (filled in by you; gcp_enable_project_env tops it up)
+├── .envrc                   # direnv hook (the template's, or written by the scaffolding)
 └── .venv/
 
 ~/.local/share/oh-my-zsh/    # Cloned at build time
