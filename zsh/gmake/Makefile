@@ -8,10 +8,9 @@ THIS_DIR := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 # The packs: one level above this file's own directory. That is the same path
 # in both places — `packs/`, next to `zsh/`, in the repository, and
 # `~/.config/packs`, next to `~/.config/zsh`, in the instance.
-# Named here, at the top, because A-bis needs the list before it may load
-# anything of a pack.
+# Named here, at the top, because A-bis reads a pack's declaration before it
+# may load anything of one, and section 5 globs the modules from here.
 PACKS_DIR := $(abspath $(THIS_DIR)/../../packs)
-PACKS := $(notdir $(wildcard $(PACKS_DIR)/*))
 
 # 1. Environment Variable Loading (Cascading Pattern)
 # A. Load global fallback values relative to this file's location
@@ -44,11 +43,9 @@ PROJECT_ENV := $(wildcard .env)
 #   - scaffolding targets (copier_project, cruft_project, ccds_project): from ~/projects itself
 #   - onboarding and install targets, and help: from anywhere
 # GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
-# The socle names its own; each pack declares its share in its pack.conf, read
-# the same way as the identifying variables above and for the same reason.
-SOCLE_GATE_EXEMPT_GOALS := help env_global_enable
-PACK_GATE_EXEMPT_GOALS := $(shell sed -n 's/^PACK_GATE_EXEMPT_GOALS *:=[[:space:]]*//p' $(PACKS_DIR)/*/pack.conf 2>/dev/null)
-GATE_EXEMPT_GOALS := $(SOCLE_GATE_EXEMPT_GOALS) $(PACK_GATE_EXEMPT_GOALS)
+# Only the socle has targets to exempt now: a pack is installed from Windows
+# (`.\wsl.ps1 add_pack`), so nothing of a pack has to run from anywhere.
+GATE_EXEMPT_GOALS := help env_global_enable
 ifneq (,$(filter copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(CURDIR))
@@ -75,41 +72,23 @@ export
 # 5. Modular Sub-makefile Imports (loaded relative to this file)
 #
 # Two globs, no name in either: make/*.mk is the socle's own modules, and
-# packs/*/ is every pack's folder. Adding a module, or a whole pack, is
-# creating a file or a directory - nothing to edit here.
+# packs/*/make/*.mk is every installed pack's. Adding a module, or a whole
+# pack, is creating a file or a directory - nothing to edit here.
 #
 # `gmake help` is built by reading the *text* of the files make loaded, not
 # from the targets make defined. A module that was not loaded contributes no
-# line at all: that is what makes the menu follow the machine, and why the two
-# faces of a pack are two files rather than one conditional. An ifeq around a
-# target would leave that target's description in the text, and the menu would
-# show both faces at once.
-#
-# The pack loop below is that same rule, one level up: pack.conf declares the
-# binary that decides, make/*.mk is loaded when it answers, install.mk when it
-# does not. A command-line PACK_GATES decides for every pack at once, which is
-# how CI reads both faces: `PACK_GATES=x gmake help` and `PACK_GATES= gmake
-# help`.
-#
-# What matters there is the difference between *not given* and *given empty* -
-# check the machine, or pretend it is bare. $(origin) is what tells the two
-# apart: a variable set empty on the command line is not undefined, which is
-# why the test is not `$(or ...)` - a runner that happens to ship the CLI would
-# walk right through an empty `PACK_GATES=` and read the installed face twice.
+# line at all: that is what makes the menu follow the machine - and what
+# decides is now nothing but the folder being there. A pack is installed when
+# its folder is in ~/.config/packs, which is where `.\wsl.ps1 add_pack` puts
+# it, files and tool together. There is no binary to test and no variable to
+# force, so the menu cannot show a pack's commands and mean something else -
+# unlike the two-faced arrangement it replaces, where a machine that happened
+# to ship the CLI decided what everyone read.
 CORE_MODULES := $(wildcard $(THIS_DIR)/make/*.mk)
-
-define include_pack
-include $(PACKS_DIR)/$(1)/pack.conf
-PACK_GATE_RESULT := $$(if $$(filter undefined,$$(origin PACK_GATES)),$$(shell command -v $$(PACK_GATE) 2>/dev/null),$$(PACK_GATES))
-ifeq (,$$(PACK_GATE_RESULT))
-include $(PACKS_DIR)/$(1)/install.mk
-else
-include $$(wildcard $(PACKS_DIR)/$(1)/make/*.mk)
-endif
-endef
+PACK_MODULES := $(wildcard $(PACKS_DIR)/*/make/*.mk)
 
 include $(CORE_MODULES)
-$(foreach pack,$(PACKS),$(eval $(call include_pack,$(pack))))
+include $(PACK_MODULES)
 
 # --- Automatic Help Menu ---
 .DEFAULT_GOAL := help

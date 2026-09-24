@@ -3,7 +3,7 @@
 A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
 - the Python stack,
-- the MLOps workflow with GCP (run `gmake gcp_install` first).
+- the MLOps workflow with GCP (add the `gcp` pack with `.\wsl.ps1 add_pack`).
 
 ## Features
 
@@ -100,10 +100,12 @@ it grows, and a pack leaves with its folder:
 
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
-| `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_install`, `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
+| `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
 
 What a pack is, what it must contain, and how to add one:
-[`docs/packs.md`](docs/packs.md).
+[`docs/packs.md`](docs/packs.md). One reaches an instance with
+[`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack), and leaves with
+`remove_pack`.
 
 ---
 
@@ -122,7 +124,7 @@ What a pack is, what it must contain, and how to add one:
 
 | Category | Tools |
 | :--- | :--- |
-| Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md), [install / uninstall](packs/gcp/docs/install.md) |
+| Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 
 ### Python & Data Science
 
@@ -182,12 +184,11 @@ the repository at runtime.
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── packs/                   # Optional tooling, one folder per pack
 │   └── gcp/                 # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
-│       ├── install.mk       # the way in (`gcp_install`), loaded while the CLI is absent
 │       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │       ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
 │       ├── env.global.sample  # the pack's shared defaults (GCP_REGION, CLOUDRUN_MEMORY…)
 │       ├── env.project.sample # the pack's project variables (GCP_PROJECT, BUCKET_NAME…)
-│       ├── make/            # the pack's modules, loaded while the CLI is installed
+│       ├── make/            # the pack's modules, loaded as soon as the folder is there
 │       ├── cheatsheets/     # the pack's fcheat sheets, each with its `# requires:` header
 │       └── docs/            # the pack's pages, onboarding walkthrough included
 ├── scripts/                 # Instance administration, one file per command
@@ -222,8 +223,8 @@ deleting the distro deletes all of it.
 │   └── make/*.mk            # the socle's modules
 └── .zshrc, modules, prompts/, cheatsheets/
 
-~/.config/packs/             # = packs/ from the repository
-└── gcp/                     # shipped whole; nothing of it is installed until you ask
+~/.config/packs/             # A pack lands here, its files and its tool together
+└── gcp/                     # added by `.\wsl.ps1 add_pack`, removed by remove_pack
 
 ~/projects/<project>/        # One directory per project
 ├── .env.sample              # The template's list of variables (copied once to .env)

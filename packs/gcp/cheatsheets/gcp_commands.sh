@@ -5,8 +5,9 @@
 # The raw gcloud commands for the one-time setup, then the gmake targets that
 # drive the same services — the full walkthrough lives in the pack's
 # onboarding guide (packs/gcp/docs/onboarding.md).
-# Offered only while the CLI is installed: install_commands.sh is the face
-# you get without it.
+# Offered only while the CLI is installed, and the pack with it. Removed by
+# hand (`sudo apt remove google-cloud-cli`), the sheet hides itself - which is
+# what the header above is for: commands that would not run are not shown.
 
 # --- 1. AUTHENTICATION (once per distro, lost if the distro is recreated) ---
 gcloud auth login                              # Login 1: identify YOURSELF to the gcloud/bq tools (everything the MLOps Makefile calls) — browser flow
