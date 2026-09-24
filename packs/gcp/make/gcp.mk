@@ -2,6 +2,11 @@
 # GCP INFRASTRUCTURE & IAM COMMANDS
 # ==============================================================================
 
+# Derived - so never list it in check_vars. $(value SA_EMAIL) returns the text
+# of this definition, which is never empty, and the check could never fire: the
+# variables to test are SA_NAME and GCP_PROJECT.
+SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
+
 gcp_auth_cli: ## Authenticate the gcloud CLI (gcloud, bq) with your Google account
 	@echo "🔑 Opening the Google login for the gcloud CLI..."
 	gcloud auth login

@@ -80,20 +80,24 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
   - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the `Makefile` in `~/.config/zsh/gmake`.
   - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in your current project folder.
 
-The gmake Makefile is split into one module per domain under `gmake/make/`, each documented in [`docs/make/`](docs/make/) — indexed below along a project's lifecycle:
+The gmake Makefile is split into one module per domain, each documented beside
+it. The socle's modules live under `gmake/make/`, their pages in
+[`docs/make/`](docs/make/); a pack carries its modules *and* its pages in the
+same folder, under `packs/` at the root of this repository — so a pack is one
+folder that can be lifted out whole. Indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
-| Setup | [Optional tooling](docs/make/install.md) | `gcp_install`, `gcp_uninstall` |
+| Setup | [Optional tooling](packs/gcp/docs/install.md) | `gcp_install`, `gcp_uninstall` |
 | Create | [Project scaffolding](docs/make/project-setup.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | Verify | [Lint](docs/make/lint.md) | `lint`, `lint-py`, `lint-sh`, `lint-format` |
 | Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
-| Operate | [GCP infrastructure & IAM](docs/make/gcp.md) | `gcp_project_list`, `gcs_*`, `iam_setup_service_account` |
-| Operate | [BigQuery](docs/make/bigquery.md) | `bigquery_*` |
+| Operate | [GCP infrastructure & IAM](packs/gcp/docs/gcp.md) | `gcp_project_list`, `gcs_*`, `iam_setup_service_account` |
+| Operate | [BigQuery](packs/gcp/docs/bigquery.md) | `bigquery_*` |
 | Operate | [Docker](docs/make/docker.md) | `docker_build_local`, `docker_run_local` |
-| Operate | [Artifact Registry](docs/make/artifact_registry.md) | `artifact_registry_*` |
-| Deploy | [Cloud Run](docs/make/cloud_run.md) | `cloudrun_*` |
-| Operate | [Compute Engine (VMs)](docs/make/gcloud_compute.md) | `vm_*` |
+| Operate | [Artifact Registry](packs/gcp/docs/artifact_registry.md) | `artifact_registry_*` |
+| Deploy | [Cloud Run](packs/gcp/docs/cloud_run.md) | `cloudrun_*` |
+| Operate | [Compute Engine (VMs)](packs/gcp/docs/gcloud_compute.md) | `vm_*` |
 | Collaborate | [GitHub PRs](docs/make/github.md) | `gh_pr_*` |
 
 ---
@@ -113,7 +117,7 @@ The gmake Makefile is split into one module per domain under `gmake/make/`, each
 
 | Category | Tools |
 | :--- | :--- |
-| Google Cloud CLI | [GCP onboarding guide](docs/optional_tooling/gcp_onboarding.md) |
+| Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md) |
 
 ### Python & Data Science
 
@@ -147,17 +151,11 @@ the repository at runtime.
 │   │   ├── .env.global.sample  # Shared-defaults contract (copy to .env.global, gitignored)
 │   │   ├── .env.project.sample # Per-project contract (copy into a project as .env)
 │   │   ├── Makefile           # Entrypoint for the MLOps Makefile
-│   │   └── make/            # One Makefile module per domain (documented in docs/make/)
-│   │       ├── install.mk         # optional tooling: install a CLI the image does not ship
+│   │   └── make/            # The socle's modules, one per domain (pages in docs/make/)
 │   │       ├── project-setup.mk   # copier/cruft scaffolding + venv/direnv bootstrap
 │   │       ├── lint.mk            # ruff (Python) + shellcheck (shell) checks
 │   │       ├── tests.mk           # pytest lanes (fast / functional / gcp)
-│   │       ├── gcp.mk             # GCP projects, Cloud Storage buckets, IAM
-│   │       ├── bigquery.mk        # BigQuery datasets & tables
 │   │       ├── docker.mk          # image builds and local runs (docker only)
-│   │       ├── artifact_registry.mk # the production image: build, push, auth, IAM
-│   │       ├── cloud_run.mk       # Cloud Run deploy, logs, URL
-│   │       ├── gcloud_compute.mk  # Compute Engine VM lifecycle
 │   │       └── github.mk          # GitHub PR workflow (gh CLI)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
@@ -173,10 +171,15 @@ the repository at runtime.
 │   ├── make-icon.ps1        # Regenerates the icon below (standalone PowerShell)
 │   └── terminal-icon.png    # Windows Terminal profile icon (copied next to the VHDX)
 ├── docs/
-│   ├── make/                # Per-module documentation for the gmake Makefile
-│   ├── optional_tooling/    # Onboarding for the tools the image does not ship
+│   ├── make/                # Documentation of the socle's gmake modules
 │   ├── wsl/                 # Instance administration: the commands, their options, examples
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
+├── packs/                   # Optional tooling, one folder per pack
+│   └── gcp/                 # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
+│       ├── install.mk       # the way in (`gcp_install`), loaded while the CLI is absent
+│       ├── make/            # the pack's modules, loaded while the CLI is installed
+│       ├── cheatsheets/     # the pack's fcheat sheets, each with its `# requires:` header
+│       └── docs/            # the pack's pages, onboarding walkthrough included
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
 │   └── *.ps1                # list, build, adopt, start, stop, shell, unregister,
@@ -205,8 +208,11 @@ deleting the distro deletes all of it.
 ├── gmake/
 │   ├── .env.global          # Shared defaults (gmake gcp_enable_global_env)
 │   ├── Makefile
-│   └── make/*.mk
+│   └── make/*.mk            # the socle's modules
 └── .zshrc, modules, prompts/, cheatsheets/
+
+~/.config/packs/             # = packs/ from the repository
+└── gcp/                     # shipped whole; nothing of it is installed until you ask
 
 ~/projects/<project>/        # One directory per project
 ├── .env.sample              # The template's list of variables (copied once to .env)

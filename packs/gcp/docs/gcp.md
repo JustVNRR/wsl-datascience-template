@@ -1,12 +1,12 @@
 # GCP Infrastructure & IAM
 
-[← Back to the README](../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../../README.md#mlops-makefile-gmake)
 
 Projects, Cloud Storage buckets, and service accounts — the ground floor of
 the GCP modules. All targets read the cascading `.env.global` / `.env`
 configuration.
 
-New to GCP entirely? Start with the [onboarding guide](../optional_tooling/gcp_onboarding.md).
+New to GCP entirely? Start with the [onboarding guide](onboarding.md).
 
 ## Targets
 

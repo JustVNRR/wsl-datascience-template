@@ -47,11 +47,10 @@ endif
 # 3. Export loaded variables to child subshells
 export
 
-# 4. Derive Service Account Email dynamically
-# Derived - so never list it in check_vars. $(value SA_EMAIL) returns the text
-# of this definition, which is never empty, and the check could never fire: the
-# variables to test are SA_NAME and GCP_PROJECT.
-SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
+# 4. Derived variables
+# A variable derived from a project's identity belongs to the pack that reads
+# it: SA_EMAIL is in packs/gcp/make/gcp.mk, where its reader lives. Nothing is
+# derived here.
 
 # 5. Modular Sub-makefile Imports (loaded relative to this file)
 #
@@ -73,14 +72,18 @@ SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
 # `GCLOUD=x gmake help` and `GCLOUD= gmake help`.
 GCLOUD := $(shell command -v gcloud 2>/dev/null)
 
-GCLOUD_MODULES := $(THIS_DIR)/make/gcp.mk \
-                  $(THIS_DIR)/make/bigquery.mk \
-                  $(THIS_DIR)/make/cloud_run.mk \
-                  $(THIS_DIR)/make/gcloud_compute.mk \
-                  $(THIS_DIR)/make/artifact_registry.mk
-GCLOUD_ABSENT_MODULES := $(THIS_DIR)/make/install.mk
+# The packs sit one level above this file's own directory. That is the same
+# path in both places: `packs/`, next to `zsh/`, in the repository - and
+# `~/.config/packs`, next to `~/.config/zsh`, in the instance. One relative
+# path, so a pack is found whichever of the two make is running in.
+PACKS_DIR := $(abspath $(THIS_DIR)/../../packs)
 
-CORE_MODULES := $(filter-out $(GCLOUD_MODULES) $(GCLOUD_ABSENT_MODULES),$(wildcard $(THIS_DIR)/make/*.mk))
+GCLOUD_MODULES := $(wildcard $(PACKS_DIR)/gcp/make/*.mk)
+GCLOUD_ABSENT_MODULES := $(PACKS_DIR)/gcp/install.mk
+
+# What is left in this file's own make/ directory: the socle's modules, none of
+# which needs a CLI the image does not ship.
+CORE_MODULES := $(wildcard $(THIS_DIR)/make/*.mk)
 
 include $(CORE_MODULES)
 ifeq ($(GCLOUD),)

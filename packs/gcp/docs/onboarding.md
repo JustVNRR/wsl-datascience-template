@@ -1,6 +1,6 @@
 # GCP Onboarding
 
-[← Back to the README](../../README.md#optional-tooling)
+[← Back to the README](../../../README.md#optional-tooling)
 
 ## Step 0 — outside the distro, once
 
@@ -97,16 +97,16 @@ use that service-account key file instead and this step is unnecessary.
 From here, what you run depends on the workflow — each module page documents
 its full flow.
 
-- **Docker → Artifact Registry** ([`artifact_registry.md`](../make/artifact_registry.md),
-  [`docker.md`](../make/docker.md)): run `artifact_registry_auth` once per region and
+- **Docker → Artifact Registry** ([`artifact_registry.md`](artifact_registry.md),
+  [`docker.md`](../../../docs/make/docker.md)): run `artifact_registry_auth` once per region and
   create the repository once per project; then build and push your production
   image.
-- **Cloud Run** ([`cloud_run.md`](../make/cloud_run.md)): deploy a pushed
+- **Cloud Run** ([`cloud_run.md`](cloud_run.md)): deploy a pushed
   image; services are private unless `CLOUDRUN_PUBLIC=true`.
-- **VMs** ([`gcloud_compute.md`](../make/gcloud_compute.md)): create, connect,
+- **VMs** ([`gcloud_compute.md`](gcloud_compute.md)): create, connect,
   and set up the machine — `vm_run_script` sends a script of your choice
   (`VM_SCRIPT=...`) from the project to the VM; the project owns the script.
-- **BigQuery** ([`bigquery.md`](../make/bigquery.md)): create the dataset,
+- **BigQuery** ([`bigquery.md`](bigquery.md)): create the dataset,
   then the tables.
 
 ## Good to know

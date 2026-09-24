@@ -1,6 +1,6 @@
 # Artifact Registry
 
-[← Back to the README](../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../../README.md#mlops-makefile-gmake)
 
 The Google half of the Docker workflow: the repository that stores the
 production image, the image itself, and what it takes to be allowed to push
@@ -19,7 +19,7 @@ there.
 Nothing here runs without `gcloud`: three targets call it, and the two that call
 `docker` only tag and push to a path `gcloud auth configure-docker` unlocks. The
 module therefore appears in the menu only when that CLI is installed — the local
-container ([`docker.md`](docker.md)) needs nothing else. See
+container ([`docker.md`](../../../docs/make/docker.md)) needs nothing else. See
 [optional tooling](install.md) for the menu rule.
 
 ## Variables
@@ -31,7 +31,7 @@ container ([`docker.md`](docker.md)) needs nothing else. See
 | `ARTIFACTSREPO` | `my-artifacts` |
 
 `artifact_registry_build` builds the same recipe as `docker_build_local`, so it
-reads the same three variables — see [`docker.md`](docker.md).
+reads the same three variables — see [`docker.md`](../../../docs/make/docker.md).
 
 ## Typical flow
 

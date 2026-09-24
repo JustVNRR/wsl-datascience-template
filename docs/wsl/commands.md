@@ -263,7 +263,7 @@ rebuild destroys it the same way. Before either:
 | :--- | :--- |
 | `~/projects/` | Nothing backs it up — push your work to a remote first |
 | `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
-| `~/.config/gcloud/` | Both logins are redoable in minutes ([GCP onboarding](../optional_tooling/gcp_onboarding.md)) |
+| `~/.config/gcloud/` | Both logins are redoable in minutes ([GCP onboarding](../../packs/gcp/docs/onboarding.md)) |
 | `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake gcp_install`, then `gmake gcp_enable_global_env`, recreate the file |
 | `~/.config/zsh/cheatsheets/templates.tsv` | Only for rows you added inside the instance: the file is redeployed at build time — move the line into `zsh/` to keep it |
 
