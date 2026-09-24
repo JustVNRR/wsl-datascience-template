@@ -48,11 +48,13 @@ Project folder: my-analysis
 🎤 ...then answer the template's own questions (repo name, description...)...
 🐍 uv project detected (uv.lock or [project] table) — running uv sync...
 🪄 Configuring direnv...
-✅ Project my-analysis ready!
+📝 Creating ./.env from the project's .env.sample...
+✅ Project ready in my-analysis/
 ```
 
 `fnew` only runs from `~/projects` itself — it refuses anywhere else, and so
-do the three targets it delegates to.
+do the three targets it delegates to. When it is done, it leaves you inside the
+new project.
 
 ## Trying a template without adding it
 

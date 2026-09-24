@@ -9,7 +9,16 @@
 #   2. requirements.txt                        ->  uv venv + uv pip install
 #      (+ requirements_dev.txt when present)
 #   3. no recognized manifest                  ->  bare uv venv, with a warning
-# The direnv hook is shared by all branches.
+# The direnv hook is shared by all branches, and it writes over nothing that is
+# already there: our own template ships an .envrc that also loads .env through
+# dotenv, and another template's .envrc is its own business. Ours is written
+# only where there is none - with the guard that keeps it quiet before the
+# first `uv sync` - and then approved, so the project is usable on the way in.
+#
+# The same rule for the project's .env: the sample the template ships is copied
+# to .env, once, because that is the file the user has to fill in and the
+# sample is already shaped by the template's own answers. An existing .env is
+# never touched, and a template that ships no sample gets nothing.
 #
 # Branch 2 is the one to watch: its line ends with the test on
 # requirements_dev.txt, and a false test with no else returns 0. A failing
@@ -34,7 +43,8 @@ define init_venv
 		cd $(PROJECT_NAME) && uv venv; \
 	fi
 	@echo "🪄 Configuring direnv..."
-	@cd $(PROJECT_NAME) && echo "source .venv/bin/activate" > .envrc && direnv allow
+	@cd $(PROJECT_NAME) && ( [ -f .envrc ] || echo "[ -f .venv/bin/activate ] && source .venv/bin/activate" > .envrc ) && direnv allow
+	@cd $(PROJECT_NAME) && ( [ -f .env ] || [ ! -f .env.sample ] || { echo "📝 Creating ./.env from the project's .env.sample..."; cp .env.sample .env; } )
 endef
 
 # ==============================================================================
@@ -48,7 +58,7 @@ copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
 	@echo "🏗️  Scaffolding project with Copier..."
 	@copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
 	$(init_venv)
-	@echo "✅ Project $(PROJECT_NAME) ready!"
+	@echo "✅ Project ready in $(PROJECT_NAME)/"
 
 # Optional pinned template ref/tag: --vcs-ref for Copier, --checkout for Cruft
 COPIER_REF_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--vcs-ref $(PROJECT_TEMPLATE_VERSION),)
@@ -59,7 +69,7 @@ cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fn
 	@echo "🏗️  Scaffolding project with Cruft..."
 	@cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
 	$(init_venv)
-	@echo "✅ Project $(PROJECT_NAME) ready!"
+	@echo "✅ Project ready in $(PROJECT_NAME)/"
 
 # The `ccds` CLI (cookiecutter-data-science v2) wants its extra context as
 # key=value AFTER the template argument, and it asks before running the
@@ -73,4 +83,4 @@ ccds_project: ## Scaffold a project with CCDS v2 from ~/projects (fnew picker)
 	@echo "🏗️  Scaffolding project with ccds..."
 	@ccds --accept-hooks yes $(CHECKOUT_ARG) -o . $(PROJECT_TEMPLATE_REPO) project_name=$(PROJECT_NAME) repo_name=$(PROJECT_NAME)
 	$(init_venv)
-	@echo "✅ Project $(PROJECT_NAME) ready!"
+	@echo "✅ Project ready in $(PROJECT_NAME)/"

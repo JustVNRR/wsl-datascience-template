@@ -143,5 +143,8 @@ fnew() {
         make_args+=("PROJECT_TEMPLATE_VERSION=$version")
     fi
 
-    make -f "$ZDOTDIR/gmake/Makefile" "${make_args[@]}"
+    # The makefile cannot move this shell: its recipes run in their own, and a
+    # process cannot change its parent's directory. fnew is a function, so it
+    # can - and it does it only when the scaffolding succeeded.
+    make -f "$ZDOTDIR/gmake/Makefile" "${make_args[@]}" && cd "$project_name"
 }
