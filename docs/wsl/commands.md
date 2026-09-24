@@ -114,18 +114,32 @@ profile, and opens a shell in it.
 
 ```powershell
 .\wsl.ps1 build
-.\wsl.ps1 build -DistroName ubuntu-ml-dev -InstallPath D:\WSL\ubuntu-ml-dev
 ```
 
-| Option | Default | What it does |
-| :--- | :--- | :--- |
-| `-DistroName` | `ubuntu-datascience-build` | the name of the instance to create |
-| `-InstallPath` | `D:\WSL\<name>` | the folder that will hold its disk |
+It takes no options: it asks, twice.
 
-Docker Desktop must be running — the script checks before anything else, and
-stops if it does not answer.
+```text
+==> Creating a new instance
+  Ctrl+C aborts at either question. Nothing is written before the build starts.
+Name of the instance: ubuntu-ml-dev
+Folder for 'ubuntu-ml-dev' [D:\WSL]:
+```
 
-If an instance already carries that name, the script shows a red warning and
+The name is checked as it is typed (letters, digits, `.`, `_`, `-`), and Enter
+takes the proposed folder — the one every other command writes to. Give
+another path to put the disk on a second drive.
+
+An answer that cannot be used comes back with the reason, and the question is
+asked again:
+
+- the folder is, or holds, the folder of another instance — erasing it would
+  take that instance with it;
+- the folder already exists and belongs to no instance of this template —
+  delete it by hand, or give another name or folder.
+
+Docker Desktop must be running: the script checks before asking anything.
+
+If an instance already carries the name, the script shows a red warning and
 asks you to **type the exact name** to confirm. Anything else aborts: the
 rebuild erases that instance and everything in it.
 

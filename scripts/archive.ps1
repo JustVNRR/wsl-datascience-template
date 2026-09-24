@@ -23,8 +23,9 @@ param (
 $ErrorActionPreference = "Stop"
 
 # One working folder, no guessing: an instance lives in <Root>\<name>, and
-# every archive in <Root>\archives. It is the same rule as build.ps1's default
-# -InstallPath, so everything this repository manages sits under one folder.
+# every archive in <Root>\archives. It is the folder build.ps1 proposes when it
+# asks where an instance should live, so everything this repository manages
+# sits under one folder.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $ArchiveFolder = Join-Path $Root "archives"
 

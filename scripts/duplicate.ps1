@@ -8,7 +8,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 # One working folder, no guessing: the copy is installed in <Root>\<name>,
-# the same rule build.ps1's default -InstallPath follows.
+# the folder build.ps1 proposes when it asks where an instance should live.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
 # What the whole family shares: how to tell one of our instances from any other

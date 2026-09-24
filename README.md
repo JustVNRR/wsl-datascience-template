@@ -44,15 +44,12 @@ Make sure Docker Desktop is running before you start.
 
 2. **Build and register the instance:**
 
-   Default build (creates `ubuntu-datascience-build` installed at `D:\WSL\ubuntu-datascience-build`):
    ```powershell
    .\wsl.ps1 build
    ```
 
-   Custom instance name and path:
-   ```powershell
-   .\wsl.ps1 build -DistroName "ubuntu-ml-dev" -InstallPath "D:\WSL\ubuntu-ml-dev"
-   ```
+   It asks for the instance's name, then for the folder that will hold its
+   disk — `D:\WSL\<name>` by default. Ctrl+C aborts at either question.
 
 ---
 

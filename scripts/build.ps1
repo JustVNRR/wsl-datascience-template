@@ -1,21 +1,13 @@
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory = $false)]
-    [string]$DistroName = "ubuntu-datascience-build",
-
-    [Parameter(Mandatory = $false)]
-    [string]$InstallPath
+    # This command took -DistroName and -InstallPath until 2026-09-24. Both are
+    # gone: it asks for the name, then for the folder, and creates nothing
+    # outside that answer. What lands here is an old command line, kept only so
+    # the refusal below can say so - PowerShell's own binding error would name
+    # a parameter and explain nothing.
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [object[]]$Ignored
 )
-
-# Dynamically set the install path if not provided by the user
-if (-not $InstallPath) {
-    if (Test-Path "D:\") {
-        $InstallPath = "D:\WSL\$DistroName"
-    } else {
-        # Fallback to the C: drive in the user's profile
-        $InstallPath = "$env:USERPROFILE\WSL\$DistroName"
-    }
-}
 
 $ErrorActionPreference = "Stop"
 
@@ -29,6 +21,14 @@ if (-not (Test-Path $InstanceLib)) {
     exit 1
 }
 . $InstanceLib
+
+if ($Ignored) {
+    Write-Host ""
+    Write-Host "[ABORT] This command takes no options any more: it asks for the name." -ForegroundColor Red
+    Write-Host "        Run it on its own:  .\wsl.ps1 build" -ForegroundColor Yellow
+    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    exit 1
+}
 
 # Halts script execution if an external command (like docker or wsl) fails
 function Invoke-External {
@@ -145,34 +145,90 @@ if ($DockerExitCode -ne 0) {
     exit 1
 }
 
-# 0-bis. Preflight: -InstallPath must be a folder of its own. The deletion in
-# step 4 is recursive, so a forgotten name - `-InstallPath "D:\WSL"` - would
-# take every distribution installed under it. Checked here, before the
-# confirmation below and before anything is created, like the Docker probe:
-# this must hold on a first build too, where no distro exists yet and the
-# banner never shows.
-$FullInstallPath = [System.IO.Path]::GetFullPath($InstallPath).TrimEnd('\')
+# 0-bis. What is being built, asked. The name and the folder come from two
+# questions, and both answers are checked here - before the banner below and
+# before anything is created. The checks hold on a first build too, where no
+# distro exists yet and the banner never shows.
+Write-Host ""
+Write-Host "==> Creating a new instance" -ForegroundColor Cyan
+Write-Host "  Ctrl+C aborts at either question. Nothing is written before the build starts." -ForegroundColor DarkGray
 
-if ($FullInstallPath -match '^[A-Za-z]:$') {
-    Write-Host ""
-    Write-Host "[ABORT] -InstallPath must name a folder, not a drive root: $InstallPath" -ForegroundColor Red
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-    exit 1
+$DistroName = $null
+while (-not $DistroName) {
+    $Answer = [string](Read-Host "Name of the instance")
+    if ([string]::IsNullOrWhiteSpace($Answer)) {
+        Write-Host ""
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        exit 0
+    }
+    $Answer = $Answer.Trim()
+    if ($Answer -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
+        $DistroName = $Answer
+    } else {
+        Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor Yellow
+    }
 }
 
+# Where it will live. The proposal is the folder every command of this family
+# writes to, and Enter takes it; the question is there for the other case - a
+# second drive, or a folder of your own.
+$Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
+
+# What Windows already knows, read once: the checks below ask it two things -
+# whether this path is another instance's folder, and whether it is the folder
+# of the instance of that very name, which is the one case where the build is
+# allowed to erase what it finds there.
+$Registered = @()
 foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
     $Props = Get-ItemProperty $Key.PSPath
-    if ($Props.DistributionName -and $Props.DistributionName -ne $DistroName -and $Props.BasePath) {
-        $OtherPath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-        if ($OtherPath -eq $FullInstallPath -or $OtherPath.StartsWith("$FullInstallPath\", [System.StringComparison]::OrdinalIgnoreCase)) {
-            Write-Host ""
-            Write-Host "[ABORT] $InstallPath is, or contains, the install folder of '$($Props.DistributionName)'." -ForegroundColor Red
-            Write-Host "        Erasing it would take that distribution with it: $OtherPath" -ForegroundColor Yellow
-            Write-Host "        Give -InstallPath a folder of its own." -ForegroundColor Yellow
-            Write-Host "        Nothing was modified." -ForegroundColor DarkGray
-            exit 1
+    if ($Props.DistributionName) {
+        $Registered += [PSCustomObject]@{
+            Name = $Props.DistributionName
+            Path = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
         }
     }
+}
+
+$InstallPath = $null
+while (-not $InstallPath) {
+    $Answer = [string](Read-Host "Folder for '$DistroName' [$Root]")
+    $Folder = if ([string]::IsNullOrWhiteSpace($Answer)) { $Root } else { $Answer.Trim() }
+
+    # A path Windows refuses is a typo, not a reason to stop: the question comes
+    # back rather than letting the exception end the run.
+    try {
+        $Full = [System.IO.Path]::GetFullPath((Join-Path $Folder $DistroName)).TrimEnd('\')
+    } catch {
+        Write-Host "  '$Folder' is not a usable path." -ForegroundColor Yellow
+        continue
+    }
+
+    # Nothing there but our own build: step 4 erases this path recursively, so
+    # a folder holding another instance would take that instance with it.
+    $Elsewhere = $Registered | Where-Object {
+        $_.Name -ne $DistroName -and
+        ($_.Path -eq $Full -or $_.Path.StartsWith("$Full\", [System.StringComparison]::OrdinalIgnoreCase))
+    } | Select-Object -First 1
+
+    if ($Elsewhere) {
+        Write-Host "  $Full is, or holds, the folder of '$($Elsewhere.Name)'." -ForegroundColor Yellow
+        Write-Host "  Erasing it would take that instance with it." -ForegroundColor Yellow
+        continue
+    }
+
+    # Something is already there, and it is not this instance's folder: the
+    # rebuild is the only case where this folder is ours to erase, and it is
+    # the instance's own name that says so.
+    $ItsOwn = $Registered | Where-Object { $_.Name -eq $DistroName -and $_.Path -eq $Full } | Select-Object -First 1
+    if ((Test-Path $Full) -and (-not $ItsOwn)) {
+        if (@(Get-ChildItem -Path $Full -Force -ErrorAction SilentlyContinue).Count -gt 0) {
+            Write-Host "  $Full already exists, and belongs to no instance of this template." -ForegroundColor Yellow
+            Write-Host "  Delete it by hand, or give another name or folder." -ForegroundColor Yellow
+            continue
+        }
+    }
+
+    $InstallPath = $Full
 }
 
 # 1. Place temporary export tar next to InstallPath to prevent filling drive C:
