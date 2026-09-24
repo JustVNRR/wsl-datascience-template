@@ -5,6 +5,14 @@
 # Dynamic path resolution: resolves the directory where THIS Makefile lives
 THIS_DIR := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 
+# The packs: one level above this file's own directory. That is the same path
+# in both places — `packs/`, next to `zsh/`, in the repository, and
+# `~/.config/packs`, next to `~/.config/zsh`, in the instance.
+# Named here, at the top, because A-bis needs the list before it may load
+# anything of a pack.
+PACKS_DIR := $(abspath $(THIS_DIR)/../../packs)
+PACKS := $(notdir $(wildcard $(PACKS_DIR)/*))
+
 # 1. Environment Variable Loading (Cascading Pattern)
 # A. Load global fallback values relative to this file's location
 -include $(THIS_DIR)/.env.global
@@ -13,7 +21,15 @@ THIS_DIR := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 # that decide WHICH project a command targets are refused here — a stray one
 # would silently retarget every gmake run made outside a project directory.
 # (Command-line and environment values are not concerned.)
-PROJECT_IDENTIFYING_VARS := GCP_PROJECT INSTANCE SA_NAME BUCKET_NAME BQ_DATASET TABLE_NAME GAR_IMAGE DOCKER_LOCAL_IMAGE ARTIFACTSREPO SERVICE_URL
+#
+# The socle names its own; a pack declares its share in its pack.conf. That
+# file is read here with sed rather than included, for one reason: this check
+# runs while .env.global is being loaded, before any pack is allowed to define
+# anything. No comment line survives the sed, so the declaration is not
+# mistaken for prose.
+SOCLE_IDENTIFYING_VARS := DOCKER_LOCAL_IMAGE
+PACK_IDENTIFYING_VARS := $(shell sed -n 's/^PACK_IDENTIFYING_VARS *:=[[:space:]]*//p' $(PACKS_DIR)/*/pack.conf 2>/dev/null)
+PROJECT_IDENTIFYING_VARS := $(SOCLE_IDENTIFYING_VARS) $(PACK_IDENTIFYING_VARS)
 $(foreach var,$(PROJECT_IDENTIFYING_VARS),$(if $(filter file,$(origin $(var))),$(error ❌ ERROR: Variable $(var) identifies a project — it belongs in that project's .env, never in .env.global)))
 
 # B. Load local project-specific overrides from the current working directory
@@ -28,7 +44,11 @@ PROJECT_ENV := $(wildcard .env)
 #   - scaffolding targets (copier_project, cruft_project, ccds_project): from ~/projects itself
 #   - onboarding and install targets, and help: from anywhere
 # GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
-GATE_EXEMPT_GOALS := help gcp_install gcp_uninstall gcp_auth_cli gcp_auth_libs env_global_enable gcp_project_list
+# The socle names its own; each pack declares its share in its pack.conf, read
+# the same way as the identifying variables above and for the same reason.
+SOCLE_GATE_EXEMPT_GOALS := help env_global_enable
+PACK_GATE_EXEMPT_GOALS := $(shell sed -n 's/^PACK_GATE_EXEMPT_GOALS *:=[[:space:]]*//p' $(PACKS_DIR)/*/pack.conf 2>/dev/null)
+GATE_EXEMPT_GOALS := $(SOCLE_GATE_EXEMPT_GOALS) $(PACK_GATE_EXEMPT_GOALS)
 ifneq (,$(filter copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(CURDIR))
@@ -54,43 +74,36 @@ export
 
 # 5. Modular Sub-makefile Imports (loaded relative to this file)
 #
-# The glob stays the rule: a new make/*.mk is picked up without editing this
-# file. Only the modules that need a CLI the image does not ship are named
-# here, plus its counterpart - the module carrying the way to install it.
+# Two globs, no name in either: make/*.mk is the socle's own modules, and
+# packs/*/ is every pack's folder. Adding a module, or a whole pack, is
+# creating a file or a directory - nothing to edit here.
 #
 # `gmake help` is built by reading the *text* of the files make loaded, not
 # from the targets make defined. A module that was not loaded contributes no
 # line at all: that is what makes the menu follow the machine, and why the two
-# faces are two files rather than one conditional. An ifeq around a target
-# would leave that target's description in the text, and the menu would show
-# both faces at once.
+# faces of a pack are two files rather than one conditional. An ifeq around a
+# target would leave that target's description in the text, and the menu would
+# show both faces at once.
 #
-# Nothing is recorded anywhere: the question is asked again on every run, so
-# installing the CLI by any means (see `gmake gcp_install`) brings the modules
-# back, and removing it takes them away again. A command-line variable wins
-# over the := below, which is how CI checks both states at once:
-# `GCLOUD=x gmake help` and `GCLOUD= gmake help`.
-GCLOUD := $(shell command -v gcloud 2>/dev/null)
-
-# The packs sit one level above this file's own directory. That is the same
-# path in both places: `packs/`, next to `zsh/`, in the repository - and
-# `~/.config/packs`, next to `~/.config/zsh`, in the instance. One relative
-# path, so a pack is found whichever of the two make is running in.
-PACKS_DIR := $(abspath $(THIS_DIR)/../../packs)
-
-GCLOUD_MODULES := $(wildcard $(PACKS_DIR)/gcp/make/*.mk)
-GCLOUD_ABSENT_MODULES := $(PACKS_DIR)/gcp/install.mk
-
-# What is left in this file's own make/ directory: the socle's modules, none of
-# which needs a CLI the image does not ship.
+# The pack loop below is that same rule, one level up: pack.conf declares the
+# binary that decides, make/*.mk is loaded when it answers, install.mk when it
+# does not. The variable is forced open by a command-line PACK_GATES, which is
+# how CI reads both faces at once - `PACK_GATES=x gmake help` and
+# `PACK_GATES= gmake help`.
 CORE_MODULES := $(wildcard $(THIS_DIR)/make/*.mk)
 
-include $(CORE_MODULES)
-ifeq ($(GCLOUD),)
-include $(GCLOUD_ABSENT_MODULES)
+define include_pack
+include $(PACKS_DIR)/$(1)/pack.conf
+PACK_GATE_RESULT := $$(or $$(PACK_GATES),$$(shell command -v $$(PACK_GATE) 2>/dev/null))
+ifeq (,$$(PACK_GATE_RESULT))
+include $(PACKS_DIR)/$(1)/install.mk
 else
-include $(GCLOUD_MODULES)
+include $$(wildcard $(PACKS_DIR)/$(1)/make/*.mk)
 endif
+endef
+
+include $(CORE_MODULES)
+$(foreach pack,$(PACKS),$(eval $(call include_pack,$(pack))))
 
 # --- Automatic Help Menu ---
 .DEFAULT_GOAL := help

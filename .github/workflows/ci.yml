@@ -10,13 +10,14 @@
 #   - .ps1 files stay 100% ASCII: PowerShell 5.1 reads a BOM-less script as
 #     Windows-1252, where one non-ASCII byte (an em-dash) becomes a string
 #     delimiter and breaks the whole file's parse
-#   - make on the gmake Makefile: reading it parses every make/*.mk include,
-#     then the help menu is asserted (expected targets present, no doc drift
-#     between the *_commands.sh cheatsheets and gmake help). A gated target
-#     can exist in one install state only, so the menu is captured both with
-#     the CLI (GCLOUD=x) and without it (GCLOUD=) and the two are
-#     concatenated; the bare run is then asserted on its own (gated targets
-#     gone, gcp_install there, gcp_uninstall not)
+#   - make on the gmake Makefile: reading it parses every include — the
+#     socle's make/*.mk and every pack's — then the help menu is asserted
+#     (expected targets present, no doc drift between the *_commands.sh
+#     cheatsheets and gmake help). A gated target can exist in one install
+#     state only, so the menu is captured both with the gates forced open
+#     (PACK_GATES=x) and closed (PACK_GATES=) and the two are concatenated;
+#     the bare run is then asserted on its own (gated targets gone,
+#     gcp_install there, gcp_uninstall not)
 #   - documentation coverage: every make/*.mk module must have a doc page — in
 #     docs/make/ for the socle, inside its own pack for a pack module — linked
 #     from the README index and listed in the README project tree; every gmake
@@ -76,15 +77,15 @@ jobs:
       - name: Makefile parse + help menu
         run: |
           # The menu follows what is installed, so it is captured in both
-          # states and concatenated: gcp_install exists in one, gcp_uninstall
-          # in the other, and the two steps below compare the cheatsheets
-          # against this union. GCLOUD=x forces the five gated modules in (a
-          # command-line variable wins over the makefile's :=); GCLOUD= is
+          # states and concatenated: a pack's way in exists in one, its way
+          # out in the other, and the two steps below compare the cheatsheets
+          # against this union. PACK_GATES=x forces every pack's gate open (a
+          # command-line variable wins over the makefile's :=); PACK_GATES= is
           # what this runner actually looks like. These checks are about the
           # repository, not about the machine running them.
           {
-            make -f zsh/gmake/Makefile GCLOUD=x help
-            make -f zsh/gmake/Makefile GCLOUD= help
+            make -f zsh/gmake/Makefile PACK_GATES=x help
+            make -f zsh/gmake/Makefile PACK_GATES= help
           } | sed 's/\x1b\[[0-9;]*m//g' > help.txt
           missing=0
           for target in test test-fast test-functional test-gcp \
@@ -105,7 +106,7 @@ jobs:
           # installed, the gated modules leave the menu, gcp_install is the
           # only line left telling a user the capability exists - and the way
           # out has no business being offered before the way in.
-          make -f zsh/gmake/Makefile GCLOUD= help |
+          make -f zsh/gmake/Makefile PACK_GATES= help |
             sed 's/\x1b\[[0-9;]*m//g' > help-bare.txt
           bad=0
           if grep -qE '^  (gcp_auth_cli|cloudrun_deploy|vm_create|bigquery_show)[[:space:]]' help-bare.txt; then
