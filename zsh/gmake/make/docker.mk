@@ -8,15 +8,15 @@
 # CLI is present.
 
 docker_build_local: ## Build the Docker image locally for testing
-	$(call check_vars, DOCKER_BASE_IMAGE PACKAGE_NAME GAR_IMAGE)
-	@echo "🐳 Building local Docker image $(GAR_IMAGE):dev..."
+	$(call check_vars, DOCKER_BASE_IMAGE PACKAGE_NAME DOCKER_LOCAL_IMAGE)
+	@echo "🐳 Building local Docker image $(DOCKER_LOCAL_IMAGE):dev..."
 	docker build \
 		--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
 		--build-arg PACKAGE_NAME=$(PACKAGE_NAME) \
-		--tag=$(GAR_IMAGE):dev .
+		--tag=$(DOCKER_LOCAL_IMAGE):dev .
 
 docker_run_local: ## Run the local Docker container on port 8080
-	$(call check_vars, GAR_IMAGE)
-	@echo "🏃♂️ Running container $(GAR_IMAGE):dev..."
+	$(call check_vars, DOCKER_LOCAL_IMAGE)
+	@echo "🏃♂️ Running container $(DOCKER_LOCAL_IMAGE):dev..."
 	@echo "👉 Go to http://localhost:8080"
-	docker run -it -e PORT=8000 -p 8080:8000 $(GAR_IMAGE):dev
+	docker run -it -e PORT=8000 -p 8080:8000 $(DOCKER_LOCAL_IMAGE):dev

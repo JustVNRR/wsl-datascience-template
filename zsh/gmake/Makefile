@@ -13,7 +13,7 @@ THIS_DIR := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 # that decide WHICH project a command targets are refused here — a stray one
 # would silently retarget every gmake run made outside a project directory.
 # (Command-line and environment values are not concerned.)
-PROJECT_IDENTIFYING_VARS := GCP_PROJECT INSTANCE SA_NAME BUCKET_NAME BQ_DATASET TABLE_NAME GAR_IMAGE ARTIFACTSREPO SERVICE_URL
+PROJECT_IDENTIFYING_VARS := GCP_PROJECT INSTANCE SA_NAME BUCKET_NAME BQ_DATASET TABLE_NAME GAR_IMAGE DOCKER_LOCAL_IMAGE ARTIFACTSREPO SERVICE_URL
 $(foreach var,$(PROJECT_IDENTIFYING_VARS),$(if $(filter file,$(origin $(var))),$(error ❌ ERROR: Variable $(var) identifies a project — it belongs in that project's .env, never in .env.global)))
 
 # B. Load local project-specific overrides from the current working directory
