@@ -48,8 +48,8 @@ Make sure Docker Desktop is running before you start.
    .\wsl.ps1 build
    ```
 
-   It asks for the instance's name, then for the folder that will hold its
-   disk — `D:\WSL\<name>` by default. Ctrl+C aborts.
+   It asks for the instance's name, then confirms where it will live —
+   `D:\WSL\<name>` by default. Ctrl+C aborts.
 
 ---
 

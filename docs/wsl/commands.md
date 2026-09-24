@@ -121,12 +121,14 @@ It takes no options: it asks, twice.
 ```text
 ==> Creating a new instance
 Name of the instance (CTRL+C to abort): ubuntu-ml-dev
-Folder for 'ubuntu-ml-dev' [D:\WSL]:
+Create [D:\WSL\ubuntu-ml-dev]? [Y/n]
 ```
 
-The name is checked as it is typed (letters, digits, `.`, `_`, `-`), and Enter
-takes the proposed folder — the one every other command writes to. Give
-another path to put the disk on a second drive.
+The name is checked as it is typed (letters, digits, `.`, `_`, `-`). The
+location is then shown and confirmed — Enter accepts it, and it is the folder
+every other command writes to. Answer `n` to put the disk somewhere else: the
+folder question follows, and the path that comes out of it is shown and
+confirmed in turn.
 
 An answer that cannot be used comes back with the reason, and the question is
 asked again:
