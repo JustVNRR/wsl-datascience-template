@@ -16,8 +16,6 @@ source .venv/bin/activate                    # Manual activation (fallback if di
 deactivate                                   # Deactivate the currently active virtual environment
 
 # --- 3. DIRENV INTEGRATION (AUTOMATION) ---
-echo "source .venv/bin/activate" > .envrc    # Configure auto-activation for this directory
-direnv allow                                 # Authorize direnv to load .envrc on entry
 direnv reload                                # Force reload current environment configuration
 
 # --- 4. PACKAGE MANAGEMENT (UV PIP) ---
