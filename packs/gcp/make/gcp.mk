@@ -83,23 +83,12 @@ gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
 	@echo "💣 Deleting bucket gs://$(BUCKET_NAME)..."
 	gcloud storage rm --recursive gs://$(BUCKET_NAME) --project=$(GCP_PROJECT)
 
-# The way out, and the reason it lives here: this module is loaded only when
-# gcloud is present, so the exit is offered exactly when there is something to
-# remove - and never before the way in.
-# It undoes what gcp_install did: the package, and the APT key and address that
-# target registered. Nothing of Google is left behind on a machine that no
-# longer uses it - so uninstalling then reinstalling is what a first install
-# is. ~/.config/gcloud keeps the logins: they are the user's data, not the
-# package's.
-gcp_uninstall: ## Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gcloud logins)
-	$(call confirm_action, Uninstall the Google Cloud CLI (frees ~409 MB))
-	@echo "➖ Removing the Google APT repository..."
-	@sudo bash -c 'set -e; \
-		apt-get remove -y google-cloud-cli; \
-		rm -f /etc/apt/keyrings/cloud.google.gpg /etc/apt/sources.list.d/google-cloud-sdk.list'
-	@echo "✅ Google Cloud CLI removed."
-	@echo "   The Google Cloud commands have left the gmake menu."
-	@echo "   Your logins (~/.config/gcloud) were left alone - delete that directory to forget them."
+# No way out here, and that is deliberate: a pack leaves from Windows, by
+# `.\wsl.ps1 remove_pack`, which runs the pack's own remove.sh and then deletes
+# this folder - the file you are reading included. A target that has to erase
+# what defines it can only ever half do the job; the removal needs the package,
+# the APT key and the address, and a script that outlives the call.
+# ~/.config/gcloud keeps the logins: they are the user's data, not the pack's.
 
 iam_setup_service_account: ## Create the Service Account and assign IAM roles
 	$(call check_vars, SA_NAME GCP_PROJECT)

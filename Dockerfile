@@ -128,11 +128,11 @@ RUN git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /etc/skel/.local/
 # Copy modular Zsh configuration to the user skeleton directory
 COPY zsh /etc/skel/.config/zsh
 
-# The packs, next to it. Their content travels with the image - the gmake
-# Makefile reads it from ~/.config/packs - but nothing of them is installed: a
-# pack's packages arrive when the user asks for them. That is what keeps the
-# image free of tools a machine may never use, and `build` quick.
-COPY packs /etc/skel/.config/packs
+# Nothing of the packs, and that is deliberate: the image carries the socle. A
+# pack arrives afterwards, on a living instance, with `.\wsl.ps1 add_pack`,
+# which copies its folder into ~/.config/packs and runs its install script
+# there - the files and the tool together. A machine that never wants one never
+# pays for it, and `build` stays quick.
 
 # Bootstrap ZDOTDIR and create the skeleton directories. The ubuntu base image
 # leaves a bash dotfile set (.bashrc, .bash_logout, .profile) in /etc/skel, and

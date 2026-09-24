@@ -10,20 +10,21 @@ Registry and VMs refuse to run — even inside their free tiers. On a personal
 project you are the Owner and nothing below will ask you for permissions; on a
 company project, ask your administrator for the roles of the modules you use.
 
-## Step 1 — install the gcloud CLI, then authenticate it
+## Step 1 — install the pack, then authenticate the CLI
 
-The image does not ship the Google Cloud CLI: it weighs 409 MB and not every
-project uses Google Cloud. `gmake` therefore loads its five GCP modules only
-when that CLI is present, and offers the way in when it is not — on a fresh
-distro the menu shows `gcp_install` where the GCP targets will be.
+The image ships no pack at all: the gcloud CLI weighs 409 MB, and not every
+project uses Google Cloud. A pack arrives on a living instance, from Windows —
+pick the instance, then `gcp`:
 
-```bash
-gmake gcp_install
+```powershell
+.\wsl.ps1 add_pack
 ```
 
 It registers Google's APT repository (the signing key and the address) before
-installing the package — the image ships neither, so a machine that never does
-Google Cloud never carries them. `gcp_uninstall` removes both.
+installing the package, and copies the pack's files — its gmake targets, its
+cheatsheets, its environment samples — into the instance. The image ships
+neither, so a machine that never does Google Cloud never carries them;
+`.\wsl.ps1 remove_pack` takes both back out.
 
 Run `gmake` again: the GCP targets are there. They call `gcloud`
 and `bq` under your Google account — this one-time login authorizes them.
@@ -114,7 +115,7 @@ its full flow.
 
 - **The CLI and the credentials live inside the distro** (`/usr/bin/gcloud`,
   `~/.config/gcloud`). Recreating the distro loses both — run
-  `gmake gcp_install`, then redo steps 1 and 5.
+  `.\wsl.ps1 add_pack`, then redo steps 1 and 5.
 - Operational targets refuse to run outside a project folder under
   `~/projects` — the message says so. `GMAKE_ANYWHERE=1` bypasses the gate
   for unconventional setups.

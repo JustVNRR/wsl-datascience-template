@@ -25,6 +25,8 @@ $Commands = @(
     @{ Name = "start";      What = "start a stopped instance" },
     @{ Name = "stop";       What = "stop a running instance" },
     @{ Name = "shell";      What = "open a shell in one of our instances" },
+    @{ Name = "add_pack";   What = "install optional tooling into an instance" },
+    @{ Name = "remove_pack"; What = "uninstall optional tooling from an instance" },
     @{ Name = "unregister"; What = "remove an instance, and what it left on Windows" },
     @{ Name = "archive";    What = "write an instance to a named archive" },
     @{ Name = "restore";    What = "rebuild an instance from an archive" },

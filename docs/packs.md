@@ -2,18 +2,20 @@
 
 [← Back to the README](../README.md#mlops-makefile-gmake)
 
-A pack is optional tooling — a CLI the image does not ship, and the gmake
-targets that drive it — living in one folder under `packs/`. The socle knows
-nothing about any particular pack: it finds the folders, reads what they
-declare, and follows. Adding a pack touches no file outside that folder.
+A pack is optional tooling — a CLI the image does not ship, the gmake targets
+that drive it, and the script that installs both — living in one folder under
+`packs/`. The socle knows nothing about any particular pack: it finds the
+folders and loads what they carry. Adding a pack touches no file outside that
+folder.
 
 ## The folder
 
 ```text
 packs/<name>/
-├── pack.conf              # what the socle needs to know
-├── install.mk             # loaded while the gate binary is ABSENT — the way in
-├── make/*.mk              # loaded while it is PRESENT — what the pack offers
+├── pack.conf              # what the socle and the installer read
+├── install.sh             # what `.\wsl.ps1 add_pack` runs inside the instance
+├── remove.sh              # what `.\wsl.ps1 remove_pack` runs before the folder goes
+├── make/*.mk              # what the pack offers, loaded as soon as the folder is there
 ├── env.global.sample      # its share of the shared defaults
 ├── env.project.sample     # its share of a project's variables
 ├── cheatsheets/*.sh       # its fcheat sheets, each with a `# requires:` header
@@ -24,27 +26,34 @@ packs/<name>/
 
 | Declaration | What it says |
 | :--- | :--- |
-| `PACK_NAME` | the folder's name, so a reader never has to look twice |
-| `PACK_GATE` | the binary that decides which face is loaded |
-| `PACK_GATE_EXEMPT_GOALS` | the targets reachable from anywhere, before a project exists |
+| `PACK_DESCRIPTION` | the line `add_pack` shows in its list of packs |
 | `PACK_IDENTIFYING_VARS` | the variables refused in a shared `.env.global` |
 
-The last two are read with `sed`, not by including the file: the socle needs
-them while it is still loading `.env.global`, before a pack may define
-anything.
+`PACK_IDENTIFYING_VARS` is read with `sed`, not by including the file: the socle
+needs it while it is still loading `.env.global`, before a pack may define
+anything. `PACK_DESCRIPTION` is read by `add_pack`, from Windows.
 
-## The gate
+## Installed, or not
 
-`gmake help` is built by reading the **text** of the files make loaded, not
-from the targets make defined. A module that was not loaded contributes no line
-at all — which is why a pack has two faces rather than one conditional: an
-`ifeq` around a target would leave its description in the text, and the menu
-would show both faces at once.
+The folder **is** the state. The socle loads `packs/*/make/*.mk` and asks
+nothing else: a pack is installed exactly when its folder is in
+`~/.config/packs`, which is where `.\wsl.ps1 add_pack` puts it — the files and
+the tool together. Nothing is recorded anywhere, so nothing can disagree with
+what is on the machine.
 
-Nothing is recorded anywhere. The question is asked again on every run, so
-installing the CLI by any means brings the targets back, and removing it takes
-them away. `PACK_GATES=x gmake help` forces every gate open — that is how CI
-reads both faces.
+`gmake help` follows the same rule as ever: it is built by reading the **text**
+of the files make loaded, so a pack whose folder is gone contributes no line at
+all. That is why the two-faced arrangement this replaces — a module loaded only
+when a given binary was on the PATH — had to go: it made a pack's commands
+appear or disappear for a reason that was not the pack's presence.
+
+Removing is the same story from the other end: `.\wsl.ps1 remove_pack` runs the
+pack's own `remove.sh` first, then deletes the folder. What the install wrote to
+the system leaves with it; what it wrote in your files — a login, a `.env` you
+filled in — stays, because it is yours and not the pack's.
+
+Both commands are documented in
+[Instance commands](wsl/commands.md#add_pack).
 
 ## The cheatsheets
 
@@ -56,20 +65,23 @@ time it opens:
 # requires: !<binary>     shown only when it is not
 ```
 
-A pack that installs a tool ships the `!` sheet for the install and the plain
-one for the uninstall, exactly as its two make files do.
+A tool removed by hand (`sudo apt remove google-cloud-cli`) leaves a folder
+behind and a sheet whose commands would not run: the header hides it. That is
+the whole job it has left — the sheets it used to pair with, for installing and
+uninstalling the tool, went with the gate.
 
 ## The variables
 
 A pack ships samples, never the real files. `gmake env_global_enable` and
-`gmake env_project_enable` read the socle's samples and every pack's, and
-append only what the file does not already define — so a value you filled in
-survives, and a pack added later is covered by the next run. See
+`gmake env_project_enable` read the socle's samples and every installed pack's,
+and append only what the file does not already define — so a value you filled
+in survives, and a pack installed later is covered by the next run. See
 [Environment files](make/env.md).
 
 ## Not yet
 
-A pack lives in this repository. The day one moves to a repository of its own,
-`pack.conf` will need to declare which contract version it was written
-against — a field that would be dead weight today, since there is only ever
-one version in play.
+Two fields have no reader, and are absent for that reason: `PACK_CONTRACT` —
+the version of this contract, which no instance has ever met another of, since
+the packs and the installer still come from the same checkout — and
+`PACK_REQUIRES`, a pack needing another, which none does. A field nothing reads
+is not a safety.

@@ -11,13 +11,12 @@
 #     Windows-1252, where one non-ASCII byte (an em-dash) becomes a string
 #     delimiter and breaks the whole file's parse
 #   - make on the gmake Makefile: reading it parses every include — the
-#     socle's make/*.mk and every pack's — then the help menu is asserted
-#     (expected targets present, no doc drift between the *_commands.sh
-#     cheatsheets and gmake help). A gated target can exist in one install
-#     state only, so the menu is captured both with the gates forced open
-#     (PACK_GATES=x) and closed (PACK_GATES=) and the two are concatenated;
-#     the bare run is then asserted on its own (gated targets gone,
-#     gcp_install there, gcp_uninstall not)
+#     socle's make/*.mk and every pack's make/*.mk — then the help menu is
+#     asserted (expected targets present, no doc drift between the
+#     *_commands.sh cheatsheets and gmake help). The same menu is then read
+#     with PACKS_DIR pointing at an empty folder, which is what an instance
+#     without the pack looks like: its targets are gone, and nothing offers
+#     to install it — a pack arrives from Windows, by `.\wsl.ps1 add_pack`
 #   - documentation coverage: every make/*.mk module must have a doc page — in
 #     docs/make/ for the socle, inside its own pack for a pack module — linked
 #     from the README index and listed in the README project tree; every gmake
@@ -76,17 +75,11 @@ jobs:
 
       - name: Makefile parse + help menu
         run: |
-          # The menu follows what is installed, so it is captured in both
-          # states and concatenated: a pack's way in exists in one, its way
-          # out in the other, and the two steps below compare the cheatsheets
-          # against this union. PACK_GATES=x forces every pack's gate open (a
-          # command-line variable wins over the makefile's :=); PACK_GATES= is
-          # what this runner actually looks like. These checks are about the
-          # repository, not about the machine running them.
-          {
-            make -f zsh/gmake/Makefile PACK_GATES=x help
-            make -f zsh/gmake/Makefile PACK_GATES= help
-          } | sed 's/\x1b\[[0-9;]*m//g' > help.txt
+          # The menu is what the repository carries: the socle's targets and
+          # every pack's, since a pack's folder is right there in packs/. The
+          # steps below compare the cheatsheets against it.
+          make -f zsh/gmake/Makefile help |
+            sed 's/\x1b\[[0-9;]*m//g' > help.txt
           missing=0
           for target in test test-fast test-functional test-gcp \
                         lint lint-py lint-sh lint-format \
@@ -100,27 +93,33 @@ jobs:
           done
           exit $missing
 
-      - name: Optional module gate (nothing installed, no targets, and the way in)
+      - name: A pack's targets follow its folder
         run: |
-          # The half the concatenation above cannot reach: with no CLI
-          # installed, the gated modules leave the menu, gcp_install is the
-          # only line left telling a user the capability exists - and the way
-          # out has no business being offered before the way in.
-          make -f zsh/gmake/Makefile PACK_GATES= help |
+          # What an instance without the pack looks like. The folder is the
+          # whole switch, so pointing PACKS_DIR at an empty one is the same
+          # thing as a machine where no pack was ever added: no gate to force,
+          # no variable to set, nothing to keep in step by hand.
+          mkdir -p /tmp/no-packs
+          make -f zsh/gmake/Makefile PACKS_DIR=/tmp/no-packs help |
             sed 's/\x1b\[[0-9;]*m//g' > help-bare.txt
           bad=0
-          if grep -qE '^  (gcp_auth_cli|cloudrun_deploy|vm_create|bigquery_show)[[:space:]]' help-bare.txt; then
-            echo "::error::a gated target is still in the menu without its CLI"
+          if grep -qE '^  (gcp_auth_cli|cloudrun_deploy|vm_create|bigquery_show|gcs_list_buckets)[[:space:]]' help-bare.txt; then
+            echo "::error::a pack target is in the menu without the pack's folder"
             bad=1
           fi
-          grep -qE '^  gcp_install[[:space:]]' help-bare.txt || {
-            echo "::error::gcp_install must stay in the menu when nothing is installed"
-            bad=1
-          }
-          if grep -qE '^  gcp_uninstall[[:space:]]' help-bare.txt; then
-            echo "::error::gcp_uninstall must not be offered when the CLI is absent"
+          # The way in is not a target any more, and neither is the way out:
+          # a pack is installed and removed from Windows, by wsl.ps1.
+          if grep -qE '^  (gcp_install|gcp_uninstall)[[:space:]]' help-bare.txt; then
+            echo "::error::gcp_install/gcp_uninstall are gone - a pack arrives from Windows"
             bad=1
           fi
+          # And the socle loses nothing to an empty packs folder
+          for target in help lint test env_global_enable docker_build_local; do
+            grep -q "^  ${target}[[:space:]]" help-bare.txt || {
+              echo "::error::socle target '${target}' missing from the menu with no pack"
+              bad=1
+            }
+          done
           exit $bad
 
       - name: Cheatsheet doc drift (*_commands.sh vs gmake help)
@@ -175,10 +174,9 @@ jobs:
           # reachable, or it is a page nobody will ever open.
           for pack_dir in packs/*/; do
             pack=$(basename "$pack_dir")
-            # Both faces of a pack: its install.mk at the root, and the
-            # modules in make/ - the file that is loaded to install it, and
-            # the files that appear once it is.
-            for mk in "$pack_dir"*.mk "$pack_dir"make/*.mk; do
+            # A pack's modules, and only those: the way in is a script at the
+            # root now, not a module, so make/ is the whole of what it offers.
+            for mk in "$pack_dir"make/*.mk; do
               [ -f "$mk" ] || continue
               name=$(basename "$mk" .mk)
               [ -f "${pack_dir}docs/${name}.md" ] || {
