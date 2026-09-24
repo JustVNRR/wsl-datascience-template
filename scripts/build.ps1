@@ -572,19 +572,28 @@ if ($Deployed) {
                         if (-not $DockerUsable) { Start-Sleep -Seconds 2 }
                     }
 
+                    # Kept for the screen the shell opens on, and not printed
+                    # here: the Clear-Host below wipes everything written before
+                    # it, and an answer nobody reads is not an answer.
                     if ($DockerUsable) {
-                        Write-Host "Docker Desktop restarted, and docker answers inside '$DistroName'." -ForegroundColor Green
+                        $DockerReport = @("Docker Desktop: ready - 'docker' works in this instance.")
+                        $DockerReportColour = "Green"
                     } else {
-                        Write-Host "Docker Desktop restarted, but docker does not answer inside '$DistroName'." -ForegroundColor Yellow
-                        Write-Host "  Run 'docker version' in it: if it names the socket's permissions, restart Docker" -ForegroundColor Yellow
-                        Write-Host "  Desktop and open a new terminal - a session keeps the groups it started with." -ForegroundColor Yellow
+                        $DockerReport = @(
+                            "Docker Desktop: 'docker' does not answer in this instance yet.",
+                            "  Run 'docker version' in there. If it names the socket's permissions, restart",
+                            "  Docker Desktop and open a new terminal - a session keeps the groups it started with."
+                        )
+                        $DockerReportColour = "Yellow"
                     }
                 } else {
-                    Write-Host "Restart failed. Restart it manually." -ForegroundColor Yellow
+                    $DockerReport = @("Docker Desktop: not restarted - 'docker' will not work in this instance yet.")
+                    $DockerReportColour = "Yellow"
                 }
             }
         } catch {
-            Write-Host "Docker Desktop settings not updated ($($_.Exception.Message))" -ForegroundColor Yellow
+            $DockerReport = @("Docker Desktop: settings not updated - $($_.Exception.Message)")
+            $DockerReportColour = "Yellow"
         }
     }
 
@@ -599,6 +608,9 @@ if ($Deployed) {
     Write-Host "Welcome, $ConfiguredUser." -ForegroundColor Green
     Write-Host "You are now logged in to $DistroName." -ForegroundColor Green
     Write-Host "Run 'cd projects' and type 'fnew' to create your first project." -ForegroundColor Yellow
+    if ($DockerReport) {
+        foreach ($Line in $DockerReport) { Write-Host $Line -ForegroundColor $DockerReportColour }
+    }
     Write-Host ""
     wsl.exe -d $DistroName --cd ~
 }
