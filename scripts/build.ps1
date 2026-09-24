@@ -556,7 +556,29 @@ if ($Deployed) {
                 $ErrorActionPreference = $PreviousEAP
 
                 if ($DockerExitCode -eq 0) {
-                    Write-Host "Docker Desktop successfully restarted." -ForegroundColor Green
+                    # The restart says nothing about what happened inside: the
+                    # client is injected at Docker Desktop's own pace, and the
+                    # user can be left without the right to use it - which only
+                    # shows up in the session this build is about to open. So
+                    # the thing itself is asked, as the default user and never
+                    # as root, which would pass whatever the answer is.
+                    $DockerUsable = $false
+                    for ($Attempt = 1; $Attempt -le 5 -and -not $DockerUsable; $Attempt++) {
+                        $PreviousEAP = $ErrorActionPreference
+                        $ErrorActionPreference = "Continue"
+                        $null = wsl.exe -d $DistroName -- docker version *> $null
+                        $DockerUsable = ($LASTEXITCODE -eq 0)
+                        $ErrorActionPreference = $PreviousEAP
+                        if (-not $DockerUsable) { Start-Sleep -Seconds 2 }
+                    }
+
+                    if ($DockerUsable) {
+                        Write-Host "Docker Desktop restarted, and docker answers inside '$DistroName'." -ForegroundColor Green
+                    } else {
+                        Write-Host "Docker Desktop restarted, but docker does not answer inside '$DistroName'." -ForegroundColor Yellow
+                        Write-Host "  Run 'docker version' in it: if it names the socket's permissions, restart Docker" -ForegroundColor Yellow
+                        Write-Host "  Desktop and open a new terminal - a session keeps the groups it started with." -ForegroundColor Yellow
+                    }
                 } else {
                     Write-Host "Restart failed. Restart it manually." -ForegroundColor Yellow
                 }
