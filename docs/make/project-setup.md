@@ -23,9 +23,17 @@ auto-detects the project's dependency manifest:
   too when present)
 - no recognized manifest → a bare `uv venv`, with a warning
 
-The bootstrap finishes with the direnv hook: `.envrc` sources
-`.venv/bin/activate`, so the environment activates automatically on `cd`
-into the project.
+The bootstrap finishes with the two files a fresh project needs to be usable:
+
+- **`.envrc`** — written only where the project has none, so the one our own
+  template ships (it loads `.env` through dotenv as well) is left alone. It
+  sources `.venv/bin/activate` behind a guard that keeps it quiet before the
+  first `uv sync`, and `direnv allow` approves it: the environment activates
+  on `cd` into the project.
+- **`.env`** — copied once from the project's own `.env.sample`, because that
+  is the file you have to fill in and the sample is already shaped by the
+  answers you gave the template. A template that ships no sample gets nothing,
+  and an existing `.env` is never touched.
 
 ## Variables
 
