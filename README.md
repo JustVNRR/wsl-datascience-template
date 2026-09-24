@@ -183,6 +183,8 @@ the repository at runtime.
 ├── packs/                   # Optional tooling, one folder per pack
 │   └── gcp/                 # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
 │       ├── install.mk       # the way in (`gcp_install`), loaded while the CLI is absent
+│       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
+│       ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
 │       ├── env.global.sample  # the pack's shared defaults (GCP_REGION, CLOUDRUN_MEMORY…)
 │       ├── env.project.sample # the pack's project variables (GCP_PROJECT, BUCKET_NAME…)
 │       ├── make/            # the pack's modules, loaded while the CLI is installed
@@ -190,8 +192,9 @@ the repository at runtime.
 │       └── docs/            # the pack's pages, onboarding walkthrough included
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
-│   └── *.ps1                # list, build, adopt, start, stop, shell, unregister,
-│                            # archive, restore, duplicate, shrink
+│   └── *.ps1                # list, build, adopt, start, stop, shell, add_pack,
+│                            # remove_pack, unregister, archive, restore,
+│                            # duplicate, shrink
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml           # Static checks (shellcheck, zsh -n, make parse, doc drift)
@@ -271,6 +274,8 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
 | [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell in one of our instances |
+| [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance, its files and its tool together |
+| [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance, and what it left on Windows |
 | [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |

@@ -16,6 +16,8 @@ WSL DataScience template
   start        start a stopped instance
   stop         stop a running instance
   shell        open a shell in one of our instances
+  add_pack     install optional tooling into an instance
+  remove_pack  uninstall optional tooling from an instance
   unregister   remove an instance, and what it left on Windows
   archive      write an instance to a named archive
   restore      rebuild an instance from an archive
@@ -33,6 +35,8 @@ WSL DataScience template
 | [`.\wsl.ps1 start`](#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](#stop) | stop a running instance |
 | [`.\wsl.ps1 shell`](#shell) | open a shell in one of our instances |
+| [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance, its files and its tool together |
+| [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 unregister`](#unregister) | remove an instance, and what it left on Windows |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
@@ -234,6 +238,84 @@ command from — the same thing the build does when a new instance is ready.
 
 ---
 
+## `add_pack`
+
+Installs a pack into an instance: the tool itself (its packages and its APT
+repository) and the pack's files — its gmake targets, its cheatsheets, its
+environment samples.
+
+```powershell
+.\wsl.ps1 add_pack
+```
+
+Two lists, then it installs:
+
+```text
+Instances of this template:
+   1.  template-bac       running       1.1 GB  D:\WSL\template-bac
+   2.  ubuntu-template    stopped       2.4 GB  D:\WSL\ubuntu-template
+   0.  Cancel
+Which one? (0 to cancel) 2
+
+Packs available for 'ubuntu-template':
+   1.  gcp           The Google Cloud CLI (about 409 MB installed)
+   0.  Cancel
+       Already there: python
+Which one? (0 to cancel) 1
+
+==> Installing 'gcp' in 'ubuntu-template'...
+    Your password may be asked: the packages belong to root.
+```
+
+Only the packs the instance does not have yet are offered. The packs are the
+folders under `packs\`: a folder carrying a `pack.conf` is a pack.
+
+**It asks for your password.** The packages and the APT address belong to root;
+the pack's `install.sh` runs as you inside the instance and takes `sudo` where
+it needs to. The prompt appears in this window, in the middle of the
+installation.
+
+Nothing has to be reopened afterwards: `gmake` reads the pack's files at every
+run, and `fcheat` re-reads its cheatsheets at every opening.
+
+If the installation fails, the pack's files are removed and the script says so.
+What the install had already put in place stays; running `add_pack` again picks
+up where it stopped.
+
+---
+
+## `remove_pack`
+
+The reverse: the pack's own `remove.sh` runs first — the tool and its APT
+repository leave the system — then its folder leaves the instance.
+
+```powershell
+.\wsl.ps1 remove_pack
+```
+
+```text
+Packs installed in 'ubuntu-template':
+   1.  gcp
+   0.  Cancel
+Which one? (0 to cancel) 1
+
+==> Removing 'gcp' from 'ubuntu-template'...
+    Its own remove.sh runs first - what it installed leaves the system.
+    Then its folder leaves, and the gmake menu loses its commands.
+Remove 'gcp'? [y/N] y
+```
+
+The list comes from the instance, not from this repository: a pack installed by
+an older copy is still removable, because its `remove.sh` travelled with it.
+
+Your password is asked here too. What the pack left in your files is not
+touched: your `gcloud` logins, the variables it copied into `.env.global`.
+
+A pack installed before packs carried a `remove.sh` is a special case: the
+command says so, and deleting its files undoes nothing on the system side.
+
+---
+
 ## `unregister`
 
 Removes an instance and everything it left on Windows.
@@ -264,7 +346,7 @@ rebuild destroys it the same way. Before either:
 | `~/projects/` | Nothing backs it up — push your work to a remote first |
 | `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
 | `~/.config/gcloud/` | Both logins are redoable in minutes ([GCP onboarding](../../packs/gcp/docs/onboarding.md)) |
-| `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake gcp_install`, then `gmake gcp_enable_global_env`, recreate the file |
+| `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake env_global_enable` recreates them from the samples the instance carries |
 | `~/.config/zsh/cheatsheets/templates.tsv` | Only for rows you added inside the instance: the file is redeployed at build time — move the line into `zsh/` to keep it |
 
 `archive` is the way out: it writes the whole file system to a folder you can
