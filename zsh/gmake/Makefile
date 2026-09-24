@@ -5,6 +5,14 @@
 # Dynamic path resolution: resolves the directory where THIS Makefile lives
 THIS_DIR := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 
+# The packs: one level above this file's own directory. That is the same path
+# in both places — `packs/`, next to `zsh/`, in the repository, and
+# `~/.config/packs`, next to `~/.config/zsh`, in the instance.
+# Named here, at the top, because A-bis needs the list before it may load
+# anything of a pack.
+PACKS_DIR := $(abspath $(THIS_DIR)/../../packs)
+PACKS := $(notdir $(wildcard $(PACKS_DIR)/*))
+
 # 1. Environment Variable Loading (Cascading Pattern)
 # A. Load global fallback values relative to this file's location
 -include $(THIS_DIR)/.env.global
@@ -13,7 +21,15 @@ THIS_DIR := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
 # that decide WHICH project a command targets are refused here — a stray one
 # would silently retarget every gmake run made outside a project directory.
 # (Command-line and environment values are not concerned.)
-PROJECT_IDENTIFYING_VARS := GCP_PROJECT INSTANCE SA_NAME BUCKET_NAME BQ_DATASET TABLE_NAME GAR_IMAGE DOCKER_LOCAL_IMAGE ARTIFACTSREPO SERVICE_URL
+#
+# The socle names its own; a pack declares its share in its pack.conf. That
+# file is read here with sed rather than included, for one reason: this check
+# runs while .env.global is being loaded, before any pack is allowed to define
+# anything. No comment line survives the sed, so the declaration is not
+# mistaken for prose.
+SOCLE_IDENTIFYING_VARS := DOCKER_LOCAL_IMAGE
+PACK_IDENTIFYING_VARS := $(shell sed -n 's/^PACK_IDENTIFYING_VARS *:=[[:space:]]*//p' $(PACKS_DIR)/*/pack.conf 2>/dev/null)
+PROJECT_IDENTIFYING_VARS := $(SOCLE_IDENTIFYING_VARS) $(PACK_IDENTIFYING_VARS)
 $(foreach var,$(PROJECT_IDENTIFYING_VARS),$(if $(filter file,$(origin $(var))),$(error ❌ ERROR: Variable $(var) identifies a project — it belongs in that project's .env, never in .env.global)))
 
 # B. Load local project-specific overrides from the current working directory
@@ -28,7 +44,11 @@ PROJECT_ENV := $(wildcard .env)
 #   - scaffolding targets (copier_project, cruft_project, ccds_project): from ~/projects itself
 #   - onboarding and install targets, and help: from anywhere
 # GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
-GATE_EXEMPT_GOALS := help gcp_install gcp_uninstall gcp_auth_cli gcp_auth_libs gcp_enable_global_env gcp_project_list
+# The socle names its own; each pack declares its share in its pack.conf, read
+# the same way as the identifying variables above and for the same reason.
+SOCLE_GATE_EXEMPT_GOALS := help env_global_enable
+PACK_GATE_EXEMPT_GOALS := $(shell sed -n 's/^PACK_GATE_EXEMPT_GOALS *:=[[:space:]]*//p' $(PACKS_DIR)/*/pack.conf 2>/dev/null)
+GATE_EXEMPT_GOALS := $(SOCLE_GATE_EXEMPT_GOALS) $(PACK_GATE_EXEMPT_GOALS)
 ifneq (,$(filter copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(CURDIR))
@@ -47,47 +67,43 @@ endif
 # 3. Export loaded variables to child subshells
 export
 
-# 4. Derive Service Account Email dynamically
-# Derived - so never list it in check_vars. $(value SA_EMAIL) returns the text
-# of this definition, which is never empty, and the check could never fire: the
-# variables to test are SA_NAME and GCP_PROJECT.
-SA_EMAIL = $(SA_NAME)@$(GCP_PROJECT).iam.gserviceaccount.com
+# 4. Derived variables
+# A variable derived from a project's identity belongs to the pack that reads
+# it: SA_EMAIL is in packs/gcp/make/gcp.mk, where its reader lives. Nothing is
+# derived here.
 
 # 5. Modular Sub-makefile Imports (loaded relative to this file)
 #
-# The glob stays the rule: a new make/*.mk is picked up without editing this
-# file. Only the modules that need a CLI the image does not ship are named
-# here, plus its counterpart - the module carrying the way to install it.
+# Two globs, no name in either: make/*.mk is the socle's own modules, and
+# packs/*/ is every pack's folder. Adding a module, or a whole pack, is
+# creating a file or a directory - nothing to edit here.
 #
 # `gmake help` is built by reading the *text* of the files make loaded, not
 # from the targets make defined. A module that was not loaded contributes no
 # line at all: that is what makes the menu follow the machine, and why the two
-# faces are two files rather than one conditional. An ifeq around a target
-# would leave that target's description in the text, and the menu would show
-# both faces at once.
+# faces of a pack are two files rather than one conditional. An ifeq around a
+# target would leave that target's description in the text, and the menu would
+# show both faces at once.
 #
-# Nothing is recorded anywhere: the question is asked again on every run, so
-# installing the CLI by any means (see `gmake gcp_install`) brings the modules
-# back, and removing it takes them away again. A command-line variable wins
-# over the := below, which is how CI checks both states at once:
-# `GCLOUD=x gmake help` and `GCLOUD= gmake help`.
-GCLOUD := $(shell command -v gcloud 2>/dev/null)
+# The pack loop below is that same rule, one level up: pack.conf declares the
+# binary that decides, make/*.mk is loaded when it answers, install.mk when it
+# does not. The variable is forced open by a command-line PACK_GATES, which is
+# how CI reads both faces at once - `PACK_GATES=x gmake help` and
+# `PACK_GATES= gmake help`.
+CORE_MODULES := $(wildcard $(THIS_DIR)/make/*.mk)
 
-GCLOUD_MODULES := $(THIS_DIR)/make/gcp.mk \
-                  $(THIS_DIR)/make/bigquery.mk \
-                  $(THIS_DIR)/make/cloud_run.mk \
-                  $(THIS_DIR)/make/gcloud_compute.mk \
-                  $(THIS_DIR)/make/artifact_registry.mk
-GCLOUD_ABSENT_MODULES := $(THIS_DIR)/make/install.mk
-
-CORE_MODULES := $(filter-out $(GCLOUD_MODULES) $(GCLOUD_ABSENT_MODULES),$(wildcard $(THIS_DIR)/make/*.mk))
+define include_pack
+include $(PACKS_DIR)/$(1)/pack.conf
+PACK_GATE_RESULT := $$(or $$(PACK_GATES),$$(shell command -v $$(PACK_GATE) 2>/dev/null))
+ifeq (,$$(PACK_GATE_RESULT))
+include $(PACKS_DIR)/$(1)/install.mk
+else
+include $$(wildcard $(PACKS_DIR)/$(1)/make/*.mk)
+endif
+endef
 
 include $(CORE_MODULES)
-ifeq ($(GCLOUD),)
-include $(GCLOUD_ABSENT_MODULES)
-else
-include $(GCLOUD_MODULES)
-endif
+$(foreach pack,$(PACKS),$(eval $(call include_pack,$(pack))))
 
 # --- Automatic Help Menu ---
 .DEFAULT_GOAL := help
@@ -126,4 +142,39 @@ define confirm_action
 	@read -p "Confirm execution? [y/N] " ans; \
 	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "\n❌ Operation cancelled by user." >&2; exit 1; fi
 	@echo "✅ Operation confirmed.\n"
+endef
+
+# Macro 3: create or complete an environment file from the samples, in order.
+# The socle's sample comes first, the packs' follow - each carries its own
+# header, so the assembled file documents itself.
+# Nothing is ever *rewritten*: a variable the target already defines is left
+# alone, which is what makes the two commands safe to re-run. A value you
+# filled in survives, and so does a pack you add later.
+#   $(1) the file to write   $(2) the samples to read
+define merge_env_samples
+	@target=$(1); \
+	samples="$(2)"; \
+	if [ ! -f "$$target" ]; then \
+		echo "📝 Creating $$target from the samples..."; \
+		: > "$$target"; \
+		for s in $$samples; do [ -f "$$s" ] && cat "$$s" >> "$$target"; done; \
+		echo "✏️  Fill in the values you need — each block documents its own."; \
+	else \
+		added=0; \
+		for s in $$samples; do \
+			[ -f "$$s" ] || continue; \
+			missing=$$(awk -F= 'FNR==NR { if ($$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/) seen[$$1]=1; next } $$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/ && !($$1 in seen)' "$$target" "$$s"); \
+			[ -z "$$missing" ] && continue; \
+			if [ $$added -eq 0 ]; then \
+				printf '\n# --- gmake variables added from the samples ---\n' >> "$$target"; \
+				added=1; \
+			fi; \
+			printf '%s\n' "$$missing" >> "$$target"; \
+		done; \
+		if [ $$added -eq 0 ]; then \
+			echo "ℹ️  $$target already defines every gmake variable — nothing to add."; \
+		else \
+			echo "📝 Added the missing variables to $$target."; \
+		fi; \
+	fi
 endef

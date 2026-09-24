@@ -19,21 +19,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Configure third-party APT repositories (GitHub CLI, Google Cloud SDK, eza)
+# 2. Configure third-party APT repositories (GitHub CLI, eza)
 #
-# The Google Cloud SDK repository is configured here but its package is not
-# installed below: it weighs 409 MB and not every project uses Google Cloud.
-# `gmake gcp_install` adds it on demand. Preparing the repository at build time
-# is what keeps that target to a single apt-get, with nothing to fetch, sign or
-# trust at runtime.
+# Only the tools this image installs get their repository registered here. A
+# tool installed on demand registers its own, at the moment it is installed:
+# the image then carries no key and no address for a machine that may never use
+# it, and uninstalling that tool has something to undo.
 RUN mkdir -p -m 755 /etc/apt/keyrings \
     # GitHub CLI
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
     && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list \
-    # Google Cloud SDK
-    && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/cloud.google.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list \
     # eza (modern ls replacement)
     && curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | gpg --dearmor -o /etc/apt/keyrings/gierens.gpg \
     && echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | tee /etc/apt/sources.list.d/gierens.list
@@ -81,8 +77,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ripgrep \
     shellcheck \
     zoxide \
-    # Database CLI (the Google Cloud CLI is not installed here - see section 2:
-    # its apt repository is ready, `gmake gcp_install` pulls the package)
+    # Database CLI
     sqlite3 \
     # Build tools for compiling Python wheels & C-extensions
     build-essential \
@@ -132,6 +127,12 @@ RUN git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /etc/skel/.local/
 
 # Copy modular Zsh configuration to the user skeleton directory
 COPY zsh /etc/skel/.config/zsh
+
+# The packs, next to it. Their content travels with the image - the gmake
+# Makefile reads it from ~/.config/packs - but nothing of them is installed: a
+# pack's packages arrive when the user asks for them. That is what keeps the
+# image free of tools a machine may never use, and `build` quick.
+COPY packs /etc/skel/.config/packs
 
 # Bootstrap ZDOTDIR and create the skeleton directories. The ubuntu base image
 # leaves a bash dotfile set (.bashrc, .bash_logout, .profile) in /etc/skel, and

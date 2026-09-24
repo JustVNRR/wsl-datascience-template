@@ -3,7 +3,8 @@
 # requires: gcloud
 # ==========================================
 # The raw gcloud commands for the one-time setup, then the gmake targets that
-# drive the same services — the full walkthrough lives in docs/optional_tooling/gcp_onboarding.md.
+# drive the same services — the full walkthrough lives in the pack's
+# onboarding guide (packs/gcp/docs/onboarding.md).
 # Offered only while the CLI is installed: install_commands.sh is the face
 # you get without it.
 
@@ -27,8 +28,6 @@ gcloud iam service-accounts keys create <FILE.json> --iam-account=<SA_EMAIL> # C
 # --- 4. GOOGLE CLOUD PLATFORM (GCP - GENERAL) ---
 gmake gcp_auth_cli                           # Authenticate the gcloud CLI (gcloud, bq) with your Google account
 gmake gcp_auth_libs                          # Authenticate the Python client libraries (application-default credentials)
-gmake gcp_enable_global_env                  # Create .env.global (shared defaults) from the committed sample
-gmake gcp_enable_project_env                 # Add the template variables to the current project's .env, creating it if absent
 gmake gcp_project_list                       # List all accessible GCP projects
 gmake gcp_enable_compute                     # Enable Compute Engine API for the active project
 gmake gcp_enable_storage                     # Enable Cloud Storage API for the active project

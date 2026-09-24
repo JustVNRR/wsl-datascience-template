@@ -4,22 +4,25 @@
 # This repo is shell / zsh / make, not Python: no unit-test framework — the
 # workflow only runs the standard static checks, on every push.
 #   - shellcheck on real shell scripts (cheatsheets/*.sh are fcheat data files
-#     parsed by awk, not executable shell — excluded)
+#     parsed by awk, not executable shell — excluded, the socle's and the
+#     packs' alike)
 #   - zsh -n on all zsh config files (syntax only, nothing is executed)
 #   - .ps1 files stay 100% ASCII: PowerShell 5.1 reads a BOM-less script as
 #     Windows-1252, where one non-ASCII byte (an em-dash) becomes a string
 #     delimiter and breaks the whole file's parse
-#   - make on the gmake Makefile: reading it parses every make/*.mk include,
-#     then the help menu is asserted (expected targets present, no doc drift
-#     between the *_commands.sh cheatsheets and gmake help). A gated target
-#     can exist in one install state only, so the menu is captured both with
-#     the CLI (GCLOUD=x) and without it (GCLOUD=) and the two are
-#     concatenated; the bare run is then asserted on its own (gated targets
-#     gone, gcp_install there, gcp_uninstall not)
-#   - documentation coverage: every make/*.mk module must have a
-#     docs/make/<name>.md page, linked from the README index and listed in
-#     the README project tree; every gmake target must appear in a cheatsheet;
-#     every .github/workflows/*.yml must be named in the README
+#   - make on the gmake Makefile: reading it parses every include — the
+#     socle's make/*.mk and every pack's — then the help menu is asserted
+#     (expected targets present, no doc drift between the *_commands.sh
+#     cheatsheets and gmake help). A gated target can exist in one install
+#     state only, so the menu is captured both with the gates forced open
+#     (PACK_GATES=x) and closed (PACK_GATES=) and the two are concatenated;
+#     the bare run is then asserted on its own (gated targets gone,
+#     gcp_install there, gcp_uninstall not)
+#   - documentation coverage: every make/*.mk module must have a doc page — in
+#     docs/make/ for the socle, inside its own pack for a pack module — linked
+#     from the README index and listed in the README project tree; every gmake
+#     target must appear in a cheatsheet; every .github/workflows/*.yml must be
+#     named in the README
 #   - templates.tsv format: every row must have 4 tab-separated columns and a
 #     known tool (copier/cruft/ccds). The picker skips a malformed row and warns
 #     on stderr, but only when someone runs fnew - this check never misses one
@@ -44,12 +47,16 @@ jobs:
 
       - name: Shellcheck (real shell scripts)
         run: |
-          find . -type f -name '*.sh' -not -path './zsh/cheatsheets/*' -print0 |
+          find . -type f -name '*.sh' \
+            -not -path './zsh/cheatsheets/*' \
+            -not -path './packs/*/cheatsheets/*' -print0 |
             xargs -0 -r shellcheck
 
       - name: Zsh syntax (zsh -n, no execution)
         run: |
-          find zsh -type f \( -name '*.zsh' -o -name '.zshrc' \) -print0 |
+          # packs/ too: a pack may ship zsh files of its own (the shell face of
+          # what it installs), and nothing else would read them.
+          find zsh packs -type f \( -name '*.zsh' -o -name '.zshrc' \) -print0 |
             xargs -0 -r -n1 zsh -n
 
       - name: PowerShell scripts (ASCII only)
@@ -70,15 +77,15 @@ jobs:
       - name: Makefile parse + help menu
         run: |
           # The menu follows what is installed, so it is captured in both
-          # states and concatenated: gcp_install exists in one, gcp_uninstall
-          # in the other, and the two steps below compare the cheatsheets
-          # against this union. GCLOUD=x forces the five gated modules in (a
-          # command-line variable wins over the makefile's :=); GCLOUD= is
+          # states and concatenated: a pack's way in exists in one, its way
+          # out in the other, and the two steps below compare the cheatsheets
+          # against this union. PACK_GATES=x forces every pack's gate open (a
+          # command-line variable wins over the makefile's :=); PACK_GATES= is
           # what this runner actually looks like. These checks are about the
           # repository, not about the machine running them.
           {
-            make -f zsh/gmake/Makefile GCLOUD=x help
-            make -f zsh/gmake/Makefile GCLOUD= help
+            make -f zsh/gmake/Makefile PACK_GATES=x help
+            make -f zsh/gmake/Makefile PACK_GATES= help
           } | sed 's/\x1b\[[0-9;]*m//g' > help.txt
           missing=0
           for target in test test-fast test-functional test-gcp \
@@ -99,7 +106,7 @@ jobs:
           # installed, the gated modules leave the menu, gcp_install is the
           # only line left telling a user the capability exists - and the way
           # out has no business being offered before the way in.
-          make -f zsh/gmake/Makefile GCLOUD= help |
+          make -f zsh/gmake/Makefile PACK_GATES= help |
             sed 's/\x1b\[[0-9;]*m//g' > help-bare.txt
           bad=0
           if grep -qE '^  (gcp_auth_cli|cloudrun_deploy|vm_create|bigquery_show)[[:space:]]' help-bare.txt; then
@@ -121,7 +128,8 @@ jobs:
           # Comment lines are skipped, as the picker itself does: a sheet's
           # header documents nothing, and prose in it can name a target without
           # offering it - `# requires: gcloud`, or a sentence about the menu.
-          grep -hvE '^[[:space:]]*#' zsh/cheatsheets/*_commands.sh |
+          grep -hvE '^[[:space:]]*#' zsh/cheatsheets/*_commands.sh \
+                                       packs/*/cheatsheets/*_commands.sh |
             grep -oE 'gmake [a-zA-Z_-]+' |
             awk '{print $2}' | sort -u > documented.txt
           missing=0
@@ -161,9 +169,34 @@ jobs:
               missing=1
             }
           done
+          # A pack documents itself inside the pack, so that it stays one
+          # folder that moves as a whole. The README links the pack, not each
+          # of its pages - but a page that documents no module still has to be
+          # reachable, or it is a page nobody will ever open.
+          for pack_dir in packs/*/; do
+            pack=$(basename "$pack_dir")
+            # Both faces of a pack: its install.mk at the root, and the
+            # modules in make/ - the file that is loaded to install it, and
+            # the files that appear once it is.
+            for mk in "$pack_dir"*.mk "$pack_dir"make/*.mk; do
+              [ -f "$mk" ] || continue
+              name=$(basename "$mk" .mk)
+              [ -f "${pack_dir}docs/${name}.md" ] || {
+                echo "::error::pack '${pack}': module '${name}' has no doc page (${pack_dir}docs/${name}.md)"
+                missing=1
+              }
+            done
+            for doc in "$pack_dir"docs/*.md; do
+              name=$(basename "$doc" .md)
+              [ -f "${pack_dir}make/${name}.mk" ] || grep -q "$doc" README.md || {
+                echo "::error::orphan pack page: ${doc} documents no module and the README does not link it"
+                missing=1
+              }
+            done
+          done
           # Every docs/ folder the README names must exist: a renamed directory
-          # used to survive unnoticed (docs/gcp/, after the onboarding page
-          # moved to docs/optional_tooling/)
+          # used to survive unnoticed (docs/gcp/ stayed named in the README
+          # long after its page had moved out of it)
           grep -oE 'docs/[a-z_]+/' README.md | sort -u > readme_docs.txt
           while read -r d; do
             [ -d "$d" ] || {
@@ -176,7 +209,8 @@ jobs:
           awk '/^  /{print $1}' help.txt | grep -vx -e help -e make > help_targets.txt
           # Same cut as the drift check: what the picker offers is what has to
           # document the menu, comments excluded.
-          grep -hvE '^[[:space:]]*#' zsh/cheatsheets/*_commands.sh > sheet_lines.txt
+          grep -hvE '^[[:space:]]*#' zsh/cheatsheets/*_commands.sh \
+                                       packs/*/cheatsheets/*_commands.sh > sheet_lines.txt
           while read -r target; do
             grep -q "gmake ${target}\b" sheet_lines.txt || {
               echo "::error::target '${target}' not documented in any *_commands.sh cheatsheet"

@@ -25,3 +25,7 @@ gmake test                                   # Run the whole test suite
 gmake test-fast                              # Run fast tests only, without external infrastructure (CI lane)
 gmake test-functional                        # Run functional tests (real local infra needed, e.g. .env, Docker, model)
 gmake test-gcp                               # Run tests hitting a real GCP environment (test/staging/prod)
+
+# --- 5. ENVIRONMENT FILES (.env.global / .env) ---
+gmake env_global_enable                      # Create or complete the machine-wide .env.global from the samples
+gmake env_project_enable                     # Create or complete this project's .env from the samples

@@ -7,10 +7,14 @@
 # the sheet when the tool IS there, which is what a sheet about installing that
 # tool wants. Nothing is recorded: the question is asked again every time the
 # picker opens, the way `gmake` asks it at every run.
+#
+# Two folders, one rule: the socle's sheets, then the packs' - the same place
+# the gmake Makefile looks for a pack, so a pack added later brings its sheets
+# with it and this file never learns its name.
 _fcheat_files() {
     local file requires binary
 
-    for file in "$ZDOTDIR"/cheatsheets/*.sh(N); do
+    for file in "$ZDOTDIR"/cheatsheets/*.sh(N) "$ZDOTDIR"/../packs/*/cheatsheets/*.sh(N); do
         requires=$(awk '/^#[[:space:]]*requires:/ {
             sub(/^#[[:space:]]*requires:[[:space:]]*/, "")
             sub(/[[:space:]]+$/, "")

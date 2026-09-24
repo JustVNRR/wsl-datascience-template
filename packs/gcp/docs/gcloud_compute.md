@@ -1,6 +1,6 @@
 # Compute Engine (VMs)
 
-[← Back to the README](../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../../README.md#mlops-makefile-gmake)
 
 Provision and operate virtual machines — the billing angle is made explicit
 at every step.

@@ -1,6 +1,6 @@
 # GCP Onboarding
 
-[← Back to the README](../../README.md#optional-tooling)
+[← Back to the README](../../../README.md#optional-tooling)
 
 ## Step 0 — outside the distro, once
 
@@ -20,6 +20,10 @@ distro the menu shows `gcp_install` where the GCP targets will be.
 ```bash
 gmake gcp_install
 ```
+
+It registers Google's APT repository (the signing key and the address) before
+installing the package — the image ships neither, so a machine that never does
+Google Cloud never carries them. `gcp_uninstall` removes both.
 
 Run `gmake` again: the GCP targets are there. They call `gcloud`
 and `bq` under your Google account — this one-time login authorizes them.
@@ -41,10 +45,10 @@ Lists the projects your account can access — your first successful call.
 
 ## Step 3 — fill the two env contracts
 
-Once per machine — your shared defaults, from the committed sample:
+Once per machine — your shared defaults, the GCP block among them:
 
 ```bash
-gmake gcp_enable_global_env
+gmake env_global_enable
 ```
 
 then fill `GCP_REGION` and `ZONE` at minimum.
@@ -52,12 +56,13 @@ then fill `GCP_REGION` and `ZONE` at minimum.
 Once per project — its identity, in the project folder:
 
 ```bash
-gmake gcp_enable_project_env
+gmake env_project_enable
 ```
 
 then fill `GCP_PROJECT` at minimum; add each module's variables as you need
-them. If the project already has a `.env` of its own (e.g. for Docker), only
-the missing gmake variables are appended — existing values are never touched.
+them. Both commands read the samples — the GCP pack's and the socle's — and
+only append what the file does not define yet: existing values are never
+touched. Run them again after adding a pack.
 
 `gmake` always passes `--project` explicitly, so you never need
 `gcloud config set project` — the `.env` file is the single source of truth.
@@ -93,16 +98,16 @@ use that service-account key file instead and this step is unnecessary.
 From here, what you run depends on the workflow — each module page documents
 its full flow.
 
-- **Docker → Artifact Registry** ([`artifact_registry.md`](../make/artifact_registry.md),
-  [`docker.md`](../make/docker.md)): run `artifact_registry_auth` once per region and
+- **Docker → Artifact Registry** ([`artifact_registry.md`](artifact_registry.md),
+  [`docker.md`](../../../docs/make/docker.md)): run `artifact_registry_auth` once per region and
   create the repository once per project; then build and push your production
   image.
-- **Cloud Run** ([`cloud_run.md`](../make/cloud_run.md)): deploy a pushed
+- **Cloud Run** ([`cloud_run.md`](cloud_run.md)): deploy a pushed
   image; services are private unless `CLOUDRUN_PUBLIC=true`.
-- **VMs** ([`gcloud_compute.md`](../make/gcloud_compute.md)): create, connect,
+- **VMs** ([`gcloud_compute.md`](gcloud_compute.md)): create, connect,
   and set up the machine — `vm_run_script` sends a script of your choice
   (`VM_SCRIPT=...`) from the project to the VM; the project owns the script.
-- **BigQuery** ([`bigquery.md`](../make/bigquery.md)): create the dataset,
+- **BigQuery** ([`bigquery.md`](bigquery.md)): create the dataset,
   then the tables.
 
 ## Good to know
