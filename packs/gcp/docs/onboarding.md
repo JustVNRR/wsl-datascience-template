@@ -45,10 +45,10 @@ Lists the projects your account can access — your first successful call.
 
 ## Step 3 — fill the two env contracts
 
-Once per machine — your shared defaults, from the committed sample:
+Once per machine — your shared defaults, the GCP block among them:
 
 ```bash
-gmake gcp_enable_global_env
+gmake env_global_enable
 ```
 
 then fill `GCP_REGION` and `ZONE` at minimum.
@@ -56,12 +56,13 @@ then fill `GCP_REGION` and `ZONE` at minimum.
 Once per project — its identity, in the project folder:
 
 ```bash
-gmake gcp_enable_project_env
+gmake env_project_enable
 ```
 
 then fill `GCP_PROJECT` at minimum; add each module's variables as you need
-them. If the project already has a `.env` of its own (e.g. for Docker), only
-the missing gmake variables are appended — existing values are never touched.
+them. Both commands read the samples — the GCP pack's and the socle's — and
+only append what the file does not define yet: existing values are never
+touched. Run them again after adding a pack.
 
 `gmake` always passes `--project` explicitly, so you never need
 `gcloud config set project` — the `.env` file is the single source of truth.

@@ -4,7 +4,8 @@
 
 Projects, Cloud Storage buckets, and service accounts — the ground floor of
 the GCP modules. All targets read the cascading `.env.global` / `.env`
-configuration.
+configuration, which [`env_global_enable` and `env_project_enable`](../../../docs/make/env.md)
+assemble from the samples the packs ship.
 
 New to GCP entirely? Start with the [onboarding guide](onboarding.md).
 
@@ -14,8 +15,6 @@ New to GCP entirely? Start with the [onboarding guide](onboarding.md).
 |---|---|---|
 | `gcp_auth_cli` | Authenticate the gcloud CLI (`gcloud`, `bq`) with your Google account | — |
 | `gcp_auth_libs` | Authenticate the Python client libraries (application-default credentials) | — |
-| `gcp_enable_global_env` | Create `.env.global` (shared defaults) from the committed sample | — |
-| `gcp_enable_project_env` | Add the template variables to the project's `.env`, creating it from the sample when absent; existing variables are never touched | — |
 | `gcp_project_list` | List all GCP projects available to your account | — |
 | `gcp_enable_compute` | Enable the Compute Engine API for the project | ⚠️ |
 | `gcp_enable_storage` | Enable the Cloud Storage API for the project | ⚠️ |

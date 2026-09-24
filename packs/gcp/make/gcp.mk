@@ -15,32 +15,6 @@ gcp_auth_libs: ## Authenticate the Python client libraries (application-default 
 	@echo "🔑 Opening the Google login for the application-default credentials..."
 	gcloud auth application-default login
 
-gcp_enable_global_env: ## Create .env.global (shared defaults) from the committed sample
-	@if [ -f $(THIS_DIR)/.env.global ]; then \
-		echo "ℹ️  $(THIS_DIR)/.env.global already exists — nothing done."; \
-	else \
-		echo "📝 Creating $(THIS_DIR)/.env.global from the sample..."; \
-		cp $(THIS_DIR)/.env.global.sample $(THIS_DIR)/.env.global; \
-		echo "✏️  Fill GCP_REGION and ZONE at minimum."; \
-	fi
-
-gcp_enable_project_env: ## Add the template variables to the current project's .env, creating it if absent
-	@if [ ! -f .env ]; then \
-		echo "📝 Creating ./.env from the sample..."; \
-		cp $(THIS_DIR)/.env.project.sample .env; \
-		echo "✏️  Fill GCP_PROJECT at minimum."; \
-	else \
-		missing=$$(awk -F= 'FNR==NR { if ($$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/) seen[$$1]=1; next } $$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/ && !($$1 in seen)' .env $(THIS_DIR)/.env.project.sample); \
-		if [ -z "$$missing" ]; then \
-			echo "ℹ️  ./.env already defines every gmake variable — nothing to add."; \
-		else \
-			echo "📝 Adding missing gmake variables to ./.env..."; \
-			printf '\n# --- gmake variables (added by gcp_enable_project_env) ---\n' >> .env; \
-			printf '%s\n' "$$missing" >> .env; \
-			echo "✏️  Fill the variables you need — examples in $(THIS_DIR)/.env.project.sample."; \
-		fi; \
-	fi
-
 gcp_project_list: ## List all GCP projects available to your account
 	@echo "📋 Listing GCP projects..."
 	gcloud projects list

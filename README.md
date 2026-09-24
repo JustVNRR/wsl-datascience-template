@@ -71,8 +71,8 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 - **Cascading configuration:**
 
    - Only values shared across all projects belong in the shared `.env.global`
-   - Anything identifying a project (GCP project, resource names) lives in its `.env`.
-   - Both files are gitignored and start from committed samples in `gmake/` (`.env.global.sample`, `.env.project.sample`).
+   - Anything identifying a project (project ids, resource names) lives in its `.env`.
+   - Both are gitignored, and both are built from committed samples by [`gmake env_global_enable` / `gmake env_project_enable`](docs/make/env.md) — the socle's samples plus those the packs ship beside their modules. The commands only ever add what is missing.
 
 - **`gmake` vs `make`:**
   - Type `gmake` (without any arguments) to display a formatted help menu listing every gmake target (GCP compute, BigQuery, Docker, Cloud Run, etc.).
@@ -88,6 +88,7 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
+| Setup | [Environment files](docs/make/env.md) | `env_global_enable`, `env_project_enable` |
 | Setup | [Optional tooling](packs/gcp/docs/install.md) | `gcp_install`, `gcp_uninstall` |
 | Create | [Project scaffolding](docs/make/project-setup.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | Verify | [Lint](docs/make/lint.md) | `lint`, `lint-py`, `lint-sh`, `lint-format` |
@@ -148,10 +149,11 @@ the repository at runtime.
 │   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
 │   │   └── templates.tsv    # Curated project template catalog (fnew picker)
 │   ├── gmake/               # MLOps Makefile ecosystem (the gmake alias)
-│   │   ├── .env.global.sample  # Shared-defaults contract (copy to .env.global, gitignored)
-│   │   ├── .env.project.sample # Per-project contract (copy into a project as .env)
+│   │   ├── .env.global.sample  # The socle's share of the shared defaults (gmake env_global_enable)
+│   │   ├── .env.project.sample # The socle's share of a project's variables (gmake env_project_enable)
 │   │   ├── Makefile           # Entrypoint for the MLOps Makefile
 │   │   └── make/            # The socle's modules, one per domain (pages in docs/make/)
+│   │       ├── env.mk             # the two env files, assembled from the samples
 │   │       ├── project-setup.mk   # copier/cruft scaffolding + venv/direnv bootstrap
 │   │       ├── lint.mk            # ruff (Python) + shellcheck (shell) checks
 │   │       ├── tests.mk           # pytest lanes (fast / functional / gcp)
@@ -177,6 +179,8 @@ the repository at runtime.
 ├── packs/                   # Optional tooling, one folder per pack
 │   └── gcp/                 # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
 │       ├── install.mk       # the way in (`gcp_install`), loaded while the CLI is absent
+│       ├── env.global.sample  # the pack's shared defaults (GCP_REGION, CLOUDRUN_MEMORY…)
+│       ├── env.project.sample # the pack's project variables (GCP_PROJECT, BUCKET_NAME…)
 │       ├── make/            # the pack's modules, loaded while the CLI is installed
 │       ├── cheatsheets/     # the pack's fcheat sheets, each with its `# requires:` header
 │       └── docs/            # the pack's pages, onboarding walkthrough included
@@ -206,7 +210,7 @@ deleting the distro deletes all of it.
 ```text
 ~/.config/zsh/               # = zsh/ from the repository
 ├── gmake/
-│   ├── .env.global          # Shared defaults (gmake gcp_enable_global_env)
+│   ├── .env.global          # Shared defaults (gmake env_global_enable)
 │   ├── Makefile
 │   └── make/*.mk            # the socle's modules
 └── .zshrc, modules, prompts/, cheatsheets/
@@ -216,7 +220,7 @@ deleting the distro deletes all of it.
 
 ~/projects/<project>/        # One directory per project
 ├── .env.sample              # The template's list of variables (copied once to .env)
-├── .env                     # This project's identity (filled in by you; gcp_enable_project_env tops it up)
+├── .env                     # This project's identity (filled in by you; env_project_enable tops it up)
 ├── .envrc                   # direnv hook (the template's, or written by the scaffolding)
 └── .venv/
 

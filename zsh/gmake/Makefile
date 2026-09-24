@@ -28,7 +28,7 @@ PROJECT_ENV := $(wildcard .env)
 #   - scaffolding targets (copier_project, cruft_project, ccds_project): from ~/projects itself
 #   - onboarding and install targets, and help: from anywhere
 # GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
-GATE_EXEMPT_GOALS := help gcp_install gcp_uninstall gcp_auth_cli gcp_auth_libs gcp_enable_global_env gcp_project_list
+GATE_EXEMPT_GOALS := help gcp_install gcp_uninstall gcp_auth_cli gcp_auth_libs env_global_enable gcp_project_list
 ifneq (,$(filter copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(CURDIR))
@@ -129,4 +129,39 @@ define confirm_action
 	@read -p "Confirm execution? [y/N] " ans; \
 	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "\n❌ Operation cancelled by user." >&2; exit 1; fi
 	@echo "✅ Operation confirmed.\n"
+endef
+
+# Macro 3: create or complete an environment file from the samples, in order.
+# The socle's sample comes first, the packs' follow - each carries its own
+# header, so the assembled file documents itself.
+# Nothing is ever *rewritten*: a variable the target already defines is left
+# alone, which is what makes the two commands safe to re-run. A value you
+# filled in survives, and so does a pack you add later.
+#   $(1) the file to write   $(2) the samples to read
+define merge_env_samples
+	@target=$(1); \
+	samples="$(2)"; \
+	if [ ! -f "$$target" ]; then \
+		echo "📝 Creating $$target from the samples..."; \
+		: > "$$target"; \
+		for s in $$samples; do [ -f "$$s" ] && cat "$$s" >> "$$target"; done; \
+		echo "✏️  Fill in the values you need — each block documents its own."; \
+	else \
+		added=0; \
+		for s in $$samples; do \
+			[ -f "$$s" ] || continue; \
+			missing=$$(awk -F= 'FNR==NR { if ($$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/) seen[$$1]=1; next } $$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/ && !($$1 in seen)' "$$target" "$$s"); \
+			[ -z "$$missing" ] && continue; \
+			if [ $$added -eq 0 ]; then \
+				printf '\n# --- gmake variables added from the samples ---\n' >> "$$target"; \
+				added=1; \
+			fi; \
+			printf '%s\n' "$$missing" >> "$$target"; \
+		done; \
+		if [ $$added -eq 0 ]; then \
+			echo "ℹ️  $$target already defines every gmake variable — nothing to add."; \
+		else \
+			echo "📝 Added the missing variables to $$target."; \
+		fi; \
+	fi
 endef
