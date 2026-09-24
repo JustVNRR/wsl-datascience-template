@@ -36,6 +36,11 @@ left alone. So
 On a file that does not exist yet, the samples are copied whole — comments
 included — so the file arrives already documented.
 
+On a file that is already there, only the variables travel. The sample's
+comments stay with the sample, and what comes in lands under a single header
+line saying where it came from — a pack's block is documented one folder away,
+in the sample it ships, and never re-explained in your own file.
+
 ## Variables
 
 None of its own. This module reads the samples the modules and packs ship
