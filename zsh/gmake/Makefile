@@ -87,14 +87,20 @@ export
 #
 # The pack loop below is that same rule, one level up: pack.conf declares the
 # binary that decides, make/*.mk is loaded when it answers, install.mk when it
-# does not. The variable is forced open by a command-line PACK_GATES, which is
-# how CI reads both faces at once - `PACK_GATES=x gmake help` and
-# `PACK_GATES= gmake help`.
+# does not. A command-line PACK_GATES decides for every pack at once, which is
+# how CI reads both faces: `PACK_GATES=x gmake help` and `PACK_GATES= gmake
+# help`.
+#
+# What matters there is the difference between *not given* and *given empty* -
+# check the machine, or pretend it is bare. $(origin) is what tells the two
+# apart: a variable set empty on the command line is not undefined, which is
+# why the test is not `$(or ...)` - a runner that happens to ship the CLI would
+# walk right through an empty `PACK_GATES=` and read the installed face twice.
 CORE_MODULES := $(wildcard $(THIS_DIR)/make/*.mk)
 
 define include_pack
 include $(PACKS_DIR)/$(1)/pack.conf
-PACK_GATE_RESULT := $$(or $$(PACK_GATES),$$(shell command -v $$(PACK_GATE) 2>/dev/null))
+PACK_GATE_RESULT := $$(if $$(filter undefined,$$(origin PACK_GATES)),$$(shell command -v $$(PACK_GATE) 2>/dev/null),$$(PACK_GATES))
 ifeq (,$$(PACK_GATE_RESULT))
 include $(PACKS_DIR)/$(1)/install.mk
 else
