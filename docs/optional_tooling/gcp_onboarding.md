@@ -21,6 +21,10 @@ distro the menu shows `gcp_install` where the GCP targets will be.
 gmake gcp_install
 ```
 
+It registers Google's APT repository (the signing key and the address) before
+installing the package — the image ships neither, so a machine that never does
+Google Cloud never carries them. `gcp_uninstall` removes both.
+
 Run `gmake` again: the GCP targets are there. They call `gcloud`
 and `bq` under your Google account — this one-time login authorizes them.
 

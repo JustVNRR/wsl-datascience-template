@@ -107,12 +107,16 @@ gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
 # The way out, and the reason it lives here: this module is loaded only when
 # gcloud is present, so the exit is offered exactly when there is something to
 # remove - and never before the way in.
-# remove, not purge: the package goes, /etc keeps the APT repository (which is
-# what makes `gmake gcp_install` a one-liner later), and ~/.config/gcloud keeps
-# the logins - they are the user's data, not the package's.
+# It undoes what gcp_install did: the package, and the APT key and address that
+# target registered. Nothing of Google is left behind on a machine that no
+# longer uses it - so uninstalling then reinstalling is what a first install
+# is. ~/.config/gcloud keeps the logins: they are the user's data, not the
+# package's.
 gcp_uninstall: ## Uninstall the Google Cloud CLI (frees ~409 MB, keeps your gcloud logins)
 	$(call confirm_action, Uninstall the Google Cloud CLI (frees ~409 MB))
 	@sudo apt-get remove -y google-cloud-cli
+	@echo "➖ Removing the Google APT repository..."
+	@sudo rm -f /etc/apt/keyrings/cloud.google.gpg /etc/apt/sources.list.d/google-cloud-sdk.list
 	@echo "✅ Google Cloud CLI removed."
 	@echo "   The Google Cloud commands have left the gmake menu."
 	@echo "   Your logins (~/.config/gcloud) were left alone - delete that directory to forget them."
