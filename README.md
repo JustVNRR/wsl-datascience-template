@@ -3,7 +3,7 @@
 A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
 - the Python stack,
-- the MLOps workflow — the Google Cloud CLI is one `gmake gcp_install` away.
+- the MLOps workflow with GCP (run `gmake gcp_install` first).
 
 ## Features
 
@@ -262,18 +262,8 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
 | [`.\wsl.ps1 shrink`](docs/wsl/commands.md#shrink) | reclaim the space an instance has freed |
 
-Run it without a command to see the same list. **No command takes an instance
-name**: they list what exists, numbered, and you pick. And only the instances
-this repository built are listed — Docker Desktop's own distro stays out of
-their reach.
-
 Each command, with its options, its examples and what it prints, is documented
 in [**Instance commands**](docs/wsl/commands.md).
-
-Deleting an instance deletes its virtual disk, so **nothing inside it
-survives** — and a rebuild destroys the existing instance the same way. [What
-an instance takes with it](docs/wsl/commands.md#what-an-instance-takes-with-it)
-lists what lives only in there: `~/projects`, `~/.ssh`, the GCP logins.
 
 ---
 

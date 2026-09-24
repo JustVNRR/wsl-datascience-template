@@ -254,7 +254,7 @@ This is the only command that deletes without rebuilding, and it asks twice:
    appearance fragment, and its entry in Docker Desktop's list of integrated
    distros.
 
-### What an instance takes with it
+### What is lost with the instance
 
 The virtual disk is deleted, so **nothing inside the instance survives**. A
 rebuild destroys it the same way. Before either:
