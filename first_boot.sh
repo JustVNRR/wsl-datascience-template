@@ -44,6 +44,18 @@ done
 # Grant administrative privileges (sudo prompts for the account password)
 usermod -aG sudo "$NEW_USER"
 
+# The docker client Docker Desktop injects is only usable through a group: the
+# socket it creates is writable by root and by that group, and by nothing else.
+# Created here, with the account, so the very first session has the right to
+# use docker. Left to Docker Desktop, the group only arrives when it next
+# restarts - and a session keeps the groups it started with, so the user is
+# told to close a terminal and open a new one for something that should have
+# worked from the start.
+# --force, not a plain groupadd: the group may already exist, and set -e would
+# abort the whole onboarding on that.
+groupadd --force docker
+usermod -aG docker "$NEW_USER"
+
 echo ""
 echo "Configuring timezone..."
 dpkg-reconfigure -f readline tzdata
