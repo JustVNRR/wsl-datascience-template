@@ -89,17 +89,21 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
 | Setup | [Environment files](docs/make/env.md) | `env_global_enable`, `env_project_enable` |
-| Setup | [Optional tooling](packs/gcp/docs/install.md) | `gcp_install`, `gcp_uninstall` |
 | Create | [Project scaffolding](docs/make/project-setup.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | Verify | [Lint](docs/make/lint.md) | `lint`, `lint-py`, `lint-sh`, `lint-format` |
 | Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
-| Operate | [GCP infrastructure & IAM](packs/gcp/docs/gcp.md) | `gcp_project_list`, `gcs_*`, `iam_setup_service_account` |
-| Operate | [BigQuery](packs/gcp/docs/bigquery.md) | `bigquery_*` |
 | Operate | [Docker](docs/make/docker.md) | `docker_build_local`, `docker_run_local` |
-| Operate | [Artifact Registry](packs/gcp/docs/artifact_registry.md) | `artifact_registry_*` |
-| Deploy | [Cloud Run](packs/gcp/docs/cloud_run.md) | `cloudrun_*` |
-| Operate | [Compute Engine (VMs)](packs/gcp/docs/gcloud_compute.md) | `vm_*` |
 | Collaborate | [GitHub PRs](docs/make/github.md) | `gh_pr_*` |
+
+Then the packs. Each one is listed once — the README does not follow a pack as
+it grows, and a pack leaves with its folder:
+
+| Pack | Start here | Main targets |
+| :--- | :--- | :--- |
+| `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_install`, `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
+
+What a pack is, what it must contain, and how to add one:
+[`docs/packs.md`](docs/packs.md).
 
 ---
 
@@ -118,7 +122,7 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 
 | Category | Tools |
 | :--- | :--- |
-| Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md) |
+| Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md), [install / uninstall](packs/gcp/docs/install.md) |
 
 ### Python & Data Science
 
