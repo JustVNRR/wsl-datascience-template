@@ -14,11 +14,9 @@ uv venv                                      # Create virtual environment in '.v
 uv venv <NAME> --python <VERSION>            # Create custom-named venv with specific Python (e.g. uv venv .venv --python 3.12)
 source .venv/bin/activate                    # Manual activation (fallback if direnv is not used)
 deactivate                                   # Deactivate the currently active virtual environment
-
-# --- 3. DIRENV INTEGRATION (AUTOMATION) ---
 direnv reload                                # Force reload current environment configuration
 
-# --- 4. PACKAGE MANAGEMENT (UV PIP) ---
+# --- 3. PACKAGE MANAGEMENT (UV PIP) ---
 # Note: Works automatically inside an active venv or detects a local .venv folder
 uv pip install <PACKAGE>                     # Install a package from PyPI
 uv pip install <PACKAGE>==<VERSION>          # Install an exact package version
@@ -29,14 +27,14 @@ uv pip tree                                  # Display dependency tree for insta
 uv pip freeze > requirements.txt             # Export pinned dependencies to requirements.txt
 uv pip install -r requirements.txt           # Install all dependencies from a requirements file
 
-# --- 5. ISOLATED CLI TOOLS (UV TOOL / UVX) ---
+# --- 4. ISOLATED CLI TOOLS (UV TOOL / UVX) ---
 uv tool install <TOOL>                       # Install global CLI tool in isolation (e.g. copier, cruft, ruff)
 uv tool list                                 # List all globally installed CLI tools
 uv tool upgrade --all                        # Upgrade all installed tools to their latest version
 uv tool uninstall <TOOL>                     # Remove an isolated CLI tool
 uvx <TOOL> [ARGS]                            # Run a tool ephemerally without installing it (e.g. uvx ruff check .)
 
-# --- 6. EXECUTION & SCRIPTS ---
+# --- 5. EXECUTION & SCRIPTS ---
 uv run <FILE>.py                             # Run script automatically using the project's venv / dependencies
 uv run python                                # Launch Python REPL within project environment context
 uv run python -c "<CODE>"                    # Execute inline code within environment context
