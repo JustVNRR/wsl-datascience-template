@@ -490,12 +490,12 @@ try {
                 $Where = "none is in place"
                 if ($PacksNow.Count -gt 0) { $Where = "the others are in place ($($PacksNow -join ', '))" }
                 $PackLine = "'$($PackFailure.Pack)' did not install - $Where"
-                $PackLineColour = "Yellow"
+                $PackLineColour = "Red"
                 $PackReport = @(
                     "Packs: '$($PackFailure.Pack)' did not install - $Where.",
                     "  Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
                 )
-                $PackReportColour = "Yellow"
+                $PackReportColour = "Red"
             } else {
                 $Landed = $PacksNow
                 if ($Landed.Count -eq 0) { $Landed = @($PackSelection.ToAdd | ForEach-Object { $_.Name }) }
@@ -508,9 +508,9 @@ try {
             }
         } catch {
             $PackLine = "not installed - $($_.Exception.Message)"
-            $PackLineColour = "Yellow"
+            $PackLineColour = "Red"
             $PackReport = @("Packs: not installed - $($_.Exception.Message)")
-            $PackReportColour = "Yellow"
+            $PackReportColour = "Red"
         }
     }
 
