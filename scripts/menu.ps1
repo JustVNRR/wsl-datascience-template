@@ -12,13 +12,16 @@
 # and the fallback is the important half, because a menu that waits for a key
 # on a machine with no keyboard waits forever:
 #
-#   - no console (input redirected: a pipe, a script, a test). The check is made
-#     BEFORE reading, never with a try/catch around the read: [Console]::ReadKey
-#     does not throw there, it BLOCKS - measured on 2026-09-25, with two minutes
-#     of nothing to show for it;
-#   - a list too tall or too wide for the window, where moving the cursor about
-#     stops being honest;
-#   - a host without a real console (the ISE), where $Host.UI.RawUI throws.
+#   - no console (input redirected: a pipe, a script, a test), or a host without
+#     one to speak of (the ISE). The check is made BEFORE reading, never with a
+#     try/catch around the read: [Console]::ReadKey does not throw there, it
+#     BLOCKS - measured on 2026-09-25, with two minutes of nothing to show for
+#     it - and a menu that waits for a key nobody can press waits forever.
+#
+# Nothing else sends a reader to the numbered prompt. A narrow window and a long
+# list used to, and that was wrong: the arrows are what was asked for, so the
+# drawing gives way instead - the labels are cut to the width, the list scrolls
+# inside the window.
 #
 # This file defines functions; it is not a command. instance.ps1 loads it, and
 # every command loads instance.ps1.
@@ -70,6 +73,23 @@ function Format-MenuRow {
     param([int]$Index, [int]$Current, [string[]]$Labels)
     if ($Index -eq $Current) { return ("  > " + $Labels[$Index]) }
     return ("    " + $Labels[$Index])
+}
+
+# One row is one line, always. A label wider than the window would wrap, and a
+# wrapped block is a block whose rows are no longer where the arithmetic says
+# they are - which is the shape of the bug this file already had once. So the
+# tail is cut rather than the menu refused: the description loses its end, the
+# arrows keep working. A window that will not say how wide it is (a test, a
+# captured run) gets no cutting at all.
+function Format-MenuLabels {
+    param([string[]]$Labels, [int]$Width)
+    if ($Width -le 0) { return $Labels }
+    $Room = $Width - 1
+    return @($Labels | ForEach-Object {
+        $Max = $Room - 4                      # the "  > " marker in front
+        if ($_.Length -le $Max) { $_ }
+        else { $_.Substring(0, [Math]::Max(1, $Max - 3)) + "..." }
+    })
 }
 
 function Write-MenuRow {
@@ -132,6 +152,15 @@ function Select-WithArrows {
 
     $Count = $Items.Count
     $Current = $Start
+    $Size = Get-ConsoleSize
+    $Shown = Format-MenuLabels -Labels $Labels -Width $Size[0]
+
+    # A list taller than the window is scrolled rather than refused: only the
+    # rows that fit are drawn, and the window follows the choice. Three lines
+    # are kept for the blank above the title and the hint below it.
+    $Visible = if ($Size[1] -gt 0) { [Math]::Min($Count, [Math]::Max(1, $Size[1] - 3)) } else { $Count }
+    # The choice starts in the middle when it can: it is where the eye goes.
+    $First = [Math]::Max(0, [Math]::Min($Current - [int](($Visible - 1) / 2), $Count - $Visible))
 
     # Drawn once, in the natural course of the output - and the top row is READ
     # BACK from the cursor only after that. Not computed before drawing: writing
@@ -142,16 +171,16 @@ function Select-WithArrows {
     # of the list, lower each time, whenever the console had scrolled.
     Write-Host ""
     if ($Title) { Write-Host "$Title" -ForegroundColor Cyan }
-    for ($Index = 0; $Index -lt $Count; $Index++) {
-        Write-MenuRow -Index $Index -Current $Current -Labels $Labels
+    for ($Row = 0; $Row -lt $Visible; $Row++) {
+        Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown
     }
     Write-Host "  up/down to move, Enter to choose, Escape to cancel" -ForegroundColor DarkGray
 
     $Cursor = Get-ConsoleTop
-    $Top = if ($null -ne $Cursor) { $Cursor - ($Count + 1) } else { 0 }
+    $Top = if ($null -ne $Cursor) { $Cursor - ($Visible + 1) } else { 0 }
     # No cursor reading (a test, a host that will not say): the loop still
     # answers the keys, it simply does not repaint - there is nothing to paint
-    # on. Same for a top row above the screen, which no arithmetic can fix.
+    # on.
     $CanPaint = ($null -ne $Cursor) -and ($Top -ge 0)
 
     while ($true) {
@@ -164,21 +193,21 @@ function Select-WithArrows {
         } elseif ($Key -eq [ConsoleKey]::DownArrow) {
             $Current = if ($Current -eq $Last) { 0 } else { $Current + 1 }
         } elseif ($Key -eq [ConsoleKey]::Enter) {
-            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Count + 1) }
+            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
             return $Items[$Current]
         } elseif ($Key -eq [ConsoleKey]::Escape) {
-            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Count + 1) }
+            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
             return $null
         } elseif ($Key -ge [ConsoleKey]::D1 -and $Key -le [ConsoleKey]::D9) {
             $Wanted = [int]$Key - [int][ConsoleKey]::D1
             if ($Wanted -lt $Count) {
-                if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Count + 1) }
+                if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
                 return $Items[$Wanted]
             }
         } elseif ($Key -ge [ConsoleKey]::NumPad1 -and $Key -le [ConsoleKey]::NumPad9) {
             $Wanted = [int]$Key - [int][ConsoleKey]::NumPad1
             if ($Wanted -lt $Count) {
-                if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Count + 1) }
+                if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
                 return $Items[$Wanted]
             }
         } else {
@@ -187,18 +216,22 @@ function Select-WithArrows {
 
         if (-not $Moved -or -not $CanPaint) { continue }
 
-        # Repaint the rows where they already are. If the cursor will not go
-        # back, the whole block is written again instead: one more copy is
-        # ugly, a screen showing a choice that is no longer the current one is
-        # worse - and this is the one failure that must never pass unnoticed.
+        # Bring the choice back into the window if it left it, then repaint the
+        # rows where they already are. If the cursor will not go back, the whole
+        # block is written again instead: one more copy is ugly, a screen
+        # showing a choice that is no longer the current one is worse - and this
+        # is the one failure that must never pass unnoticed.
+        if ($Current -lt $First) { $First = $Current }
+        if ($Current -ge ($First + $Visible)) { $First = $Current - $Visible + 1 }
+
         $Placed = $true
-        for ($Index = 0; $Index -lt $Count; $Index++) {
-            if (-not (Set-ConsoleTop ($Top + $Index))) { $Placed = $false; break }
-            Write-MenuRow -Index $Index -Current $Current -Labels $Labels
+        for ($Row = 0; $Row -lt $Visible; $Row++) {
+            if (-not (Set-ConsoleTop ($Top + $Row))) { $Placed = $false; break }
+            Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown
         }
         if (-not $Placed) {
-            for ($Index = 0; $Index -lt $Count; $Index++) {
-                Write-MenuRow -Index $Index -Current $Current -Labels $Labels
+            for ($Row = 0; $Row -lt $Visible; $Row++) {
+                Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown
             }
         }
     }
@@ -225,19 +258,11 @@ function Select-FromList {
     $Labels = @($Items | ForEach-Object { [string](& $Label $_) })
 
     # A -KeyReader means a test asked for the arrows: it stands in for the
-    # console, which a test has not got.
+    # console, which a test has not got. Nothing else sends us to the numbered
+    # prompt - a narrow window or a long list used to, and that was wrong: the
+    # arrows are what the reader asked for, so the drawing gives way instead
+    # (the labels are cut to the width, the list scrolls in the window).
     $Arrows = [bool]$KeyReader -or (Test-KeyInput)
-
-    if ($Arrows) {
-        $Size = Get-ConsoleSize
-        $Width = $Size[0]
-        $Height = $Size[1]
-        $Widest = ($Labels | Measure-Object -Property Length -Maximum).Maximum + 6
-        if (($Width -gt 0 -and $Widest -gt $Width) -or
-            ($Height -gt 0 -and ($Items.Count + 3) -gt $Height)) {
-            $Arrows = $false
-        }
-    }
 
     if (-not $Arrows) {
         return (Select-ByNumber -Title $Title -Labels $Labels -Items $Items)
