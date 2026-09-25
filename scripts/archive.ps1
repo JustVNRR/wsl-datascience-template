@@ -220,17 +220,25 @@ Write-Host ""
 # answers are reasonable - the copy exists either way - and only the user
 # knows which one they want. The default is the state it was found in.
 if ($AfterExport -eq "Ask") {
-    Write-Host "What should happen to '$DistroName' now?" -ForegroundColor Yellow
-    Write-Host "  a. Start it"
-    Write-Host "  b. Delete it (the archive stays)"
-    Write-Host "  c. Leave it stopped"
-    $DefaultAnswer = if ($StoppedByUs) { "a" } else { "c" }
-    # [string]: Read-Host returns $null when its input is closed, and a $null
-    # answer makes the test below return $null instead of a verdict - so the
-    # default would never be applied and the line after would fail on it.
-    $Answer = [string](Read-Host "Answer (a/b/c) [default: $DefaultAnswer]")
-    if ($Answer -notmatch "^[aAbBcC]$") { $Answer = $DefaultAnswer }
-    $AfterExport = switch ($Answer.ToLower()) { "a" { "Start" } "b" { "Delete" } "c" { "Leave" } }
+    # All three answers are reasonable - the copy exists either way - and only
+    # the user knows which one they want. The default is the state the instance
+    # was found in, and it is where the cursor starts, marked in the list: Enter
+    # takes it, and so does an answer nobody could read (Escape, or an empty
+    # line where there is no console) - which is what the old prompt did with
+    # anything that was not a, b or c.
+    $Choices = @("Start", "Delete", "Leave")
+    $Default = if ($StoppedByUs) { "Start" } else { "Leave" }
+    $AfterExport = Select-FromList -Title "What should happen to '$DistroName' now?" `
+        -Items $Choices -DefaultIndex $Choices.IndexOf($Default) -Label {
+            param($Wanted)
+            $Text = switch ($Wanted) {
+                "Start" { "Start it" }
+                "Delete" { "Delete it (the archive stays)" }
+                "Leave" { "Leave it stopped" }
+            }
+            if ($Wanted -eq $Default) { "$Text  (default)" } else { $Text }
+        }
+    if (-not $AfterExport) { $AfterExport = $Default }
     Write-Host ""
 }
 

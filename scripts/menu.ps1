@@ -128,10 +128,10 @@ function Select-ByNumber {
 # returns a [ConsoleKey] on demand, so the whole loop - wrapping included - runs
 # with no terminal in sight.
 function Select-WithArrows {
-    param([string]$Title, [string[]]$Labels, [object[]]$Items, [scriptblock]$KeyReader)
+    param([string]$Title, [string[]]$Labels, [object[]]$Items, [scriptblock]$KeyReader, [int]$Start = 0)
 
     $Count = $Items.Count
-    $Current = 0
+    $Current = $Start
 
     # Drawn once, in the natural course of the output - and the top row is READ
     # BACK from the cursor only after that. Not computed before drawing: writing
@@ -212,11 +212,16 @@ function Select-FromList {
         [string]$Title = "",
         [object[]]$Items = @(),
         [scriptblock]$Label = { param($Item) [string]$Item },
-        [scriptblock]$KeyReader
+        [scriptblock]$KeyReader,
+        [int]$DefaultIndex = 0
     )
 
     $Items = @($Items)
     if ($Items.Count -eq 0) { return $null }
+    # Where the choice starts, so that Enter takes the answer the command would
+    # have taken anyway. An index that is not in the list is the first one: a
+    # default is a favour, not a way to fail.
+    if ($DefaultIndex -lt 0 -or $DefaultIndex -ge $Items.Count) { $DefaultIndex = 0 }
     $Labels = @($Items | ForEach-Object { [string](& $Label $_) })
 
     # A -KeyReader means a test asked for the arrows: it stands in for the
@@ -237,7 +242,7 @@ function Select-FromList {
     if (-not $Arrows) {
         return (Select-ByNumber -Title $Title -Labels $Labels -Items $Items)
     }
-    return (Select-WithArrows -Title $Title -Labels $Labels -Items $Items -KeyReader $KeyReader)
+    return (Select-WithArrows -Title $Title -Labels $Labels -Items $Items -KeyReader $KeyReader -Start $DefaultIndex)
 }
 
 # ---------------------------------------------------------------------------
