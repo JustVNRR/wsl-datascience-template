@@ -93,6 +93,7 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Verify | [Lint](docs/make/lint.md) | `lint`, `lint-py`, `lint-sh`, `lint-format` |
 | Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
 | Operate | [Docker](docs/make/docker.md) | `docker_build_local`, `docker_run_local` |
+| Operate | [Packs installed here](docs/make/packs.md) | `packs_list` |
 | Collaborate | [GitHub PRs](docs/make/github.md) | `gh_pr_*` |
 
 Then the packs. Each one is listed once — the README does not follow a pack as
@@ -169,7 +170,8 @@ the repository at runtime.
 │   │       ├── lint.mk            # ruff (Python) + shellcheck (shell) checks
 │   │       ├── tests.mk           # pytest lanes (fast / functional / gcp)
 │   │       ├── docker.mk          # image builds and local runs (docker only)
-│   │       └── github.mk          # GitHub PR workflow (gh CLI)
+│   │       ├── github.mk          # GitHub PR workflow (gh CLI)
+│   │       └── packs.mk           # what this instance carries (gmake packs_list)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing and persistence policies
@@ -204,9 +206,9 @@ the repository at runtime.
 │       └── docs/            # the pack's page
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
-│   └── *.ps1                # list, build, adopt, start, stop, shell, add_pack,
-│                            # remove_pack, unregister, archive, restore,
-│                            # duplicate, shrink
+│   └── *.ps1                # list, build, start, stop, shell, add_pack,
+│                            # remove_pack, manage_packs, unregister, archive,
+│                            # restore, duplicate, shrink
 ├── tests/                   # The suites that RUN the code: the arrow menu with a
 │                            # scripted keyboard, the pack checklist, build's
 │                            # questions over a stand-in docker, the doc drift
@@ -286,7 +288,6 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | :--- | :--- |
 | [`.\wsl.ps1 list`](docs/wsl/commands.md#list) | list our instances and the archives |
 | [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
-| [`.\wsl.ps1 adopt`](docs/wsl/commands.md#adopt) | mark an existing instance as ours |
 | [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
 | [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |

@@ -45,7 +45,9 @@ PROJECT_ENV := $(wildcard .env)
 # GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
 # Only the socle has targets to exempt now: a pack is installed from Windows
 # (`.\wsl.ps1 add_pack`), so nothing of a pack has to run from anywhere.
-GATE_EXEMPT_GOALS := help env_global_enable
+# packs_list is exempt for the same reason help is: it reads the machine, not a
+# project, and the question "what do I have?" is asked from wherever you stand.
+GATE_EXEMPT_GOALS := help env_global_enable packs_list
 ifneq (,$(filter copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(CURDIR))

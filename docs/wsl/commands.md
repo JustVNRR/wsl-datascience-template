@@ -13,7 +13,6 @@ commands themselves live in `scripts\`.
 WSL DataScience template
   > list         list our instances and the archives
     build        build an instance from the image
-    adopt        mark an existing instance as ours
     start        start a stopped instance
     stop         stop a running instance
     shell        open a shell inside an instance
@@ -39,7 +38,6 @@ the numbered prompt it used to be, and the answer is typed.
 | :--- | :--- |
 | [`.\wsl.ps1 list`](#list) | list our instances and the archives |
 | [`.\wsl.ps1 build`](#build) | build an instance from the image |
-| [`.\wsl.ps1 adopt`](#adopt) | mark an existing instance as ours |
 | [`.\wsl.ps1 start`](#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](#stop) | stop a running instance |
 | [`.\wsl.ps1 shell`](#shell) | open a shell inside an instance |
@@ -178,23 +176,6 @@ built, the pack's files are taken back out, and the build ends normally, naming
 the pack and pointing at `.\wsl.ps1 manage_packs` to finish. The screen the shell
 opens on repeats the same news, since the deployment summary is cleared away when
 that shell starts.
-
----
-
-## `adopt`
-
-Marks an existing instance with the `.wsl-datascience-template` marker.
-
-```powershell
-.\wsl.ps1 adopt
-```
-
-```text
-Registered instances that are not this template's:
-   1.  distro                          1.2 GB  D:\WSL\distro
-   2.  docker-desktop                  1.4 GB  D:\WSL\DockerDesktopWSL\main
-   0.  Cancel
-```
 
 ---
 

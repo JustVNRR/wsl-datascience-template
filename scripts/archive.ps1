@@ -70,7 +70,8 @@ if ($DistroName) {
     if (-not (Test-TemplateInstance -Folder $Distro.BasePath)) {
         Write-Host ""
         Write-Host "[ABORT] '$DistroName' is not an instance of this template." -ForegroundColor Red
-        Write-Host "        Make it ours first with  .\wsl.ps1 adopt" -ForegroundColor Yellow
+        Write-Host "        An instance is ours when it carries the marker, and only" -ForegroundColor Yellow
+        Write-Host "        build, restore and duplicate write one." -ForegroundColor Yellow
         Write-Host "        Nothing was modified." -ForegroundColor DarkGray
         exit 1
     }
