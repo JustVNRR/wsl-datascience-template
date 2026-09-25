@@ -43,21 +43,48 @@ function Read-MenuKey {
     return [Console]::ReadKey($true).Key
 }
 
-# The cursor, asked gently. A terminal that refuses to be drawn on - a redrawn
-# window, a capture - leaves the menu working, only uglier: the choice is the
-# keys, never the paint.
+# The cursor, asked gently, and answered honestly: $null means the host would
+# not say, which is not the same as "row zero". A terminal that refuses to be
+# drawn on - a redrawn window, a capture, a test - leaves the menu working, only
+# uglier: the choice is the keys, never the paint.
 function Get-ConsoleTop {
-    try { return [Console]::CursorTop } catch { return 0 }
+    try { return [Console]::CursorTop } catch { return $null }
 }
 
+# Moves the cursor, and says whether it moved. A silent failure here is what
+# turned a menu into a stack of copies once: every repaint that could not be
+# placed was written where the cursor already was, so each arrow added a block.
 function Set-ConsoleTop {
     param([int]$Top)
-    try { [Console]::SetCursorPosition(0, $Top) } catch { }
+    try {
+        [Console]::SetCursorPosition(0, $Top)
+        return ([Console]::CursorTop -eq $Top)
+    } catch {
+        return $false
+    }
+}
+
+# One row of the list, as it is drawn: the marker and the colours say where the
+# choice is, so a terminal that renders neither still reads correctly.
+function Format-MenuRow {
+    param([int]$Index, [int]$Current, [string[]]$Labels)
+    if ($Index -eq $Current) { return ("  > " + $Labels[$Index]) }
+    return ("    " + $Labels[$Index])
+}
+
+function Write-MenuRow {
+    param([int]$Index, [int]$Current, [string[]]$Labels)
+    $Row = Format-MenuRow -Index $Index -Current $Current -Labels $Labels
+    if ($Index -eq $Current) {
+        Write-Host $Row -ForegroundColor Cyan
+    } else {
+        Write-Host $Row
+    }
 }
 
 # Width and height, or zeroes when the host will not say - zero meaning "no
 # constraint", so a host that keeps quiet is never a reason to give up on the
-# arrows.
+# arrows. ($null, unlike 0, means the host said nothing at all.)
 function Get-ConsoleSize {
     try {
         $Size = $Host.UI.RawUI.WindowSize
@@ -106,49 +133,74 @@ function Select-WithArrows {
     $Count = $Items.Count
     $Current = 0
 
+    # Drawn once, in the natural course of the output - and the top row is READ
+    # BACK from the cursor only after that. Not computed before drawing: writing
+    # the block can scroll the console (a command that prints a lot before its
+    # menu leaves the cursor near the bottom), the lines just written move up
+    # with the scroll, and a row number remembered from before it is wrong by
+    # exactly what scrolled. That was the bug: every arrow added one more copy
+    # of the list, lower each time, whenever the console had scrolled.
     Write-Host ""
     if ($Title) { Write-Host "$Title" -ForegroundColor Cyan }
-    $Top = Get-ConsoleTop
-    for ($Index = 0; $Index -lt $Count; $Index++) { Write-Host "" }
+    for ($Index = 0; $Index -lt $Count; $Index++) {
+        Write-MenuRow -Index $Index -Current $Current -Labels $Labels
+    }
     Write-Host "  up/down to move, Enter to choose, Escape to cancel" -ForegroundColor DarkGray
 
-    while ($true) {
-        for ($Index = 0; $Index -lt $Count; $Index++) {
-            Set-ConsoleTop ($Top + $Index)
-            if ($Index -eq $Current) {
-                Write-Host ("  > " + $Labels[$Index]) -ForegroundColor Cyan
-            } else {
-                Write-Host ("    " + $Labels[$Index])
-            }
-        }
+    $Cursor = Get-ConsoleTop
+    $Top = if ($null -ne $Cursor) { $Cursor - ($Count + 1) } else { 0 }
+    # No cursor reading (a test, a host that will not say): the loop still
+    # answers the keys, it simply does not repaint - there is nothing to paint
+    # on. Same for a top row above the screen, which no arithmetic can fix.
+    $CanPaint = ($null -ne $Cursor) -and ($Top -ge 0)
 
+    while ($true) {
         $Key = if ($KeyReader) { & $KeyReader } else { Read-MenuKey }
         $Last = $Count - 1
+        $Moved = $true
 
         if ($Key -eq [ConsoleKey]::UpArrow) {
             $Current = if ($Current -eq 0) { $Last } else { $Current - 1 }
         } elseif ($Key -eq [ConsoleKey]::DownArrow) {
             $Current = if ($Current -eq $Last) { 0 } else { $Current + 1 }
         } elseif ($Key -eq [ConsoleKey]::Enter) {
-            Set-ConsoleTop ($Top + $Count + 1)
+            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Count + 1) }
             return $Items[$Current]
         } elseif ($Key -eq [ConsoleKey]::Escape) {
-            Set-ConsoleTop ($Top + $Count + 1)
+            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Count + 1) }
             return $null
         } elseif ($Key -ge [ConsoleKey]::D1 -and $Key -le [ConsoleKey]::D9) {
             $Wanted = [int]$Key - [int][ConsoleKey]::D1
             if ($Wanted -lt $Count) {
-                Set-ConsoleTop ($Top + $Count + 1)
+                if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Count + 1) }
                 return $Items[$Wanted]
             }
         } elseif ($Key -ge [ConsoleKey]::NumPad1 -and $Key -le [ConsoleKey]::NumPad9) {
             $Wanted = [int]$Key - [int][ConsoleKey]::NumPad1
             if ($Wanted -lt $Count) {
-                Set-ConsoleTop ($Top + $Count + 1)
+                if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Count + 1) }
                 return $Items[$Wanted]
             }
+        } else {
+            $Moved = $false                   # a key the menu has no use for
         }
-        # anything else: nothing happens, and the menu stays where it is
+
+        if (-not $Moved -or -not $CanPaint) { continue }
+
+        # Repaint the rows where they already are. If the cursor will not go
+        # back, the whole block is written again instead: one more copy is
+        # ugly, a screen showing a choice that is no longer the current one is
+        # worse - and this is the one failure that must never pass unnoticed.
+        $Placed = $true
+        for ($Index = 0; $Index -lt $Count; $Index++) {
+            if (-not (Set-ConsoleTop ($Top + $Index))) { $Placed = $false; break }
+            Write-MenuRow -Index $Index -Current $Current -Labels $Labels
+        }
+        if (-not $Placed) {
+            for ($Index = 0; $Index -lt $Count; $Index++) {
+                Write-MenuRow -Index $Index -Current $Current -Labels $Labels
+            }
+        }
     }
 }
 
