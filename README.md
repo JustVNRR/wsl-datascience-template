@@ -280,14 +280,14 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | Command | What it does |
 | :--- | :--- |
 | [`.\wsl.ps1 list`](docs/wsl/commands.md#list) | show our instances, the archives, and what is left over |
-| [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image (Docker, then WSL) |
+| [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
 | [`.\wsl.ps1 adopt`](docs/wsl/commands.md#adopt) | mark an instance that already exists as one of ours |
 | [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
 | [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell in one of our instances |
-| [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance, its files and its tool together |
+| [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
-| [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance, and what it left on Windows |
+| [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
