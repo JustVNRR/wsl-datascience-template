@@ -11,8 +11,9 @@
 #                  newcomer's folder is placed BEFORE a remove.sh asks its
 #                  question, so a shared package is left where it is.
 #
-# Run it with the six checklist answers piped in, in this exact order - and in
-# these exact counts, because the answers are read one after another:
+# Run it with tests\packs-select-test.answers on standard input, which holds the
+# answers one per line, in the order they are read - and in these exact counts,
+# because each scenario consumes its own:
 #   1, v, (empty)   one box ticked -> one addition
 #   2, v, (empty)   the installed box unticked -> one removal
 #   0               cancelled
@@ -23,7 +24,7 @@
 #   v               a pack installed here that this checkout does not carry:
 #                   ONE answer, for the same reason as above
 #
-#   printf '1\nv\n\n2\nv\n\n0\nv\n1\nv\nn\nv\n\nv\n' | powershell -File packs-select-test.ps1
+#   powershell -File tests\packs-select-test.ps1 < tests\packs-select-test.answers
 #
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\scripts\instance.ps1")

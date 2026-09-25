@@ -3,12 +3,14 @@
 # the bug that made every arrow stack one more copy of the list.
 #
 # It needs no console. The last checks use no -KeyReader at all, which is the
-# no-console case: they read the numbered prompt's answers from standard input,
-# so the file must be run with its answers piped in, in this exact order:
+# no-console case: they read the numbered prompt's answers from standard input.
 #
-#   2, (empty), 1, 2, v, v, v, (empty)
+# Usage:  powershell -File tests\menu-test.ps1 < tests\menu-test.answers
 #
-# Usage:  printf '2\n\n1\n2\nv\nv\nv\n\n' | powershell -File tests\menu-test.ps1
+# tests\menu-test.answers holds them, one per line, in the order they are read:
+# 2, (empty), 1, 2, v, v, v, (empty). It is the ONLY copy - the CI redirects the
+# same file rather than spelling the answers out again. A second copy is a copy
+# that drifts, and that is exactly what happened once.
 #
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\scripts\menu.ps1")
