@@ -31,4 +31,4 @@ gmake env_global_enable                      # Create or complete the machine-wi
 gmake env_project_enable                     # Create or complete this project's .env from the samples
 
 # --- 6. PACKS ---
-gmake packs_list                             # List the packs this instance carries, and what each brings
+gmake packs_list                             # List the packs this instance carries
