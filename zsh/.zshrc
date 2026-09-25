@@ -2,7 +2,13 @@
 # MAIN ZSH CONFIGURATION (.zshrc)
 # ==============================================================================
 
-# --- 1. OH-MY-ZSH CORE CONFIGURATION ---
+# --- 1. ENVIRONMENT & FOUNDATIONS ---
+# Global variables and runtime engines must load before dependent modules
+source "$ZDOTDIR/exports.zsh"
+source "$ZDOTDIR/fzf.zsh"          # Defines preview templates and underlying fuzzy commands
+source "$ZDOTDIR/history.zsh"      # History size, file path, and shell persistence options
+
+# --- 2. OH-MY-ZSH CORE CONFIGURATION ---
 export ZSH="$HOME/.local/share/oh-my-zsh"
 ZSH_THEME=""                 # Disabled: prompt handled by Starship
 ZSH_DISABLE_COMPFIX=true     # Skip security check on completion directories (faster startup)
@@ -38,11 +44,7 @@ zstyle :omz:plugins:ssh-agent lazy yes
 export ZSH_COMPDUMP="$HOME/.cache/zsh/.zcompdump-${SHORT_HOST:-$(hostname)}-${ZSH_VERSION}"
 source "${ZSH}/oh-my-zsh.sh"
 
-# --- 2. ENVIRONMENT & FOUNDATIONS ---
-# Global variables and runtime engines must load before dependent modules
-source "$ZDOTDIR/exports.zsh"
-source "$ZDOTDIR/fzf.zsh"          # Defines preview templates and underlying fuzzy commands
-source "$ZDOTDIR/history.zsh"      # History size, file path, and shell persistence options
+
 
 # --- 3. COMMANDS, ALIASES & SHELL UTILITIES ---
 source "$ZDOTDIR/aliases.zsh"      # Command shortcuts and interactive falias tool
