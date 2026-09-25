@@ -460,6 +460,60 @@ try {
         $TerminalProfileOk = $false
     }
 
+    # The packs, before the screen that says the instance is done - and in a try
+    # of their own. Their own try is the point: a pack that fails must not reach
+    # the catch above, which would announce "[ERROR] DURING DEPLOYMENT" for an
+    # instance that is built, registered and usable. The build went through, and
+    # the packs are a step of its own, with its own report: one line in the
+    # summary below, and the same news kept for the screen the shell opens on.
+    $PackLine = "none"
+    $PackLineColour = "DarkGray"
+    $PackReport = @()
+    $PackReportColour = "Green"
+    if ($null -ne $PackSelection) {
+        try {
+            # Asked of the instance, like everywhere else, and asked again after
+            # the install rather than trusted from the answer: the folder is the
+            # state, and a pack whose install failed took its folder back out on
+            # the way.
+            $NewHome = Get-InstanceHome -DistroName $DistroName
+            if (-not $NewHome) { throw "'$DistroName' did not say where its user's home is." }
+            $PacksDirectory = "$NewHome/.config/packs"
+
+            Write-Host ""
+            Write-Host "==> Installing the packs..." -ForegroundColor Cyan
+            $PackFailure = Invoke-PackApply -DistroName $DistroName -PacksDirectory $PacksDirectory `
+                -ToAdd $PackSelection.ToAdd -ResumeHint "Run .\wsl.ps1 manage_packs to finish."
+
+            $PacksNow = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
+            if ($null -ne $PackFailure) {
+                $Where = "none is in place"
+                if ($PacksNow.Count -gt 0) { $Where = "the others are in place ($($PacksNow -join ', '))" }
+                $PackLine = "'$($PackFailure.Pack)' did not install - $Where"
+                $PackLineColour = "Yellow"
+                $PackReport = @(
+                    "Packs: '$($PackFailure.Pack)' did not install - $Where.",
+                    "  Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
+                )
+                $PackReportColour = "Yellow"
+            } else {
+                $Landed = $PacksNow
+                if ($Landed.Count -eq 0) { $Landed = @($PackSelection.ToAdd | ForEach-Object { $_.Name }) }
+                $PackLine = ($Landed -join ", ")
+                $PackLineColour = "Green"
+                $PackReport = @(
+                    "Packs: $($Landed -join ', ') installed.",
+                    "  In there:  gmake env_global_enable   (adds their variables)"
+                )
+            }
+        } catch {
+            $PackLine = "not installed - $($_.Exception.Message)"
+            $PackLineColour = "Yellow"
+            $PackReport = @("Packs: not installed - $($_.Exception.Message)")
+            $PackReportColour = "Yellow"
+        }
+    }
+
     Clear-Host
     Write-Host "============================================================" -ForegroundColor Green
     Write-Host "       WSL Data Science Instance Successfully Deployed!     " -ForegroundColor Green
@@ -474,6 +528,7 @@ try {
     } else {
         Write-Host "not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor Yellow
     }
+    Write-Host "  * Packs             : " -NoNewline; Write-Host "$PackLine" -ForegroundColor $PackLineColour
     Write-Host ""
 
     Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
@@ -562,49 +617,6 @@ finally {
 # program, which is why it is asked rather than assumed. It restarts Docker
 # Desktop, so it defaults to yes and Enter carries through.
 if ($Deployed) {
-    # The packs, and outside the try above on purpose: a pack whose install.sh
-    # fails is not a failed build. The instance is built and registered, the
-    # rest is a step of its own - which is why a failure here leaves $Deployed
-    # alone and the exit code at zero. What it has to say is kept for the screen
-    # the shell opens on: the Clear-Host below wipes everything printed before
-    # it, and a report nobody reads is not a report.
-    $PackReport = @()
-    $PackReportColour = "Green"
-    if ($null -ne $PackSelection) {
-        $NewHome = Get-InstanceHome -DistroName $DistroName
-        if (-not $NewHome) {
-            $PackReport = @("Packs: not installed - '$DistroName' did not say where its user's home is.")
-            $PackReportColour = "Yellow"
-        } else {
-            Write-Host ""
-            Write-Host "==> Installing the packs..." -ForegroundColor Cyan
-            $PacksDirectory = "$NewHome/.config/packs"
-            $PackFailure = Invoke-PackApply -DistroName $DistroName -PacksDirectory $PacksDirectory `
-                -ToAdd $PackSelection.ToAdd -ResumeHint "Run .\wsl.ps1 manage_packs to finish."
-
-            # Read back from the instance rather than from the answer: the
-            # folder is the state, and a pack whose install failed took its
-            # folder back out on the way.
-            $PacksNow = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
-            if ($null -ne $PackFailure) {
-                $Where = "none is in place"
-                if ($PacksNow.Count -gt 0) { $Where = "the others are in place ($($PacksNow -join ', '))" }
-                $PackReport = @(
-                    "Packs: '$($PackFailure.Pack)' did not install - $Where.",
-                    "  Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
-                )
-                $PackReportColour = "Yellow"
-            } else {
-                $Landed = $PacksNow
-                if ($Landed.Count -eq 0) { $Landed = @($PackSelection.ToAdd | ForEach-Object { $_.Name }) }
-                $PackReport = @(
-                    "Packs: $($Landed -join ', ') installed.",
-                    "  In there:  gmake env_global_enable   (adds their variables)"
-                )
-            }
-        }
-    }
-
     $DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
     if (Test-Path $DockerSettings) {
         try {

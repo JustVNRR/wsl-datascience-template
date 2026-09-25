@@ -171,10 +171,13 @@ A rebuild arrives with the boxes ticked for what the instance being replaced
 carries, so its packs come back without being chosen again. What is ticked is
 summarised and confirmed as in `manage_packs` — one question for the whole list.
 
-They are installed **once the instance exists**, after the deployment and never
-inside it. One whose installation fails does not fail the build: the instance is
-built, the pack's files are taken back out, and the report on the screen names it
-and points at `.\wsl.ps1 manage_packs` to finish.
+They are installed **once the instance exists** — after the deployment, and
+before the screen that announces it, which carries the outcome on its `* Packs`
+line. One whose installation fails does not fail the build: the instance is
+built, the pack's files are taken back out, and the build ends normally, naming
+the pack and pointing at `.\wsl.ps1 manage_packs` to finish. The screen the shell
+opens on repeats the same news, since the deployment summary is cleared away when
+that shell starts.
 
 ---
 
