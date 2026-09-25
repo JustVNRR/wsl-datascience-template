@@ -18,7 +18,10 @@ from the image — so `install.sh` and `remove.sh` have nothing to do and say so
 | `env.mk` | `env_global_enable`, `env_project_enable` | [Environment files](env.md) |
 | `docker.mk` | `docker_build_local`, `docker_run_local` | [Docker](docker.md) |
 | `github.mk` | `gh_pr_create`, `gh_pr_toreview`, `gh_pr_wip`, `gh_pr_ls` | [GitHub PRs](github.md) |
-| `macros.mk` | — (the two macros the targets above call) | [What a target says](macros.md) |
+
+Its targets call the socle's two macros — `check_vars`, `confirm_action` — which
+are [not a pack's](../../../docs/make/macros.md) any more than the location gate
+is: a pack that writes a target uses them and declares nothing.
 
 All of them run from the root of a project under `~/projects`, except
 `env_global_enable`, which writes a machine-wide file.

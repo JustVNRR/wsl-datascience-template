@@ -161,6 +161,21 @@ jobs:
           done
           exit $bad
 
+      - name: No pack redefines a socle macro
+        run: |
+          # The socle's modules are read first and the packs' after, so a pack's
+          # own `define check_vars` would win in silence and every target that
+          # calls it - its neighbours' included - would lose its check. A comment
+          # cannot notice that; this can.
+          bad=0
+          for macro in check_vars confirm_action; do
+            if grep -rln "^define $macro$" packs/*/make/*.mk 2>/dev/null | grep -q .; then
+              echo "::error::a pack defines $macro - that macro is the socle's (zsh/gmake/make/macros.mk)"
+              bad=1
+            fi
+          done
+          exit $bad
+
       - name: packs_list lists what the user chose
         run: |
           # A pack marked invisible is in no list, this one included: it is a

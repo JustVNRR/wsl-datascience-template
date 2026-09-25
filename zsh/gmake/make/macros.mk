@@ -5,14 +5,20 @@
 # run when a variable it needs is unset, the other prints what the target is
 # about to touch and waits for a yes.
 #
-# They live in this pack because they are the project targets' manners - the
-# socle has no target of its own that needs either. A pack whose targets call
-# them depends on `devops`, and says so in its pack.conf: an undefined macro
-# expands to nothing, so a missing `devops` would not fail, it would quietly drop
-# the check and run.
+# They are the socle's, and they are here rather than in a pack because they are
+# not a service a pack renders - they are how a target is written, the way the
+# location gate in the Makefile says where a target may run. A pack that writes
+# a target uses them and declares nothing. (merge_env_samples is the third
+# macro, and it is a pack's: it assembles the .env files, and the dev pack is
+# the only thing that assembles them.)
+#
+# A PACK MUST NEVER DEFINE EITHER. The socle's modules are read first and the
+# packs' after, so a pack's own `define check_vars` would win in silence and
+# every target that calls it - the pack's, and its neighbours' - would lose its
+# check. That is what the CI greps for on every push: a comment cannot notice.
 #
 # They are defined, never run here: everything below is expanded at the moment
-# a recipe calls it, so the module can be loaded in any order relative to the
+# a recipe calls it, so a module can be loaded in any order relative to the
 # targets that use it.
 
 # Macro 1: Assert required variables are non-empty (Fail-fast validation)

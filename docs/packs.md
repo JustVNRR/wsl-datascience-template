@@ -118,11 +118,13 @@ with the pack that requires it, it leaves with the last one that does, and it is
 never alone.
 
 `devops` is the first of them, and the mirror of `vision`: the project targets
-python and gcp both need, against a tool with no target. That is also why
-`PACK_REQUIRES` had to exist. A pack whose targets call a macro another pack
-defines — `check_vars`, `confirm_action` — would find the macro undefined, and
-an undefined macro expands to nothing: the check and the confirmation would
-vanish in silence rather than fail.
+python and gcp both need, against a tool with no target.
+
+Each of the two requires it for a reason of its own: `gcp` reads `PACKAGE_NAME`
+and `DOCKER_BASE_IMAGE`, whose sample is `devops`'s, and `python` fabricates the
+projects its targets build, push and configure. Neither requires it for a macro:
+what a target calls — `check_vars`, `confirm_action` — is the socle's, loaded
+with every module, and a pack that writes a target declares nothing.
 
 ## Two packs, one package
 

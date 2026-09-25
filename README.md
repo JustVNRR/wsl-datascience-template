@@ -87,6 +87,7 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
+| Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
 
 Everything else a project needs — its environment files, its image, its pull
@@ -164,6 +165,7 @@ the repository at runtime.
 │   ├── gmake/               # MLOps Makefile ecosystem (the gmake alias)
 │   │   ├── Makefile         # Entrypoint: loads the modules, builds the menu, gates where targets run
 │   │   └── make/            # The socle's modules (pages in docs/make/)
+│   │       ├── macros.mk    # what a target calls before it runs (check_vars, confirm_action)
 │   │       └── packs.mk     # what this instance carries (gmake packs_list)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates

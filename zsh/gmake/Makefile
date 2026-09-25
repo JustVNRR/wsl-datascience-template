@@ -117,8 +117,8 @@ help: ## Show this help menu
 # ==============================================================================
 # WHAT A TARGET CALLS
 # ==============================================================================
-# The macros a recipe uses - check_vars, confirm_action, merge_env_samples -
-# belong to the targets that call them and travel with them: they are defined
-# in the modules of the `devops` pack, whose targets are the ones that use them.
-# The socle defines none, and needs none: it has no target of its own that
-# checks a project variable, confirms a destructive action or assembles a file.
+# check_vars and confirm_action are the socle's, in make/macros.mk beside this
+# file - loaded with the other modules, so a pack that writes a target uses them
+# without declaring anything. merge_env_samples is a pack's: it assembles the
+# .env files, and the dev pack is the only thing that assembles them. Neither is
+# defined here: this file loads, prints the menu and holds the gate.
