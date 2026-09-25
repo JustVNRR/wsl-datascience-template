@@ -345,18 +345,22 @@ function Select-FromList {
     $Arrows = [bool]$KeyReader -or (Test-KeyInput)
 
     if (-not $Arrows) {
-        if ($Multi) {
-            return (Select-ByNumber -Title $Title -Labels $Labels -Items $Items -Multi -Checked $Checked)
-        }
-        return (Select-ByNumber -Title $Title -Labels $Labels -Items $Items)
+        $Chosen = Select-ByNumber -Title $Title -Labels $Labels -Items $Items -Multi:$Multi -Checked $Checked
+    } else {
+        $Chosen = Select-WithArrows -Title $Title -Labels $Labels -Items $Items -KeyReader $KeyReader `
+            -Start $DefaultIndex -Multi:$Multi -Checked $Checked
     }
 
-    $Chosen = Select-WithArrows -Title $Title -Labels $Labels -Items $Items -KeyReader $KeyReader `
-        -Start $DefaultIndex -Multi:$Multi -Checked $Checked
-    # Multi hands back a list, and a list has to survive the trip: without the
-    # comma, a single checked item arrives as that item and none arrives as
-    # nothing, and the caller cannot tell "none" from "cancelled".
-    if ($Multi) { return ,$Chosen }
+    # Multi hands back a list, and it has to survive the trip to the caller: an
+    # array written to the pipeline is unrolled, so a single checked item would
+    # arrive as that item, and an empty list as NOTHING AT ALL - which is the
+    # same thing a cancellation looks like. Hence the comma, here as well as in
+    # the two functions above, and the cancellation checked first so it stays
+    # what it is.
+    if ($Multi) {
+        if ($null -eq $Chosen) { return $null }
+        return ,$Chosen
+    }
     return $Chosen
 }
 
