@@ -23,6 +23,7 @@
 #   v, (empty)      pre-checked, nothing installed
 #   v               a pack installed here that this checkout does not carry:
 #                   ONE answer, for the same reason as above
+#   3, v, (empty)   a requirement already installed -> only the ticked one travels
 #   3, v, (empty)   the claimant unticked -> it and the invisible one leave
 #   3, v, (empty)   a second claimant installed -> only the ticked one leaves
 #   v               an invisible pack among the pre-checked ones: ONE answer,
@@ -109,20 +110,29 @@ Check "  ... and the answer is still an answer, not a cancellation" ($null -eq $
 Write-Output ""
 Write-Output "--- Select-Packs: the packs nobody picks ---"
 
-# 8. An invisible pack has no row, so nobody can untick it - it leaves when the
+# 8. What the instance already carries is not installed a second time. dev is
+#    there, python is ticked, and python travels alone: dev's folder is not
+#    copied over itself and its install.sh does not run again. Installing gcp on
+#    an instance that has carried python for months is that same case - and dev
+#    stays, held by the pack that is arriving in the same run.
+$Selection = Select-Packs -Title "T" -Available $Available -Installed @("dev")
+Check "a requirement already installed is not installed again" `
+    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "python / "
+
+# 9. An invisible pack has no row, so nobody can untick it - it leaves when the
 #    last pack that requires it does, and in the same answer (dev is python's
 #    requirement; the scenario starts from that pair installed).
 $Selection = Select-Packs -Title "T" -Available $Available -Installed @("python", "dev")
 Check "the last claimant leaves -> the invisible one goes too" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python,dev"
 
-# 9. ... and it stays while an installed pack still requires it. That is the
-#    whole reason it is not offered: another claimant is still there to hold it.
+# 10. ... and it stays while an installed pack still requires it. That is the
+#     whole reason it is not offered: another claimant is still there to hold it.
 $Selection = Select-Packs -Title "T" -Available $Available -Installed @("python", "gcp", "dev")
 Check "another claimant holds it -> it stays" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python"
 
-# 10. What an instance carried is not what the checklist shows: a predecessor
+# 11. What an instance carried is not what the checklist shows: a predecessor
 #     that had an invisible pack must not bring it back through a tick nobody
 #     can see. It arrives with the pack that requires it, or not at all.
 $Selection = Select-Packs -Title "T" -Available $Available -Installed @() -Checked @("dev")

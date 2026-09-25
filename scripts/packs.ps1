@@ -83,6 +83,7 @@ function Add-PackRequires {
     param(
         [object[]]$Available,
         [string]$Name,
+        [string[]]$Installed,
         [hashtable]$Seen,
         [System.Collections.ArrayList]$Ordered
     )
@@ -96,22 +97,31 @@ function Add-PackRequires {
     $Pack = @($Available | Where-Object { $_.Name -eq $Name })[0]
     if ($null -eq $Pack) { return }
 
+    # Through it even when it is already there: what IT requires may be missing.
     foreach ($Need in $Pack.Requires) {
-        Add-PackRequires -Available $Available -Name $Need -Seen $Seen -Ordered $Ordered
+        Add-PackRequires -Available $Available -Name $Need -Installed $Installed -Seen $Seen -Ordered $Ordered
     }
-    [void]$Ordered.Add($Name)
+
+    # And it is not placed a second time. A pack the instance already carries is
+    # not copied over and its install.sh does not run again - the arrival of gcp
+    # on an instance that has carried python all along must not touch dev, whose
+    # folder is right there and whose install would be an install on top of
+    # itself. It is the same move in every command: what travels is what is
+    # missing.
+    if ($Installed -notcontains $Name) { [void]$Ordered.Add($Name) }
 }
 
-# The list to install, in the order to install it: the chosen packs, each one
-# after what it requires. One place resolves it so that add_pack, the checklist
-# and the run itself cannot disagree about what travels with what.
+# The list to install, in the order to install it: what was chosen and is not
+# there yet, each one after what it requires. One place resolves it so that
+# add_pack, the checklist and the run itself cannot disagree about what travels
+# with what.
 function Resolve-PackSelection {
-    param([object[]]$Available, [string[]]$Names)
+    param([object[]]$Available, [string[]]$Names, [string[]]$Installed = @())
 
     $Seen = @{}
     $Ordered = New-Object System.Collections.ArrayList
     foreach ($Name in $Names) {
-        Add-PackRequires -Available $Available -Name $Name -Seen $Seen -Ordered $Ordered
+        Add-PackRequires -Available $Available -Name $Name -Installed $Installed -Seen $Seen -Ordered $Ordered
     }
     return @($Ordered)
 }
@@ -124,13 +134,19 @@ function Resolve-PackSelection {
 # Repeated until nothing changes, because an invisible pack may itself require
 # another one, and the second loses its claimant the moment the first does.
 function Resolve-PackRemoval {
-    param([object[]]$Available, [string[]]$Installed, [string[]]$Leaving)
+    param([object[]]$Available, [string[]]$Installed, [string[]]$Leaving, [string[]]$Arriving = @())
 
     $Gone = New-Object System.Collections.ArrayList
     foreach ($Name in $Leaving) { [void]$Gone.Add($Name) }
 
     do {
         $Added = 0
+        # Who is there once the run is over: what stays, plus what is arriving in
+        # the same run. A pack that is on its way in is a claimant like any
+        # other - it is the reason the run happens - so an invisible pack it
+        # requires must be left where it is rather than removed and not put back.
+        $Remaining = @($Installed | Where-Object { $Gone -notcontains $_ }) + @($Arriving)
+
         foreach ($Name in $Installed) {
             if ($Gone -contains $Name) { continue }
 
@@ -142,8 +158,7 @@ function Resolve-PackRemoval {
             if ($Pack.Visible) { continue }
 
             $Claimed = $false
-            foreach ($Other in $Installed) {
-                if ($Gone -contains $Other) { continue }
+            foreach ($Other in $Remaining) {
                 $OtherPack = @($Available | Where-Object { $_.Name -eq $Other })[0]
                 if ($null -ne $OtherPack -and $OtherPack.Requires -contains $Name) { $Claimed = $true; break }
             }
@@ -330,13 +345,20 @@ function Select-Packs {
     # What a pack requires travels with it, and what nothing requires any more
     # leaves with it. Both additions are made here, once, so that the lines
     # below, the question and the run all read the same two lists.
-    $Wanted = @($Chosen | Where-Object { $Installed -notcontains $_.Name } | ForEach-Object { $_.Name })
+    #
+    # Ticked and installed is not added: the resolver is given what the instance
+    # already has, and answers what is missing - a whole list of ticked boxes on
+    # an instance that carries them all comes back empty, which is exactly what
+    # the caller must do about it, nothing.
     $ToAdd = @()
-    foreach ($Name in @(Resolve-PackSelection -Available $Available -Names $Wanted)) {
+    foreach ($Name in @(Resolve-PackSelection -Available $Available -Names $Kept -Installed $Installed)) {
         $Pack = @($Available | Where-Object { $_.Name -eq $Name })[0]
         if ($null -ne $Pack) { $ToAdd += $Pack }
     }
-    $ToRemove = @(Resolve-PackRemoval -Available $Available -Installed $Installed -Leaving $Unticked)
+    # -Arriving after -ToAdd, and that order matters: a pack on its way in holds
+    # the invisible pack it requires, so the removal must know about it.
+    $ToRemove = @(Resolve-PackRemoval -Available $Available -Installed $Installed -Leaving $Unticked `
+        -Arriving @($ToAdd | ForEach-Object { $_.Name }))
 
     if ($ToAdd.Count -eq 0 -and $ToRemove.Count -eq 0) {
         return [PSCustomObject]@{ ToAdd = @(); ToRemove = @() }

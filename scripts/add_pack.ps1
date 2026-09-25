@@ -88,7 +88,7 @@ $PackName = $Pack.Name
 # a pack lands on top of what it needs. Resolved here, by the same helper the
 # checklist uses, so that "what arrives" means the same thing in both commands.
 $ToInstall = @()
-foreach ($Name in @(Resolve-PackSelection -Available $Available -Names @($PackName))) {
+foreach ($Name in @(Resolve-PackSelection -Available $Available -Names @($PackName) -Installed $Installed)) {
     $Entry = @($Available | Where-Object { $_.Name -eq $Name })[0]
     if ($null -ne $Entry) { $ToInstall += $Entry }
 }
