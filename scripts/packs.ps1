@@ -44,10 +44,12 @@ function Get-AvailablePacks {
         $Description = ""
         $Requires = @()
         $Visible = $true
+        $Welcome = ""
         foreach ($Line in (Get-Content -Path $Conf -Encoding UTF8)) {
             if ($Line -match '^\s*PACK_DESCRIPTION\s*:=\s*(.+?)\s*$') { $Description = $Matches[1] }
             elseif ($Line -match '^\s*PACK_REQUIRES\s*:=\s*(.*)$') { $Requires = @($Matches[1] -split '\s+' | Where-Object { $_ }) }
             elseif ($Line -match '^\s*PACK_VISIBLE\s*:=\s*(\S+)') { $Visible = ($Matches[1] -notmatch '^(?i)no$') }
+            elseif ($Line -match '^\s*PACK_WELCOME\s*:=\s*(.+?)\s*$') { $Welcome = $Matches[1] }
         }
 
         $Found += [PSCustomObject]@{
@@ -56,9 +58,21 @@ function Get-AvailablePacks {
             Description = $Description
             Requires    = $Requires
             Visible     = $Visible
+            Welcome     = $Welcome
         }
     }
     return @($Found)
+}
+
+# Does this pack bring anything for the user's own .env files? Read from the
+# folder, like everything else here: a sample is a file, and a pack that ships
+# none has nothing to merge. It decides whether a command ends by pointing at
+# `gmake env_global_enable` - the target itself comes with the dev pack, which
+# is to say with the samples.
+function Test-PackShipsSamples {
+    param([string]$Path)
+
+    return (Test-Path (Join-Path $Path "env.global.sample")) -or (Test-Path (Join-Path $Path "env.project.sample"))
 }
 
 # What a pack needs, added to what was chosen. A pack is installed ON TOP of
