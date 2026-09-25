@@ -22,8 +22,11 @@ Packs installed in this instance:
 
   gcp        The Google Cloud CLI (about 409 MB installed)
              gmake: 34 targets, listed by gmake help
+
   vision     ffmpeg, ImageMagick and Tesseract OCR (about 500 MB installed)
              its commands are in the cheatsheet picker (fcheat)
+
+A pack is added or removed from Windows:  .\wsl.ps1 add_pack  /  .\wsl.ps1 manage_packs
 ```
 
 The targets themselves are not repeated here: `gmake help` lists them, sorted,

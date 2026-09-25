@@ -37,6 +37,5 @@ packs_list: ## List the packs this instance carries, and what each brings
 			fi; \
 		done; \
 		echo ""; \
-		echo "Their commands: gmake help, or the cheatsheet picker (fcheat)."; \
 		echo "A pack is added or removed from Windows:  .\wsl.ps1 add_pack  /  .\wsl.ps1 manage_packs"; \
 	fi
