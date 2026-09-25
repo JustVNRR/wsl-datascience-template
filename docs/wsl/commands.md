@@ -17,8 +17,8 @@ WSL DataScience template
     start        start a stopped instance
     stop         stop a running instance
     shell        open a shell inside an instance
-    add_pack     install optional tooling into an instance
-    remove_pack  uninstall optional tooling from an instance
+    add_pack     install a pack into an instance
+    remove_pack  uninstall a pack from an instance
     manage_packs choose the packs an instance should carry
     unregister   remove an instance
     archive      write an instance to a named archive
