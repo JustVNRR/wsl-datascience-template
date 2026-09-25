@@ -382,6 +382,67 @@ function Format-Size {
 }
 
 # ---------------------------------------------------------------------------
+# RUNNING THINGS IN AN INSTANCE
+# ---------------------------------------------------------------------------
+# Commands are passed one argument at a time and run without a shell: the only
+# string that ever travels through wsl.exe is a plain path. A bash script handed
+# over as text is what breaks quietly - the quotes do not survive the round trip,
+# and a command split in the wrong place fails in a way that looks like the
+# instance's fault.
+#
+# stderr is non-terminating for the duration of these calls: under
+# $ErrorActionPreference = "Stop" a redirection turns it into a TERMINATING
+# error, and WSL itself writes there (it warns about the proxy configuration,
+# for instance). The exit code is what says whether the command worked.
+
+# Run a command in the instance. Its output is streamed - a pack's install.sh
+# may ask for a password - so the exit code cannot be the return value: a
+# `return $code` would put the output in the caller's variable and the code in
+# the console. It comes back through a [ref] instead.
+function Invoke-InInstance {
+    param(
+        [string]$DistroName,
+        [string[]]$Command,
+        [string]$WorkingDirectory,
+        [ref]$ExitCode,
+        [switch]$Quiet
+    )
+
+    $WslArgs = @("-d", $DistroName)
+    if ($WorkingDirectory) { $WslArgs += @("--cd", $WorkingDirectory) }
+    $WslArgs += @("--") + $Command
+
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    if ($Quiet) {
+        & wsl.exe @WslArgs *> $null
+    } else {
+        & wsl.exe @WslArgs
+    }
+    $ExitCode.Value = $LASTEXITCODE
+    $ErrorActionPreference = $PreviousEAP
+}
+
+# Run a command in the instance and read what it printed, one line per entry.
+function Get-InInstanceOutput {
+    param([string]$DistroName, [string[]]$Command)
+
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $Output = & wsl.exe -d $DistroName -- @Command 2>$null
+    $ErrorActionPreference = $PreviousEAP
+
+    return @($Output | ForEach-Object { ($_ -replace "`0", "").Trim() } | Where-Object { $_ })
+}
+
+# The instance's own home, asked rather than guessed: `~` only expands in a
+# shell, and the calls above avoid shells on purpose.
+function Get-InstanceHome {
+    param([string]$DistroName)
+    return (Get-InInstanceOutput -DistroName $DistroName -Command @("printenv", "HOME") | Select-Object -First 1)
+}
+
+# ---------------------------------------------------------------------------
 # THE MENUS
 # ---------------------------------------------------------------------------
 # They live beside this file rather than inside it: what the commands share is
@@ -395,3 +456,17 @@ if (-not (Test-Path $MenuLib)) {
     exit 1
 }
 . $MenuLib
+
+# ---------------------------------------------------------------------------
+# THE PACKS
+# ---------------------------------------------------------------------------
+# What this checkout carries, what an instance has, and the moves that make a
+# pack travel. Loaded here for the same reason as the menus: three commands ask,
+# and asking is written once.
+$PacksLib = Join-Path $PSScriptRoot "packs.ps1"
+if (-not (Test-Path $PacksLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\packs.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $PacksLib

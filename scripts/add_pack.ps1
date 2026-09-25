@@ -23,102 +23,9 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# Where the packs live in this checkout. The folder is the registry: a
-# directory under packs\ carrying a pack.conf is a pack, and nothing else in
-# the repository lists them - the same rule the gmake Makefile follows.
-$PacksRoot = Join-Path (Split-Path $PSScriptRoot -Parent) "packs"
-
-# ---------------------------------------------------------------------------
-# RUNNING THINGS IN AN INSTANCE
-# ---------------------------------------------------------------------------
-# Commands are passed one argument at a time and run without a shell: the only
-# string that ever travels through wsl.exe is a plain path. A bash script
-# handed over as text is what breaks quietly - the quotes do not survive the
-# round trip, and a command split in the wrong place fails in a way that looks
-# like the instance's fault.
-#
-# stderr is non-terminating for the duration of these calls: under
-# $ErrorActionPreference = "Stop" a redirection turns it into a TERMINATING
-# error, and WSL itself writes there (it warns about the proxy configuration,
-# for instance). The exit code is what says whether the command worked - the
-# same guard build.ps1 uses around `docker info` and `wsl --unregister`.
-
-# Run a command in the instance. Its output is streamed - an install takes
-# minutes and asks questions - so the exit code cannot be the return value: a
-# `return $code` would put the output in the caller's variable and the code in
-# the console. It comes back through a [ref] instead.
-function Invoke-InInstance {
-    param(
-        [string]$DistroName,
-        [string[]]$Command,
-        [string]$WorkingDirectory,
-        [ref]$ExitCode,
-        [switch]$Quiet
-    )
-
-    $WslArgs = @("-d", $DistroName)
-    if ($WorkingDirectory) { $WslArgs += @("--cd", $WorkingDirectory) }
-    $WslArgs += @("--") + $Command
-
-    $PreviousEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    if ($Quiet) {
-        & wsl.exe @WslArgs *> $null
-    } else {
-        & wsl.exe @WslArgs
-    }
-    $ExitCode.Value = $LASTEXITCODE
-    $ErrorActionPreference = $PreviousEAP
-}
-
-# Run a command in the instance and read what it printed, one line per entry.
-function Get-InInstanceOutput {
-    param([string]$DistroName, [string[]]$Command)
-
-    $PreviousEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    $Output = & wsl.exe -d $DistroName -- @Command 2>$null
-    $ErrorActionPreference = $PreviousEAP
-
-    return @($Output | ForEach-Object { ($_ -replace "`0", "").Trim() } | Where-Object { $_ })
-}
-
-# The packs this checkout carries. A folder under packs\ without a pack.conf is
-# not a pack: it is skipped rather than offered, because nothing could install
-# it - that file is where the name and the description are read from.
-function Get-AvailablePacks {
-    $Found = @()
-    if (-not (Test-Path $PacksRoot)) { return @() }
-    foreach ($Folder in (Get-ChildItem -Path $PacksRoot -Directory | Sort-Object Name)) {
-        $Conf = Join-Path $Folder.FullName "pack.conf"
-        if (-not (Test-Path $Conf)) { continue }
-
-        $Description = ""
-        foreach ($Line in (Get-Content -Path $Conf -Encoding UTF8)) {
-            if ($Line -match '^\s*PACK_DESCRIPTION\s*:=\s*(.+?)\s*$') { $Description = $Matches[1] }
-        }
-
-        $Found += [PSCustomObject]@{
-            Name        = $Folder.Name
-            Path        = $Folder.FullName
-            Description = $Description
-        }
-    }
-    return @($Found)
-}
-
-# Which packs an instance already has. The folder IS the state: the gmake
-# Makefile reads ~/.config/packs/*/ to decide what to load, so a folder that is
-# there is an installed pack, and one that is not is not.
-#
-# Wrap the call in @(): PowerShell unrolls a one-element list into its element,
-# and the caller then holds a string - where [0] is its first LETTER, not the
-# pack. Cost of finding out the other way: a menu that offers 'g', and a
-# deletion aimed at a folder of that name.
-function Get-InstalledPacks {
-    param([string]$DistroName, [string]$PacksDirectory)
-    return Get-InInstanceOutput -DistroName $DistroName -Command @("ls", "-1", $PacksDirectory)
-}
+# What the checkout carries, what an instance has, and the moves that make a
+# pack travel all live in scripts\packs.ps1, loaded by instance.ps1 above. This
+# file is the flow: which instance, which pack, and what it says on the way.
 
 # 1. Which instance the pack goes into
 $Distro = Select-Distro
@@ -128,10 +35,8 @@ $DistroName = $Distro.Name
 # up. WSL starts it on the way in and this call is what waits for it.
 Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."
 
-# Where its user's things live. Asked, not guessed: the home path belongs to the
-# instance, and `~` only expands in a shell - which is what the calls below
-# avoid on purpose.
-$InstanceHome = (Get-InInstanceOutput -DistroName $DistroName -Command @("printenv", "HOME") | Select-Object -First 1)
+# Where its user's things live, asked of the instance itself.
+$InstanceHome = Get-InstanceHome -DistroName $DistroName
 if (-not $InstanceHome) {
     Write-Host ""
     Write-Host "[ABORT] '$DistroName' did not say where its user's home is." -ForegroundColor Red
@@ -176,36 +81,22 @@ if (-not $Pack) {
 }
 
 $PackName = $Pack.Name
-$Target = "$PacksDirectory/$PackName"
+$Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $PackName
 
-# 3. The pack's folder, copied into the instance: the same files the image used
-# to carry. It is copied from inside - the pack's own folder becomes the working
-# directory, which wsl.exe knows how to do with a Windows path (`--cd`), and `.`
-# is then all there is to name. No path is translated here on purpose: the
-# obvious candidate is `wslpath`, which the instance does not carry at all (the
-# Ubuntu base image has no wslu, and nothing installs it).
+# 3. The pack's folder, copied into the instance, then what the pack does to
+# install itself from inside its own folder. Both live in scripts\packs.ps1.
 Write-Host ""
 Write-Host "==> Installing '$PackName' in '$DistroName'..." -ForegroundColor Cyan
 Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor DarkGray
 
 $Code = 0
-Invoke-InInstance -DistroName $DistroName -Command @("mkdir", "-p", $Target) -ExitCode ([ref]$Code) -Quiet
-if ($Code -ne 0) {
-    Write-Host "[ABORT] Could not create $Target in '$DistroName' (exit code $Code)." -ForegroundColor Red
-    exit $Code
-}
-
-Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", ".", "$Target/") -WorkingDirectory $Pack.Path -ExitCode ([ref]$Code)
-if ($Code -ne 0) {
+if (-not (Copy-PackIntoInstance -DistroName $DistroName -PackPath $Pack.Path -Target $Target -ExitCode ([ref]$Code))) {
     Write-Host "[ABORT] Could not copy the pack's files into '$DistroName' (exit code $Code)." -ForegroundColor Red
     Write-Host "        The message above is the instance's own answer." -ForegroundColor Yellow
     exit $Code
 }
 
-# 4. What the pack does to install itself, run from inside its own folder. Its
-# output is streamed, not captured: it is what tells the user how far along it
-# is, and it may ask for a password.
-Invoke-InInstance -DistroName $DistroName -Command @("bash", "install.sh") -WorkingDirectory $Target -ExitCode ([ref]$Code)
+Invoke-PackScript -DistroName $DistroName -Target $Target -Script "install.sh" -ExitCode ([ref]$Code)
 $InstallCode = $Code
 
 # A half-installed pack is worse than none: the Makefile loads whatever folder
@@ -215,7 +106,7 @@ $InstallCode = $Code
 if ($InstallCode -ne 0) {
     Write-Host ""
     Write-Host "[FAIL] The installation did not complete (exit code $InstallCode)." -ForegroundColor Red
-    Invoke-InInstance -DistroName $DistroName -Command @("rm", "-rf", $Target) -ExitCode ([ref]$Code) -Quiet
+    Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
     Write-Host "       The pack's files were removed: nothing of it stays in the instance." -ForegroundColor Yellow
     Write-Host "       Whatever the install had already put in place is still there - run this again to finish." -ForegroundColor Yellow
     exit $InstallCode
