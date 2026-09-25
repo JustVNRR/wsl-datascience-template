@@ -61,10 +61,33 @@ source "$ZDOTDIR/bindings.zsh"
 # the whole switch, exactly as it is for its gmake modules: nothing is copied
 # into this directory, so a pack that leaves takes its zsh with it - and an
 # instance carrying no pack reads nothing here at all.
-for _pack_zsh in "$ZDOTDIR"/../packs/*/zsh/*.zsh(N); do
+#
+# The list is looked at again before every prompt, the way `gmake` asks its
+# question at every run and `fcheat` at every opening. A pack installed from
+# Windows while this shell was open is a command that answers on the next
+# prompt; a pack removed stops being read. When the list has changed the shell
+# restarts: that is `exec zsh` done by itself, and the only way to lose what a
+# departed pack had defined - nothing here can undefine a function it never
+# named, and no command from outside can reach into a running shell.
+# [@] and not $var: in zsh, "$array" of an EMPTY array is one empty word, and
+# this loop would then source "" - an instance carrying no pack is the case
+# that must work, not the one that crashes.
+typeset -ga _pack_zsh_loaded
+_pack_zsh_loaded=("$ZDOTDIR"/../packs/*/zsh/*.zsh(N))
+for _pack_zsh in "${_pack_zsh_loaded[@]}"; do
     source "$_pack_zsh"
 done
 unset _pack_zsh
+
+_pack_zsh_follow() {
+    local -a now
+    now=("$ZDOTDIR"/../packs/*/zsh/*.zsh(N))
+    [[ "${(j: :)_pack_zsh_loaded}" == "${(j: :)now}" ]] && return 0
+    print -r -- "📦 the packs changed — restarting the shell"
+    exec zsh
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _pack_zsh_follow
 
 # --- 6. PROMPT ENGINE ---
 # Executed last to ensure runtime hooks and aliases are fully registered

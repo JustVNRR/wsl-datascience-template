@@ -32,6 +32,19 @@ Two folders are scanned every time the picker opens: the socle's
 `cheatsheets/`, and each installed pack's own. Add, edit or remove files there
 to curate your own command menu; a pack that leaves takes its sheets with it.
 
+### The shell follows the packs too
+
+A pack may bring shell files (`zsh/*.zsh`) — `fnew` comes with the `python`
+pack's. They are read where they live, and the list is looked at again before
+every prompt, the way the picker asks its question at every opening. Install a
+pack from Windows while a shell is open and the next prompt says so and
+restarts the shell; remove one and the next prompt does the same, which is the
+only way its commands can stop existing.
+
+So one command is all it takes — and the shell right after a change is the
+first one that sees it: the restart happens at a prompt boundary, which is why
+the command that noticed the change is the last one the old shell runs.
+
 A sheet can declare what it needs, in a comment on a line of its own:
 
 ```text
