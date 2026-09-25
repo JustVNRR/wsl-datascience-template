@@ -206,9 +206,9 @@ the repository at runtime.
 │       └── docs/            # the pack's page
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
-│   └── *.ps1                # list, build, adopt, start, stop, shell, add_pack,
-│                            # remove_pack, unregister, archive, restore,
-│                            # duplicate, shrink
+│   └── *.ps1                # list, build, start, stop, shell, add_pack,
+│                            # remove_pack, manage_packs, unregister, archive,
+│                            # restore, duplicate, shrink
 ├── tests/                   # The suites that RUN the code: the arrow menu with a
 │                            # scripted keyboard, the pack checklist, build's
 │                            # questions over a stand-in docker, the doc drift
@@ -288,7 +288,6 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | :--- | :--- |
 | [`.\wsl.ps1 list`](docs/wsl/commands.md#list) | list our instances and the archives |
 | [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
-| [`.\wsl.ps1 adopt`](docs/wsl/commands.md#adopt) | mark an existing instance as ours |
 | [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
 | [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |

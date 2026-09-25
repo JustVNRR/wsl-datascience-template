@@ -27,7 +27,6 @@ $Scripts = Join-Path $PSScriptRoot "scripts"
 $Commands = @(
     @{ Name = "list";       What = "list our instances and the archives" },
     @{ Name = "build";      What = "build an instance from the image" },
-    @{ Name = "adopt";      What = "mark an existing instance as ours" },
     @{ Name = "start";      What = "start a stopped instance" },
     @{ Name = "stop";       What = "stop a running instance" },
     @{ Name = "shell";      What = "open a shell inside an instance" },

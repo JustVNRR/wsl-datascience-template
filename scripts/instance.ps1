@@ -14,8 +14,9 @@
 # It is written by the three commands that create an instance - build, restore,
 # duplicate - and looked for by every command that lists instances. There is no
 # list to keep up to date: the mark travels with the instance, wherever it
-# lives, and an instance that loses it simply leaves our lists. adopt.ps1 is
-# how an instance built before this existed gets one.
+# lives, and an instance that loses it simply leaves our lists. Nothing else
+# writes it - an instance is ours because one of those three made it, and there
+# is no way to mark somebody else's machine as ours.
 #
 # --------------------------------------------------------------------------
 # Two more things live on the Windows side of an instance, and both are lost

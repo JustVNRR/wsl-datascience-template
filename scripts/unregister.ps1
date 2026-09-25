@@ -37,7 +37,7 @@ if ($Ours.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
     Write-Host "        Nothing to remove." -ForegroundColor Yellow
-    Write-Host "        Build one with  .\wsl.ps1 build, or make an existing one ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
+    Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
     Write-Host "        (A folder left behind by an earlier removal is deleted by hand: $Root)" -ForegroundColor DarkGray
     exit 1
 }

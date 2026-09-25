@@ -29,7 +29,6 @@ if ($All.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
     Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
-    Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
     exit 1
 }
 
