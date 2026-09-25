@@ -1,8 +1,10 @@
 # ==========================================
 # MAKEFILE CHEATSHEET (via alias gmake)
 # ==========================================
-# The gmake targets that need no Google Cloud CLI. The ones that do live in
-# gcp_commands.sh, which is offered only while that CLI is installed.
+# The socle's gmake targets: the ones that need no pack. What a pack brings has
+# its sheet in the pack's own folder - the python pack's lint and test lanes
+# among them - and the Google Cloud ones live in gcp_commands.sh, which is
+# offered only while that CLI is installed.
 
 # --- 1. DOCKER (LOCAL IMAGES) ---
 gmake docker_build_local                     # Build Docker image for local development environment
@@ -14,21 +16,9 @@ gmake gh_pr_toreview                         # Mark a Pull Request as ready for 
 gmake gh_pr_wip                              # Convert a Pull Request back to draft status (WIP)
 gmake gh_pr_ls                               # List all open Pull Requests in the repository
 
-# --- 3. LINT (RUFF & SHELLCHECK) ---
-gmake lint                                   # Run all lint checks (Python + shell), non-destructive
-gmake lint-py                                # Check Python code with ruff (PY_TARGETS="..." to scope)
-gmake lint-sh                                # Check shell scripts with shellcheck (SH_TARGETS="..." to scope)
-gmake lint-format                            # Auto-fix and format Python code with ruff
-
-# --- 4. TESTS (PYTEST) ---
-gmake test                                   # Run the whole test suite
-gmake test-fast                              # Run fast tests only, without external infrastructure (CI lane)
-gmake test-functional                        # Run functional tests (real local infra needed, e.g. .env, Docker, model)
-gmake test-gcp                               # Run tests hitting a real GCP environment (test/staging/prod)
-
-# --- 5. ENVIRONMENT FILES (.env.global / .env) ---
+# --- 3. ENVIRONMENT FILES (.env.global / .env) ---
 gmake env_global_enable                      # Create or complete the machine-wide .env.global from the samples
 gmake env_project_enable                     # Create or complete this project's .env from the samples
 
-# --- 6. PACKS ---
+# --- 4. PACKS ---
 gmake packs_list                             # List the packs this instance carries

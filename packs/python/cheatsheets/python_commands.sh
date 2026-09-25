@@ -2,9 +2,10 @@
 # PYTHON & UV CHEATSHEET
 # requires: uv
 # ==========================================
-# Offered only while uv is installed - which is to say, while the python pack
-# is. An instance without it has no uv at all, and none of these commands would
-# run: the header is what keeps them off the picker.
+# Offered only while uv is installed, which is to say while the python pack is:
+# an instance without it has no uv at all, and none of these commands would run.
+# The header is also what hides the sheet when the manager was removed by hand
+# and the folder stayed.
 
 # --- 1. PYTHON RUNTIME MANAGEMENT (UV PYTHON) ---
 uv python list                               # List installed and available upstream Python versions

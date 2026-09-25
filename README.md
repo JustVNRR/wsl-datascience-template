@@ -194,7 +194,7 @@ the repository at runtime.
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
 │   │   ├── make/            # its modules: lint, the test lanes, project setup
-│   │   ├── cheatsheets/     # the template catalog the fnew picker reads
+│   │   ├── cheatsheets/     # its fcheat sheets, and the catalog fnew reads
 │   │   ├── zsh/             # its shell files: uv's PATH, the fnew picker
 │   │   └── docs/            # the pack's pages, one per module
 │   └── vision/              # ffmpeg, ImageMagick, Tesseract: media and OCR tools
