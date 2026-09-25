@@ -8,6 +8,12 @@
 # and down move (and wrap), Enter chooses, Escape cancels, and in a list of
 # nine or fewer a digit chooses directly.
 #
+# With -Multi the same list is a checklist: space checks and unchecks where the
+# cursor is, Enter applies, Escape cancels, and what comes back is the list of
+# checked items - in the order they appear, and empty when none was checked.
+# "None checked" and "cancelled" are different answers, and the comma before the
+# return is what keeps them apart.
+#
 # It falls back to the numbered prompt - the one every command used before -
 # and the fallback is the important half, because a menu that waits for a key
 # on a machine with no keyboard waits forever:
@@ -70,9 +76,14 @@ function Set-ConsoleTop {
 # One row of the list, as it is drawn: the marker and the colours say where the
 # choice is, so a terminal that renders neither still reads correctly.
 function Format-MenuRow {
-    param([int]$Index, [int]$Current, [string[]]$Labels)
-    if ($Index -eq $Current) { return ("  > " + $Labels[$Index]) }
-    return ("    " + $Labels[$Index])
+    param([int]$Index, [int]$Current, [string[]]$Labels, [bool[]]$Checked)
+
+    $Marker = if ($Index -eq $Current) { "  > " } else { "    " }
+    if ($null -eq $Checked) { return ($Marker + $Labels[$Index]) }
+    # A multi-select list says what is checked and what is not. The marker keeps
+    # saying where the cursor is - two questions, two signs.
+    $Box = if ($Checked[$Index]) { "[x] " } else { "[ ] " }
+    return ($Marker + $Box + $Labels[$Index])
 }
 
 # One row is one line, always. A label wider than the window would wrap, and a
@@ -93,8 +104,8 @@ function Format-MenuLabels {
 }
 
 function Write-MenuRow {
-    param([int]$Index, [int]$Current, [string[]]$Labels)
-    $Row = Format-MenuRow -Index $Index -Current $Current -Labels $Labels
+    param([int]$Index, [int]$Current, [string[]]$Labels, [bool[]]$Checked)
+    $Row = Format-MenuRow -Index $Index -Current $Current -Labels $Labels -Checked $Checked
     if ($Index -eq $Current) {
         Write-Host $Row -ForegroundColor Cyan
     } else {
@@ -118,11 +129,46 @@ function Get-ConsoleSize {
 # typed, an empty answer cancelling. Read-Host returns an empty string when its
 # input is closed, so a run with no console can never loop forever.
 function Select-ByNumber {
-    param([string]$Title, [string[]]$Labels, [object[]]$Items)
+    param([string]$Title, [string[]]$Labels, [object[]]$Items, [switch]$Multi, [bool[]]$Checked)
+
+    $Count = $Items.Count
+
+    if ($Multi) {
+        if ($null -eq $Checked) { $Checked = New-Object bool[] $Count }
+        while ($true) {
+            # The list is written again at every turn: a box that changed has to
+            # be seen, and with no console to paint on there is nowhere else to
+            # put it.
+            Write-Host ""
+            if ($Title) { Write-Host "$Title" -ForegroundColor Cyan }
+            for ($Index = 0; $Index -lt $Count; $Index++) {
+                $Box = if ($Checked[$Index]) { "[x]" } else { "[ ]" }
+                Write-Host ("  {0,2}.  {1} {2}" -f ($Index + 1), $Box, $Labels[$Index])
+            }
+            Write-Host "   0.  Cancel"
+
+            $Answer = [string](Read-Host "Number toggles, v applies, 0 cancels")
+            if ([string]::IsNullOrWhiteSpace($Answer) -or $Answer.Trim() -eq "0") { return $null }
+            if ($Answer.Trim() -match "^[vV]$") {
+                $Chosen = @()
+                for ($Index = 0; $Index -lt $Count; $Index++) {
+                    if ($Checked[$Index]) { $Chosen += $Items[$Index] }
+                }
+                return ,$Chosen
+            }
+            $Number = 0
+            if ([int]::TryParse($Answer.Trim(), [ref]$Number) -and
+                $Number -ge 1 -and $Number -le $Count) {
+                $Checked[$Number - 1] = -not $Checked[$Number - 1]
+                continue
+            }
+            Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
+        }
+    }
 
     Write-Host ""
     if ($Title) { Write-Host "$Title" -ForegroundColor Cyan }
-    for ($Index = 0; $Index -lt $Items.Count; $Index++) {
+    for ($Index = 0; $Index -lt $Count; $Index++) {
         Write-Host ("  {0,2}.  {1}" -f ($Index + 1), $Labels[$Index])
     }
     Write-Host "   0.  Cancel"
@@ -133,7 +179,7 @@ function Select-ByNumber {
         $Number = 0
         if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
             if ($Number -eq 0) { return $null }
-            if ($Number -ge 1 -and $Number -le $Items.Count) { return $Items[$Number - 1] }
+            if ($Number -ge 1 -and $Number -le $Count) { return $Items[$Number - 1] }
         }
         Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
     }
@@ -148,10 +194,21 @@ function Select-ByNumber {
 # returns a [ConsoleKey] on demand, so the whole loop - wrapping included - runs
 # with no terminal in sight.
 function Select-WithArrows {
-    param([string]$Title, [string[]]$Labels, [object[]]$Items, [scriptblock]$KeyReader, [int]$Start = 0)
+    param(
+        [string]$Title,
+        [string[]]$Labels,
+        [object[]]$Items,
+        [scriptblock]$KeyReader,
+        [int]$Start = 0,
+        [switch]$Multi,
+        [bool[]]$Checked
+    )
 
     $Count = $Items.Count
     $Current = $Start
+    if ($Multi -and $null -eq $Checked) { $Checked = New-Object bool[] $Count }
+    $Hint = if ($Multi) { "  up/down to move, space to check, Enter to apply, Escape to cancel" }
+            else { "  up/down to move, Enter to choose, Escape to cancel" }
     $Size = Get-ConsoleSize
     $Shown = Format-MenuLabels -Labels $Labels -Width $Size[0]
 
@@ -172,9 +229,9 @@ function Select-WithArrows {
     Write-Host ""
     if ($Title) { Write-Host "$Title" -ForegroundColor Cyan }
     for ($Row = 0; $Row -lt $Visible; $Row++) {
-        Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown
+        Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown -Checked $Checked
     }
-    Write-Host "  up/down to move, Enter to choose, Escape to cancel" -ForegroundColor DarkGray
+    Write-Host $Hint -ForegroundColor DarkGray
 
     $Cursor = Get-ConsoleTop
     $Top = if ($null -ne $Cursor) { $Cursor - ($Visible + 1) } else { 0 }
@@ -192,23 +249,36 @@ function Select-WithArrows {
             $Current = if ($Current -eq 0) { $Last } else { $Current - 1 }
         } elseif ($Key -eq [ConsoleKey]::DownArrow) {
             $Current = if ($Current -eq $Last) { 0 } else { $Current + 1 }
+        } elseif ($Key -eq [ConsoleKey]::Spacebar -and $Multi) {
+            # Space checks and unchecks where the cursor is. In a single-choice
+            # list it means nothing, and nothing is what it does.
+            $Checked[$Current] = -not $Checked[$Current]
         } elseif ($Key -eq [ConsoleKey]::Enter) {
             if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
+            if ($Multi) {
+                $Wanted = @()
+                for ($Index = 0; $Index -lt $Count; $Index++) {
+                    if ($Checked[$Index]) { $Wanted += $Items[$Index] }
+                }
+                # The comma: without it an empty list arrives as nothing at all,
+                # and "I checked none" is not the same answer as "I cancelled".
+                return ,$Wanted
+            }
             return $Items[$Current]
         } elseif ($Key -eq [ConsoleKey]::Escape) {
             if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
             return $null
-        } elseif ($Key -ge [ConsoleKey]::D1 -and $Key -le [ConsoleKey]::D9) {
-            $Wanted = [int]$Key - [int][ConsoleKey]::D1
+        } elseif (($Key -ge [ConsoleKey]::D1 -and $Key -le [ConsoleKey]::D9) -or
+                  ($Key -ge [ConsoleKey]::NumPad1 -and $Key -le [ConsoleKey]::NumPad9)) {
+            $Wanted = if ($Key -ge [ConsoleKey]::NumPad1) { [int]$Key - [int][ConsoleKey]::NumPad1 }
+                      else { [int]$Key - [int][ConsoleKey]::D1 }
             if ($Wanted -lt $Count) {
-                if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
-                return $Items[$Wanted]
-            }
-        } elseif ($Key -ge [ConsoleKey]::NumPad1 -and $Key -le [ConsoleKey]::NumPad9) {
-            $Wanted = [int]$Key - [int][ConsoleKey]::NumPad1
-            if ($Wanted -lt $Count) {
-                if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
-                return $Items[$Wanted]
+                if ($Multi) {
+                    $Checked[$Wanted] = -not $Checked[$Wanted]    # a digit checks, it does not leave
+                } else {
+                    if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
+                    return $Items[$Wanted]
+                }
             }
         } else {
             $Moved = $false                   # a key the menu has no use for
@@ -227,11 +297,11 @@ function Select-WithArrows {
         $Placed = $true
         for ($Row = 0; $Row -lt $Visible; $Row++) {
             if (-not (Set-ConsoleTop ($Top + $Row))) { $Placed = $false; break }
-            Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown
+            Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown -Checked $Checked
         }
         if (-not $Placed) {
             for ($Row = 0; $Row -lt $Visible; $Row++) {
-                Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown
+                Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown -Checked $Checked
             }
         }
     }
@@ -246,11 +316,21 @@ function Select-FromList {
         [object[]]$Items = @(),
         [scriptblock]$Label = { param($Item) [string]$Item },
         [scriptblock]$KeyReader,
-        [int]$DefaultIndex = 0
+        [int]$DefaultIndex = 0,
+        [switch]$Multi,
+        [int[]]$CheckedIndexes = @()
     )
 
     $Items = @($Items)
     if ($Items.Count -eq 0) { return $null }
+    if ($Multi) {
+        $Checked = New-Object bool[] $Items.Count
+        foreach ($Index in $CheckedIndexes) {
+            if ($Index -ge 0 -and $Index -lt $Items.Count) { $Checked[$Index] = $true }
+        }
+    } else {
+        $Checked = $null
+    }
     # Where the choice starts, so that Enter takes the answer the command would
     # have taken anyway. An index that is not in the list is the first one: a
     # default is a favour, not a way to fail.
@@ -265,9 +345,19 @@ function Select-FromList {
     $Arrows = [bool]$KeyReader -or (Test-KeyInput)
 
     if (-not $Arrows) {
+        if ($Multi) {
+            return (Select-ByNumber -Title $Title -Labels $Labels -Items $Items -Multi -Checked $Checked)
+        }
         return (Select-ByNumber -Title $Title -Labels $Labels -Items $Items)
     }
-    return (Select-WithArrows -Title $Title -Labels $Labels -Items $Items -KeyReader $KeyReader -Start $DefaultIndex)
+
+    $Chosen = Select-WithArrows -Title $Title -Labels $Labels -Items $Items -KeyReader $KeyReader `
+        -Start $DefaultIndex -Multi:$Multi -Checked $Checked
+    # Multi hands back a list, and a list has to survive the trip: without the
+    # comma, a single checked item arrives as that item and none arrives as
+    # nothing, and the caller cannot tell "none" from "cancelled".
+    if ($Multi) { return ,$Chosen }
+    return $Chosen
 }
 
 # ---------------------------------------------------------------------------
