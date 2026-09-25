@@ -31,7 +31,12 @@ the image and outlives every pack.
 
 ## Without it
 
-No `docker_build_local`, no `gh_pr_*`, no `env_*_enable`: an instance with no
-project has nothing to build, push or configure. The two tools stay — `docker`
-and `gh` are on the machine whatever the packs say, and their own commands are
-in the cheatsheet picker (`docker_commands.sh`, `git_commands.sh`).
+No `docker_build_local`, no `gh_pr_*`, no `env_*_enable`, and no docker commands
+in the cheatsheet picker: an instance with no project has nothing to build, push
+or configure, so the whole of it travels with this pack. The docker sheet is one
+of its faces, next to the module and the page — the docker *commands* and the
+gmake targets that drive them are the same work.
+
+The tools themselves are not the pack's: `docker` comes from Docker Desktop and
+`gh` from the image, whatever the packs say. Its `docker_commands.sh` declares
+`# requires: docker`, so it is offered exactly when that command answers.

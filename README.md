@@ -160,7 +160,7 @@ the repository at runtime.
 │   ├── bindings.zsh         # ZLE widgets and keybindings
 │   ├── cheatsheet.zsh       # Interactive cheatsheet selector (fcheat)
 │   ├── cheatsheets/         # Auto-scanned data files: CTRL+H command lists (fcheat)
-│   │   └── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
+│   │   └── *_commands.sh    # The commands an instance always has: bash, git, the gmake menu
 │   ├── gmake/               # MLOps Makefile ecosystem (the gmake alias)
 │   │   ├── Makefile         # Entrypoint: loads the modules, builds the menu, gates where targets run
 │   │   └── make/            # The socle's modules (pages in docs/make/)
@@ -188,7 +188,7 @@ the repository at runtime.
 │   │   ├── env.global.sample  # the pack's shared defaults (the header of .env.global)
 │   │   ├── env.project.sample # the pack's project variables (PACKAGE_NAME, DOCKER_*)
 │   │   ├── make/            # the pack's modules, loaded as soon as the folder is there
-│   │   ├── cheatsheets/     # the pack's fcheat sheet
+│   │   ├── cheatsheets/     # its fcheat sheets: the docker commands, its gmake targets
 │   │   └── docs/            # the pack's pages, one per module
 │   ├── gcp/                 # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance

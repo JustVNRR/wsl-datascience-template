@@ -1,6 +1,9 @@
 # ======================
 # 🐳 DOCKER CHEATSHEET
+# requires: docker
 # ======================
+# The docker commands a project is built, run and cleaned with. Offered while
+# docker answers - it comes from Docker Desktop, not from this pack.
 
 # --- 1. IMAGE MANAGEMENT (Build Blueprints) ---
 docker images                                # List all images downloaded or built locally
