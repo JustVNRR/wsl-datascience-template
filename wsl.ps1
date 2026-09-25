@@ -1,9 +1,10 @@
 # ==============================================================================
 # THE WAY IN: one command at the root, the scripts themselves in scripts\
 # ==============================================================================
-# Bare, it says what the repository can do. With a command, it runs it.
+# Bare, it asks which command: the list, walked with the arrows and taken with
+# Enter, Escape to cancel. With a command, it runs it.
 #
-#   .\wsl.ps1                       the list
+#   .\wsl.ps1                       the menu
 #   .\wsl.ps1 archive               archive an instance
 #   .\wsl.ps1 archive -Format tar.xz
 #
@@ -34,20 +35,38 @@ $Commands = @(
     @{ Name = "shrink";     What = "reclaim the space an instance has freed" }
 )
 
+# Bare, the repository asks its first question - which command - and it is a
+# question like the ones inside the commands: the same menu, walked with the
+# arrows, cancelled with Escape. The dispatcher loads what they load, for that
+# reason and no other: asking is scripts\menu.ps1's job, and it must not be
+# written a second time here.
 if ($args.Count -eq 0) {
-    Write-Host ""
-    Write-Host "WSL DataScience template" -ForegroundColor Cyan
-    Write-Host ""
-    foreach ($Command in $Commands) {
-        Write-Host ("  {0,-12} {1}" -f $Command.Name, $Command.What)
+    $InstanceLib = Join-Path $Scripts "instance.ps1"
+    if (-not (Test-Path $InstanceLib)) {
+        Write-Host ""
+        Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+        exit 1
     }
+    . $InstanceLib
+
     Write-Host ""
-    Write-Host "  .\wsl.ps1 <command> [options]" -ForegroundColor DarkGray
-    Write-Host ""
-    exit 0
+    Write-Host "  (a command can also be typed:  .\wsl.ps1 <command> [options])" -ForegroundColor DarkGray
+
+    $Chosen = Select-FromList -Title "WSL DataScience template" -Items $Commands -Label {
+        param($Command)
+        "{0,-12} {1}" -f $Command.Name, $Command.What
+    }
+
+    if (-not $Chosen) {
+        Write-Host ""
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was run." -ForegroundColor Green
+        exit 0
+    }
+    $Verb = $Chosen.Name
+} else {
+    $Verb = "$($args[0])".ToLower()
 }
 
-$Verb = "$($args[0])".ToLower()
 $Chosen = $Commands | Where-Object { $_.Name -eq $Verb } | Select-Object -First 1
 
 if (-not $Chosen) {
