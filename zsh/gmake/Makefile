@@ -38,40 +38,15 @@ $(foreach var,$(PROJECT_IDENTIFYING_VARS),$(if $(filter file,$(origin $(var))),$
 # B-bis. Whether a project .env was found here (drives the warnings in check_vars)
 PROJECT_ENV := $(wildcard .env)
 
-# 2. Location gate: where gmake targets are allowed to run.
-#   - operational targets: from the root of a project (a direct child of ~/projects)
-#   - scaffolding targets (copier_project, cruft_project, ccds_project): from ~/projects itself
-#   - onboarding and install targets, and help: from anywhere
-# GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
-# Only the socle has targets to exempt now: a pack is installed from Windows
-# (`.\wsl.ps1 add_pack`), so nothing of a pack has to run from anywhere.
-# packs_list is exempt for the same reason help is: it reads the machine, not a
-# project, and the question "what do I have?" is asked from wherever you stand.
-GATE_EXEMPT_GOALS := help env_global_enable packs_list
-ifneq (,$(filter copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
-ifeq (,$(GMAKE_ANYWHERE))
-ifneq ($(HOME)/projects,$(CURDIR))
-$(error ❌ ERROR: Scaffolding runs from ~/projects itself (current directory: $(CURDIR)) — set GMAKE_ANYWHERE=1 to bypass)
-endif
-endif
-endif
-ifneq (,$(filter-out $(GATE_EXEMPT_GOALS) copier_project cruft_project ccds_project,$(MAKECMDGOALS)))
-ifeq (,$(GMAKE_ANYWHERE))
-ifneq ($(HOME)/projects,$(patsubst %/,%,$(dir $(CURDIR))))
-$(error ❌ ERROR: gmake targets run from the root of a project under ~/projects (current directory: $(CURDIR)) — set GMAKE_ANYWHERE=1 to bypass)
-endif
-endif
-endif
-
-# 3. Export loaded variables to child subshells
+# 2. Export loaded variables to child subshells
 export
 
-# 4. Derived variables
+# 3. Derived variables
 # A variable derived from a project's identity belongs to the pack that reads
 # it: SA_EMAIL is in packs/gcp/make/gcp.mk, where its reader lives. Nothing is
 # derived here.
 
-# 5. Modular Sub-makefile Imports (loaded relative to this file)
+# 4. Modular Sub-makefile Imports (loaded relative to this file)
 #
 # Two globs, no name in either: make/*.mk is the socle's own modules, and
 # packs/*/make/*.mk is every installed pack's. Adding a module, or a whole
@@ -91,6 +66,37 @@ PACK_MODULES := $(wildcard $(PACKS_DIR)/*/make/*.mk)
 
 include $(CORE_MODULES)
 include $(PACK_MODULES)
+
+# 5. Location gate: where gmake targets are allowed to run.
+#   - operational targets: from the root of a project (a direct child of ~/projects)
+#   - scaffolding targets: from ~/projects itself
+#   - onboarding and install targets, and help: from anywhere
+# GMAKE_ANYWHERE=1 bypasses the gate for tests or unconventional setups.
+#
+# Read LAST, after every module, and that placement is the whole point: `$(error)`
+# fires when make READS the line, so a gate checked before the includes could not
+# know what a pack declares. The scaffolding goals are named by the pack that
+# defines them - SCAFFOLD_GOALS, in its own module - and the socle names no
+# target of a pack any more. A target nobody declares is treated as an ordinary
+# project target, which is the right answer for the socle's own.
+#
+# packs_list is exempt for the same reason help is: it reads the machine, not a
+# project, and the question "what do I have?" is asked from wherever you stand.
+GATE_EXEMPT_GOALS := help env_global_enable packs_list
+ifneq (,$(filter $(SCAFFOLD_GOALS),$(MAKECMDGOALS)))
+ifeq (,$(GMAKE_ANYWHERE))
+ifneq ($(HOME)/projects,$(CURDIR))
+$(error ❌ ERROR: Scaffolding runs from ~/projects itself (current directory: $(CURDIR)) — set GMAKE_ANYWHERE=1 to bypass)
+endif
+endif
+endif
+ifneq (,$(filter-out $(GATE_EXEMPT_GOALS) $(SCAFFOLD_GOALS),$(MAKECMDGOALS)))
+ifeq (,$(GMAKE_ANYWHERE))
+ifneq ($(HOME)/projects,$(patsubst %/,%,$(dir $(CURDIR))))
+$(error ❌ ERROR: gmake targets run from the root of a project under ~/projects (current directory: $(CURDIR)) — set GMAKE_ANYWHERE=1 to bypass)
+endif
+endif
+endif
 
 # --- Automatic Help Menu ---
 .DEFAULT_GOAL := help

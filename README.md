@@ -88,9 +88,6 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
 | Setup | [Environment files](docs/make/env.md) | `env_global_enable`, `env_project_enable` |
-| Create | [Project scaffolding](docs/make/project-setup.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
-| Verify | [Lint](docs/make/lint.md) | `lint`, `lint-py`, `lint-sh`, `lint-format` |
-| Verify | [Tests](docs/make/tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
 | Operate | [Docker](docs/make/docker.md) | `docker_build_local`, `docker_run_local` |
 | Operate | [Packs installed here](docs/make/packs.md) | `packs_list` |
 | Collaborate | [GitHub PRs](docs/make/github.md) | `gh_pr_*` |
@@ -101,7 +98,7 @@ it grows, and a pack leaves with its folder:
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
-| `python` | [Python](packs/python/docs/python.md) | — |
+| `python` | [Python](packs/python/docs/python.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project`, `lint*`, `test*` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
 
 A pack that brings no target of its own shows `—`: `vision` installs ffmpeg,
@@ -158,17 +155,13 @@ the repository at runtime.
 │   ├── bindings.zsh         # ZLE widgets and keybindings
 │   ├── cheatsheet.zsh       # Interactive cheatsheet selector (fcheat)
 │   ├── cheatsheets/         # Auto-scanned data files: CTRL+H command lists (fcheat)
-│   │   ├── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
-│   │   └── templates.tsv    # Curated project template catalog (fnew picker)
+│   │   └── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
 │   ├── gmake/               # MLOps Makefile ecosystem (the gmake alias)
 │   │   ├── .env.global.sample  # The socle's share of the shared defaults (gmake env_global_enable)
 │   │   ├── .env.project.sample # The socle's share of a project's variables (gmake env_project_enable)
 │   │   ├── Makefile           # Entrypoint for the MLOps Makefile
 │   │   └── make/            # The socle's modules, one per domain (pages in docs/make/)
 │   │       ├── env.mk             # the two env files, assembled from the samples
-│   │       ├── project-setup.mk   # copier/cruft scaffolding + venv/direnv bootstrap
-│   │       ├── lint.mk            # ruff (Python) + shellcheck (shell) checks
-│   │       ├── tests.mk           # pytest lanes (fast / functional / gcp)
 │   │       ├── docker.mk          # image builds and local runs (docker only)
 │   │       ├── github.mk          # GitHub PR workflow (gh CLI)
 │   │       └── packs.mk           # what this instance carries (gmake packs_list)
@@ -179,8 +172,6 @@ the repository at runtime.
 │   ├── prompts/
 │   │   ├── starship.toml    # Starship visual configuration
 │   │   └── starship.zsh     # Starship initialization hook
-│   ├── python.zsh           # uv autocompletion
-│   ├── scaffold.zsh         # Interactive project scaffolding picker (fnew)
 │   └── unzip.zsh            # Interactive archive extraction handler
 ├── assets/
 │   ├── make-icon.ps1        # Regenerates the icon below (standalone PowerShell)
@@ -202,7 +193,10 @@ the repository at runtime.
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
-│   │   └── docs/            # the pack's page
+│   │   ├── make/            # its modules: lint, the test lanes, project setup
+│   │   ├── cheatsheets/     # the template catalog the fnew picker reads
+│   │   ├── zsh/             # its shell files: uv's PATH, the fnew picker
+│   │   └── docs/            # the pack's pages, one per module
 │   └── vision/              # ffmpeg, ImageMagick, Tesseract: media and OCR tools
 │       ├── pack.conf        # what it installs, and the line `add_pack` shows
 │       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance

@@ -21,6 +21,7 @@ its own `pack.conf`:
 Packs installed in this instance:
 
   gcp       The Google Cloud CLI (about 409 MB installed)
+  python    Python 3, uv and the scaffolding tools (about 570 MB installed)
   vision    ffmpeg, ImageMagick and Tesseract OCR (about 500 MB installed)
 
 A pack is added or removed from Windows:  .\wsl.ps1 add_pack  /  .\wsl.ps1 manage_packs

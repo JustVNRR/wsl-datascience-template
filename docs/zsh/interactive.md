@@ -53,5 +53,5 @@ current tree.
 
 ### Scaffolding
 
-`fnew` — the interactive project scaffolding picker — lives with the
-Makefile workflow: see [Project scaffolding](../make/project-setup.md).
+`fnew` — the interactive project scaffolding picker — comes with the `python`
+pack: see [Project scaffolding](../../packs/python/docs/project-setup.md).

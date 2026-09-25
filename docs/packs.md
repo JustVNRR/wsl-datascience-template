@@ -16,6 +16,7 @@ packs/<name>/
 ├── install.sh             # what `.\wsl.ps1 add_pack` runs inside the instance
 ├── remove.sh              # what `.\wsl.ps1 remove_pack` runs before the folder goes
 ├── make/*.mk              # its targets, loaded as soon as the folder is there
+├── zsh/*.zsh              # its shell files, read where they live (never copied)
 ├── env.global.sample      # its share of the shared defaults
 ├── env.project.sample     # its share of a project's variables
 ├── cheatsheets/*.sh       # its fcheat sheets, each with a `# requires:` header
@@ -52,6 +53,15 @@ all. That is why the two-faced arrangement this replaces — a module loaded onl
 when a given binary was on the PATH — had to go: it made a pack's commands
 appear or disappear for a reason that was not the pack's presence.
 
+A pack's targets are ordinary ones, with one thing they can declare themselves:
+a target that only makes sense from `~/projects` (scaffolding) says so in its
+module — `SCAFFOLD_GOALS += copier_project cruft_project ccds_project`, in
+`packs/python/make/project-setup.mk` — and the location gate in the Makefile
+reads that declaration. The gate is checked after the modules are loaded,
+precisely so it can: `$(error)` fires when make *reads* the line, and a target
+nobody declares would be treated as a project target and refused from
+`~/projects` with a message about a project root that is not the point.
+
 Removing is the same story from the other end: `.\wsl.ps1 remove_pack` runs the
 pack's own `remove.sh` first, then deletes the folder, then takes back the
 dependencies that came in with the pack and that no `remove.sh` ever named —
@@ -72,6 +82,17 @@ instance exists.
 
 They are all documented in
 [Instance commands](wsl/commands.md#add_pack).
+
+## The shell
+
+A pack may bring shell files (`zsh/*.zsh`), and the socle reads them **where
+they live** — `~/.config/packs/*/zsh/*.zsh`, from the `.zshrc` that loads
+everything else. Nothing is copied into `~/.config/zsh`: a pack that leaves
+takes its commands out of the shell exactly as it takes its targets out of the
+menu, and an instance carrying no pack reads nothing there at all. The `python`
+pack's `fnew` and the catalog it reads travel together that way — the picker
+resolves its catalog from its own file's location, not from a path that only
+exists in the socle.
 
 ## Two packs, one package
 

@@ -1,11 +1,20 @@
 # ============================================================
 # PROJECT SCAFFOLDING (FNEW)
 # ============================================================
+# This file is the pack's: the socle reads it where it lives
+# (~/.config/packs/python/zsh/scaffold.zsh) and copies nothing anywhere. Its
+# catalog travels with it, so the path below is resolved from this file rather
+# than from a directory of the socle's - `%x` is the file currently being read,
+# which is also the right answer from inside a function (there, `$0` is the
+# function's own name).
 
 # Interactively fuzzy-select a project template from the catalog
-# ($ZDOTDIR/cheatsheets/templates.tsv) and print "url<TAB>tool<TAB>version"
+# (../cheatsheets/templates.tsv, beside this file) and print
+# "url<TAB>tool<TAB>version"
 _ftemplate_select() {
-    local catalog="$ZDOTDIR/cheatsheets/templates.tsv"
+    # ...:A resolves the path (symlinks, `..`), :h twice climbs from zsh/ to the
+    # pack's own folder, where the catalog sits beside its siblings.
+    local catalog="${${(%):-%x}:A:h:h}/cheatsheets/templates.tsv"
     local skipped
 
     # Silent exit when the catalog is missing or empty

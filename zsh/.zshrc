@@ -51,14 +51,20 @@ source "$ZDOTDIR/aliases.zsh"      # Command shortcuts and interactive falias to
 source "$ZDOTDIR/navigation.zsh"   # Directory hopping and fuzzy file pickers (cdv, cda, fv, fa)
 source "$ZDOTDIR/unzip.zsh"        # Interactive archive extraction handler
 source "$ZDOTDIR/cheatsheet.zsh"   # Custom cheatsheet selector (fcheat)
-source "$ZDOTDIR/scaffold.zsh"     # Interactive project scaffolding picker (fnew)
 
 # --- 4. ZLE KEYBINDINGS ---
 # Keybindings must load AFTER all custom functions and widgets are declared in memory
 source "$ZDOTDIR/bindings.zsh"
 
-# --- 5. DEVELOPMENT RUNTIMES ---
-source "$ZDOTDIR/python.zsh"
+# --- 5. PACKS ---
+# Each installed pack's shell files, read where they live. A pack's folder is
+# the whole switch, exactly as it is for its gmake modules: nothing is copied
+# into this directory, so a pack that leaves takes its zsh with it - and an
+# instance carrying no pack reads nothing here at all.
+for _pack_zsh in "$ZDOTDIR"/../packs/*/zsh/*.zsh(N); do
+    source "$_pack_zsh"
+done
+unset _pack_zsh
 
 # --- 6. PROMPT ENGINE ---
 # Executed last to ensure runtime hooks and aliases are fully registered

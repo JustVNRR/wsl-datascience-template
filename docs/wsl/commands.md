@@ -445,7 +445,7 @@ rebuild destroys it the same way. Before either:
 | `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
 | `~/.config/gcloud/` | Both logins are redoable in minutes ([GCP onboarding](../../packs/gcp/docs/onboarding.md)) |
 | `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake env_global_enable` recreates them from the samples the instance carries |
-| `~/.config/zsh/cheatsheets/templates.tsv` | Only for rows you added inside the instance: the file is redeployed at build time — move the line into `zsh/` to keep it |
+| `~/.config/packs/python/cheatsheets/templates.tsv` | Only for rows you added inside the instance: `add_pack` copied the file there — move the line into the pack to keep it |
 
 `archive` is the way out: it writes the whole file system to a folder you can
 restore from later.

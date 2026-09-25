@@ -1,6 +1,6 @@
 # Project Scaffolding
 
-[← Back to the README](../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../../README.md#optional-tooling)
 
 Scaffold a new project from a curated catalog of templates, with the virtual
 environment and direnv bootstrapped along the way.
@@ -90,8 +90,8 @@ per tool — and neither works with the other's.
 
 ## The catalog
 
-The catalog (`cheatsheets/templates.tsv`) is the short list of templates worth
-keeping: one per line, tab-separated.
+The catalog (`packs/python/cheatsheets/templates.tsv`, in this pack) is the
+short list of templates worth keeping: one per line, tab-separated.
 
 An entry belongs there when a **checkable fact** justifies it:
 
@@ -152,13 +152,13 @@ is a `printf` with an explicit `\t`, which cannot turn into spaces:
 ```bash
 printf '%s\t%s\t%s\t%s\n' \
   'gh:owner/repo' 'copier' '' 'What it is (and the fact that justifies it)' \
-  >> ~/.config/zsh/cheatsheets/templates.tsv
+  >> ~/.config/packs/python/cheatsheets/templates.tsv
 ```
 
-That writes to the copy inside the distro, which is redeployed from
-`zsh/cheatsheets/templates.tsv` at build time. An entry meant to survive a
-rebuild therefore belongs in the repository — same rule as everything else
-under `zsh/`.
+That writes to the copy inside the instance, which `add_pack` put there by
+copying the pack's folder. A rebuild throws the instance away, so an entry
+meant to survive one belongs in the repository, in the pack's own
+`cheatsheets/` — beside the file it feeds.
 
 ## Skipping the picker
 

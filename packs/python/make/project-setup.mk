@@ -50,8 +50,13 @@ endef
 # ==============================================================================
 # PROJECT SETUP WORKFLOW
 # ==============================================================================
-# Location: these targets only run from ~/projects itself — enforced by the
-# location gate in the gmake Makefile (same rule as fnew in scaffold.zsh).
+# Location: these targets only run from ~/projects itself, and the gate that
+# enforces it lives in the gmake Makefile. That gate cannot name them itself -
+# it has to read this declaration, which is why the names are written here,
+# beside the targets they name. The socle names no target of a pack: a target
+# nobody declares is treated as an ordinary one, and would be refused from
+# ~/projects with a message about a project root that is not the point.
+SCAFFOLD_GOALS += copier_project cruft_project ccds_project
 
 copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)

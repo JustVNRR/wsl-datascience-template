@@ -22,6 +22,19 @@ Python itself is **not** the system's: uv downloads its own build under
 `~/.local/share/uv/python`, which is what a project's `.venv` points at. Nothing
 here is global, so nothing needs a password once the pack is installed.
 
+## What it adds to the shell and to gmake
+
+| Page | What it drives |
+| :--- | :--- |
+| [Project scaffolding](project-setup.md) | `fnew`, and the targets it delegates to: `copier_project`, `cruft_project`, `ccds_project` |
+| [Lint](lint.md) | `lint`, `lint-py` (ruff), `lint-sh` (shellcheck), `lint-format` |
+| [Tests](tests.md) | `test`, `test-fast`, `test-functional`, `test-gcp` |
+
+The shell side is read from this pack's own folder
+(`~/.config/packs/python/zsh/`): uv's PATH and completions, and `fnew` with its
+catalog. Nothing is copied into `~/.config/zsh`, so removing the pack takes its
+commands out of the shell too.
+
 ## Installing and removing it
 
 ```powershell
