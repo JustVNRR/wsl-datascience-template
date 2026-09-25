@@ -38,12 +38,16 @@ and its two scripts have nothing to do but say so.
 | Declaration | What it says |
 | :--- | :--- |
 | `PACK_DESCRIPTION` | the line `add_pack` shows in its list of packs |
+| `PACK_REQUIRES` | the packs it is installed on top of |
+| `PACK_VISIBLE` | `no` keeps it out of every list: nobody chooses it |
 | `PACK_PACKAGES` | the system packages it installs — named once, read by both scripts, and by a neighbour's removal |
 | `PACK_IDENTIFYING_VARS` | the variables refused in a shared `.env.global` |
+| `PACK_WELCOME` | the line `build` prints on a fresh instance, when this pack is among the chosen ones |
 
-`PACK_IDENTIFYING_VARS` is read with `sed`, not by including the file: the socle
-needs it while it is still loading `.env.global`, before a pack may define
-anything. `PACK_DESCRIPTION` is read by `add_pack`, from Windows.
+Only the first is always there. `PACK_IDENTIFYING_VARS` is read with `sed`, not
+by including the file: the socle needs it while it is still loading
+`.env.global`, before a pack may define anything. `PACK_DESCRIPTION` is read by
+`add_pack`, from Windows.
 
 ## Installed, or not
 
@@ -100,6 +104,26 @@ pack's `fnew` and the catalog it reads travel together that way — the picker
 resolves its catalog from its own file's location, not from a path that only
 exists in the socle.
 
+## Two packs, one choice
+
+`PACK_REQUIRES` names a pack it is installed on top of — one name, or several.
+What it requires arrives **before** it, a pack lands on what it needs, and it
+leaves **after** it, when the last pack that required it goes.
+
+The second half is what makes an invisible pack possible. `PACK_VISIBLE := no`
+is a pack in no list: not in `add_pack`'s, not in `manage_packs`' checklist, not
+in `gmake packs_list`. You cannot choose it, and you cannot remove it by hand —
+either one would pull the base out from under a pack still installed. It arrives
+with the pack that requires it, it leaves with the last one that does, and it is
+never alone.
+
+`dev` is the first of them, and the mirror of `vision`: the project targets
+python and gcp both need, against a tool with no target. That is also why
+`PACK_REQUIRES` had to exist. A pack whose targets call a macro another pack
+defines — `check_vars`, `confirm_action` — would find the macro undefined, and
+an undefined macro expands to nothing: the check and the confirmation would
+vanish in silence rather than fail.
+
 ## Two packs, one package
 
 Two packs may install the same package — a compiler, a media library — and they
@@ -155,10 +179,7 @@ in survives, and a pack installed later is covered by the next run. See
 
 ## Not yet
 
-Two fields have no reader, and are absent for that reason: `PACK_CONTRACT` —
-the version of this contract, which no instance has ever met another of, since
-the packs and the installer still come from the same checkout — and
-`PACK_REQUIRES`, a pack needing another. The section above is why that one is
-not missed: a pack installs what it needs, so it has nothing to ask a neighbour
-for, and the removal rule protects the shared package either way. A field
-nothing reads is not a safety.
+One field has no reader, and is absent for that reason: `PACK_CONTRACT` — the
+version of this contract, which no instance has ever met another of, since the
+packs and the installer still come from the same checkout. A field nothing
+reads is not a safety.

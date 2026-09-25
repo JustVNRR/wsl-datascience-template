@@ -105,7 +105,9 @@ it grows, and a pack leaves with its folder:
 
 The pack table is a pack's extremes: `dev` brings targets and no tool, `vision`
 brings a tool and no target — it installs ffmpeg, ImageMagick and Tesseract, and
-their commands go to the cheatsheet picker.
+their commands go to the cheatsheet picker. `dev` is also the one pack nobody
+chooses: `python` and `gcp` require it, so it is installed and removed with
+them, and it is in no list.
 
 What a pack is, what it must contain, and how to add one:
 [`docs/packs.md`](docs/packs.md). One reaches an instance with

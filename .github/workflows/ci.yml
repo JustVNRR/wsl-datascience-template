@@ -161,6 +161,30 @@ jobs:
           done
           exit $bad
 
+      - name: packs_list lists what the user chose
+        run: |
+          # A pack marked invisible is in no list, this one included: it is a
+          # shared dependency, and the command answers "what did I ask for?".
+          # Played on a folder of its own, so that the repository's own packs
+          # cannot make the check pass by accident.
+          mkdir -p /tmp/packs-list/asked /tmp/packs-list/hidden
+          printf 'PACK_DESCRIPTION := The one the user chose\n' > /tmp/packs-list/asked/pack.conf
+          printf 'PACK_DESCRIPTION := The one nobody chooses\nPACK_VISIBLE := no\n' > /tmp/packs-list/hidden/pack.conf
+          make -f zsh/gmake/Makefile PACKS_DIR=/tmp/packs-list packs_list > list.txt
+          bad=0
+          grep -q "asked" list.txt || { echo "::error::packs_list dropped a pack the user chose"; bad=1; }
+          grep -q "hidden" list.txt && { echo "::error::packs_list listed a pack marked PACK_VISIBLE := no"; bad=1; }
+          # And the other state, reachable when a removal stopped half way: a
+          # dependency left alone. It says so rather than print the header over
+          # nothing, which would read as a command that found no pack at all.
+          rm -rf /tmp/packs-list/asked
+          make -f zsh/gmake/Makefile PACKS_DIR=/tmp/packs-list packs_list > list-only.txt
+          grep -q "Nothing you chose" list-only.txt || {
+            echo "::error::packs_list does not say what is left when only a dependency is installed"
+            bad=1
+          }
+          exit $bad
+
       - name: Cheatsheet doc drift (*_commands.sh vs gmake help)
         run: |
           # Comment lines are skipped, as the picker itself does: a sheet's
