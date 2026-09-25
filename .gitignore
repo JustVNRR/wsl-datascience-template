@@ -15,6 +15,15 @@ desktop.ini
 .vscode/
 .idea/
 
+# Python scratch state: this repository carries no Python - the projects live
+# under ~/projects, and the toolchain comes with the python pack - but an
+# experiment run from this checkout should not end up committed
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
 # Local environment files (filled-in copies of the *.sample contracts)
 .env
 .env.*

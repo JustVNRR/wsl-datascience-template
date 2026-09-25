@@ -11,7 +11,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — with the `python` pack, `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
-- **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests. The Google Cloud ones appear once their CLI is installed ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
+- **MLOps** — `gmake` exposes modular targets for Docker, the environment files and GitHub, and a pack adds its own: GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
 
 ---
 
@@ -239,8 +239,9 @@ deleting the distro deletes all of it.
 │   └── make/*.mk            # the socle's modules
 └── .zshrc, modules, prompts/, cheatsheets/
 
-~/.config/packs/             # A pack lands here, its files and its tool together
-└── gcp/                     # added by `.\wsl.ps1 add_pack`, removed by remove_pack
+~/.config/packs/             # A pack lands here, its files and its tool together:
+└── gcp/                     # added by `.\wsl.ps1 add_pack`, removed by remove_pack.
+                             # ~/.zshrc reads its zsh/ here, gmake its make/ - nothing is copied
 
 ~/projects/<project>/        # One directory per project
 ├── .env.sample              # The template's list of variables (copied once to .env)

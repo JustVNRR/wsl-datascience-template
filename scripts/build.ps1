@@ -693,10 +693,19 @@ if ($Deployed) {
     # Two lines are printed first, so the shell opens on the answer to "who am
     # I, where, and what now" instead of on an anonymous prompt. ~/projects
     # comes from /etc/skel, and fnew refuses to run from anywhere else.
+    #
+    # fnew itself comes with the python pack, so the third line depends on it:
+    # a fresh instance without that pack has no such command, and telling the
+    # user to type one is the first thing they would try. The packs line just
+    # below says which ones are in place.
     Clear-Host
     Write-Host "Welcome, $ConfiguredUser." -ForegroundColor Green
     Write-Host "You are now logged in to $DistroName." -ForegroundColor Green
-    Write-Host "Run 'cd projects' and type 'fnew' to create your first project." -ForegroundColor Yellow
+    if ($null -ne $PackSelection -and ($PackSelection.ToAdd | ForEach-Object { $_.Name }) -contains 'python') {
+        Write-Host "Run 'cd projects' and type 'fnew' to create your first project." -ForegroundColor Yellow
+    } else {
+        Write-Host "Run 'cd projects' to start - .\wsl.ps1 add_pack brings the python pack, and fnew with it." -ForegroundColor Yellow
+    }
     if ($PackReport) {
         foreach ($Line in $PackReport) { Write-Host $Line -ForegroundColor $PackReportColour }
     }
