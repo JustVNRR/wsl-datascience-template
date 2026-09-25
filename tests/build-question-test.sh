@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# Exercises the FIRST HALF of .\wsl.ps1 build - the questions - with no Docker
+# Desktop and no instance.
+#
+# fake-docker-run.ps1 puts a stand-in docker on the PATH: it answers the
+# preflight and the first steps, and hands the import a file that is not a tar,
+# so the run always stops on the deployment-error path with the packs already
+# chosen. That is the only path where the packs can be observed without a real
+# build.
+#
+# What it proves:
+#   - the pack checklist is asked after the name and the folder, and before
+#     anything is created
+#   - an empty checklist, applied or cancelled, means no pack, says so, and is
+#     asked no confirmation
+#   - a pack chosen is installed later, so the failure report names it
+#   - nothing is left behind: no instance, no tar, no folder, exit code 1
+#
+# Usage: bash tests/build-question-test.sh
+set -u
+
+TestsDir=$(cd "$(dirname "$0")" && pwd)
+RepoTemplate=$(cd "$TestsDir/.." && pwd)
+# powershell -File wants the Windows form of the path; the file may live in a
+# checkout anywhere, under a Git Bash that spells it /d/...
+Run=$(cygpath -w "$TestsDir/fake-docker-run.ps1")
+
+Failures=0
+Out=$(mktemp)
+# Where the checkout stands before the runs, to compare with where it stands
+# after them: the runs write nothing, and this is what says so - whether the
+# tree is clean or carries work in progress.
+Before=$(git -C "$RepoTemplate" status --short)
+
+run_build() {
+    printf '%b' "$1" | powershell -NoProfile -ExecutionPolicy Bypass -File "$Run" build > "$Out" 2>&1
+    Code=$?
+}
+
+check() {
+    if [ "$2" = "$3" ]; then
+        echo "OK   $1"
+    else
+        echo "FAIL $1 : expected '$3', got '$2'"
+        Failures=$((Failures + 1))
+    fi
+}
+
+contains() { if grep -aqF "$1" "$Out"; then echo yes; else echo no; fi; }
+line_of()  { grep -anF "$1" "$Out" | head -1 | cut -d: -f1; }
+# Both lines must be there before their order means anything: a check that
+# compares two empty strings, or an empty one with a number, answers yes and
+# proves nothing. This is the shape of the mistake that made an earlier check
+# unable to fail.
+before() {
+    local a b
+    a=$(line_of "$1"); b=$(line_of "$2")
+    if [ -n "$a" ] && [ -n "$b" ] && [ "$a" -lt "$b" ]; then echo yes; else echo no; fi
+}
+
+echo "--- cancelled at the checklist (answer 0)"
+run_build 'pack-qtest-1\n\n0\n'
+check "says no pack was selected"     "$(contains "[OK] No pack selected: 'pack-qtest-1' will be built without one.")" "yes"
+check "does not mention any chosen pack" "$(contains 'The packs chosen earlier')" "no"
+check "the run stops on the deployment"  "$(contains '[ERROR] DURING DEPLOYMENT')" "yes"
+check "and says the deployment failed"   "$(contains 'WSL import failed.')" "yes"
+check "exit code 1"                      "$Code" "1"
+
+echo ""
+echo "--- empty checklist, applied (answer v)"
+run_build 'pack-qtest-2\n\nv\n'
+check "says no pack was selected"     "$(contains "[OK] No pack selected: 'pack-qtest-2' will be built without one.")" "yes"
+check "does not mention any chosen pack" "$(contains 'The packs chosen earlier')" "no"
+check "exit code 1"                      "$Code" "1"
+
+echo ""
+echo "--- one pack chosen (2 = the second in the list) and confirmed"
+run_build 'pack-qtest-3\n\n2\nv\n\n'
+# Which pack answer 2 chose is read from the run rather than written here: this
+# checkout's packs are not another checkout's packs.
+Chosen=$(grep -aoE 'Will install : .*' "$Out" | head -1 | sed 's/Will install : //' | tr -d '\r')
+check "the checklist arrives before the build" "$(before "Packs for 'pack-qtest-3'" '==> 1. Building Docker')" "yes"
+check "and after the name" "$(before '==> Creating a new instance' "Packs for 'pack-qtest-3'")" "yes"
+check "the one line of the summary names a pack" "$([ -n "$Chosen" ] && echo yes || echo no)" "yes"
+check "no empty 'Will remove' line"              "$(contains 'Will remove')" "no"
+check "the failure names the pack it could not install" \
+    "$(contains "The packs chosen earlier ($Chosen) were not installed: the build stopped before them.")" "yes"
+check "exit code 1" "$Code" "1"
+
+echo ""
+echo "--- nothing left on the machine"
+check "no instance registered" "$(wsl.exe --list --quiet 2>/dev/null | tr -d '\0' | grep -ac 'pack-qtest' )" "0"
+check "no folder left"         "$(find /d/WSL -maxdepth 1 -name 'pack-qtest-*' 2>/dev/null | wc -l)" "0"
+check "no tar left"            "$(find /d/WSL -maxdepth 1 -name '*rootfs.tar' 2>/dev/null | wc -l)" "0"
+echo "--- and the checkout is untouched by the runs"
+check "the runs left the checkout exactly as it was" \
+    "$([ "$Before" = "$(git -C "$RepoTemplate" status --short)" ] && echo yes || echo no)" "yes"
+
+rm -f "$Out"
+echo ""
+echo "failures: $Failures"
+exit $Failures

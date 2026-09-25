@@ -207,9 +207,13 @@ the repository at runtime.
 │   └── *.ps1                # list, build, adopt, start, stop, shell, add_pack,
 │                            # remove_pack, unregister, archive, restore,
 │                            # duplicate, shrink
+├── tests/                   # The suites that RUN the code: the arrow menu with a
+│                            # scripted keyboard, the pack checklist, build's
+│                            # questions over a stand-in docker, the doc drift
+│   └── fake-docker/         # That stand-in: answers the preflight, fails the import
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml           # Static checks (shellcheck, zsh -n, make parse, doc drift)
+│       ├── ci.yml           # Static checks, then the code suites on Windows
 │       └── image.yml        # Rootfs image build (push/PR + weekly, catches upstream drift)
 ├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
 ├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
@@ -257,11 +261,11 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 
 | Workflow | Runs on | What it proves |
 | :--- | :--- | :--- |
-| `ci.yml` — Static checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the makefile parses with a complete help menu, and the docs and cheatsheets stay in sync with the `gmake` modules |
+| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the makefile parses with a complete help menu, the docs and cheatsheets stay in sync with the `gmake` modules — and three suites on Windows drive the real code: the arrow menu with a scripted keyboard, the pack checklist, `build`'s questions over a stand-in docker |
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
-They check the **repository**, not a running distro — neither replaces a real
-`.\wsl.ps1 build` run.
+They check the **repository** — the files, and the code run against stand-ins,
+never a running distro — so none of them replaces a real `.\wsl.ps1 build` run.
 
 The weekly run is the point of `image.yml`: it does not check your last edit, it
 catches **upstream drift** — a package that moved, a URL that changed — while the

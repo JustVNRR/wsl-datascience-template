@@ -1,0 +1,39 @@
+#!/bin/bash
+# Does every command wsl.ps1 knows exist everywhere it should, with the same
+# words? The menu is the source; the README table, the commands page (its table,
+# its section, its sample menu) are the copies that drift.
+#
+# It reads, it never writes: safe to run anywhere, on any branch. What it caught
+# the day it was written: five rows whose wording had moved on in the menu and
+# not in the docs.
+#
+# Usage: bash tests/doc-drift.sh
+set -u
+
+# From this file's own folder, two levels up: tests/ sits at the root.
+cd "$(dirname "$0")/.." || exit 1
+
+ps=$(tr -d '\r' < wsl.ps1)
+drift=0
+names=$(printf '%s\n' "$ps" | sed -n 's/.*Name = "\([a-z_]*\)".*/\1/p')
+
+printf "%-14s %-8s %-7s %-7s %-7s %-8s %-8s\n" COMMAND README TABLE SECTION SAMPLE WHAT@README WHAT@PAGE
+while read -r name; do
+    [ -z "$name" ] && continue
+    what=$(printf '%s\n' "$ps" | sed -n "s/.*Name = \"$name\"; *What = \"\([^\"]*\)\".*/\1/p")
+
+    ok() { if [ "$1" -gt 0 ]; then echo ok; else echo MISSING; drift=1; fi; }
+    r=$(ok "$(grep -c "wsl\.ps1 $name\`\](docs/wsl/commands.md#$name)" README.md)")
+    t=$(ok "$(grep -c "wsl\.ps1 $name\`\](#$name)" docs/wsl/commands.md)")
+    s=$(ok "$(grep -c "^## \`$name\`" docs/wsl/commands.md)")
+    # the sample line, whole: name AND description, spaces included
+    sm=$(ok "$(grep -cF "$(printf '%-12s %s' "$name" "$what")" docs/wsl/commands.md)")
+    wr=$(ok "$(grep -cF "| $what |" README.md)")
+    wt=$(ok "$(grep -cF "| $what |" docs/wsl/commands.md)")
+    { [ "$wr" = "MISSING" ] || [ "$wt" = "MISSING" ]; } && drift=1
+    printf "%-14s %-8s %-7s %-7s %-7s %-8s %-8s\n" "$name" "$r" "$t" "$s" "$sm" "$wr" "$wt"
+done <<< "$names"
+
+echo
+[ "$drift" -eq 0 ] && echo "VERDICT: no drift" || echo "VERDICT: drift"
+exit $drift
