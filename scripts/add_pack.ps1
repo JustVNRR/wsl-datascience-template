@@ -83,58 +83,6 @@ function Get-InInstanceOutput {
     return @($Output | ForEach-Object { ($_ -replace "`0", "").Trim() } | Where-Object { $_ })
 }
 
-# The choice every command in this family offers: the instances that exist,
-# numbered, with what is worth knowing about each, and a way out. The question
-# comes back until the answer is one of the numbers - an empty answer cancels,
-# so a run with no console can never loop forever.
-function Select-Distro {
-    # Sorted by name: the registry order changes between runs, and a menu whose
-    # numbers move is a menu you cannot trust twice. Filtered on the marker:
-    # the machine holds other distributions - Docker Desktop's, a colleague's -
-    # and none of them are ours to touch.
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
-    if ($All.Count -eq 0) {
-        Write-Host ""
-        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
-        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
-        Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
-        exit 1
-    }
-
-    $Running = Get-DistroNames -Running
-
-    Write-Host ""
-    Write-Host "Instances of this template:" -ForegroundColor Cyan
-    for ($Index = 0; $Index -lt $All.Count; $Index++) {
-        $Entry = $All[$Index]
-        $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
-        Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}" -f ($Index + 1), $Entry.Name, $State,
-            (Format-Size (Get-VhdxSize $Entry.BasePath)))
-    }
-    Write-Host "   0.  Cancel"
-
-    while ($true) {
-        $Answer = [string](Read-Host "Which one? (0 to cancel)")
-        if ([string]::IsNullOrWhiteSpace($Answer)) {
-            Write-Host ""
-            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-            exit 0
-        }
-        $Number = 0
-        if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
-            if ($Number -eq 0) {
-                Write-Host ""
-                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-                exit 0
-            }
-            if ($Number -ge 1 -and $Number -le $All.Count) {
-                return $All[$Number - 1]
-            }
-        }
-        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
-    }
-}
-
 # The packs this checkout carries. A folder under packs\ without a pack.conf is
 # not a pack: it is skipped rather than offered, because nothing could install
 # it - that file is where the name and the description are read from.
@@ -209,37 +157,22 @@ if ($Candidates.Count -eq 0) {
     exit 0
 }
 
-Write-Host ""
-Write-Host "Packs available for '$DistroName':" -ForegroundColor Cyan
-for ($Index = 0; $Index -lt $Candidates.Count; $Index++) {
-    $Entry = $Candidates[$Index]
-    Write-Host ("  {0,2}.  {1,-12} {2}" -f ($Index + 1), $Entry.Name, $Entry.Description)
-}
-Write-Host "   0.  Cancel"
+# Said before the list rather than after it: with the arrows the rows are
+# drawn in place, and anything printed under them gets painted over.
 if ($Installed.Count -gt 0) {
-    Write-Host ("       Already there: {0}" -f ($Installed -join ", ")) -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host ("       Already in '$DistroName': {0}" -f ($Installed -join ", ")) -ForegroundColor DarkGray
 }
 
-$Pack = $null
-while (-not $Pack) {
-    $Answer = [string](Read-Host "Which one? (0 to cancel)")
-    if ([string]::IsNullOrWhiteSpace($Answer)) {
-        Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-        exit 0
-    }
-    $Number = 0
-    if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
-        if ($Number -eq 0) {
-            Write-Host ""
-            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-            exit 0
-        }
-        if ($Number -ge 1 -and $Number -le $Candidates.Count) {
-            $Pack = $Candidates[$Number - 1]
-        }
-    }
-    if (-not $Pack) { Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow }
+$Pack = Select-FromList -Title "Packs available for '$DistroName':" -Items $Candidates -Label {
+    param($Entry)
+    "{0,-12} {1}" -f $Entry.Name, $Entry.Description
+}
+
+if (-not $Pack) {
+    Write-Host ""
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    exit 0
 }
 
 $PackName = $Pack.Name

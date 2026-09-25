@@ -46,41 +46,20 @@ if ($Archives.Count -eq 0) {
     exit 1
 }
 
-Write-Host ""
-Write-Host "Archives in $ArchiveFolder (most recent first):" -ForegroundColor Cyan
-for ($i = 0; $i -lt $Archives.Count; $i++) {
-    $Entry = $Archives[$i]
+# 2. Pick one. An answer of nothing cancels, as everywhere else in this
+# repository.
+$Chosen = Select-FromList -Title "Archives in $ArchiveFolder (most recent first):" -Items $Archives -Label {
+    param($Entry)
     $Tar = Get-ChildItem -Path $Entry.FullName -Filter "*.tar*" -File |
         Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    Write-Host ("  {0,2}.  {1}  -  {2}, {3}" -f ($i + 1), $Entry.Name,
-        (Format-Size $Tar.Length), $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm"))
+    "{0}  -  {1}, {2}" -f $Entry.Name, (Format-Size $Tar.Length),
+        $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm")
 }
-Write-Host "   0.  Cancel"
 
-# 2. Pick one by number. An empty answer cancels, as everywhere else in this
-# repository; a wrong number asks again, but not forever.
-$Chosen = $null
-while (-not $Chosen) {
-    $Answer = [string](Read-Host "Which archive? (1-$($Archives.Count), 0 to cancel)")
-    if ([string]::IsNullOrWhiteSpace($Answer)) {
-        Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
-        exit 0
-    }
-    $Number = 0
-    if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
-        if ($Number -eq 0) {
-            Write-Host ""
-            Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
-            exit 0
-        }
-        if ($Number -ge 1 -and $Number -le $Archives.Count) {
-            $Chosen = $Archives[$Number - 1]
-        }
-    }
-    if (-not $Chosen) {
-        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
-    }
+if (-not $Chosen) {
+    Write-Host ""
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
+    exit 0
 }
 
 # 3. Name the new instance

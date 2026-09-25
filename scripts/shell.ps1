@@ -17,58 +17,6 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# The choice every command in this family offers: the instances that exist,
-# numbered, with what is worth knowing about each, and a way out. The question
-# comes back until the answer is one of the numbers - an empty answer cancels,
-# so a run with no console can never loop forever.
-function Select-Distro {
-    # Sorted by name: the registry order changes between runs, and a menu whose
-    # numbers move is a menu you cannot trust twice. Filtered on the marker:
-    # the machine holds other distributions - Docker Desktop's, a colleague's -
-    # and none of them are ours to touch.
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
-    if ($All.Count -eq 0) {
-        Write-Host ""
-        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
-        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
-        Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
-        exit 1
-    }
-
-    $Running = Get-DistroNames -Running
-
-    Write-Host ""
-    Write-Host "Instances of this template:" -ForegroundColor Cyan
-    for ($Index = 0; $Index -lt $All.Count; $Index++) {
-        $Entry = $All[$Index]
-        $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
-        Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}" -f ($Index + 1), $Entry.Name, $State,
-            (Format-Size (Get-VhdxSize $Entry.BasePath)))
-    }
-    Write-Host "   0.  Cancel"
-
-    while ($true) {
-        $Answer = [string](Read-Host "Which one? (0 to cancel)")
-        if ([string]::IsNullOrWhiteSpace($Answer)) {
-            Write-Host ""
-            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-            exit 0
-        }
-        $Number = 0
-        if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
-            if ($Number -eq 0) {
-                Write-Host ""
-                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-                exit 0
-            }
-            if ($Number -ge 1 -and $Number -le $All.Count) {
-                return $All[$Number - 1]
-            }
-        }
-        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
-    }
-}
-
 # 1. Which instance to open a shell in
 $Distro = Select-Distro
 $DistroName = $Distro.Name

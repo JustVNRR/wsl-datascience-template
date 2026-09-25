@@ -380,3 +380,18 @@ function Format-Size {
     if ($Bytes -ge 1MB) { return ("{0:N1} MB" -f ($Bytes / 1MB)) }
     return ("{0:N0} KB" -f ($Bytes / 1KB))
 }
+
+# ---------------------------------------------------------------------------
+# THE MENUS
+# ---------------------------------------------------------------------------
+# They live beside this file rather than inside it: what the commands share is
+# now two things - what this machine is (here) and how it is asked (menu.ps1).
+# Same rule as this file when a piece of it is missing: say so, rather than
+# die with a PowerShell error that reads like the machine's fault.
+$MenuLib = Join-Path $PSScriptRoot "menu.ps1"
+if (-not (Test-Path $MenuLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\menu.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $MenuLib

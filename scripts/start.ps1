@@ -40,39 +40,15 @@ if ($Eligible.Count -eq 0) {
     exit 1
 }
 
-Write-Host ""
-Write-Host "Stopped instances - the ones that can be started:" -ForegroundColor Cyan
-for ($Index = 0; $Index -lt $Eligible.Count; $Index++) {
-    $Entry = $Eligible[$Index]
-    Write-Host ("  {0,2}.  {1,-30} {2,10}" -f ($Index + 1), $Entry.Name,
-        (Format-Size (Get-VhdxSize $Entry.BasePath)))
+$Distro = Select-FromList -Title "Stopped instances - the ones that can be started:" -Items $Eligible -Label {
+    param($Entry)
+    "{0,-30} {1,10}" -f $Entry.Name, (Format-Size (Get-VhdxSize $Entry.BasePath))
 }
-Write-Host "   0.  Cancel"
 
-# The question comes back until the answer is one of the numbers - an empty
-# answer cancels, so a run with no console can never loop forever.
-$Distro = $null
-while (-not $Distro) {
-    $Answer = [string](Read-Host "Which one? (0 to cancel)")
-    if ([string]::IsNullOrWhiteSpace($Answer)) {
-        Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-        exit 0
-    }
-    $Number = 0
-    if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
-        if ($Number -eq 0) {
-            Write-Host ""
-            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-            exit 0
-        }
-        if ($Number -ge 1 -and $Number -le $Eligible.Count) {
-            $Distro = $Eligible[$Number - 1]
-        }
-    }
-    if (-not $Distro) {
-        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
-    }
+if (-not $Distro) {
+    Write-Host ""
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    exit 0
 }
 
 $DistroName = $Distro.Name
