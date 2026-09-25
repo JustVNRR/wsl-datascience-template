@@ -9,7 +9,7 @@ BASE_BRANCH ?= main
 # .PHONY ensures make doesn't confuse these commands with actual files in the directory
 .PHONY: gh_pr_create gh_pr_toreview gh_pr_wip gh_pr_ls
 
-gh_pr_create: ## Pushes the current branch and creates a non-interactive PR (title/description auto-filled from commits)
+gh_pr_create: ## Pushes the current branch and creates a non-interactive PR
 	@echo "🚀 Pushing the current branch to origin..."
 	git push -u origin HEAD
 	@echo "📬 Creating the PR (base: $(BASE_BRANCH))..."
@@ -20,7 +20,7 @@ gh_pr_toreview: ## Adds the 'toreview' label to the PR of the current branch
 	@gh label create toreview --color 86CAAD --force >/dev/null 2>&1 || true
 	gh pr edit --add-label toreview
 
-gh_pr_wip: ## Removes the 'toreview' label from the PR of the current branch (back to WIP)
+gh_pr_wip: ## Removes the 'toreview' label from the PR
 	@echo "🚧 Removing the 'toreview' label..."
 	gh pr edit --remove-label toreview
 
