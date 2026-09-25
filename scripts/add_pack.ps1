@@ -137,7 +137,7 @@ Write-Host "    Open a shell in it to use it:  .\wsl.ps1 shell" -ForegroundColor
 # the user's own .env files - those are theirs, and no install writes into them.
 # Said here, once, because it is the one step an install leaves over - and only
 # when a sample travelled: a pack that ships none has nothing to merge, and
-# `gmake env_global_enable` itself comes with the dev pack.
+# `gmake env_global_enable` itself comes with the devops pack.
 if (@($ToInstall | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
     Write-Host "    Then, in there:  gmake env_global_enable   (adds the pack's variables)" -ForegroundColor DarkGray
 }

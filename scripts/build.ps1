@@ -503,7 +503,7 @@ try {
                 $PackLineColour = "Green"
                 $PackReport = @("Packs: $($Landed -join ', ') installed.")
                 # Only when one of them brought variables to merge: the target
-                # itself is the dev pack's, and a pack that ships no sample has
+                # itself is the devops pack's, and a pack that ships no sample has
                 # nothing there to add.
                 if (@($PackSelection.ToAdd | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
                     $PackReport += "  In there:  gmake env_global_enable   (adds their variables)"

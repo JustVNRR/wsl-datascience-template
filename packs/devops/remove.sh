@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE DEV PACK - WHAT IT REMOVES
+# THE DEVOPS PACK - WHAT IT REMOVES
 # ==============================================================================
 # `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added to the system leaves it, and only that.

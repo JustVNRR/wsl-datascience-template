@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE DEV PACK - WHAT IT INSTALLS
+# THE DEVOPS PACK - WHAT IT INSTALLS
 # ==============================================================================
-# `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/dev, then
+# `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/devops, then
 # runs this script from inside it, as the instance's own user.
 #
 # It installs nothing, and that is the pack: what it brings is gmake modules -

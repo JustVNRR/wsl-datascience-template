@@ -1,4 +1,4 @@
-# The dev pack
+# The devops pack
 
 [← Back to the README](../../../README.md#mlops-makefile-gmake)
 
@@ -7,7 +7,7 @@ used to sit in the socle, where an instance that had no project yet was offered
 a workspace with nothing to put in it.
 
 This is the mirror of the [vision pack](../../vision/docs/vision.md): vision
-brings a tool and no target, `dev` brings targets and no tool. Everything it
+brings a tool and no target, `devops` brings targets and no tool. Everything it
 drives is already on the machine — `docker` comes from Docker Desktop, `gh`
 from the image — so `install.sh` and `remove.sh` have nothing to do and say so.
 

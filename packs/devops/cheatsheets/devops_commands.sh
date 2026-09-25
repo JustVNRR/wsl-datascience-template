@@ -1,5 +1,5 @@
 # ==========================================
-# THE PROJECT TARGETS (the dev pack)
+# THE PROJECT TARGETS (the devops pack)
 # ==========================================
 # What a project is built, pushed and configured with. All of them run from the
 # root of a project under ~/projects - except env_global_enable, which writes a

@@ -5,7 +5,7 @@
 # CLI: three targets call `gcloud`, and the two that call `docker` only tag and
 # push to a `-docker.pkg.dev` path that `gcloud auth configure-docker` unlocks.
 # The container itself is not a Google concern: building and running it on your
-# machine lives in the dev pack's docker.mk, with the variables that name it.
+# machine lives in the devops pack's docker.mk, with the variables that name it.
 
 artifact_registry_create: ## Create the Docker repository in Artifact Registry
 	$(call check_vars, ARTIFACTSREPO GCP_REGION GCP_PROJECT)

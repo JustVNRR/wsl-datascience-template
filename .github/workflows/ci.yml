@@ -145,11 +145,11 @@ jobs:
             echo "::error::a python pack target is in the menu without the pack's folder"
             bad=1
           fi
-          # The project targets came out of the socle with the dev pack - they
+          # The project targets came out of the socle with the devops pack - they
           # build, push and configure ONE project, and an instance whose folders
           # are empty has none. Nothing of them may stay behind here.
           if grep -qE '^  (env_global_enable|env_project_enable|docker_build_local|docker_run_local|gh_pr_create|gh_pr_toreview|gh_pr_wip|gh_pr_ls)[[:space:]]' help-bare.txt; then
-            echo "::error::a dev pack target is in the menu without the pack's folder"
+            echo "::error::a devops pack target is in the menu without the pack's folder"
             bad=1
           fi
           # And the socle loses nothing to an empty packs folder

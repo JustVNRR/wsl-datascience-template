@@ -67,7 +67,7 @@ function Get-AvailablePacks {
 # Does this pack bring anything for the user's own .env files? Read from the
 # folder, like everything else here: a sample is a file, and a pack that ships
 # none has nothing to merge. It decides whether a command ends by pointing at
-# `gmake env_global_enable` - the target itself comes with the dev pack, which
+# `gmake env_global_enable` - the target itself comes with the devops pack, which
 # is to say with the samples.
 function Test-PackShipsSamples {
     param([string]$Path)
@@ -104,7 +104,7 @@ function Add-PackRequires {
 
     # And it is not placed a second time. A pack the instance already carries is
     # not copied over and its install.sh does not run again - the arrival of gcp
-    # on an instance that has carried python all along must not touch dev, whose
+    # on an instance that has carried python all along must not touch devops, whose
     # folder is right there and whose install would be an install on top of
     # itself. It is the same move in every command: what travels is what is
     # missing.

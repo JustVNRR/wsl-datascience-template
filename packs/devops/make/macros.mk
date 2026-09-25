@@ -7,8 +7,8 @@
 #
 # They live in this pack because they are the project targets' manners - the
 # socle has no target of its own that needs either. A pack whose targets call
-# them depends on `dev`, and says so in its pack.conf: an undefined macro
-# expands to nothing, so a missing `dev` would not fail, it would quietly drop
+# them depends on `devops`, and says so in its pack.conf: an undefined macro
+# expands to nothing, so a missing `devops` would not fail, it would quietly drop
 # the check and run.
 #
 # They are defined, never run here: everything below is expanded at the moment

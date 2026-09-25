@@ -11,7 +11,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — with the `python` pack, `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
-- **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `dev` (Docker, GitHub PRs, the environment files), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
+- **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs, the environment files), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
 
 ---
 
@@ -71,7 +71,7 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
    - Only values shared across all projects belong in the shared `.env.global`
    - Anything identifying a project (project ids, resource names) lives in its `.env`.
-   - Both are gitignored, and both are built from committed samples by [`gmake env_global_enable` / `gmake env_project_enable`](packs/dev/docs/env.md) — the samples the packs ship beside their modules. The commands only ever add what is missing.
+   - Both are gitignored, and both are built from committed samples by [`gmake env_global_enable` / `gmake env_project_enable`](packs/devops/docs/env.md) — the samples the packs ship beside their modules. The commands only ever add what is missing.
 
 - **`gmake` vs `make`:**
   - Type `gmake` (without any arguments) to display a formatted help menu listing every gmake target (GCP compute, BigQuery, Docker, Cloud Run, etc.).
@@ -98,14 +98,14 @@ it grows, and a pack leaves with its folder:
 
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
-| `dev` | [The dev pack](packs/dev/docs/dev.md) | `env_*_enable`, `docker_*`, `gh_pr_*` |
+| `devops` | [The devops pack](packs/devops/docs/devops.md) | `env_*_enable`, `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
 | `python` | [Python](packs/python/docs/python.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project`, `lint*`, `test*` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
 
-The pack table is a pack's extremes: `dev` brings targets and no tool, `vision`
+The pack table is a pack's extremes: `devops` brings targets and no tool, `vision`
 brings a tool and no target — it installs ffmpeg, ImageMagick and Tesseract, and
-their commands go to the cheatsheet picker. `dev` is also the one pack nobody
+their commands go to the cheatsheet picker. `devops` is also the one pack nobody
 chooses: `python` and `gcp` require it, so it is installed and removed with
 them, and it is in no list.
 
@@ -181,7 +181,7 @@ the repository at runtime.
 │   ├── wsl/                 # Instance administration: the commands, their options, examples
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── packs/                   # Optional tooling, one folder per pack
-│   ├── dev/                 # the project targets: Docker, GitHub PRs, the environment files
+│   ├── devops/              # the project targets: Docker, GitHub PRs, the environment files
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes

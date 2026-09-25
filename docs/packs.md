@@ -8,7 +8,7 @@ that install and remove it, all of it living in one folder under `packs/`. The
 socle knows nothing about any particular pack: it finds the folders and loads
 what they carry. Adding a pack touches no file outside that folder.
 
-A pack needs no tool: `dev` is targets and nothing else — the mirror of
+A pack needs no tool: `devops` is targets and nothing else — the mirror of
 `vision`, which is a tool and no target. What a pack brings is what its folder
 carries, and a folder may carry one of the two.
 
@@ -29,7 +29,7 @@ packs/<name>/
 
 Only the first three are always there. The rest is what the pack needs: `vision`
 brings no target, no variable of its own and no sample — its folder is a
-`pack.conf`, two scripts, a sheet and a page. `dev` is the other extreme, with
+`pack.conf`, two scripts, a sheet and a page. `devops` is the other extreme, with
 no package to install — its folder carries modules, two samples and its pages,
 and its two scripts have nothing to do but say so.
 
@@ -117,7 +117,7 @@ either one would pull the base out from under a pack still installed. It arrives
 with the pack that requires it, it leaves with the last one that does, and it is
 never alone.
 
-`dev` is the first of them, and the mirror of `vision`: the project targets
+`devops` is the first of them, and the mirror of `vision`: the project targets
 python and gcp both need, against a tool with no target. That is also why
 `PACK_REQUIRES` had to exist. A pack whose targets call a macro another pack
 defines — `check_vars`, `confirm_action` — would find the macro undefined, and

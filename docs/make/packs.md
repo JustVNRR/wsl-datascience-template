@@ -34,7 +34,7 @@ to keep in step, and "look in the picker" would say nothing useful when the
 picker holds hundreds of commands.
 
 A pack marked `PACK_VISIBLE := no` in its `pack.conf` has no line here either.
-It is a shared dependency — `dev`, the project targets python and gcp both need
+It is a shared dependency — `devops`, the project targets python and gcp both need
 — and a shared engine is not a car: it does not belong in the list of what you
 asked for. It arrived with the pack that requires it, and leaves with the last
 one that does.

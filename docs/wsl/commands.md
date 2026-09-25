@@ -284,12 +284,12 @@ Only the packs the instance does not have yet are offered. The packs are the
 folders under `packs\`: a folder carrying a `pack.conf` is a pack.
 
 The list is the packs a **user** chooses. A pack that says `PACK_VISIBLE := no`
-in its `pack.conf` is never in it: it is a shared dependency — `dev` is the
+in its `pack.conf` is never in it: it is a shared dependency — `devops` is the
 project targets several packs need — and it arrives with the pack that requires
 it, before it, in the same run:
 
 ```text
-==> Installing 'dev' in 'ubuntu-template'...
+==> Installing 'devops' in 'ubuntu-template'...
     It comes with 'gcp', which requires it.
     Your password may be asked: the packages belong to root.
 
@@ -344,11 +344,11 @@ hand, since removing it would pull the base out from under a pack still
 installed. It leaves with the last pack that requires it:
 
 ```text
-==> Removing from 'ubuntu-template': python, dev
+==> Removing from 'ubuntu-template': python, devops
     Each pack's own remove.sh runs first - what it installed leaves the system.
     Then its folder leaves, and the gmake menu loses its commands.
-    'dev' goes with 'python': nothing installed requires it any more.
-Remove python, dev? [y/N]
+    'devops' goes with 'python': nothing installed requires it any more.
+Remove python, devops? [y/N]
 ```
 
 The chosen pack goes first, and the packs it was holding up follow — that order
@@ -416,8 +416,8 @@ Space checks and unchecks, Enter applies, Escape cancels. Each list gets a line
 when it has something in it, and one question covers them both:
 
 ```text
-Will install : python, dev
-               (dev: required by python)
+Will install : python, devops
+               (devops: required by python)
 Will remove  : gcp
                Their tools leave the system, and with them the dependencies
                nothing needs any more.
