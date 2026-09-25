@@ -60,7 +60,7 @@ $Candidates = @($Available | Where-Object { $_.Visible -and $Installed -notconta
 
 if ($Candidates.Count -eq 0) {
     Write-Host ""
-    Write-Host "[OK] '$DistroName' already has every pack this repository carries." -ForegroundColor Green
+    Write-Host "[OK] '$DistroName' already has every pack this repository offers." -ForegroundColor Green
     exit 0
 }
 
