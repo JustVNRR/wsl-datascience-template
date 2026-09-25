@@ -17,8 +17,9 @@ WSL DataScience template
     start        start a stopped instance
     stop         stop a running instance
     shell        open a shell inside an instance
-    add_pack     install optional tooling into an instance
-    remove_pack  uninstall optional tooling from an instance
+    add_pack     install a pack into an instance
+    remove_pack  uninstall a pack from an instance
+    manage_packs choose the packs an instance should carry
     unregister   remove an instance
     archive      write an instance to a named archive
     restore      rebuild an instance from an archive
@@ -44,6 +45,7 @@ the numbered prompt it used to be, and the answer is typed.
 | [`.\wsl.ps1 shell`](#shell) | open a shell inside an instance |
 | [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
+| [`.\wsl.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
 | [`.\wsl.ps1 unregister`](#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
@@ -357,6 +359,54 @@ This is the one place the repository runs `autoremove`, and it never runs it
 blind: a package kept by mistake costs every user of the instance, a package
 removed one step too early costs one `apt-get install` to whoever needs it
 later.
+
+---
+
+## `manage_packs`
+
+Several packs at once. The list shows every pack this repository carries, the
+ones the instance already has arrive checked, and what comes back is applied:
+the missing ones installed, the unchecked ones taken out.
+
+```powershell
+.\wsl.ps1 manage_packs
+```
+
+```text
+Packs for 'new_distro2'
+  > [x] gcp          The Google Cloud CLI (about 409 MB installed)
+    [ ] vision       ffmpeg, ImageMagick and Tesseract OCR (about 500 MB)
+  up/down to move, space to check, Enter to apply, Escape to cancel
+```
+
+Space checks and unchecks, Enter applies, Escape cancels. Both lists are then
+shown, and one question covers them both:
+
+```text
+Will install : vision
+Will remove  : gcp
+               Their tools leave the system, and with them the dependencies
+               nothing needs any more.
+
+Proceed? [Y/n]
+```
+
+If the boxes have not moved, it says so and stops there.
+
+### The order, and why it is that one
+
+The folders of the packs to add are copied **before** anything is removed. A
+pack's `remove.sh` asks which installed pack still claims a package it is about
+to take away, and a folder that has just arrived counts from that moment — so a
+package two packs share is left where it is, and the newcomer finds it already
+installed. Removing first would take the package away and put it straight back.
+
+There is no list of packages compared anywhere: the packs themselves say what
+they claim, and the question is asked of the instance.
+
+`add_pack` and `remove_pack` stay what they were, for one pack at a time. A
+failure here stops the run where it stands and says what is in place — what was
+removed, what was placed, what was never touched.
 
 ---
 

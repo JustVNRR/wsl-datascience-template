@@ -20,7 +20,7 @@ $Scripts = Join-Path $PSScriptRoot "scripts"
 # The order is the one the documentation uses, and it starts with the command
 # that answers "what do I have?" - list, then the rest along an instance's life.
 # Each line says what the command does and stops there: a menu is read at a
-# glance. The longest description is 42 characters - 63 columns numbered, 60
+# glance. The longest description is 40 characters - 61 columns numbered, 58
 # behind the arrow marker, measured - so an 80-column window shows them whole
 # and the cut never eats a word that mattered. What deserves a sentence is in
 # docs\wsl\commands.md.
@@ -31,8 +31,9 @@ $Commands = @(
     @{ Name = "start";      What = "start a stopped instance" },
     @{ Name = "stop";       What = "stop a running instance" },
     @{ Name = "shell";      What = "open a shell inside an instance" },
-    @{ Name = "add_pack";   What = "install optional tooling into an instance" },
-    @{ Name = "remove_pack"; What = "uninstall optional tooling from an instance" },
+    @{ Name = "add_pack";   What = "install a pack into an instance" },
+    @{ Name = "remove_pack"; What = "uninstall a pack from an instance" },
+    @{ Name = "manage_packs"; What = "choose the packs an instance should carry" },
     @{ Name = "unregister"; What = "remove an instance" },
     @{ Name = "archive";    What = "write an instance to a named archive" },
     @{ Name = "restore";    What = "rebuild an instance from an archive" },
