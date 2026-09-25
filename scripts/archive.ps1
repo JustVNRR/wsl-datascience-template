@@ -40,32 +40,6 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# Halts script execution if an external command (like wsl) fails
-function Invoke-External {
-    param([scriptblock]$Command, [string]$ErrorMessage)
-    & $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw "$ErrorMessage (Exit code: $LASTEXITCODE)"
-    }
-}
-
-# Reading what wsl.exe prints while it may write on its error stream: under
-# $ErrorActionPreference = "Stop" a redirection turns that stderr into a
-# TERMINATING error. "Continue" for the call, then put it back - the same
-# guard build.ps1 uses around `docker info` and `wsl --unregister`.
-function Get-DistroNames {
-    param([switch]$Running)
-    $PreviousEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    $WslArgs = @("--list", "--quiet")
-    if ($Running) { $WslArgs += "--running" }
-    $Names = (wsl.exe @WslArgs 2>$null) |
-        ForEach-Object { ($_ -replace "`0", "").Trim() } |
-        Where-Object { $_ }
-    $ErrorActionPreference = $PreviousEAP
-    return @($Names)
-}
-
 # The registry holds the instance's real folder and its WSL version (1 or 2)
 function Get-Distro {
     param([string]$Name)
@@ -80,88 +54,6 @@ function Get-Distro {
         }
     }
     return $null
-}
-
-function Format-Size {
-    param([double]$Bytes)
-    if ($Bytes -ge 1GB) { return ("{0:N1} GB" -f ($Bytes / 1GB)) }
-    if ($Bytes -ge 1MB) { return ("{0:N1} MB" -f ($Bytes / 1MB)) }
-    return ("{0:N0} KB" -f ($Bytes / 1KB))
-}
-
-function Get-VhdxSize {
-    param([string]$Folder)
-    $Vhdx = Join-Path $Folder "ext4.vhdx"
-    if (Test-Path $Vhdx) { return (Get-Item $Vhdx).Length }
-    return 0
-}
-
-# Every registered instance, with its folder and its WSL version (1 or 2)
-function Get-Distros {
-    $Found = @()
-    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-        $Props = Get-ItemProperty $Key.PSPath
-        if ($Props.DistributionName) {
-            $Found += [PSCustomObject]@{
-                Name     = $Props.DistributionName
-                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
-                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-            }
-        }
-    }
-    return @($Found)
-}
-
-# The choice every command in this family offers: the instances that exist,
-# numbered, with what is worth knowing about each, and a way out. The question
-# comes back until the answer is one of the numbers - an empty answer cancels,
-# so a run with no console can never loop forever.
-function Select-Distro {
-    # Sorted by name: the registry order changes between runs, and a menu whose
-    # numbers move is a menu you cannot trust twice. Filtered on the marker:
-    # the machine holds other distributions - Docker Desktop's, a colleague's -
-    # and none of them are ours to touch.
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
-    if ($All.Count -eq 0) {
-        Write-Host ""
-        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
-        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
-        Write-Host "        Already have one? Make it ours with  .\wsl.ps1 adopt" -ForegroundColor Yellow
-        exit 1
-    }
-
-    $Running = Get-DistroNames -Running
-
-    Write-Host ""
-    Write-Host "Instances registered on this machine:" -ForegroundColor Cyan
-    for ($Index = 0; $Index -lt $All.Count; $Index++) {
-        $Entry = $All[$Index]
-        $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
-        Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}" -f ($Index + 1), $Entry.Name, $State,
-            (Format-Size (Get-VhdxSize $Entry.BasePath)))
-    }
-    Write-Host "   0.  Cancel"
-
-    while ($true) {
-        $Answer = [string](Read-Host "Which one? (0 to cancel)")
-        if ([string]::IsNullOrWhiteSpace($Answer)) {
-            Write-Host ""
-            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-            exit 0
-        }
-        $Number = 0
-        if ([int]::TryParse($Answer.Trim(), [ref]$Number)) {
-            if ($Number -eq 0) {
-                Write-Host ""
-                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
-                exit 0
-            }
-            if ($Number -ge 1 -and $Number -le $All.Count) {
-                return $All[$Number - 1]
-            }
-        }
-        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
-    }
 }
 
 # 1. Which instance. Named on the command line, or picked from the list.
@@ -328,17 +220,25 @@ Write-Host ""
 # answers are reasonable - the copy exists either way - and only the user
 # knows which one they want. The default is the state it was found in.
 if ($AfterExport -eq "Ask") {
-    Write-Host "What should happen to '$DistroName' now?" -ForegroundColor Yellow
-    Write-Host "  a. Start it"
-    Write-Host "  b. Delete it (the archive stays)"
-    Write-Host "  c. Leave it stopped"
-    $DefaultAnswer = if ($StoppedByUs) { "a" } else { "c" }
-    # [string]: Read-Host returns $null when its input is closed, and a $null
-    # answer makes the test below return $null instead of a verdict - so the
-    # default would never be applied and the line after would fail on it.
-    $Answer = [string](Read-Host "Answer (a/b/c) [default: $DefaultAnswer]")
-    if ($Answer -notmatch "^[aAbBcC]$") { $Answer = $DefaultAnswer }
-    $AfterExport = switch ($Answer.ToLower()) { "a" { "Start" } "b" { "Delete" } "c" { "Leave" } }
+    # All three answers are reasonable - the copy exists either way - and only
+    # the user knows which one they want. The default is the state the instance
+    # was found in, and it is where the cursor starts, marked in the list: Enter
+    # takes it, and so does an answer nobody could read (Escape, or an empty
+    # line where there is no console) - which is what the old prompt did with
+    # anything that was not a, b or c.
+    $Choices = @("Start", "Delete", "Leave")
+    $Default = if ($StoppedByUs) { "Start" } else { "Leave" }
+    $AfterExport = Select-FromList -Title "What should happen to '$DistroName' now?" `
+        -Items $Choices -DefaultIndex $Choices.IndexOf($Default) -Label {
+            param($Wanted)
+            $Text = switch ($Wanted) {
+                "Start" { "Start it" }
+                "Delete" { "Delete it (the archive stays)" }
+                "Leave" { "Leave it stopped" }
+            }
+            if ($Wanted -eq $Default) { "$Text  (default)" } else { $Text }
+        }
+    if (-not $AfterExport) { $AfterExport = $Default }
     Write-Host ""
 }
 

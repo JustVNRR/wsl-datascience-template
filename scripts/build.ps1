@@ -30,15 +30,6 @@ if ($Ignored) {
     exit 1
 }
 
-# Halts script execution if an external command (like docker or wsl) fails
-function Invoke-External {
-    param([scriptblock]$Command, [string]$ErrorMessage)
-    & $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw "$ErrorMessage (Exit code: $LASTEXITCODE)"
-    }
-}
-
 # Detects and silently installs a compatible Nerd Font (MesloLGS NF) for the current user.
 # Uses CurrentUser scope (HKCU and LocalAppData) to completely bypass the need for Administrator privileges.
 # Returns $true if the font is already configured, or $false if user action is required.

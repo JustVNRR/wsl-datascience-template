@@ -311,3 +311,87 @@ function Set-DockerState {
     [System.IO.File]::WriteAllText("$Settings.tmp", $Json, (New-Object System.Text.UTF8Encoding($false)))
     Move-Item "$Settings.tmp" $Settings -Force
 }
+
+# ---------------------------------------------------------------------------
+# THE INSTANCES, AND WHAT EVERY COMMAND ASKS ABOUT THEM
+# ---------------------------------------------------------------------------
+# These five used to live in twelve copies across scripts\ - identical to the
+# byte, which is how they were found: one hash per function body, twelve files.
+# Not one of them was wrong; the cost was that a fix had twelve places to land
+# in, and eleven chances to be forgotten. They are here now, where the commands
+# already come for the marker and for Docker's answer.
+
+# Halts script execution if an external command (like wsl) fails
+function Invoke-External {
+    param([scriptblock]$Command, [string]$ErrorMessage)
+    & $Command
+    if ($LASTEXITCODE -ne 0) {
+        throw "$ErrorMessage (Exit code: $LASTEXITCODE)"
+    }
+}
+
+# Every registered instance, with its folder and its WSL version (1 or 2).
+# The registry says what Windows knows; it does not say which of them are ours -
+# Test-TemplateInstance answers that, on the folder's marker.
+function Get-Distros {
+    $Found = @()
+    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
+        $Props = Get-ItemProperty $Key.PSPath
+        if ($Props.DistributionName) {
+            $Found += [PSCustomObject]@{
+                Name     = $Props.DistributionName
+                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
+                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+            }
+        }
+    }
+    return @($Found)
+}
+
+# What WSL answers about the instances it knows, which is the only source that
+# says whether one is RUNNING - the registry does not. Wrapped in @() for the
+# reason every caller wraps it: PowerShell unrolls a one-element list into its
+# element, and a string is not a list of one.
+function Get-DistroNames {
+    param([switch]$Running)
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $WslArgs = @("--list", "--quiet")
+    if ($Running) { $WslArgs += "--running" }
+    $Names = (wsl.exe @WslArgs 2>$null) |
+        ForEach-Object { ($_ -replace "`0", "").Trim() } |
+        Where-Object { $_ }
+    $ErrorActionPreference = $PreviousEAP
+    return @($Names)
+}
+
+# How much room an instance takes on Windows - the .vhdx file's size on disk,
+# not what its filesystem holds.
+function Get-VhdxSize {
+    param([string]$Folder)
+    $Vhdx = Join-Path $Folder "ext4.vhdx"
+    if (Test-Path $Vhdx) { return (Get-Item $Vhdx).Length }
+    return 0
+}
+
+function Format-Size {
+    param([double]$Bytes)
+    if ($Bytes -ge 1GB) { return ("{0:N1} GB" -f ($Bytes / 1GB)) }
+    if ($Bytes -ge 1MB) { return ("{0:N1} MB" -f ($Bytes / 1MB)) }
+    return ("{0:N0} KB" -f ($Bytes / 1KB))
+}
+
+# ---------------------------------------------------------------------------
+# THE MENUS
+# ---------------------------------------------------------------------------
+# They live beside this file rather than inside it: what the commands share is
+# now two things - what this machine is (here) and how it is asked (menu.ps1).
+# Same rule as this file when a piece of it is missing: say so, rather than
+# die with a PowerShell error that reads like the machine's fault.
+$MenuLib = Join-Path $PSScriptRoot "menu.ps1"
+if (-not (Test-Path $MenuLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\menu.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $MenuLib

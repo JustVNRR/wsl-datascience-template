@@ -4,40 +4,47 @@
 commands themselves live in `scripts\`.
 
 ```powershell
-.\wsl.ps1               # list all available commands
+.\wsl.ps1               # which command? - the menu below
 ```
 
 ```text
-WSL DataScience template
+  (a command can also be typed:  .\wsl.ps1 <command> [options])
 
-  list         show the instances of this template, and the archives
-  build        build an instance from the image (Docker, then WSL)
-  adopt        mark an existing instance as one of this template's
-  start        start a stopped instance
-  stop         stop a running instance
-  shell        open a shell in one of our instances
-  add_pack     install optional tooling into an instance
-  remove_pack  uninstall optional tooling from an instance
-  unregister   remove an instance, and what it left on Windows
-  archive      write an instance to a named archive
-  restore      rebuild an instance from an archive
-  duplicate    copy an instance under another name
-  shrink       reclaim the space an instance has freed
+WSL DataScience template
+  > list         list our instances and the archives
+    build        build an instance from the image
+    adopt        mark an existing instance as ours
+    start        start a stopped instance
+    stop         stop a running instance
+    shell        open a shell inside an instance
+    add_pack     install optional tooling into an instance
+    remove_pack  uninstall optional tooling from an instance
+    unregister   remove an instance
+    archive      write an instance to a named archive
+    restore      rebuild an instance from an archive
+    duplicate    copy an instance under another name
+    shrink       reclaim the space an instance has freed
+  up/down to move, Enter to choose, Escape to cancel
 ```
+
+It is the same menu every command shows when it asks something - the
+instances, the packs, the archives - and it is answered the same way. Where
+there is no console to read a key from (a script, a pipe), that menu becomes
+the numbered prompt it used to be, and the answer is typed.
 
 ## All commands
 
 | Command | What it does |
 | :--- | :--- |
-| [`.\wsl.ps1 list`](#list) | show our instances, the archives, and what is left over |
-| [`.\wsl.ps1 build`](#build) | build an instance from the image (Docker, then WSL) |
-| [`.\wsl.ps1 adopt`](#adopt) | mark an instance that already exists as one of ours |
+| [`.\wsl.ps1 list`](#list) | list our instances and the archives |
+| [`.\wsl.ps1 build`](#build) | build an instance from the image |
+| [`.\wsl.ps1 adopt`](#adopt) | mark an existing instance as ours |
 | [`.\wsl.ps1 start`](#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](#stop) | stop a running instance |
-| [`.\wsl.ps1 shell`](#shell) | open a shell in one of our instances |
-| [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance, its files and its tool together |
+| [`.\wsl.ps1 shell`](#shell) | open a shell inside an instance |
+| [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
-| [`.\wsl.ps1 unregister`](#unregister) | remove an instance, and what it left on Windows |
+| [`.\wsl.ps1 unregister`](#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](#duplicate) | copy an instance under another name |
