@@ -21,15 +21,14 @@ PACKS_DIR := $(abspath $(THIS_DIR)/../../packs)
 # would silently retarget every gmake run made outside a project directory.
 # (Command-line and environment values are not concerned.)
 #
-# The socle names its own; a pack declares its share in its pack.conf. That
-# file is read here with sed rather than included, for one reason: this check
-# runs while .env.global is being loaded, before any pack is allowed to define
-# anything. No comment line survives the sed, so the declaration is not
-# mistaken for prose.
-SOCLE_IDENTIFYING_VARS := DOCKER_LOCAL_IMAGE
+# The list comes from the packs, each naming its own in its pack.conf: the
+# socle names no variable. That file is read here with sed rather than included,
+# for one reason: this check runs while .env.global is being loaded, before any
+# pack is allowed to define anything. No comment line survives the sed, so the
+# declaration is not mistaken for prose. A variable whose pack is not installed
+# is not refused - and nothing reads it either.
 PACK_IDENTIFYING_VARS := $(shell sed -n 's/^PACK_IDENTIFYING_VARS *:=[[:space:]]*//p' $(PACKS_DIR)/*/pack.conf 2>/dev/null)
-PROJECT_IDENTIFYING_VARS := $(SOCLE_IDENTIFYING_VARS) $(PACK_IDENTIFYING_VARS)
-$(foreach var,$(PROJECT_IDENTIFYING_VARS),$(if $(filter file,$(origin $(var))),$(error ❌ ERROR: Variable $(var) identifies a project — it belongs in that project's .env, never in .env.global)))
+$(foreach var,$(PACK_IDENTIFYING_VARS),$(if $(filter file,$(origin $(var))),$(error ❌ ERROR: Variable $(var) identifies a project — it belongs in that project's .env, never in .env.global)))
 
 # B. Load local project-specific overrides from the current working directory
 # If .env exists locally, it overrides values from .env.global
@@ -75,14 +74,19 @@ include $(PACK_MODULES)
 #
 # Read LAST, after every module, and that placement is the whole point: `$(error)`
 # fires when make READS the line, so a gate checked before the includes could not
-# know what a pack declares. The scaffolding goals are named by the pack that
-# defines them - SCAFFOLD_GOALS, in its own module - and the socle names no
-# target of a pack any more. A target nobody declares is treated as an ordinary
-# project target, which is the right answer for the socle's own.
+# know what a pack declares. Both lists are filled by the packs, in the modules
+# that define the targets: SCAFFOLD_GOALS for the ones that run from ~/projects
+# itself, GATE_EXEMPT_GOALS for the ones that run from anywhere. The socle names
+# no target of a pack, in either list. A target nobody declares is treated as an
+# ordinary project target, which is the right answer for the socle's own.
 #
 # packs_list is exempt for the same reason help is: it reads the machine, not a
 # project, and the question "what do I have?" is asked from wherever you stand.
-GATE_EXEMPT_GOALS := help env_global_enable packs_list
+#
+# `+=`, not `:=`: the packs appended their own while the modules were read
+# above, and a plain assignment here would erase them - it is read after them
+# on purpose, so it has to add to what they left rather than speak last.
+GATE_EXEMPT_GOALS += help packs_list
 ifneq (,$(filter $(SCAFFOLD_GOALS),$(MAKECMDGOALS)))
 ifeq (,$(GMAKE_ANYWHERE))
 ifneq ($(HOME)/projects,$(CURDIR))
@@ -111,63 +115,10 @@ help: ## Show this help menu
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | sort -f
 
 # ==============================================================================
-# DYNAMIC SAFETY MACROS
+# WHAT A TARGET CALLS
 # ==============================================================================
-
-# Macro 1: Assert required variables are non-empty (Fail-fast validation)
-# When no project .env was found, the error says so — and when the values in
-# effect come from neither a project .env nor the command line (i.e. only from
-# .env.global or the environment), a warning is printed before the recipe runs.
-define check_vars
-	$(foreach var,$(1),$(if $(value $(var)),,$(error ❌ ERROR: Variable $(var) is required but unset$(if $(PROJECT_ENV),, (no .env in this directory — only .env.global is loaded)))))
-	@if [ -z "$(PROJECT_ENV)" ] && [ -z "$(strip $(foreach var,$(1),$(if $(filter command line,$(origin $(var))),x)))" ]; then \
-		echo "⚠️  No .env in this directory — values in effect come from .env.global or the environment only."; \
-	fi
-endef
-
-# Macro 2: Print target variables and prompt for operator confirmation
-define confirm_action
-	@echo "\n======================================================="
-	@echo " ⚠️  TARGET ACTION: $(1)"
-	@echo "======================================================="
-	@$(foreach var,$(2),echo " 🔹 $(var) : \033[33m$($(var))\033[0m";)
-	@echo "======================================================="
-	@read -p "Confirm execution? [y/N] " ans; \
-	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "\n❌ Operation cancelled by user." >&2; exit 1; fi
-	@echo "✅ Operation confirmed.\n"
-endef
-
-# Macro 3: create or complete an environment file from the samples, in order.
-# The socle's sample comes first, the packs' follow - each carries its own
-# header, so the assembled file documents itself.
-# Nothing is ever *rewritten*: a variable the target already defines is left
-# alone, which is what makes the two commands safe to re-run. A value you
-# filled in survives, and so does a pack you add later.
-#   $(1) the file to write   $(2) the samples to read
-define merge_env_samples
-	@target=$(1); \
-	samples="$(2)"; \
-	if [ ! -f "$$target" ]; then \
-		echo "📝 Creating $$target from the samples..."; \
-		: > "$$target"; \
-		for s in $$samples; do [ -f "$$s" ] && cat "$$s" >> "$$target"; done; \
-		echo "✏️  Fill in the values you need — each block documents its own."; \
-	else \
-		added=0; \
-		for s in $$samples; do \
-			[ -f "$$s" ] || continue; \
-			missing=$$(awk -F= 'FNR==NR { if ($$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/) seen[$$1]=1; next } $$0 ~ /^[A-Za-z_][A-Za-z0-9_]*=/ && !($$1 in seen)' "$$target" "$$s"); \
-			[ -z "$$missing" ] && continue; \
-			if [ $$added -eq 0 ]; then \
-				printf '\n# --- gmake variables added from the samples ---\n' >> "$$target"; \
-				added=1; \
-			fi; \
-			printf '%s\n' "$$missing" >> "$$target"; \
-		done; \
-		if [ $$added -eq 0 ]; then \
-			echo "ℹ️  $$target already defines every gmake variable — nothing to add."; \
-		else \
-			echo "📝 Added the missing variables to $$target."; \
-		fi; \
-	fi
-endef
+# The macros a recipe uses - check_vars, confirm_action, merge_env_samples -
+# belong to the targets that call them and travel with them: they are defined
+# in the modules of the `dev` pack, whose targets are the ones that use them.
+# The socle defines none, and needs none: it has no target of its own that
+# checks a project variable, confirms a destructive action or assembles a file.

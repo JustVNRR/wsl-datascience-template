@@ -2,6 +2,10 @@
 # 🐙 GITHUB / PULL REQUEST COMMANDS
 # ==============================================================================
 # Requires authenticated `gh` (GitHub CLI): gh auth status
+#
+# The PRs of ONE project: these run from its root, push its branch and label its
+# PR. Like the docker targets next door, they moved out of the socle the day an
+# instance could carry a project workspace with nothing to put in it.
 
 # Default base branch for PRs (overridable: make gh_pr_create BASE_BRANCH=develop)
 BASE_BRANCH ?= main

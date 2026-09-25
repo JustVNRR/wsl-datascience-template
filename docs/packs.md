@@ -3,10 +3,14 @@
 [← Back to the README](../README.md#mlops-makefile-gmake)
 
 A pack is optional tooling — a CLI the image does not ship, the gmake targets
-that drive it, and the script that installs both — living in one folder under
-`packs/`. The socle knows nothing about any particular pack: it finds the
-folders and loads what they carry. Adding a pack touches no file outside that
-folder.
+that drive it, the shell commands, the variables it reads — and the two scripts
+that install and remove it, all of it living in one folder under `packs/`. The
+socle knows nothing about any particular pack: it finds the folders and loads
+what they carry. Adding a pack touches no file outside that folder.
+
+A pack needs no tool: `dev` is targets and nothing else — the mirror of
+`vision`, which is a tool and no target. What a pack brings is what its folder
+carries, and a folder may carry one of the two.
 
 ## The folder
 
@@ -25,7 +29,9 @@ packs/<name>/
 
 Only the first three are always there. The rest is what the pack needs: `vision`
 brings no target, no variable of its own and no sample — its folder is a
-`pack.conf`, two scripts, a sheet and a page.
+`pack.conf`, two scripts, a sheet and a page. `dev` is the other extreme, with
+no package to install — its folder carries modules, two samples and its pages,
+and its two scripts have nothing to do but say so.
 
 ## `pack.conf`
 

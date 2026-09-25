@@ -11,7 +11,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — with the `python` pack, `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
-- **MLOps** — `gmake` exposes modular targets for Docker, the environment files and GitHub, and a pack adds its own: GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
+- **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `dev` (Docker, GitHub PRs, the environment files), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
 
 ---
 
@@ -71,7 +71,7 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
    - Only values shared across all projects belong in the shared `.env.global`
    - Anything identifying a project (project ids, resource names) lives in its `.env`.
-   - Both are gitignored, and both are built from committed samples by [`gmake env_global_enable` / `gmake env_project_enable`](docs/make/env.md) — the socle's samples plus those the packs ship beside their modules. The commands only ever add what is missing.
+   - Both are gitignored, and both are built from committed samples by [`gmake env_global_enable` / `gmake env_project_enable`](packs/dev/docs/env.md) — the samples the packs ship beside their modules. The commands only ever add what is missing.
 
 - **`gmake` vs `make`:**
   - Type `gmake` (without any arguments) to display a formatted help menu listing every gmake target (GCP compute, BigQuery, Docker, Cloud Run, etc.).
@@ -87,22 +87,25 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
-| Setup | [Environment files](docs/make/env.md) | `env_global_enable`, `env_project_enable` |
-| Operate | [Docker](docs/make/docker.md) | `docker_build_local`, `docker_run_local` |
-| Operate | [Packs installed here](docs/make/packs.md) | `packs_list` |
-| Collaborate | [GitHub PRs](docs/make/github.md) | `gh_pr_*` |
+| Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
+
+Everything else a project needs — its environment files, its image, its pull
+requests — is a pack's, and the socle's own menu is one line long because an
+instance with no project has nothing to build, push or configure.
 
 Then the packs. Each one is listed once — the README does not follow a pack as
 it grows, and a pack leaves with its folder:
 
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
+| `dev` | [The dev pack](packs/dev/docs/dev.md) | `env_*_enable`, `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
 | `python` | [Python](packs/python/docs/python.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project`, `lint*`, `test*` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
 
-A pack that brings no target of its own shows `—`: `vision` installs ffmpeg,
-ImageMagick and Tesseract, and their commands go to the cheatsheet picker.
+The pack table is a pack's extremes: `dev` brings targets and no tool, `vision`
+brings a tool and no target — it installs ffmpeg, ImageMagick and Tesseract, and
+their commands go to the cheatsheet picker.
 
 What a pack is, what it must contain, and how to add one:
 [`docs/packs.md`](docs/packs.md). One reaches an instance with
@@ -157,14 +160,9 @@ the repository at runtime.
 │   ├── cheatsheets/         # Auto-scanned data files: CTRL+H command lists (fcheat)
 │   │   └── *_commands.sh    # Domain-specific command lists (git, docker, bash, etc.)
 │   ├── gmake/               # MLOps Makefile ecosystem (the gmake alias)
-│   │   ├── .env.global.sample  # The socle's share of the shared defaults (gmake env_global_enable)
-│   │   ├── .env.project.sample # The socle's share of a project's variables (gmake env_project_enable)
-│   │   ├── Makefile           # Entrypoint for the MLOps Makefile
-│   │   └── make/            # The socle's modules, one per domain (pages in docs/make/)
-│   │       ├── env.mk             # the two env files, assembled from the samples
-│   │       ├── docker.mk          # image builds and local runs (docker only)
-│   │       ├── github.mk          # GitHub PR workflow (gh CLI)
-│   │       └── packs.mk           # what this instance carries (gmake packs_list)
+│   │   ├── Makefile         # Entrypoint: loads the modules, builds the menu, gates where targets run
+│   │   └── make/            # The socle's modules (pages in docs/make/)
+│   │       └── packs.mk     # what this instance carries (gmake packs_list)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing and persistence policies
@@ -181,6 +179,15 @@ the repository at runtime.
 │   ├── wsl/                 # Instance administration: the commands, their options, examples
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── packs/                   # Optional tooling, one folder per pack
+│   ├── dev/                 # the project targets: Docker, GitHub PRs, the environment files
+│   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
+│   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
+│   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   ├── env.global.sample  # the pack's shared defaults (the header of .env.global)
+│   │   ├── env.project.sample # the pack's project variables (PACKAGE_NAME, DOCKER_*)
+│   │   ├── make/            # the pack's modules, loaded as soon as the folder is there
+│   │   ├── cheatsheets/     # the pack's fcheat sheet
+│   │   └── docs/            # the pack's pages, one per module
 │   ├── gcp/                 # Google Cloud CLI, BigQuery, Cloud Run, VMs, Artifact Registry
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
