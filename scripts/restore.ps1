@@ -19,31 +19,6 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# Halts script execution if an external command (like wsl) fails
-function Invoke-External {
-    param([scriptblock]$Command, [string]$ErrorMessage)
-    & $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw "$ErrorMessage (Exit code: $LASTEXITCODE)"
-    }
-}
-
-function Get-DistroNames {
-    $Found = @()
-    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-        $Props = Get-ItemProperty $Key.PSPath
-        if ($Props.DistributionName) { $Found += $Props.DistributionName }
-    }
-    return @($Found)
-}
-
-function Format-Size {
-    param([double]$Bytes)
-    if ($Bytes -ge 1GB) { return ("{0:N1} GB" -f ($Bytes / 1GB)) }
-    if ($Bytes -ge 1MB) { return ("{0:N1} MB" -f ($Bytes / 1MB)) }
-    return ("{0:N0} KB" -f ($Bytes / 1KB))
-}
-
 # 1. What is there to restore from. An empty folder is not an error to work
 # around: it is the answer, and it says how to fill it.
 if (-not (Test-Path $ArchiveFolder)) {

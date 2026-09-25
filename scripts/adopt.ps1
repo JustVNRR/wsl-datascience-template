@@ -17,36 +17,6 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# Every registered instance, with its folder and its WSL version (1 or 2)
-function Get-Distros {
-    $Found = @()
-    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-        $Props = Get-ItemProperty $Key.PSPath
-        if ($Props.DistributionName) {
-            $Found += [PSCustomObject]@{
-                Name     = $Props.DistributionName
-                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
-                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-            }
-        }
-    }
-    return @($Found)
-}
-
-function Format-Size {
-    param([double]$Bytes)
-    if ($Bytes -ge 1GB) { return ("{0:N1} GB" -f ($Bytes / 1GB)) }
-    if ($Bytes -ge 1MB) { return ("{0:N1} MB" -f ($Bytes / 1MB)) }
-    return ("{0:N0} KB" -f ($Bytes / 1KB))
-}
-
-function Get-VhdxSize {
-    param([string]$Folder)
-    $Vhdx = Join-Path $Folder "ext4.vhdx"
-    if (Test-Path $Vhdx) { return (Get-Item $Vhdx).Length }
-    return 0
-}
-
 # 1. Who can be adopted: every registered instance that does not carry the
 # marker. Not just any of them - a distribution that was created outside this
 # repository is exactly what this list is for.

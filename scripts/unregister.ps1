@@ -21,65 +21,9 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# Halts script execution if an external command (like wsl) fails
-function Invoke-External {
-    param([scriptblock]$Command, [string]$ErrorMessage)
-    & $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw "$ErrorMessage (Exit code: $LASTEXITCODE)"
-    }
-}
-
-# Reading what wsl.exe prints while it may write on its error stream: under
-# $ErrorActionPreference = "Stop" a redirection turns that stderr into a
-# TERMINATING error. "Continue" for the call, then put it back - the same
-# guard build.ps1 uses around `docker info` and `wsl --unregister`.
-function Get-DistroNames {
-    param([switch]$Running)
-    $PreviousEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    $WslArgs = @("--list", "--quiet")
-    if ($Running) { $WslArgs += "--running" }
-    $Names = (wsl.exe @WslArgs 2>$null) |
-        ForEach-Object { ($_ -replace "`0", "").Trim() } |
-        Where-Object { $_ }
-    $ErrorActionPreference = $PreviousEAP
-    return @($Names)
-}
-
-# Every registered instance, with its folder and its WSL version (1 or 2)
-function Get-Distros {
-    $Found = @()
-    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-        $Props = Get-ItemProperty $Key.PSPath
-        if ($Props.DistributionName) {
-            $Found += [PSCustomObject]@{
-                Name     = $Props.DistributionName
-                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
-                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-            }
-        }
-    }
-    return @($Found)
-}
-
 function Get-Distro {
     param([string]$Name)
     return (Get-Distros | Where-Object { $_.Name -eq $Name } | Select-Object -First 1)
-}
-
-function Format-Size {
-    param([double]$Bytes)
-    if ($Bytes -ge 1GB) { return ("{0:N1} GB" -f ($Bytes / 1GB)) }
-    if ($Bytes -ge 1MB) { return ("{0:N1} MB" -f ($Bytes / 1MB)) }
-    return ("{0:N0} KB" -f ($Bytes / 1KB))
-}
-
-function Get-VhdxSize {
-    param([string]$Folder)
-    $Vhdx = Join-Path $Folder "ext4.vhdx"
-    if (Test-Path $Vhdx) { return (Get-Item $Vhdx).Length }
-    return 0
 }
 
 # The choice every command in this family offers: the instances that exist,
