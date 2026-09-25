@@ -280,17 +280,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # One array element is one line of standard input, in the order each
-      # suite documents at the top of its own file - the numbered prompt reads
-      # them when there is no console, which is what a runner is.
+      # The answers come from the .answers file beside each suite, not from a
+      # copy spelled out here: the numbered prompt reads them when there is no
+      # console, which is what a runner is, and a second copy of the list is a
+      # copy that drifts. It did - this step still listed the answers of the day
+      # it was written, and went on passing while the suite grew a scenario.
 
       - name: The arrow menu, driven by a scripted keyboard
         shell: bash
-        run: printf '2\n\n1\n2\nv\nv\nv\n\n' | powershell -NoProfile -File tests/menu-test.ps1
+        run: powershell -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
 
       - name: The pack checklist, and what it applies
         shell: bash
-        run: printf '1\nv\n\n2\nv\n\n0\nv\n1\nv\nn\nv\n\n' | powershell -NoProfile -File tests/packs-select-test.ps1
+        run: powershell -NoProfile -File tests/packs-select-test.ps1 < tests/packs-select-test.answers
 
       - name: build's questions, with a stand-in docker
         shell: bash
