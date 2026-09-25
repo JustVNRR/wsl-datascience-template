@@ -19,15 +19,20 @@ $Scripts = Join-Path $PSScriptRoot "scripts"
 
 # The order is the one the documentation uses, and it starts with the command
 # that answers "what do I have?" - list, then the rest along an instance's life.
+# Each line says what the command does and stops there: a menu is read at a
+# glance. The longest description is 47 characters - 67 columns numbered, 64
+# with the arrow marker, measured - so an 80-column window shows them whole and
+# the cut never eats a word that mattered. What deserves a sentence is in
+# docs\wsl\commands.md.
 $Commands = @(
-    @{ Name = "list";       What = "show the instances of this template, and the archives" },
-    @{ Name = "build";      What = "build an instance from the image (Docker, then WSL)" },
-    @{ Name = "adopt";      What = "mark an existing instance as one of this template's" },
+    @{ Name = "list";       What = "list our instances and the archives" },
+    @{ Name = "build";      What = "build an instance from the image" },
+    @{ Name = "adopt";      What = "mark an existing instance as ours" },
     @{ Name = "start";      What = "start a stopped instance" },
     @{ Name = "stop";       What = "stop a running instance" },
-    @{ Name = "shell";      What = "open a shell in one of our instances" },
+    @{ Name = "shell";      What = "open a shell inside an instance" },
     @{ Name = "add_pack";   What = "install optional tooling into an instance" },
-    @{ Name = "remove_pack"; What = "uninstall optional tooling from an instance, dependencies included" },
+    @{ Name = "remove_pack"; What = "uninstall optional tooling from an instance" },
     @{ Name = "unregister"; What = "remove an instance, and what it left on Windows" },
     @{ Name = "archive";    What = "write an instance to a named archive" },
     @{ Name = "restore";    What = "rebuild an instance from an archive" },
