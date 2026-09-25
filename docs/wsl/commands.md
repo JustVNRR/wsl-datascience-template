@@ -319,6 +319,38 @@ touched: your `gcloud` logins, the variables it copied into `.env.global`.
 A pack installed before packs carried a `remove.sh` is a special case: the
 command says so, and deleting its files undoes nothing on the system side.
 
+### What it takes back after the pack is gone
+
+A `remove.sh` names what it installed — `ffmpeg`, the Google CLI — and takes
+those away. What arrived with them as *dependencies* is nobody's to name, and it
+is the bulk of the weight: the vision pack leaves **203 packages and 462 MB**
+behind, measured. So the command asks one more question, and removes only if
+both answers come back empty:
+
+| Question | Who answers |
+| :--- | :--- |
+| Does any installed package depend on it? | apt — the automatic packages no installed package needs any more |
+| Does anything **outside apt** link its libraries? | `ldd` over `~/.local`, `~/projects`, `/usr/local` and `/opt`, each library traced to its package with `dpkg -S` |
+
+A program apt knows nothing about — a venv, a binary you built — stops the
+cleanup, and the command names it:
+
+```text
+==> Taking back what 'vision' left on the system side...
+    Kept in place: something outside apt still links what would go.
+
+    /usr/local/bin/mytool links libtesseract5, liblept5, libtiff6
+    Remove the package by hand if that program is gone.
+```
+
+When nothing answers yes, it goes — `46 dependencies nothing needs any more:
+78 MB`.
+
+This is the one place the repository runs `autoremove`, and it never runs it
+blind: a package kept by mistake costs every user of the instance, a package
+removed one step too early costs one `apt-get install` to whoever needs it
+later.
+
 ---
 
 ## `unregister`
