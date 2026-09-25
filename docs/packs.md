@@ -66,7 +66,11 @@ and one Enter installs what is missing and takes out what is not. It copies the
 newcomers' folders before removing anything, so a package two packs share is
 left where it is — [the order, and why](wsl/commands.md#manage_packs).
 
-Both commands are documented in
+A new instance can start with its packs already in place: `.\wsl.ps1 build`
+asks the same checklist before it builds, and installs the answer once the
+instance exists.
+
+They are all documented in
 [Instance commands](wsl/commands.md#add_pack).
 
 ## Two packs, one package

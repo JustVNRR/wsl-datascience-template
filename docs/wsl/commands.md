@@ -129,7 +129,8 @@ profile, and opens a shell in it.
 .\wsl.ps1 build
 ```
 
-It takes no options: it asks, twice.
+It takes no options: it asks for the name, for the folder, and — when this
+checkout carries packs — which of them the instance should start with.
 
 ```text
 ==> Creating a new instance
@@ -155,6 +156,28 @@ Docker Desktop must be running: the script checks before asking anything.
 If an instance already carries the name, the script shows a red warning and
 asks you to **type the exact name** to confirm. Anything else aborts: the
 rebuild erases that instance and everything in it.
+
+The packs are the last question, asked before anything is created:
+
+```text
+Packs for 'ubuntu-ml-dev'
+  > [ ] gcp          The Google Cloud CLI (about 409 MB installed)
+    [ ] vision       ffmpeg, ImageMagick and Tesseract OCR (about 500 MB)
+  up/down to move, space to check, Enter to apply, Escape to cancel
+```
+
+Escape, or an empty checklist, is a real answer: no pack, and the build goes on.
+A rebuild arrives with the boxes ticked for what the instance being replaced
+carries, so its packs come back without being chosen again. What is ticked is
+summarised and confirmed as in `manage_packs` — one question for the whole list.
+
+They are installed **once the instance exists** — after the deployment, and
+before the screen that announces it, which carries the outcome on its `* Packs`
+line. One whose installation fails does not fail the build: the instance is
+built, the pack's files are taken back out, and the build ends normally, naming
+the pack and pointing at `.\wsl.ps1 manage_packs` to finish. The screen the shell
+opens on repeats the same news, since the deployment summary is cleared away when
+that shell starts.
 
 ---
 
@@ -379,8 +402,8 @@ Packs for 'new_distro2'
   up/down to move, space to check, Enter to apply, Escape to cancel
 ```
 
-Space checks and unchecks, Enter applies, Escape cancels. Both lists are then
-shown, and one question covers them both:
+Space checks and unchecks, Enter applies, Escape cancels. Each list gets a line
+when it has something in it, and one question covers them both:
 
 ```text
 Will install : vision

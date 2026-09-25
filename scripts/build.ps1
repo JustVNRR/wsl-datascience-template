@@ -283,6 +283,38 @@ if ($ExistingDistros -contains $DistroName) {
     }
 }
 
+# 0-ter. The packs, asked here with everything else: the machine has not been
+# touched yet, and nothing asks again once it starts working - the answer waits
+# in a variable and is applied below, after the deployment. An empty checklist,
+# or Escape, means none of them, and the build goes on either way.
+$PackSelection = $null
+$AvailablePacks = @(Get-AvailablePacks)
+if ($AvailablePacks.Count -gt 0) {
+    # The instance being replaced still exists here, and what it carries is what
+    # the boxes should show. A first build has nothing to read and opens on an
+    # empty checklist.
+    $PreChecked = @()
+    if ($ExistingDistros -contains $DistroName) {
+        $PreviousHome = Get-InstanceHome -DistroName $DistroName
+        if ($PreviousHome) {
+            $PreChecked = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory "$PreviousHome/.config/packs")
+        } else {
+            Write-Host "  Could not read what '$DistroName' carries: no pack arrives checked." -ForegroundColor Yellow
+        }
+    }
+
+    # -Installed is left at its default on purpose: the instance this build
+    # makes carries nothing yet, so nothing can be taken out of it - there are
+    # boxes to tick, and no removal to compute.
+    $PackSelection = Select-Packs -Title "Packs for '$DistroName'" -Available $AvailablePacks -Checked $PreChecked
+
+    if ($null -eq $PackSelection -or $PackSelection.ToAdd.Count -eq 0) {
+        Write-Host ""
+        Write-Host "[OK] No pack selected: '$DistroName' will be built without one." -ForegroundColor Green
+        $PackSelection = $null
+    }
+}
+
 # Set once the distro is registered. The finally block reads it to tell a
 # deployment from a failure, and the exit code below is derived from it.
 $Deployed = $false
@@ -428,6 +460,60 @@ try {
         $TerminalProfileOk = $false
     }
 
+    # The packs, before the screen that says the instance is done - and in a try
+    # of their own. Their own try is the point: a pack that fails must not reach
+    # the catch above, which would announce "[ERROR] DURING DEPLOYMENT" for an
+    # instance that is built, registered and usable. The build went through, and
+    # the packs are a step of its own, with its own report: one line in the
+    # summary below, and the same news kept for the screen the shell opens on.
+    $PackLine = "none"
+    $PackLineColour = "DarkGray"
+    $PackReport = @()
+    $PackReportColour = "Green"
+    if ($null -ne $PackSelection) {
+        try {
+            # Asked of the instance, like everywhere else, and asked again after
+            # the install rather than trusted from the answer: the folder is the
+            # state, and a pack whose install failed took its folder back out on
+            # the way.
+            $NewHome = Get-InstanceHome -DistroName $DistroName
+            if (-not $NewHome) { throw "'$DistroName' did not say where its user's home is." }
+            $PacksDirectory = "$NewHome/.config/packs"
+
+            Write-Host ""
+            Write-Host "==> Installing the packs..." -ForegroundColor Cyan
+            $PackFailure = Invoke-PackApply -DistroName $DistroName -PacksDirectory $PacksDirectory `
+                -ToAdd $PackSelection.ToAdd -ResumeHint "Run .\wsl.ps1 manage_packs to finish."
+
+            $PacksNow = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
+            if ($null -ne $PackFailure) {
+                $Where = "none is in place"
+                if ($PacksNow.Count -gt 0) { $Where = "the others are in place ($($PacksNow -join ', '))" }
+                $PackLine = "'$($PackFailure.Pack)' did not install - $Where"
+                $PackLineColour = "Red"
+                $PackReport = @(
+                    "Packs: '$($PackFailure.Pack)' did not install - $Where.",
+                    "  Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
+                )
+                $PackReportColour = "Red"
+            } else {
+                $Landed = $PacksNow
+                if ($Landed.Count -eq 0) { $Landed = @($PackSelection.ToAdd | ForEach-Object { $_.Name }) }
+                $PackLine = ($Landed -join ", ")
+                $PackLineColour = "Green"
+                $PackReport = @(
+                    "Packs: $($Landed -join ', ') installed.",
+                    "  In there:  gmake env_global_enable   (adds their variables)"
+                )
+            }
+        } catch {
+            $PackLine = "not installed - $($_.Exception.Message)"
+            $PackLineColour = "Red"
+            $PackReport = @("Packs: not installed - $($_.Exception.Message)")
+            $PackReportColour = "Red"
+        }
+    }
+
     Clear-Host
     Write-Host "============================================================" -ForegroundColor Green
     Write-Host "       WSL Data Science Instance Successfully Deployed!     " -ForegroundColor Green
@@ -442,6 +528,7 @@ try {
     } else {
         Write-Host "not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor Yellow
     }
+    Write-Host "  * Packs             : " -NoNewline; Write-Host "$PackLine" -ForegroundColor $PackLineColour
     Write-Host ""
 
     Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
@@ -508,6 +595,17 @@ finally {
             Write-Host "A distribution named '$DistroName' is registered: the next run will offer to destroy and rebuild it." -ForegroundColor Yellow
         } else {
             Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor DarkGray
+        }
+
+        # The packs were chosen before the machine started; the deployment
+        # stopped before they could be installed, and the variable still says
+        # which ones, so the news is exact rather than a guess.
+        if ($null -ne $PackSelection) {
+            $WantedPacks = ($PackSelection.ToAdd | ForEach-Object { $_.Name }) -join ", "
+            Write-Host "The packs chosen earlier ($WantedPacks) were not installed: the build stopped before them." -ForegroundColor Yellow
+            if ($StillRegistered -contains $DistroName) {
+                Write-Host "Once it is usable, .\wsl.ps1 manage_packs installs them in it." -ForegroundColor DarkGray
+            }
         }
     }
 }
@@ -599,6 +697,9 @@ if ($Deployed) {
     Write-Host "Welcome, $ConfiguredUser." -ForegroundColor Green
     Write-Host "You are now logged in to $DistroName." -ForegroundColor Green
     Write-Host "Run 'cd projects' and type 'fnew' to create your first project." -ForegroundColor Yellow
+    if ($PackReport) {
+        foreach ($Line in $PackReport) { Write-Host $Line -ForegroundColor $PackReportColour }
+    }
     if ($DockerReport) {
         foreach ($Line in $DockerReport) { Write-Host $Line -ForegroundColor $DockerReportColour }
     }

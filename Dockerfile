@@ -10,8 +10,15 @@ RUN userdel -r ubuntu 2>/dev/null || true
 RUN rm -f /etc/dpkg/dpkg.cfg.d/*
 
 # 1. Install prerequisites for third-party repositories and core networking tools
+#
+# apt-utils is here for the line it silences rather than for its own tools:
+# without it, debconf announces "delaying package configuration, since apt-utils
+# is not installed" on every apt run that configures a package - which is every
+# pack's install, in front of the user, next to nothing else. It is part of a
+# normal Ubuntu install, and what it depends on is already here.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-transport-https \
+    apt-utils \
     ca-certificates \
     curl \
     gnupg \

@@ -108,8 +108,9 @@ ImageMagick and Tesseract, and their commands go to the cheatsheet picker.
 
 What a pack is, what it must contain, and how to add one:
 [`docs/packs.md`](docs/packs.md). One reaches an instance with
-[`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack), and leaves with
-`remove_pack`.
+[`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) — or by being chosen while
+the instance is built, [`.\wsl.ps1 build`](docs/wsl/commands.md#build) — and
+leaves with `remove_pack`.
 
 ---
 
