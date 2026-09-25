@@ -1,8 +1,9 @@
 # ==============================================================================
-# STATIC CHECKS
+# CHECKS
 # ==============================================================================
-# This repo is shell / zsh / make, not Python: no unit-test framework — the
-# workflow only runs the standard static checks, on every push.
+# This repo is shell / zsh / make, not Python: no unit-test framework - the
+# workflow runs static checks over the files, and three suites that run the code
+# itself, on every push.
 #   - shellcheck on real shell scripts (cheatsheets/*.sh are fcheat data files
 #     parsed by awk, not executable shell — excluded, the socle's and the
 #     packs' alike)
@@ -26,8 +27,29 @@
 #   - templates.tsv format: every row must have 4 tab-separated columns and a
 #     known tool (copier/cruft/ccds). The picker skips a malformed row and warns
 #     on stderr, but only when someone runs fnew - this check never misses one
+#   - the docs and the menu say the same words (tests/doc-drift.sh): every
+#     command wsl.ps1 knows, looked for in the README table, the commands page
+#     and its sample menu. It found five drifted rows the day it was written
+#
+# The second job, on windows-latest, is the one that RUNS the code instead of
+# reading it, because that is where PowerShell and wsl.exe are. Three suites,
+# none of which needs an instance, a console or Docker Desktop:
+#   - tests/menu-test.ps1        the arrow menu, driven by a scripted keyboard:
+#                                wrapping, Escape, digits, the cursor read back
+#                                after the block is drawn (the bug that made
+#                                every arrow stack one more copy of the list)
+#   - tests/packs-select-test.ps1  the checklist and what it applies: what
+#                                adding, removing, cancelling and an empty list
+#                                mean, the order the packs move in, where a
+#                                failure stops, and that a value handed back
+#                                does not carry the output of what produced it
+#   - tests/build-question-test.sh  build's questions and its failure path, with
+#                                a stand-in docker on the PATH (tests/fake-docker/)
+#                                that hands the import a file which is not a tar
+# Every bug the scripts themselves have had was caught here, and none of these
+# checks can be replaced by reading the files.
 
-name: Static checks
+name: Checks
 
 on:
   push:
@@ -227,6 +249,9 @@ jobs:
           done
           exit $missing
 
+      - name: The docs and the menu say the same words
+        run: bash tests/doc-drift.sh
+
       - name: Template catalog integrity (templates.tsv)
         run: |
           awk -F'\t' '
@@ -243,3 +268,30 @@ jobs:
             }
             END { exit bad }
           ' zsh/cheatsheets/templates.tsv
+
+  # The suites that run the code. They are the only checks here that have ever
+  # caught a bug in the scripts themselves - a menu that stacked copies of
+  # itself, a value that swallowed what the instance printed, an exit code that
+  # said 0 on a failure - and none of them needs an instance, a console or
+  # Docker Desktop, so they are free to run on every push.
+  tests-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # One array element is one line of standard input, in the order each
+      # suite documents at the top of its own file - the numbered prompt reads
+      # them when there is no console, which is what a runner is.
+
+      - name: The arrow menu, driven by a scripted keyboard
+        shell: bash
+        run: printf '2\n\n1\n2\nv\nv\nv\n\n' | powershell -NoProfile -File tests/menu-test.ps1
+
+      - name: The pack checklist, and what it applies
+        shell: bash
+        run: printf '1\nv\n\n2\nv\n\n0\nv\n1\nv\nn\nv\n\n' | powershell -NoProfile -File tests/packs-select-test.ps1
+
+      - name: build's questions, with a stand-in docker
+        shell: bash
+        run: bash tests/build-question-test.sh
