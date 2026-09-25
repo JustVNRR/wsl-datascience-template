@@ -16,7 +16,8 @@
 #     *_commands.sh cheatsheets and gmake help). The same menu is then read
 #     with PACKS_DIR pointing at an empty folder, which is what an instance
 #     without the pack looks like: its targets are gone, and nothing offers
-#     to install it — a pack arrives from Windows, by `.\wsl.ps1 add_pack`
+#     to install it — a pack arrives from Windows, by `.\wsl.ps1 add_pack` or
+#     by being chosen while the instance is built
 #   - documentation coverage: every make/*.mk module must have a doc page — in
 #     docs/make/ for the socle, inside its own pack for a pack module — linked
 #     from the README index and listed in the README project tree; every gmake
