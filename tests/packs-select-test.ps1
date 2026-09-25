@@ -20,8 +20,10 @@
 #                   there is no list to confirm - which is the point of it
 #   1, v, n         the confirmation answered no
 #   v, (empty)      pre-checked, nothing installed
+#   v               a pack installed here that this checkout does not carry:
+#                   ONE answer, for the same reason as above
 #
-#   printf '1\nv\n\n2\nv\n\n0\nv\n1\nv\nn\nv\n\n' | powershell -File packs-select-test.ps1
+#   printf '1\nv\n\n2\nv\n\n0\nv\n1\nv\nn\nv\n\nv\n' | powershell -File packs-select-test.ps1
 #
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\scripts\instance.ps1")
@@ -81,6 +83,15 @@ Check "answered n -> nothing at all" ($null -eq $Selection) "True"
 $Selection = Select-Packs -Title "T" -Available $Available -Installed @() -Checked @("vision")
 Check "pre-checked is not installed" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "vision / "
+
+# 7. A pack installed in the instance that THIS checkout does not carry - one
+#    copied in by hand, one from another checkout, one since removed from the
+#    repository - is not in the checklist, so nobody can have unchecked it. It
+#    must be left alone. The first version read "installed and not ticked" and
+#    removed it without ever showing it.
+$Selection = Select-Packs -Title "T" -Available $Available -Installed @("vision", "foreign")
+Check "a pack this checkout does not carry is left alone" ($Selection.ToRemove -join ",") ""
+Check "  ... and the answer is still an answer, not a cancellation" ($null -eq $Selection) "False"
 
 Write-Output ""
 Write-Output "--- Invoke-PackApply: the order, and where a failure stops ---"

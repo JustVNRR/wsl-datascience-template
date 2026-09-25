@@ -194,8 +194,21 @@ function Select-Packs {
     # checked - is how a first run installed the pack nobody had asked for.
     $Chosen = @($Chosen)
     $Kept = @($Chosen | ForEach-Object { $_.Name })
+    $Carried = @($Available | ForEach-Object { $_.Name })
     $ToAdd = @($Chosen | Where-Object { $Installed -notcontains $_.Name })
-    $ToRemove = @($Installed | Where-Object { $Kept -notcontains $_ })
+
+    # What leaves is what this checkout carries and the user unchecked - and
+    # only that. A folder installed in the instance that this checkout does not
+    # carry - another checkout's pack, one copied in by hand, one since removed
+    # from the repository - is not in the checklist at all, so nobody can have
+    # unchecked it, and taking it away would be taking away something that was
+    # never shown. It is named instead, in grey, before the list.
+    $ToRemove = @($Installed | Where-Object { $Carried -contains $_ -and $Kept -notcontains $_ })
+    $NotCarried = @($Installed | Where-Object { $Carried -notcontains $_ })
+    if ($NotCarried.Count -gt 0) {
+        Write-Host ""
+        Write-Host ("       Installed here, not from this repository - left alone: {0}" -f ($NotCarried -join ", ")) -ForegroundColor DarkGray
+    }
 
     if ($ToAdd.Count -eq 0 -and $ToRemove.Count -eq 0) {
         return [PSCustomObject]@{ ToAdd = @(); ToRemove = @() }

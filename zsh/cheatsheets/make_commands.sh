@@ -29,3 +29,6 @@ gmake test-gcp                               # Run tests hitting a real GCP envi
 # --- 5. ENVIRONMENT FILES (.env.global / .env) ---
 gmake env_global_enable                      # Create or complete the machine-wide .env.global from the samples
 gmake env_project_enable                     # Create or complete this project's .env from the samples
+
+# --- 6. PACKS ---
+gmake packs_list                             # List the packs this instance carries, and what each brings
