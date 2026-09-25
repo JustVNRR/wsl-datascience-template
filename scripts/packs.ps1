@@ -88,16 +88,28 @@ function Copy-PackIntoInstance {
 
     Invoke-InInstance -DistroName $DistroName -Command @("mkdir", "-p", $Target) -ExitCode $ExitCode -Quiet
     if ($ExitCode.Value -ne 0) { return $false }
-    Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", ".", "$Target/") -WorkingDirectory $PackPath -ExitCode $ExitCode
+    # | Out-Host for the reason written above Invoke-PackScript: this function
+    # answers a value, and the copy must not speak through it.
+    Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", ".", "$Target/") -WorkingDirectory $PackPath -ExitCode $ExitCode | Out-Host
     return ($ExitCode.Value -eq 0)
 }
 
 # Run one of the pack's own scripts from inside its folder. Output streaming on
 # purpose: it is what tells the user how far along it is, and it may ask for a
 # password.
+#
+# Streaming to the HOST, and that word is the whole point of the line. The
+# callers of this function hand something back - a folder placed, a pack that
+# failed - so they write that result into a variable or read it in a condition;
+# and a function whose output is captured captures whatever its own calls print
+# as well. That is how a pack's install went SILENT: apt's lines, the pack's
+# progress, everything the script said, went into the variable that was holding
+# the answer and never reached the screen - while apt's own errors, which travel
+# on the error stream, still showed. Out-Host writes the text to the screen and
+# leaves the value where it was.
 function Invoke-PackScript {
     param([string]$DistroName, [string]$Target, [string]$Script, [ref]$ExitCode)
-    Invoke-InInstance -DistroName $DistroName -Command @("bash", $Script) -WorkingDirectory $Target -ExitCode $ExitCode
+    Invoke-InInstance -DistroName $DistroName -Command @("bash", $Script) -WorkingDirectory $Target -ExitCode $ExitCode | Out-Host
 }
 
 # The folder, and with it the pack: the Makefile loads whatever folder is there,
