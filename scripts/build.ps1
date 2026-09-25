@@ -283,6 +283,38 @@ if ($ExistingDistros -contains $DistroName) {
     }
 }
 
+# 0-ter. The packs, asked here with everything else: the machine has not been
+# touched yet, and nothing asks again once it starts working - the answer waits
+# in a variable and is applied below, after the deployment. An empty checklist,
+# or Escape, means none of them, and the build goes on either way.
+$PackSelection = $null
+$AvailablePacks = @(Get-AvailablePacks)
+if ($AvailablePacks.Count -gt 0) {
+    # The instance being replaced still exists here, and what it carries is what
+    # the boxes should show. A first build has nothing to read and opens on an
+    # empty checklist.
+    $PreChecked = @()
+    if ($ExistingDistros -contains $DistroName) {
+        $PreviousHome = Get-InstanceHome -DistroName $DistroName
+        if ($PreviousHome) {
+            $PreChecked = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory "$PreviousHome/.config/packs")
+        } else {
+            Write-Host "  Could not read what '$DistroName' carries: no pack arrives checked." -ForegroundColor Yellow
+        }
+    }
+
+    # -Installed is left at its default on purpose: the instance this build
+    # makes carries nothing yet, so nothing can be taken out of it - there are
+    # boxes to tick, and no removal to compute.
+    $PackSelection = Select-Packs -Title "Packs for '$DistroName'" -Available $AvailablePacks -Checked $PreChecked
+
+    if ($null -eq $PackSelection -or $PackSelection.ToAdd.Count -eq 0) {
+        Write-Host ""
+        Write-Host "[OK] No pack selected: '$DistroName' will be built without one." -ForegroundColor Green
+        $PackSelection = $null
+    }
+}
+
 # Set once the distro is registered. The finally block reads it to tell a
 # deployment from a failure, and the exit code below is derived from it.
 $Deployed = $false
@@ -509,6 +541,17 @@ finally {
         } else {
             Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor DarkGray
         }
+
+        # The packs were chosen before the machine started; the deployment
+        # stopped before they could be installed, and the variable still says
+        # which ones, so the news is exact rather than a guess.
+        if ($null -ne $PackSelection) {
+            $WantedPacks = ($PackSelection.ToAdd | ForEach-Object { $_.Name }) -join ", "
+            Write-Host "The packs chosen earlier ($WantedPacks) were not installed: the build stopped before them." -ForegroundColor Yellow
+            if ($StillRegistered -contains $DistroName) {
+                Write-Host "Once it is usable, .\wsl.ps1 manage_packs installs them in it." -ForegroundColor DarkGray
+            }
+        }
     }
 }
 
@@ -519,6 +562,49 @@ finally {
 # program, which is why it is asked rather than assumed. It restarts Docker
 # Desktop, so it defaults to yes and Enter carries through.
 if ($Deployed) {
+    # The packs, and outside the try above on purpose: a pack whose install.sh
+    # fails is not a failed build. The instance is built and registered, the
+    # rest is a step of its own - which is why a failure here leaves $Deployed
+    # alone and the exit code at zero. What it has to say is kept for the screen
+    # the shell opens on: the Clear-Host below wipes everything printed before
+    # it, and a report nobody reads is not a report.
+    $PackReport = @()
+    $PackReportColour = "Green"
+    if ($null -ne $PackSelection) {
+        $NewHome = Get-InstanceHome -DistroName $DistroName
+        if (-not $NewHome) {
+            $PackReport = @("Packs: not installed - '$DistroName' did not say where its user's home is.")
+            $PackReportColour = "Yellow"
+        } else {
+            Write-Host ""
+            Write-Host "==> Installing the packs..." -ForegroundColor Cyan
+            $PacksDirectory = "$NewHome/.config/packs"
+            $PackFailure = Invoke-PackApply -DistroName $DistroName -PacksDirectory $PacksDirectory `
+                -ToAdd $PackSelection.ToAdd -ResumeHint "Run .\wsl.ps1 manage_packs to finish."
+
+            # Read back from the instance rather than from the answer: the
+            # folder is the state, and a pack whose install failed took its
+            # folder back out on the way.
+            $PacksNow = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
+            if ($null -ne $PackFailure) {
+                $Where = "none is in place"
+                if ($PacksNow.Count -gt 0) { $Where = "the others are in place ($($PacksNow -join ', '))" }
+                $PackReport = @(
+                    "Packs: '$($PackFailure.Pack)' did not install - $Where.",
+                    "  Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
+                )
+                $PackReportColour = "Yellow"
+            } else {
+                $Landed = $PacksNow
+                if ($Landed.Count -eq 0) { $Landed = @($PackSelection.ToAdd | ForEach-Object { $_.Name }) }
+                $PackReport = @(
+                    "Packs: $($Landed -join ', ') installed.",
+                    "  In there:  gmake env_global_enable   (adds their variables)"
+                )
+            }
+        }
+    }
+
     $DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
     if (Test-Path $DockerSettings) {
         try {
@@ -599,6 +685,9 @@ if ($Deployed) {
     Write-Host "Welcome, $ConfiguredUser." -ForegroundColor Green
     Write-Host "You are now logged in to $DistroName." -ForegroundColor Green
     Write-Host "Run 'cd projects' and type 'fnew' to create your first project." -ForegroundColor Yellow
+    if ($PackReport) {
+        foreach ($Line in $PackReport) { Write-Host $Line -ForegroundColor $PackReportColour }
+    }
     if ($DockerReport) {
         foreach ($Line in $DockerReport) { Write-Host $Line -ForegroundColor $DockerReportColour }
     }
