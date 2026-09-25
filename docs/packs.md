@@ -60,6 +60,12 @@ they are the bulk of the weight (the vision pack leaves 203 packages and
 filled in — stays, because it is yours and not the pack's. The rule that
 decides what may go is in [Instance commands](wsl/commands.md#remove_pack).
 
+Several packs at once go through `.\wsl.ps1 manage_packs`, which is a checklist
+of every pack this repository carries: the ones the instance has arrive checked,
+and one Enter installs what is missing and takes out what is not. It copies the
+newcomers' folders before removing anything, so a package two packs share is
+left where it is — [the order, and why](wsl/commands.md#manage_packs).
+
 Both commands are documented in
 [Instance commands](wsl/commands.md#add_pack).
 

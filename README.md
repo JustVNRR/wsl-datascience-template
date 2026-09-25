@@ -287,6 +287,7 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell in one of our instances |
 | [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
+| [`.\wsl.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) | choose the packs an instance should carry |
 | [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
