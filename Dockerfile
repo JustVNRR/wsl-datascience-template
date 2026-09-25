@@ -54,6 +54,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     strace \
     lsof \
+    # gmake is the whole MLOps interface of this image, and make used to arrive
+    # as a dependency of build-essential - which is the python pack's now. It is
+    # named here in plain sight: without this line the image would carry no make
+    # at all, and every gmake target would be gone with it.
+    make \
     # first_boot.sh writes systemd=true into /etc/wsl.conf, and WSL only boots
     # systemd when the distribution ships it. Without this package the
     # declaration is inert: `systemctl` does not exist and PID 1 stays the WSL
@@ -86,14 +91,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zoxide \
     # Database CLI
     sqlite3 \
-    # Build tools for compiling Python wheels & C-extensions
-    build-essential \
-    python3-dev \
-    libffi-dev \
-    libssl-dev \
-    # No ffmpeg, ImageMagick or Tesseract here: they are the `vision` pack's,
-    # and they arrive on the instance that asks for them, with
-    # `.\wsl.ps1 add_pack`. What this image carries is what every project needs.
+    # No Python, and no compiler for it: uv, python3-dev, libffi-dev,
+    # libssl-dev and build-essential are the `python` pack's, and they arrive on
+    # the instance that asks for them, with `.\wsl.ps1 add_pack`. Same for
+    # ffmpeg, ImageMagick and Tesseract, the `vision` pack's. What this image
+    # carries is what every project needs.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -113,13 +115,12 @@ RUN if [ -f /usr/share/doc/fzf/examples/key-bindings.zsh.gz ]; then \
         gunzip -f /usr/share/doc/fzf/examples/key-bindings.zsh.gz; \
     fi
 
-# 4. Install prompt (Starship), Python manager (uv), tealdeer
+# 4. Install prompt (Starship) and tealdeer
 RUN ARCH=$(dpkg --print-architecture) \
     && if [ "$ARCH" = "amd64" ]; then STARSHIP_ARCH="x86_64"; else STARSHIP_ARCH="aarch64"; fi \
     && curl -fsSL "https://github.com/starship/starship/releases/latest/download/starship-${STARSHIP_ARCH}-unknown-linux-gnu.tar.gz" -o starship.tar.gz \
     && tar -xzf starship.tar.gz -C /usr/local/bin \
     && rm starship.tar.gz \
-    && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" sh \
     && curl -fsSL "https://github.com/tealdeer-rs/tealdeer/releases/latest/download/tealdeer-linux-${STARSHIP_ARCH}-musl" -o /usr/local/bin/tldr \
     && chmod +x /usr/local/bin/tldr
 

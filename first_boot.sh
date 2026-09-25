@@ -74,15 +74,10 @@ enabled=true
 appendWindowsPath=true
 WSLCONF
 
-# Pre-fetch default Python version and install CLI tools via uv for the new user
-echo "Setting up default Python runtime and tools via uv..."
-su - "$NEW_USER" -c "uv python install 3 && uv tool install copier && uv tool install cruft && uv tool install ruff"
-# The scaffold tools behind the template catalog. cookiecutter is the ancestor
-# the others build on: installing its command too means a template whose README
-# says `cookiecutter <url>` works exactly as written. cookiecutter-data-science
-# provides `ccds`, the current Cookiecutter Data Science scaffold.
-su - "$NEW_USER" -c "uv tool install cookiecutter"
-su - "$NEW_USER" -c "uv tool install cookiecutter-data-science"
+# No Python here, and that is deliberate: `uv python install 3` and the five
+# scaffolding tools used to run at this point. They are the `python` pack's now,
+# and they arrive on the instance that asks for them, with `.\wsl.ps1 add_pack`
+# or by being chosen while the instance is built.
 
 # Export username for build script display
 echo -n "$NEW_USER" > /tmp/installed_user

@@ -2,16 +2,15 @@
 
 A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
-- the Python stack,
-- the MLOps workflow with GCP (add the `gcp` pack with `.\wsl.ps1 add_pack`).
+- optional tooling as packs — Python (`python`), Google Cloud (`gcp`), media and OCR (`vision`) — added with `.\wsl.ps1 add_pack`.
 
 ## Features
 
 - **Minimal setup** — the build asks for your username and password; Ubuntu then asks for your region and city.
 - **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls` and `cat` ([shell environment](#shell-environment-zsh)).
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
-- **Data Science ready** — `uv` for Python and the C build toolchain needed to compile most wheels. Vision and OCR tooling comes with the `vision` pack.
-- **Project scaffolding** — `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
+- **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
+- **Project scaffolding** — with the `python` pack, `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
 - **MLOps** — `gmake` exposes modular targets for GCP, BigQuery, Docker, Cloud Run, VMs, lint, and tests. The Google Cloud ones appear once their CLI is installed ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
 
 ---
@@ -102,9 +101,10 @@ it grows, and a pack leaves with its folder:
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
+| `python` | [Python](packs/python/docs/python.md) | — |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
 
-The `vision` pack is the one that brings no target at all: it installs ffmpeg,
+A pack that brings no target of its own shows `—`: `vision` installs ffmpeg,
 ImageMagick and Tesseract, and their commands go to the cheatsheet picker.
 
 What a pack is, what it must contain, and how to add one:
@@ -131,14 +131,14 @@ leaves with `remove_pack`.
 | Category | Tools |
 | :--- | :--- |
 | Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Python | [Python](packs/python/docs/python.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Vision & OCR | [Vision & OCR](packs/vision/docs/vision.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 
 ### Python & Data Science
 
-| Category | Tools |
-| :--- | :--- |
-| Package manager | `uv` (Astral's fast Python package manager) |
-| Build libraries | `build-essential`, `python3-dev`, `libffi-dev`, `libssl-dev` |
+The image carries none of it: `uv`, Python 3, the four packages most wheels are
+compiled with (`build-essential`, `python3-dev`, `libffi-dev`, `libssl-dev`) and
+the scaffolding tools arrive with the [`python` pack](packs/python/docs/python.md).
 
 ---
 
@@ -198,6 +198,11 @@ the repository at runtime.
 │   │   ├── make/            # the pack's modules, loaded as soon as the folder is there
 │   │   ├── cheatsheets/     # the pack's fcheat sheets, each with its `# requires:` header
 │   │   └── docs/            # the pack's pages, onboarding walkthrough included
+│   ├── python/              # Python 3, uv, the compiler, the scaffolding tools
+│   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
+│   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
+│   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   └── docs/            # the pack's page
 │   └── vision/              # ffmpeg, ImageMagick, Tesseract: media and OCR tools
 │       ├── pack.conf        # what it installs, and the line `add_pack` shows
 │       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
@@ -217,8 +222,8 @@ the repository at runtime.
 │   └── workflows/
 │       ├── ci.yml           # Static checks, then the code suites on Windows
 │       └── image.yml        # Rootfs image build (push/PR + weekly, catches upstream drift)
-├── Dockerfile               # Rootfs build recipe with Ubuntu 24.04 and DS stack
-├── first_boot.sh            # User creation, Systemd, sudo access, Python setup
+├── Dockerfile               # Rootfs build recipe: Ubuntu 24.04 and the socle's tools
+├── first_boot.sh            # User creation, Systemd, sudo access
 ├── wsl.ps1                  # The way in: one command at the root, the scripts in scripts\
 ├── .dockerignore            # Keeps the context lean, keeps .env.global out of the image
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
@@ -250,7 +255,8 @@ deleting the distro deletes all of it.
 └── .venv/
 
 ~/.local/share/oh-my-zsh/    # Cloned at build time
-~/.local/bin/                # uv tools: copier, cruft, ccds, cookiecutter, ruff
+~/.local/bin/                # uv and its tools, once the python pack is installed
+~/.local/share/uv/           # the Python builds it downloaded, and their environments
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
 /etc/wsl.conf                # Default user, systemd (first_boot.sh)
 ```
