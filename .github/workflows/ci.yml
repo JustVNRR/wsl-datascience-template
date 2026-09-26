@@ -25,9 +25,9 @@
 #     target must appear in a cheatsheet; every .github/workflows/*.yml must be
 #     named in the README
 #   - templates.tsv format: every row must have 4 tab-separated columns and a
-#     known tool (copier/cruft/ccds). The catalog is the python pack's, and its
-#     path follows it. The picker skips a malformed row and warns on stderr, but
-#     only when someone runs fnew - this check never misses one
+#     known tool (copier/cruft/ccds), in every pack that ships a catalog - the
+#     picker reads them all. The picker skips a malformed row and warns on
+#     stderr, but only when someone runs fnew - this check never misses one
 #   - the docs and the menu say the same words (tests/doc-drift.sh): every
 #     command wsl.ps1 knows, looked for in the README table, the commands page
 #     and its sample menu. It found five drifted rows the day it was written
@@ -311,20 +311,31 @@ jobs:
 
       - name: Template catalog integrity (templates.tsv)
         run: |
+          # Every pack that curates templates ships its own catalog, and the
+          # picker reads them all: one per pack, four tab-separated columns, and
+          # a tool this repository knows how to run. A catalog is not required -
+          # a pack whose projects need no template ships none - but one must
+          # exist somewhere, or the picker would have nothing to read and a glob
+          # that matches nothing would let the check pass in silence.
+          catalogs=$(ls packs/*/cheatsheets/templates.tsv 2>/dev/null)
+          if [ -z "$catalogs" ]; then
+            echo "::error::no pack ships a template catalog - fnew would have nothing to read"
+            exit 1
+          fi
           awk -F'\t' '
             /^[[:space:]]*(#|$)/ { next }
             {
               sub(/^[[:space:]]+|[[:space:]]+$/, "", $2)
               if (NF != 4) {
-                print "Malformed row (4 tab-separated columns expected): " $0
+                print "Malformed row (4 tab-separated columns expected) in " FILENAME ": " $0
                 bad = 1
               } else if ($2 !~ /^(copier|cruft|ccds)$/) {
-                print "Unknown tool: " $2 " (expected copier, cruft or ccds): " $0
+                print "Unknown tool: " $2 " in " FILENAME " (expected copier, cruft or ccds)"
                 bad = 1
               }
             }
             END { exit bad }
-          ' packs/python/cheatsheets/templates.tsv
+          ' $catalogs
 
   # The suites that run the code. They are the only checks here that have ever
   # caught a bug in the scripts themselves - a menu that stacked copies of
