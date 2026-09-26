@@ -175,7 +175,7 @@ the repository at runtime.
 │   │       └── packs.mk     # what this instance carries (gmake packs_list)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
-│   ├── history.zsh          # History file sizing and persistence policies
+│   ├── history.zsh          # History file sizing, persistence, and what is kept out of it
 │   ├── navigation.zsh       # Advanced directory hopping (cdv, cda, fv, fa)
 │   ├── prompts/
 │   │   ├── starship.toml    # Starship visual configuration
