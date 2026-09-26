@@ -251,7 +251,8 @@ if (-not $Changed) {
 }
 
 if (-not $HandedOver) {
-    Write-Host "'$DistroName' is done. A tab that is already open keeps its colours: open a new one to see it." -ForegroundColor DarkGray
+    Write-Host "'$DistroName' is done. Windows Terminal reads its profiles when it starts: close its" -ForegroundColor DarkGray
+    Write-Host "windows, open one again, and it is written in those colours." -ForegroundColor DarkGray
     Write-Host ""
 }
 exit 0

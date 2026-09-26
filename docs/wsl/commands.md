@@ -508,8 +508,12 @@ Icon of 'ubuntu-ml-dev'
 
 The icon is a **file**, not a setting: `terminal-icon.png` in the instance's own
 folder, the one its Terminal profile points at. Nothing else is written, and
-nothing has to be stopped — an icon is read when a tab opens, so a tab already
-open keeps the one it drew.
+nothing has to be stopped.
+
+**Windows Terminal reads its profiles when it starts**, so a change shows in the
+windows opened after it has been restarted — closing every Terminal window, this
+one included, is what makes it appear. Nothing in the command can force that;
+the last line it prints says so.
 
 Changing one part keeps the other. The recipe of the last drawing — its letters,
 its three colours — is noted in the instance's own `instance.json`, the same file

@@ -75,6 +75,7 @@ if (-not $Visited) {
     exit 0
 }
 
-Write-Host "'$DistroName' is done. A tab that is already open keeps what it drew: open a new one to see it." -ForegroundColor DarkGray
+Write-Host "'$DistroName' is done. Windows Terminal reads its profiles when it starts: close its" -ForegroundColor DarkGray
+Write-Host "windows, open one again, and everything you changed is there." -ForegroundColor DarkGray
 Write-Host ""
 exit 0
