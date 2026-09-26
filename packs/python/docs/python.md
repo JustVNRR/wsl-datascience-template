@@ -16,9 +16,15 @@ menu and the cheatsheets are what it runs on.
 | Compiler and headers | building the wheels that ship no compiled version | `gcc`, `g++` |
 | [ruff](https://docs.astral.sh/ruff/) | formatting and linting Python code | `ruff` |
 
-Python itself is **not** the system's: uv downloads its own build under
-`~/.local/share/uv/python`, which is what a project's `.venv` points at. Nothing
-here is global, so nothing needs a password once the pack is installed.
+Python itself is **not** the system's, unless a project asks for a version the
+distro happens to carry. A `.venv` runs on the version the project asks for
+(`.python-version`, `requires-python`), and uv serves it in this order: its own
+build when it has that version, the distro's interpreter when that is the one
+that matches, a download when neither does. That order is uv's default
+(`python-preference` is `managed`: a system python is still preferred over
+downloading one). A project that asks for nothing runs on the build this pack
+installed — and so do the tools `fnew` drives. Nothing here is global, so
+nothing needs a password once the pack is installed.
 
 The tools that create a project — copier, cruft, ccds — are not here: they come
 with the `scaffold` pack, which takes each one from uv's cache the day it is

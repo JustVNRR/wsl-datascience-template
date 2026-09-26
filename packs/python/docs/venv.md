@@ -33,8 +33,11 @@ dependencies:
 | `requirements.txt` | `uv venv`, then `uv pip install` (and `requirements_dev.txt` when present) |
 | none of the above | a bare `uv venv`, with a warning — the dependencies are yours to install |
 
-Python itself comes from uv, which downloaded its own build under
-`~/.local/share/uv/python`: nothing here is the system's Python.
+Which Python the project runs on is the project's to say and uv's to serve: the
+version its `.python-version` or `requires-python` asks for, taken from uv's own
+build when it has it, from the distro's interpreter when that is the one that
+matches, and from a download when neither does — the order, and where the pack's
+own build fits, are in [Python](python.md#what-it-brings).
 
 ## direnv, and the project's activation
 
