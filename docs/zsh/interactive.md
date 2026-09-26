@@ -25,12 +25,17 @@ and aliases — plus a smart archive extractor.
 
 | Command | Action |
 | :--- | :--- |
-| `fcheat` | Fuzzy-search the `cheatsheets/*.sh` command lists and load a command into the prompt (also `Alt + z`) |
+| `fcheat` | Search the `cheatsheets/*.sh` command lists and load a command into the prompt (also `Alt + z`) |
 | `falias` | Fuzzy-search your aliases and load one into the prompt (also `Alt + y`) |
 
 Two folders are scanned every time the picker opens: the socle's
 `cheatsheets/`, and each installed pack's own. Add, edit or remove files there
 to curate your own command menu; a pack that leaves takes its sheets with it.
+
+`fcheat` matches whole words: a query for `docker` keeps the docker commands
+and nothing else. The fuzzy default of fzf — the letters of the query in order,
+anywhere in the line — is what the rest of the pickers use, and what `falias`
+still uses, where a fragment like `dckr` finds it.
 
 ### The shell follows the packs too
 

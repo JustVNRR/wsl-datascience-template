@@ -59,7 +59,17 @@ _fcheat_select() {
         }
     ' "${sheets[@]}" 2>/dev/null |
         sort -f -t $'\t' -k1,1V |
+        # Exact matching, not fzf's fuzzy default: the default takes the letters
+        # of the query in order, anywhere in the line, so a word also matches
+        # lines that merely spell it out at a distance. Measured on this
+        # repository's own sheets, a query for `docker` ended its list on
+        # `fnew`, `ping <DOMAIN_OR_IP>`, `gcloud auth login` and
+        # `sudo apt upgrade` - none of which is a docker command - where exact
+        # matching keeps the docker ones and nothing else. What fuzzy was good
+        # at, a fragment like `dckr`, is gone with it: that is the trade. `'`
+        # and `!` behave as they always did.
         fzf \
+            --exact \
             --ansi \
             --delimiter=$'\t' \
             --with-nth=2 \
