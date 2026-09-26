@@ -172,32 +172,34 @@ fnew() {
         return 1
     fi
 
-    # The name is asked with the line editor, so that the arrows and the
-    # backspace work like they do on any command line: `read` has no editing at
-    # all - its `-e` means "echo what you read", not "let the reader edit" - and
-    # the escape sequence the terminal sends for an arrow key lands in the
-    # variable: a name corrected with the left arrow came out as
-    # `my_project_fl^[[D`. Nothing but a terminal can edit, so a shell with no
-    # terminal (a pipe, a test) keeps `read`, which is what such a caller wants
-    # anyway. `vared -c` because the variable is not set yet, and because the
-    # text stays there between two attempts: a name refused by the check below
-    # is offered again to be fixed, not retyped.
-    # `|| return` on both: with no more input to read (a pipe running dry, a
-    # Ctrl-C at the prompt) the loop must stop rather than refuse the same name
-    # forever.
-    while true; do
-        if [[ -o interactive && -t 0 ]]; then
-            vared -p "Project folder: " -c project_name || return
-        else
-            read "project_name?Project folder: " || return
-        fi
-        if [[ "$project_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]]; then
-            break
-        fi
-        echo "Invalid name (use letters, digits, '.', '_' or '-'; no spaces)."
-    done
+    # Copier is the only tool that requires an explicit destination path upfront;
+    # Cruft and CCDS ask for the project/repo name themselves inside their own
+    # prompts and create the directory on the fly. Asking beforehand for those
+    # two would ask the user twice.
+    #
+    # When asked, the name uses the Zsh line editor so arrows and backspace work
+    # naturally: plain `read` has no line editing, and raw terminal escape
+    # sequences (`^[[D`) would land straight in the variable. A shell with no
+    # terminal (pipes, CI) falls back to `read`. `vared -c` handles unset variables
+    # and keeps the text across validation attempts so a typo can be edited rather
+    # than retyped.
+    # `|| return` ensures a dry pipe or Ctrl-C breaks out cleanly.
 
-    echo "📁 Creating project in: $PWD/$project_name"
+    if [[ "$tool" == "copier" ]]; then
+        while true; do
+            if [[ -o interactive && -t 0 ]]; then
+                vared -p "Project folder: " -c project_name || return
+            else
+                read "project_name?Project folder: " || return
+            fi
+            if [[ "$project_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]]; then
+                break
+            fi
+            echo "Invalid name (use letters, digits, '.', '_' or '-'; no spaces)."
+        done
+
+        echo "📁 Creating project in: $PWD/$project_name"
+    fi
 
     make_args=("${tool}_project" "PROJECT_NAME=$project_name" "PROJECT_TEMPLATE_REPO=$url")
     if [[ -n "$version" ]]; then
@@ -213,6 +215,13 @@ fnew() {
 
     # The makefile cannot move this shell: its recipes run in their own, and a
     # process cannot change its parent's directory. fnew is a function, so it
-    # can - and it does it only when the scaffolding succeeded.
-    make -f "$ZDOTDIR/gmake/Makefile" "${make_args[@]}" && cd "$project_name"
+    # can — and it does it only when the scaffolding succeeded.
+    # Copier uses the pre-prompted destination folder, while Cruft and CCDS
+    # derive their own from the interactive prompts: resolve the newly created
+    # directory on the fly so the shell steps right into it.
+    if [[ "$tool" == "copier" ]]; then
+        make -f "$ZDOTDIR/gmake/Makefile" "${make_args[@]}" && cd "$project_name"
+    else
+        make -f "$ZDOTDIR/gmake/Makefile" "${make_args[@]}" && cd *(/om[1])
+    fi
 }

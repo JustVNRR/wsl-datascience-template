@@ -527,7 +527,7 @@ try {
     Write-Host "  * Install Path      : " -NoNewline; Write-Host "$InstallPath" -ForegroundColor DarkGray
     Write-Host "  * Terminal profile  : " -NoNewline
     if ($TerminalProfileOk) {
-        Write-Host "icon, font, color scheme, tab title (restart Windows Terminal to load)" -ForegroundColor Green
+        Write-Host "icon, font, color scheme, tab title" -ForegroundColor Green
     } else {
         Write-Host "not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor Yellow
     }

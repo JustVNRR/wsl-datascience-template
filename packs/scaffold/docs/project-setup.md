@@ -15,8 +15,10 @@ of its own is copied and left at that.
 | `cruft_project` | Scaffold a project with Cruft / Cookiecutter, from `~/projects` only (the `fnew` picker delegates here) |
 | `ccds_project` | Scaffold a project with the `ccds` CLI (Cookiecutter Data Science v2), from `~/projects` only (the `fnew` picker delegates here) |
 
-All three only run from `~/projects` itself and scaffold into
-`./$(PROJECT_NAME)`. Then, in this order:
+All three only run from `~/projects` itself. Copier scaffolds into
+`./$(PROJECT_NAME)`, the folder it was given; cruft and ccds ask for the name in
+their own questions and create the folder themselves, so no name is passed to
+them. Then, in this order:
 
 1. **the act's own step**, for every project: the `.env` the template's sample
    describes is copied once — that is the file you have to fill in, and the
@@ -31,7 +33,7 @@ All three only run from `~/projects` itself and scaffold into
 
 | Variable | Required | Notes |
 |---|---|---|
-| `PROJECT_NAME` | yes | Destination directory, created relative to the current directory |
+| `PROJECT_NAME` | copier only | Destination directory, created relative to the current directory — cruft and ccds ask for the name themselves |
 | `PROJECT_TEMPLATE_REPO` | yes | Anything Copier/Cruft accepts (`gh:` shorthand or full git URL) |
 | `PROJECT_TEMPLATE_VERSION` | no | Pin a template ref/tag — passed as `--vcs-ref` (Copier) or `--checkout` (Cruft and ccds) |
 | `TEMPLATE_PACK` | no | Pack whose step runs once the template is copied (`fnew` passes the row's pack; a direct call reads it from `.env.global`) |
@@ -52,6 +54,10 @@ Project folder: my-analysis
 🪄 Configuring direnv...
 ✅ Project ready in my-analysis/
 ```
+
+`Project folder` is asked for Copier alone, and only once: cruft and ccds ask
+for the name in their own questions, and `fnew` then steps into the directory
+the tool created.
 
 The last three lines are the python pack's: they come from the row's pack, and a
 row of another pack replaces them with that pack's step. `fnew` only runs from
@@ -139,14 +145,14 @@ while you answer. `cruft` and `ccds` ask through cookiecutter, which reads a
 plain line — with no editor loaded in the process, the terminal's own editing is
 all there is, and an arrow key lands in the answer as the bytes it sends.
 
-So all three run under `rlwrap`, which is in the image for that: it reads your
-keys, edits the line, and hands the finished answer to the tool. It steps aside
-where there is nothing to edit — a pipe, the CI, a command with no terminal —
-and the answer is then read exactly as before.
+So the two of them run under `rlwrap`, which is in the image for that: it reads
+your keys, edits the line, and hands the finished answer to the tool. It steps
+aside where there is nothing to edit — a pipe, the CI, a command with no
+terminal — and the answer is then read exactly as before.
 
-`copier` needs none of that and is wrapped all the same, so the three targets
-read alike. What `rlwrap` adds is the editing, not the questions: a tool that
-reads a plain line still does.
+`copier` is left bare: it needs none of that, and wrapping it would add a layer
+to a prompt that already edits. What `rlwrap` adds is the editing, not the
+questions: a tool that reads a plain line still does.
 
 ### Where they come from
 
@@ -191,8 +197,11 @@ meant to survive one belongs in the repository, in that pack's own
 
 ```bash
 gmake copier_project PROJECT_NAME=my-analysis PROJECT_TEMPLATE_REPO=gh:owner/python-copier-template-ds
-gmake cruft_project PROJECT_NAME=my-analysis PROJECT_TEMPLATE_REPO=gh:owner/cookiecutter-data-science PROJECT_TEMPLATE_VERSION=v1
+gmake cruft_project PROJECT_TEMPLATE_REPO=gh:owner/cookiecutter-data-science PROJECT_TEMPLATE_VERSION=v1
 ```
+
+Cruft and ccds are given no folder name: they ask for it themselves, and the
+project lands in the directory their answer names.
 
 Called by name, a target has no row to read, so it takes the pack whose step
 runs from `TEMPLATE_PACK` in `.env.global` — which the packs' samples set to

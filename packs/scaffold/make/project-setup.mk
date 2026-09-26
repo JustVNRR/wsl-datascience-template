@@ -10,9 +10,9 @@
 # a plain line with no editor loaded in the process — the terminal is all there
 # is, and the bytes an arrow key sends land in the answer. rlwrap is that
 # editor, put in front of the command: it reads the keys, edits the line, and
-# hands the finished answer over. copier needs it for nothing (questionary is a
-# line editor of its own) and is wrapped all the same, so the three targets read
-# alike, and so does the direct call.
+# hands the finished answer over. copier is left bare: questionary, over
+# prompt-toolkit, is a line editor of its own, so wrapping it would add a layer
+# to a prompt that already edits.
 #
 # No test for a terminal here: rlwrap makes that one itself, and better than a
 # test could - measured in a pipe, it hands the answer over untouched and exits
@@ -57,12 +57,12 @@ scaffold_after = $(if $(SCAFFOLD_AFTER_$(1)),$(call $(SCAFFOLD_AFTER_$(1))))
 # beside the targets they name. The socle names no target of a pack: a target
 # nobody declares is treated as an ordinary one, and would be refused from
 # ~/projects with a message about a project root that is not the point.
-SCAFFOLD_GOALS += copier_project cruft_project ccds_project
+SCAFFOLD_GOALS += copier_project cruft_project ccds_project finish_scaffold
 
 copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Copier..."
-	@$(RLWRAP) uvx --from copier copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
+	@uvx -q --from copier copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
 	$(call scaffold_generic_after)
 	$(call scaffold_after,$(TEMPLATE_PACK))
 	@echo "✅ Project ready in $(PROJECT_NAME)/"
@@ -72,26 +72,34 @@ COPIER_REF_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--vcs-ref $(PROJECT_TEMPLATE_V
 CHECKOUT_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--checkout $(PROJECT_TEMPLATE_VERSION),)
 
 cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fnew picker)
-	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
+	$(call check_vars, PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Cruft..."
-	@$(RLWRAP) uvx --from cruft cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
-	$(call scaffold_generic_after)
-	$(call scaffold_after,$(TEMPLATE_PACK))
-	@echo "✅ Project ready in $(PROJECT_NAME)/"
+	@$(RLWRAP) uvx -q --from cruft cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG)
+	CREATED_DIR=$$(command ls -td -- */ | head -n 1 | tr -d '/'); \
+	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) finish_scaffold PROJECT_NAME="$$CREATED_DIR" TEMPLATE_PACK=$(TEMPLATE_PACK)
 
-# The `ccds` CLI (cookiecutter-data-science v2) wants its extra context as
-# key=value AFTER the template argument, and it asks before running the
-# template's hooks - --accept-hooks yes keeps it non-interactive, like copier
-# and cruft, which run hooks without asking.
-# repo_name is passed explicitly: the template derives it from project_name by
-# lowercasing, so a name with an uppercase letter would generate a directory
-# that the after-copy step then cannot find.
+# The `ccds` CLI (cookiecutter-data-science v2) asks for project_name and
+# repo_name itself, so neither is passed: its question is the only place the
+# name is asked, and the directory it creates is then found the same way
+# cruft's is. It also asks before running the template's hooks - --accept-hooks
+# yes answers that one, like copier and cruft, which run hooks without asking.
 # The package is `cookiecutter-data-science`; `ccds` is the command inside it,
 # and the one uvx has to be told to look for.
 ccds_project: ## Scaffold a project with CCDS v2 from ~/projects (fnew picker)
-	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
+	$(call check_vars, PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with ccds..."
-	@$(RLWRAP) uvx --from cookiecutter-data-science ccds --accept-hooks yes $(CHECKOUT_ARG) -o . $(PROJECT_TEMPLATE_REPO) project_name=$(PROJECT_NAME) repo_name=$(PROJECT_NAME)
+	@$(RLWRAP) uvx -q --from cookiecutter-data-science ccds --accept-hooks yes $(CHECKOUT_ARG) -o . $(PROJECT_TEMPLATE_REPO)
+	CREATED_DIR=$$(command ls -td -- */ | head -n 1 | tr -d '/'); \
+	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) finish_scaffold PROJECT_NAME="$$CREATED_DIR" TEMPLATE_PACK=$(TEMPLATE_PACK)
+
+# The step that follows a copy, for the two tools that create the folder
+# themselves: the target above hands it the name it just found. Called with no
+# name at all - the target typed by hand, or a template that created nothing -
+# every step below would `cd` with no argument, which is $HOME: the venv would
+# land in the person's own directory instead of a project's. So it refuses,
+# rather than do the wrong thing quietly.
+finish_scaffold:
+	@[ -n "$(PROJECT_NAME)" ] || { echo "❌ No folder to finish — nothing was created, and nothing was done."; exit 1; }
 	$(call scaffold_generic_after)
 	$(call scaffold_after,$(TEMPLATE_PACK))
 	@echo "✅ Project ready in $(PROJECT_NAME)/"
