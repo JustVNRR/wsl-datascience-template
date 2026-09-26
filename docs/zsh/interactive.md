@@ -34,7 +34,7 @@ to curate your own command menu; a pack that leaves takes its sheets with it.
 
 ### The shell follows the packs too
 
-A pack may bring shell files (`zsh/*.zsh`) — `fnew` comes with the `python`
+A pack may bring shell files (`zsh/*.zsh`) — `fnew` comes with the `scaffold`
 pack's. They are read where they live, and the list is looked at again before
 every prompt, the way the picker asks its question at every opening. Install a
 pack from Windows while a shell is open and the next prompt says so and
@@ -67,5 +67,6 @@ current tree.
 
 ### Scaffolding
 
-`fnew` — the interactive project scaffolding picker — comes with the `python`
-pack: see [Project scaffolding](../../packs/python/docs/project-setup.md).
+`fnew` — the interactive project scaffolding picker — comes with the `scaffold`
+pack, which the `python` pack requires: see
+[Project scaffolding](../../packs/scaffold/docs/project-setup.md).

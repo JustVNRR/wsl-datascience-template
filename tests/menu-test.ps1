@@ -67,6 +67,31 @@ Check "default = last, Down     -> wraps to the first" `
     (Run-Menu @([ConsoleKey]::DownArrow, [ConsoleKey]::Enter) @("a", "b", "c") $null 2) "a"
 
 Write-Output ""
+Write-Output "--- a row is one line, box or no box ---"
+
+# The menu repaints its rows in place, and that only works while every row is
+# exactly one line: a row wider than the window wraps, the block is then taller
+# than the arithmetic assumes, and the next keypress paints the choice one line
+# off - the row it replaced keeps its old marker, so the same row appears twice.
+# That is what happened on a real console in the checklist, where a row carries
+# four more characters than a plain one (the "[x] " box) and the cut did not
+# know it. These checks are the invariant itself: marker, box and label
+# together, whatever the label, never exceed the width the console gave.
+$Wide = @(("x" * 400 -join ""), ("y" * 400 -join ""))
+$Cut = Format-MenuLabels -Labels $Wide -Width 40
+Check "a plain row fits the width          " `
+    ((@($Cut | ForEach-Object { 4 + $_.Length }) | Measure-Object -Maximum).Maximum) "39"
+$Cut = Format-MenuLabels -Labels $Wide -Width 40 -Prefix 8
+Check "a row with its box fits it too     " `
+    ((@($Cut | ForEach-Object { 8 + $_.Length }) | Measure-Object -Maximum).Maximum) "39"
+$Cut = Format-MenuLabels -Labels $Wide -Width 40 -Prefix 0
+Check "a title or a hint fits it too       " `
+    ((@($Cut | ForEach-Object { $_.Length }) | Measure-Object -Maximum).Maximum) "39"
+Check "  ... and the cut shows as one      " ($Cut[0] -like "x*...") "True"
+Check "a short label is left alone         " (@(Format-MenuLabels -Labels @("court") -Width 40)[0]) "court"
+Check "a host that says no width cuts none " (@(Format-MenuLabels -Labels @("x" * 400 -join "") -Width 0)[0]).Length "400"
+
+Write-Output ""
 Write-Output "--- no console (numbered fallback, answers read from standard input) ---"
 Check "fallback: answer 2       -> the second" `
     (Select-FromList -Title "T" -Items $Items) "b"

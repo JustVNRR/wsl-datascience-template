@@ -17,10 +17,11 @@ there.
 | `artifact_registry_push` | Push the production image to Artifact Registry | ⚠️ |
 
 Nothing here runs without `gcloud`: three targets call it, and the two that call
-`docker` only tag and push to a path `gcloud auth configure-docker` unlocks. The
-module therefore appears in the menu only when that CLI is installed — the local
+`docker` only tag and push to a path `gcloud auth configure-docker` unlocks. This
+module is loaded, and its targets are in the menu, when this pack's folder is in
+the instance — which is also when the CLI it installs is there. The local
 container ([`docker.md`](../../devops/docs/docker.md)) needs nothing else. See
-[optional tooling](install.md) for the menu rule.
+[what a pack is](../../../docs/packs.md#installed-or-not) for that rule.
 
 ## Variables
 

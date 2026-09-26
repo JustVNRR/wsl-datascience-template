@@ -1,6 +1,11 @@
 # ==============================================================================
-# PROJECT TEMPLATE CATALOG
+# PROJECT TEMPLATE CATALOG - the python pack's
 # ==============================================================================
+# `fnew` reads the catalog of every installed pack and shows each row with the
+# pack it was read from: that pack is the one whose step runs once the template
+# has been copied. A row whose project another pack knows what to do with
+# belongs in that pack's own catalog.
+#
 # One template per line:  <url> <TAB> <tool> <TAB> <version> <TAB> <description>
 #   url         anything copier or ccds accepts (gh: shorthand or full git URL).
 #               A cruft row needs the full https:// address: cruft hands the

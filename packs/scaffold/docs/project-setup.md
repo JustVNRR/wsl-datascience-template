@@ -2,8 +2,10 @@
 
 [← Back to the README](../../../README.md#optional-tooling)
 
-Scaffold a new project from a curated catalog of templates, with the virtual
-environment and direnv bootstrapped along the way.
+Create a project from a template: pick one from the catalogs the installed packs
+curate, or give a URL. The copy is finished by the pack whose row it came from —
+a Python project gets its virtual environment, a project from a pack with no step
+of its own is copied and left at that.
 
 ## Targets
 
@@ -13,27 +15,17 @@ environment and direnv bootstrapped along the way.
 | `cruft_project` | Scaffold a project with Cruft / Cookiecutter, from `~/projects` only (the `fnew` picker delegates here) |
 | `ccds_project` | Scaffold a project with the `ccds` CLI (Cookiecutter Data Science v2), from `~/projects` only (the `fnew` picker delegates here) |
 
-All three targets only run from `~/projects` itself and scaffold into
-`./$(PROJECT_NAME)`, then run `init_venv`, which
-auto-detects the project's dependency manifest:
+All three only run from `~/projects` itself and scaffold into
+`./$(PROJECT_NAME)`. Then, in this order:
 
-- `uv.lock`, or a `pyproject.toml` with a PEP 621 `[project]` table → `uv sync`
-  (creates `.venv`, installs dependencies and the `dev` group by default)
-- `requirements.txt` → `uv venv` + `uv pip install` (`requirements_dev.txt`
-  too when present)
-- no recognized manifest → a bare `uv venv`, with a warning
-
-The bootstrap finishes with the two files a fresh project needs to be usable:
-
-- **`.envrc`** — written only where the project has none, so the one our own
-  template ships (it loads `.env` through dotenv as well) is left alone. It
-  sources `.venv/bin/activate` behind a guard that keeps it quiet before the
-  first `uv sync`, and `direnv allow` approves it: the environment activates
-  on `cd` into the project.
-- **`.env`** — copied once from the project's own `.env.sample`, because that
-  is the file you have to fill in and the sample is already shaped by the
-  answers you gave the template. A template that ships no sample gets nothing,
-  and an existing `.env` is never touched.
+1. **the act's own step**, for every project: the `.env` the template's sample
+   describes is copied once — that is the file you have to fill in, and the
+   sample is already shaped by the template's answers. A template that ships no
+   sample gets nothing, and an existing `.env` is never touched.
+2. **the step of the pack the row came from**, declared by that pack in one line
+   — `SCAFFOLD_AFTER_python := init_venv` — and called with the pack `fnew`
+   reads off the row. Nothing is named in hard here: a pack that declares no
+   step, or a call that names no pack, runs nothing at all.
 
 ## Variables
 
@@ -42,6 +34,7 @@ The bootstrap finishes with the two files a fresh project needs to be usable:
 | `PROJECT_NAME` | yes | Destination directory, created relative to the current directory |
 | `PROJECT_TEMPLATE_REPO` | yes | Anything Copier/Cruft accepts (`gh:` shorthand or full git URL) |
 | `PROJECT_TEMPLATE_VERSION` | no | Pin a template ref/tag — passed as `--vcs-ref` (Copier) or `--checkout` (Cruft and ccds) |
+| `TEMPLATE_PACK` | no | Pack whose step runs once the template is copied (`fnew` passes the row's pack; a direct call reads it from `.env.global`) |
 
 ## The `fnew` picker
 
@@ -49,24 +42,25 @@ Type `fnew` from `~/projects`:
 
 ```console
 $ fnew
-# → fuzzy-pick a template from the catalog (description + pinned version shown)
+# → fuzzy-pick a template (the pack it came from, the tool, the pinned version)
 Project folder: my-analysis
 📁 Creating project in: /home/you/projects/my-analysis
 🏗️  Scaffolding project with Copier...
 🎤 ...then answer the template's own questions (repo name, description...)...
+📝 Creating ./.env from the project's .env.sample...
 🐍 uv project detected (uv.lock or [project] table) — running uv sync...
 🪄 Configuring direnv...
-📝 Creating ./.env from the project's .env.sample...
 ✅ Project ready in my-analysis/
 ```
 
-`fnew` only runs from `~/projects` itself — it refuses anywhere else, and so
-do the three targets it delegates to. When it is done, it leaves you inside the
-new project.
+The last three lines are the python pack's: they come from the row's pack, and a
+row of another pack replaces them with that pack's step. `fnew` only runs from
+`~/projects` itself — it refuses anywhere else, and so do the three targets it
+delegates to. When it is done, it leaves you inside the new project.
 
 ## Trying a template without adding it
 
-A template does not have to be in the catalog to be used:
+A template does not have to be in a catalog to be used:
 
 ```bash
 cd ~/projects
@@ -76,22 +70,32 @@ fnew gh:owner/repo ccds       # ...or the ccds CLI (cookiecutter-data-science v2
 fnew gh:owner/repo cruft v1   # ...pinned to a ref
 ```
 
-This path reads and writes nothing. A template that turns out not to suit you
-costs only the project directory you just created — there is no catalog entry
-to clean up afterwards. Use it first: how a template behaves is hard to judge
-from its README, and you only find out by scaffolding with it.
+This path reads and writes nothing: a template that turns out not to suit you
+costs only the project directory you just created. Use it first — how a template
+behaves is hard to judge from its README, and you only find out by scaffolding
+with it. It names no pack, so `TEMPLATE_PACK` decides whose step runs.
 
 The ref is not optional decoration: without it a template is taken from its
-**default branch**, which is not always what you want. Cookiecutter Data
-Science is the case to know. Its default branch carries the `ccds` scaffold;
-the plain cookiecutter template lives on the `v1` tag, deprecated by its own
-maintainers but still updatable with `cruft`. One repository, two entries, one
-per tool — and neither works with the other's.
+**default branch**, which is not always what you want. Cookiecutter Data Science
+is the case to know. Its default branch carries the `ccds` scaffold; the plain
+cookiecutter template lives on the `v1` tag, deprecated by its own maintainers
+but still updatable with `cruft`. One repository, two entries, one per tool —
+and neither works with the other's.
 
-## The catalog
+## The catalogs
 
-The catalog (`packs/python/cheatsheets/templates.tsv`, in this pack) is the
-short list of templates worth keeping: one per line, tab-separated.
+`fnew` reads the catalog of **every installed pack** —
+`packs/<name>/cheatsheets/templates.tsv` — and shows each row with the pack it
+was read from:
+
+```text
+python · copier @9.18.2  |  astral-sh/uv-fastapi  |  FastAPI service
+java   · copier          |  spring-guides/gs-boot |  Spring Boot minimal
+```
+
+That pack is the one whose step runs once the template is copied, so a row
+belongs in the catalog of the pack that knows what to do with the project it
+produces. This pack ships no catalog of its own: it reads the others'.
 
 An entry belongs there when a **checkable fact** justifies it:
 
@@ -110,6 +114,12 @@ The optional `version` column pins a template ref — useful when a template's
 default branch targets a different tool.
 
 ### The three tools
+
+They are not installed: `uvx --from <package> <command>` takes each one from
+uv's cache the first time it runs (measured: 27 s and about 40 MB for the first,
+3 s and about 20 MB for each one after), and a tool that is never used costs
+nothing. Nothing of them is on your PATH either — what `uvx` fetched cannot
+shadow a command of your own.
 
 They are not interchangeable, and one repository can appear once per tool:
 
@@ -138,16 +148,18 @@ generated. Everything else is that idea plus something:
 - `copier` is a separate implementation of the same idea, not built on
   cookiecutter, with conventions of its own.
 
-The `cookiecutter` command is installed as well, so a template whose README
-tells you to run it works as written. `cruft create` does the same thing — and
-leaves a `.cruft.json` behind, which you may not want for a one-off.
+`cookiecutter` itself is taken the same way when a template's README tells you
+to run it: `uvx --from cookiecutter cookiecutter …`. `cruft create` does the
+same thing — and leaves a `.cruft.json` behind, which you may not want for a
+one-off.
 
 ### Adding a line
 
 `fnew` ignores any line that is not four tab-separated columns, and says so on
-stderr — a row typed with spaces would otherwise simply never appear in the
-picker, which looks exactly like an empty catalog. The safe way to append one
-is a `printf` with an explicit `\t`, which cannot turn into spaces:
+stderr, naming the catalog it found the row in — a row typed with spaces would
+otherwise simply never appear in the picker, which looks exactly like an empty
+catalog. The safe way to append one is a `printf` with an explicit `\t`, which
+cannot turn into spaces:
 
 ```bash
 printf '%s\t%s\t%s\t%s\n' \
@@ -157,7 +169,7 @@ printf '%s\t%s\t%s\t%s\n' \
 
 That writes to the copy inside the instance, which `add_pack` put there by
 copying the pack's folder. A rebuild throws the instance away, so an entry
-meant to survive one belongs in the repository, in the pack's own
+meant to survive one belongs in the repository, in that pack's own
 `cheatsheets/` — beside the file it feeds.
 
 ## Skipping the picker
@@ -166,3 +178,8 @@ meant to survive one belongs in the repository, in the pack's own
 gmake copier_project PROJECT_NAME=my-analysis PROJECT_TEMPLATE_REPO=gh:owner/python-copier-template-ds
 gmake cruft_project PROJECT_NAME=my-analysis PROJECT_TEMPLATE_REPO=gh:owner/cookiecutter-data-science PROJECT_TEMPLATE_VERSION=v1
 ```
+
+Called by name, a target has no row to read, so it takes the pack whose step
+runs from `TEMPLATE_PACK` in `.env.global` — which the packs' samples set to
+`python`. `TEMPLATE_PACK=` on the command line copies the template, writes the
+`.env`, and runs nothing else.
