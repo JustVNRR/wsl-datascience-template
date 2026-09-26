@@ -272,8 +272,9 @@ if (-not $Changed) {
 }
 
 if (-not $HandedOver) {
-    Write-Host "'$DistroName' is done. Windows Terminal reads its profiles when it starts: close its" -ForegroundColor DarkGray
-    Write-Host "windows, open one again, and the tab wears the icon you chose." -ForegroundColor DarkGray
+    Update-TerminalSettings
+    Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: a new tab" -ForegroundColor DarkGray
+    Write-Host "wears the icon you chose." -ForegroundColor DarkGray
     Write-Host ""
 }
 exit 0

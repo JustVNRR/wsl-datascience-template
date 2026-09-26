@@ -217,6 +217,29 @@ function Set-InstanceLook {
     $Look | ConvertTo-Json | Set-Content -Path (Join-Path $InstallPath "instance.json") -Encoding Utf8
 }
 
+# Ask Windows Terminal to re-read what is written for its profiles, without
+# closing anything.
+#
+# Its own settings file is watched, and a change to it makes Terminal re-read the
+# whole of its settings - the fragments this repository writes included, which is
+# the only way to reach them without restarting it. Nothing is written INTO the
+# file: only its date is set to now, which is all the watcher looks at.
+#
+# Measured, by the person it was written for: a tab already open changes colour
+# on the spot. So this is the command he asked for - "activer ou redémarrer le
+# theme d'une distro" - and it is why the three commands no longer tell anybody
+# to close their windows.
+function Update-TerminalSettings {
+    foreach ($Path in @(
+        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
+        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
+        "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+    )) {
+        if (-not (Test-Path $Path)) { continue }
+        try { (Get-Item $Path).LastWriteTime = Get-Date } catch { }
+    }
+}
+
 # The profile Windows Terminal knows an instance by: the guid WSL wrote in its
 # own fragment when the instance was imported. Asked with a few tries, because a
 # fresh import and this question cross - the fragment lands a moment later.

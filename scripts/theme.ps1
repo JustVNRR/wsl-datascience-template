@@ -75,7 +75,7 @@ if (-not $Visited) {
     exit 0
 }
 
-Write-Host "'$DistroName' is done. Windows Terminal reads its profiles when it starts: close its" -ForegroundColor DarkGray
-Write-Host "windows, open one again, and everything you changed is there." -ForegroundColor DarkGray
+Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: the colours are" -ForegroundColor DarkGray
+Write-Host "there already, and a new tab shows the rest." -ForegroundColor DarkGray
 Write-Host ""
 exit 0

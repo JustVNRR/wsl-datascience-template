@@ -474,6 +474,10 @@ try {
     # later change of letters or colours keeps the other half.
     Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
 
+    # And Terminal is asked to look again: the profile of an instance that did
+    # not exist a minute ago appears without closing it.
+    Update-TerminalSettings
+
     # The packs, before the screen that says the instance is done - and in a try
     # of their own. Their own try is the point: a pack that fails must not reach
     # the catch above, which would announce "[ERROR] DURING DEPLOYMENT" for an

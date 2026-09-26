@@ -265,8 +265,9 @@ if (-not $Changed) {
 }
 
 if (-not $HandedOver) {
-    Write-Host "'$DistroName' is done. Windows Terminal reads its profiles when it starts: close its" -ForegroundColor DarkGray
-    Write-Host "windows, open one again, and it is written in that font." -ForegroundColor DarkGray
+    Update-TerminalSettings
+    Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: a new tab is" -ForegroundColor DarkGray
+    Write-Host "written in that font." -ForegroundColor DarkGray
     Write-Host ""
 }
 exit 0
