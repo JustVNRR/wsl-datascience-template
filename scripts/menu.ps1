@@ -73,6 +73,28 @@ function Set-ConsoleTop {
     }
 }
 
+# Are the colours worth writing? Both questions have to be yes: a console that
+# reads the escape sequences, and somebody looking at them - a console that does
+# not know them shows gibberish instead of a colour, and a script piping the
+# answers in is reading a file, not a screen.
+function Test-ColourOutput {
+    $Coloured = $false
+    try { $Coloured = [bool]$Host.UI.SupportsVirtualTerminal } catch { $Coloured = $false }
+    if ($env:WT_SESSION) { $Coloured = $true }
+    if ($Coloured) { $Coloured = Test-KeyInput }
+    return $Coloured
+}
+
+# "#CF7040" -> "207;112;64": how a terminal spells a colour.
+function ConvertTo-Rgb {
+    param([string]$Hex)
+
+    $Hex = $Hex.TrimStart("#")
+    return "{0};{1};{2}" -f [Convert]::ToInt32($Hex.Substring(0, 2), 16),
+                           [Convert]::ToInt32($Hex.Substring(2, 2), 16),
+                           [Convert]::ToInt32($Hex.Substring(4, 2), 16)
+}
+
 # Blank lines the console will let us blank. Best effort, and that is the whole
 # design: a host that will not say where the cursor is, or will not move it,
 # keeps its lines and loses nothing else - a test, a pipe, a capture stays a

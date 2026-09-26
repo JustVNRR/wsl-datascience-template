@@ -1,0 +1,257 @@
+[CmdletBinding()]
+param (
+    # The instance, when the theme menu has already asked which one. Not an
+    # option and not documented as one: no command of this family takes a name
+    # typed by heart - this is how the level above hands over.
+    [string]$DistroName
+)
+
+# What a terminal's colours are: the colour scheme of its profile - the
+# background, the text, and the sixteen colours a program may ask for by number.
+# Reached through `.\wsl.ps1 theme`.
+#
+# The list is every scheme this machine can be told to use: those Windows
+# Terminal ships (read from the file inside its own package) and those the user
+# added or wrote over, their own settings winning over the built-in of the same
+# name. Each is shown in its own colours, and the one in use is marked. It keeps
+# asking, like the two commands beside it: Escape leaves.
+
+$ErrorActionPreference = "Stop"
+
+$InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
+if (-not (Test-Path $InstanceLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    exit 1
+}
+. $InstanceLib
+
+# Windows Terminal writes JSON with comments and with a comma left before a
+# closing bracket. PowerShell's reader refuses both - and a blind replace on the
+# text is worse than refusing: that file holds a string of every punctuation
+# mark there is ("wordDelimiters"), and taking a comma out of IT breaks the JSON
+# somewhere that has nothing to do with commas. Measured, after two attempts
+# that did exactly that.
+#
+# So the walk below knows what a string is: inside quotes nothing is touched, a
+# "//" outside quotes runs to the end of its line, and a comma followed by a
+# closing bracket - outside a string - is dropped. Anything else is left alone,
+# and a file that still will not parse is no schemes at all, not a crash.
+function Read-TerminalJson {
+    param([string]$Path)
+
+    if (-not $Path -or -not (Test-Path $Path)) { return $null }
+    try {
+        $Text = [System.IO.File]::ReadAllText($Path)
+    } catch {
+        return $null
+    }
+
+    try {
+        $Out = New-Object System.Text.StringBuilder
+        $InString = $false
+        for ($Index = 0; $Index -lt $Text.Length; $Index++) {
+            $Char = $Text[$Index]
+
+            if ($InString) {
+                $null = $Out.Append($Char)
+                if ($Char -eq '\') {
+                    $Index++
+                    if ($Index -lt $Text.Length) { $null = $Out.Append($Text[$Index]) }
+                    continue
+                }
+                if ($Char -eq '"') { $InString = $false }
+                continue
+            }
+
+            if ($Char -eq '"') { $InString = $true; $null = $Out.Append($Char); continue }
+
+            if ($Char -eq '/' -and ($Index + 1) -lt $Text.Length -and $Text[$Index + 1] -eq '/') {
+                while ($Index -lt $Text.Length -and $Text[$Index] -ne "`n") { $Index++ }
+                $null = $Out.Append("`n")
+                continue
+            }
+
+            if ($Char -eq ',') {
+                $Next = $Index + 1
+                while ($Next -lt $Text.Length -and [char]::IsWhiteSpace($Text[$Next])) { $Next++ }
+                if ($Next -lt $Text.Length -and ($Text[$Next] -eq '}' -or $Text[$Next] -eq ']')) { continue }
+            }
+
+            $null = $Out.Append($Char)
+        }
+        return ($Out.ToString() | ConvertFrom-Json)
+    } catch {
+        return $null
+    }
+}
+
+# Every colour scheme this machine can wear, by name: the name is what a profile
+# takes, and what is behind it is what the list shows.
+function Get-ColorSchemes {
+    $Schemes = @{}
+
+    # What Windows Terminal ships, from the file inside its own package. Readable
+    # by a normal account - the folder is not, and the file is, which was worth
+    # measuring before ruling it out.
+    # Asked one at a time: an array handed to -Name binds to a parameter that
+    # takes one name, and the call is refused before it runs - measured.
+    $Packages = @()
+    foreach ($PackageName in @("Microsoft.WindowsTerminal", "Microsoft.WindowsTerminalPreview")) {
+        $Packages += @(Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue)
+    }
+    foreach ($Package in $Packages) {
+        $Parsed = Read-TerminalJson -Path (Join-Path $Package.InstallLocation "defaults.json")
+        foreach ($Scheme in @($Parsed.schemes)) {
+            if ($Scheme -and $Scheme.name -and -not $Schemes.ContainsKey($Scheme.name)) {
+                $Schemes[$Scheme.name] = $Scheme
+            }
+        }
+    }
+
+    # And what the user added, or wrote over: read last, so their own version of
+    # a name wins over the one Terminal ships.
+    foreach ($Path in @(
+        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
+        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
+        "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+    )) {
+        $Parsed = Read-TerminalJson -Path $Path
+        foreach ($Scheme in @($Parsed.schemes)) {
+            if ($Scheme -and $Scheme.name) { $Schemes[$Scheme.name] = $Scheme }
+        }
+    }
+
+    # And the schemes our instances already wear, when nothing above named them:
+    # a name with no colours behind it is still a choice a profile takes, and
+    # leaving it out would hide the scheme the instance is using right now.
+    $Ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+    foreach ($File in @(Get-ChildItem $Ours -Filter *.json -ErrorAction SilentlyContinue)) {
+        $Parsed = Read-TerminalJson -Path $File.FullName
+        $Named = @($Parsed.profiles)[0].colorScheme
+        if ($Named -and -not $Schemes.ContainsKey($Named)) { $Schemes[$Named] = $null }
+    }
+
+    # The comma: a table written to the pipeline is unrolled into its entries,
+    # and the caller would get the first pair instead of the table.
+    return ,$Schemes
+}
+
+# 1. Which instance. Given, or asked.
+$HandedOver = [bool]$DistroName
+if ($HandedOver) {
+    $Distro = Get-Distros | Where-Object { $_.Name -eq $DistroName } | Select-Object -First 1
+    if (-not $Distro) {
+        Write-Host ""
+        Write-Host "[ABORT] No instance named '$DistroName' is registered here." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    $Distro = Select-Distro
+    $DistroName = $Distro.Name
+}
+$IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
+
+Clear-MenuBlocks
+
+$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$DistroName.json"
+if (-not (Test-Path $OurFragment)) {
+    Write-Host ""
+    Write-Host "[WARNING] This instance has no Terminal profile of ours - the colours would not show." -ForegroundColor Yellow
+    Write-Host "          Build it again, or set them by hand in Ctrl+," -ForegroundColor DarkGray
+}
+
+$Escape = [char]27
+$Coloured = Test-ColourOutput
+
+Write-Host ""
+Write-Host "Reading the colour schemes Windows Terminal has..." -ForegroundColor DarkGray
+
+$Schemes = Get-ColorSchemes
+if ($Schemes.Count -eq 0) {
+    Write-Host ""
+    Write-Host "[ABORT] No colour scheme could be read on this machine." -ForegroundColor Red
+    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    exit 1
+}
+$Rows = @($Schemes.Keys | Sort-Object)
+
+$Default = 0
+$Changed = $false
+
+while ($true) {
+    # Read again every turn: the scheme in use is what the list marks, and the
+    # turn before may have changed it.
+    $Current = (Get-InstanceAppearance -Name $DistroName).ColorScheme
+
+    $Picked = Select-FromList -Title "Colours of '$DistroName'" -Items $Rows -Label {
+        param($Name)
+
+        $Scheme = $Schemes[$Name]
+        $Here = if ($Name -eq $Current) { "  (current)" } else { "" }
+        $Sample = $Name
+
+        # The scheme itself, and three of its colours beside it. What is being
+        # chosen is a look, and a name says nothing to the eye - the icons and
+        # the font have the same problem and the same answer.
+        #
+        # The reset comes first: a label long enough to be cut by a narrow window
+        # would otherwise leave the terminal wearing the colours of the row it
+        # was cut in, and nothing after it would clear them.
+        if ($Coloured -and $Scheme -and $Scheme.background -and $Scheme.foreground) {
+            $Sample = "{0}[0m{0}[48;2;{1}m{0}[38;2;{2}m {3} {0}[0m" -f $Escape,
+                (ConvertTo-Rgb $Scheme.background), (ConvertTo-Rgb $Scheme.foreground), $Name
+            foreach ($Ink in @("red", "green", "blue")) {
+                if ($Scheme.$Ink) { $Sample += ("{0}[48;2;{1}m  " -f $Escape, (ConvertTo-Rgb $Scheme.$Ink)) }
+            }
+            $Sample += "$Escape[0m"
+        }
+
+        "{0}{1}" -f $Sample, $Here
+    } -DefaultIndex $Default
+
+    if (-not $Picked) { break }
+
+    Clear-MenuBlock
+    $WorkTop = Get-ConsoleTop
+
+    $Default = [array]::IndexOf($Rows, $Picked)
+
+    # The profile is ours to write: the icon and the font stay as they are, the
+    # scheme is the one just chosen.
+    $Guid = Get-WslProfileGuid -Name $DistroName
+    if (-not $Guid) {
+        Write-Host ""
+        Write-Host "[ABORT] Windows Terminal has no profile for '$DistroName' - the colours cannot be applied." -ForegroundColor Red
+        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+        exit 1
+    }
+
+    $Appearance = Get-InstanceAppearance -Name $DistroName
+    Set-InstanceFragment -Name $DistroName -Guid $Guid -Font $Appearance.Font `
+        -ColorScheme $Picked -IconPath $IconPath
+    Set-InstanceLook -InstallPath $Distro.BasePath -Look (New-InstanceLook -Name $DistroName)
+
+    Clear-ConsoleLines -Top $WorkTop
+    $Changed = $true
+}
+
+# Leaving: the menu goes too, and the level above draws its own where this one
+# was. A menu that stayed here would sit above it, and the screen would grow a
+# level every time somebody went down and came back up.
+Clear-MenuBlock
+
+if (-not $Changed) {
+    # Handed over: the level above owns the goodbye, and it has its menu to draw
+    # where this one was.
+    if ($HandedOver) { exit 0 }
+    Write-Host ""
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    exit 0
+}
+
+if (-not $HandedOver) {
+    Write-Host "'$DistroName' is done. A tab that is already open keeps its colours: open a new one to see it." -ForegroundColor DarkGray
+    Write-Host ""
+}
+exit 0

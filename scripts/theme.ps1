@@ -1,12 +1,12 @@
 [CmdletBinding()]
 param ()
 
-# What an instance wears: its icon and its font, the two things Windows Terminal
-# takes from the profile this repository writes.
+# What an instance wears: its icon, its font and its colours - the three things
+# Windows Terminal takes from the profile this repository writes.
 #
-# The instance comes first, once, then the two commands - and each of them comes
-# back here when it is done, so changing the icon and then the font is one visit
-# to one instance. Escape on this menu is the way out.
+# The instance comes first, once, then the commands - and each of them comes back
+# here when it is done, so changing the icon and then the font is one visit to
+# one instance. Escape on this menu is the way out.
 #
 # The italic face and the background picture are not offered: the first is a coin
 # toss with the fonts that have one, the second is a Windows setting this
@@ -23,8 +23,9 @@ if (-not (Test-Path $InstanceLib)) {
 . $InstanceLib
 
 $Choices = @(
-    @{ Name = "icon"; About = "the tile in the tab" },
-    @{ Name = "font"; About = "what the whole terminal is written in" }
+    @{ Name = "icon";  About = "the tile in the tab" },
+    @{ Name = "font";  About = "what the whole terminal is written in" },
+    @{ Name = "color"; About = "the background, the text, and sixteen colours" }
 )
 
 foreach ($Choice in $Choices) {

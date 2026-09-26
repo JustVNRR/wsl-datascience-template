@@ -67,25 +67,10 @@ if (-not (Test-Path $OurFragment)) {
     Write-Host "          Build it again, or set the icon by hand in Ctrl+," -ForegroundColor DarkGray
 }
 
-# "#CF7040" -> "207;112;64": how a terminal spells a colour.
-function ConvertTo-Rgb {
-    param([string]$Hex)
-
-    $Hex = $Hex.TrimStart("#")
-    return "{0};{1};{2}" -f [Convert]::ToInt32($Hex.Substring(0, 2), 16),
-                           [Convert]::ToInt32($Hex.Substring(2, 2), 16),
-                           [Convert]::ToInt32($Hex.Substring(4, 2), 16)
-}
-
-# Are the colours worth writing? Both questions have to be yes: a terminal that
-# reads the escape sequences, and somebody looking at it - a console that does
-# not know them shows gibberish instead of a colour, and a script piping the
-# answers in is reading a file, not a screen.
+# The escape character, and whether colours are worth writing: the second from
+# menu.ps1, where it is written once for every command that shows a colour.
 $Escape = [char]27
-$Coloured = $false
-try { $Coloured = [bool]$Host.UI.SupportsVirtualTerminal } catch { $Coloured = $false }
-if ($env:WT_SESSION) { $Coloured = $true }
-if ($Coloured) { $Coloured = Test-KeyInput }
+$Coloured = Test-ColourOutput
 
 # An empty answer, wherever it is asked, is a cancel like any other. The question
 # is written here and Read-Host asked bare: what Read-Host writes itself never

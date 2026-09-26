@@ -475,8 +475,9 @@ Our Instances
     ...
 
 Theme of 'ubuntu-ml-dev'
-  > icon   the tile in the tab
-    font   what the whole terminal is written in
+  > icon    the tile in the tab
+    font    what the whole terminal is written in
+    color   the background, the text, and sixteen colours
   up/down to move, Enter to choose, Escape to cancel
 ```
 
@@ -541,8 +542,33 @@ they come first: a font without them draws a box where your prompt has a folder.
 
 A console writes every row in the font *it* is set to, so no list can show a font
 in itself. The preview is the choice: the profile changes, and the next tab is
-written in it. Windows Terminal's own settings (`Ctrl+,`) do show them all in
-their own face, for browsing.
+written in it.
+
+### `color`
+
+Sets the colours of the whole terminal, for one instance.
+
+```text
+Colours of 'ubuntu-ml-dev'
+  > Campbell
+    Campbell Powershell
+    CGA
+    ...
+    One Half Dark                          (current)
+    ...
+    Vintage Custom
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+The list is every scheme this machine can be told to use: the ones Windows
+Terminal ships — read from the file inside its own package — and the ones you
+added or wrote over, your version of a name winning over the shipped one. Each is
+shown in its own colours, with three of them beside it, and the one in use is
+marked.
+
+That file is JSON with comments in it, which PowerShell's own reader refuses. The
+command reads it all the same, without touching it: it is Terminal's file, and
+nothing here writes to it.
 
 ---
 
