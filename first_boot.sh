@@ -34,15 +34,46 @@ adduser --disabled-password --gecos "" --shell /usr/bin/zsh "$NEW_USER"
 sed -i '/first_boot\.sh/d' /root/.bashrc 2>/dev/null || true
 
 echo ""
-echo "Please set a password for $NEW_USER:"
-# Loop until the password is successfully set
-while ! passwd "$NEW_USER"; do
-    echo ""
-    echo "[ERROR] Password setup failed (mismatch or empty). Let's try again."
-done
+# The account was created with no password of its own (adduser
+# --disabled-password): inside WSL nobody logs in with one, so the password's
+# only job is sudo. The question is about sudo, then, and it defaults to the
+# password - NOPASSWD means anything running as this user can become root with
+# no prompt at all, which is a real trade and not a default to fall into.
+read -rp "Run sudo without a password (passwordless)? [y/N] " PASSWORDLESS
+echo ""
 
-# Grant administrative privileges (sudo prompts for the account password)
+# Administrative privileges first: the group is what makes the account able to
+# use sudo at all, and both paths below need it.
 usermod -aG sudo "$NEW_USER"
+
+PASSWORDLESS_OK=no
+if [[ "$PASSWORDLESS" =~ ^[Yy]$ ]]; then
+    # The drop-in that makes sudo stop asking. No dot in the file name: sudo
+    # ignores any file in sudoers.d whose name contains one, or ends in ~.
+    # 0440 is what sudo requires, and the syntax is checked before the file is
+    # left in place - an invalid file there takes sudo away entirely. If the
+    # check fails, the password path below runs instead: an account with
+    # neither a password nor a rule would have no sudo at all.
+    SUDOERS_FILE="/etc/sudoers.d/010-$NEW_USER-nopasswd"
+    echo "$NEW_USER ALL=(ALL) NOPASSWD: ALL" > "$SUDOERS_FILE"
+    chmod 0440 "$SUDOERS_FILE"
+    if visudo -cf "$SUDOERS_FILE" >/dev/null 2>&1; then
+        PASSWORDLESS_OK=yes
+        echo "sudo will not ask for a password."
+    else
+        rm -f "$SUDOERS_FILE"
+        echo "[WARNING] The sudo rule could not be written - falling back to a password."
+    fi
+fi
+
+if [[ "$PASSWORDLESS_OK" == no ]]; then
+    echo "Please set a password for $NEW_USER:"
+    # Loop until the password is successfully set
+    while ! passwd "$NEW_USER"; do
+        echo ""
+        echo "[ERROR] Password setup failed (mismatch or empty). Let's try again."
+    done
+fi
 
 # The docker client Docker Desktop injects is only usable through a group: the
 # socket it creates is writable by root and by that group, and by nothing else.

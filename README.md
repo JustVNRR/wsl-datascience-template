@@ -6,7 +6,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 
 ## Features
 
-- **Minimal setup** — the build asks for your username and password; Ubuntu then asks for your region and city.
+- **Minimal setup** — the build asks for your username, then whether sudo should ask for a password (say no and it never does); Ubuntu then asks for your region and city.
 - **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls` and `cat` ([shell environment](#shell-environment-zsh)).
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.

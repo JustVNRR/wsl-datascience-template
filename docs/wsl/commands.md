@@ -120,8 +120,8 @@ Folders left behind by an instance that is gone:
 ## `build`
 
 Builds a new instance from the rootfs image, walks you through the first-boot
-onboarding (username, password, timezone), applies the Windows Terminal
-profile, and opens a shell in it.
+onboarding (username, password or passwordless sudo, timezone), applies the
+Windows Terminal profile, and opens a shell in it.
 
 ```powershell
 .\wsl.ps1 build
@@ -300,7 +300,9 @@ it, before it, in the same run:
 **It asks for your password.** The packages and the APT address belong to root;
 the pack's `install.sh` runs as you inside the instance and takes `sudo` where
 it needs to. The prompt appears in this window, in the middle of the
-installation.
+installation. An instance built with [passwordless
+sudo](#build) asks nothing at all — the rule was written into
+`/etc/sudoers.d/` when the account was made.
 
 Nothing has to be reopened afterwards: `gmake` reads the pack's files at every
 run, and `fcheat` re-reads its cheatsheets at every opening.
