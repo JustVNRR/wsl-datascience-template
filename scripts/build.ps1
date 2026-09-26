@@ -501,10 +501,13 @@ try {
                 if ($Landed.Count -eq 0) { $Landed = @($PackSelection.ToAdd | ForEach-Object { $_.Name }) }
                 $PackLine = ($Landed -join ", ")
                 $PackLineColour = "Green"
-                $PackReport = @(
-                    "Packs: $($Landed -join ', ') installed.",
-                    "  In there:  gmake env_global_enable   (adds their variables)"
-                )
+                $PackReport = @("Packs: $($Landed -join ', ') installed.")
+                # Only when one of them brought variables to merge: the target
+                # itself is the devops pack's, and a pack that ships no sample has
+                # nothing there to add.
+                if (@($PackSelection.ToAdd | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
+                    $PackReport += "  In there:  gmake env_global_enable   (adds their variables)"
+                }
             }
         } catch {
             $PackLine = "not installed - $($_.Exception.Message)"
@@ -693,10 +696,20 @@ if ($Deployed) {
     # Two lines are printed first, so the shell opens on the answer to "who am
     # I, where, and what now" instead of on an anonymous prompt. ~/projects
     # comes from /etc/skel, and fnew refuses to run from anywhere else.
+    #
+    # A pack may have something to say here - python's line points at fnew, the
+    # command it brings - and it says it in its own pack.conf. So no sentence of
+    # this script names a pack or a command: a pack whose folder is not in the
+    # instance prints nothing, which is what a missing command should say. The
+    # packs line just below says what is in place.
     Clear-Host
     Write-Host "Welcome, $ConfiguredUser." -ForegroundColor Green
     Write-Host "You are now logged in to $DistroName." -ForegroundColor Green
-    Write-Host "Run 'cd projects' and type 'fnew' to create your first project." -ForegroundColor Yellow
+    if ($null -ne $PackSelection) {
+        foreach ($Pack in $PackSelection.ToAdd) {
+            if ($Pack.Welcome) { Write-Host $Pack.Welcome -ForegroundColor Yellow }
+        }
+    }
     if ($PackReport) {
         foreach ($Line in $PackReport) { Write-Host $Line -ForegroundColor $PackReportColour }
     }

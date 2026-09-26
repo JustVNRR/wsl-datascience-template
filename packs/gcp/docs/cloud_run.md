@@ -15,7 +15,7 @@ Deploy containerized services to Google Cloud Run, and operate them.
 | `cloudrun_delete` | Delete the service and take the API offline | ⚠️ destructive |
 
 `cloudrun_deploy` serves `$(GAR_IMAGE):prod` from
-[`$(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)`](../../../docs/make/docker.md).
+[`$(GCP_REGION)-docker.pkg.dev/$(GCP_PROJECT)/$(ARTIFACTSREPO)`](../../devops/docs/docker.md).
 The service is **private by default**: callers need an identity token and the
 `run.invoker` role. Set `CLOUDRUN_PUBLIC=true` in the project's `.env` to
 expose a public URL instead (demos, public APIs).

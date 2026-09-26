@@ -3,10 +3,14 @@
 [← Back to the README](../README.md#mlops-makefile-gmake)
 
 A pack is optional tooling — a CLI the image does not ship, the gmake targets
-that drive it, and the script that installs both — living in one folder under
-`packs/`. The socle knows nothing about any particular pack: it finds the
-folders and loads what they carry. Adding a pack touches no file outside that
-folder.
+that drive it, the shell commands, the variables it reads — and the two scripts
+that install and remove it, all of it living in one folder under `packs/`. The
+socle knows nothing about any particular pack: it finds the folders and loads
+what they carry. Adding a pack touches no file outside that folder.
+
+A pack needs no tool: `devops` is targets and nothing else — the mirror of
+`vision`, which is a tool and no target. What a pack brings is what its folder
+carries, and a folder may carry one of the two.
 
 ## The folder
 
@@ -16,6 +20,7 @@ packs/<name>/
 ├── install.sh             # what `.\wsl.ps1 add_pack` runs inside the instance
 ├── remove.sh              # what `.\wsl.ps1 remove_pack` runs before the folder goes
 ├── make/*.mk              # its targets, loaded as soon as the folder is there
+├── zsh/*.zsh              # its shell files, read where they live (never copied)
 ├── env.global.sample      # its share of the shared defaults
 ├── env.project.sample     # its share of a project's variables
 ├── cheatsheets/*.sh       # its fcheat sheets, each with a `# requires:` header
@@ -24,19 +29,25 @@ packs/<name>/
 
 Only the first three are always there. The rest is what the pack needs: `vision`
 brings no target, no variable of its own and no sample — its folder is a
-`pack.conf`, two scripts, a sheet and a page.
+`pack.conf`, two scripts, a sheet and a page. `devops` is the other extreme, with
+no package to install — its folder carries modules, two samples and its pages,
+and its two scripts have nothing to do but say so.
 
 ## `pack.conf`
 
 | Declaration | What it says |
 | :--- | :--- |
 | `PACK_DESCRIPTION` | the line `add_pack` shows in its list of packs |
+| `PACK_REQUIRES` | the packs it is installed on top of |
+| `PACK_VISIBLE` | `no` keeps it out of every list: nobody chooses it |
 | `PACK_PACKAGES` | the system packages it installs — named once, read by both scripts, and by a neighbour's removal |
 | `PACK_IDENTIFYING_VARS` | the variables refused in a shared `.env.global` |
+| `PACK_WELCOME` | the line `build` prints on a fresh instance, when this pack is among the chosen ones |
 
-`PACK_IDENTIFYING_VARS` is read with `sed`, not by including the file: the socle
-needs it while it is still loading `.env.global`, before a pack may define
-anything. `PACK_DESCRIPTION` is read by `add_pack`, from Windows.
+Only the first is always there. `PACK_IDENTIFYING_VARS` is read with `sed`, not
+by including the file: the socle needs it while it is still loading
+`.env.global`, before a pack may define anything. `PACK_DESCRIPTION` is read by
+`add_pack`, from Windows.
 
 ## Installed, or not
 
@@ -51,6 +62,15 @@ of the files make loaded, so a pack whose folder is gone contributes no line at
 all. That is why the two-faced arrangement this replaces — a module loaded only
 when a given binary was on the PATH — had to go: it made a pack's commands
 appear or disappear for a reason that was not the pack's presence.
+
+A pack's targets are ordinary ones, with one thing they can declare themselves:
+a target that only makes sense from `~/projects` (scaffolding) says so in its
+module — `SCAFFOLD_GOALS += copier_project cruft_project ccds_project`, in
+`packs/python/make/project-setup.mk` — and the location gate in the Makefile
+reads that declaration. The gate is checked after the modules are loaded,
+precisely so it can: `$(error)` fires when make *reads* the line, and a target
+nobody declares would be treated as a project target and refused from
+`~/projects` with a message about a project root that is not the point.
 
 Removing is the same story from the other end: `.\wsl.ps1 remove_pack` runs the
 pack's own `remove.sh` first, then deletes the folder, then takes back the
@@ -72,6 +92,39 @@ instance exists.
 
 They are all documented in
 [Instance commands](wsl/commands.md#add_pack).
+
+## The shell
+
+A pack may bring shell files (`zsh/*.zsh`), and the socle reads them **where
+they live** — `~/.config/packs/*/zsh/*.zsh`, from the `.zshrc` that loads
+everything else. Nothing is copied into `~/.config/zsh`: a pack that leaves
+takes its commands out of the shell exactly as it takes its targets out of the
+menu, and an instance carrying no pack reads nothing there at all. The `python`
+pack's `fnew` and the catalog it reads travel together that way — the picker
+resolves its catalog from its own file's location, not from a path that only
+exists in the socle.
+
+## Two packs, one choice
+
+`PACK_REQUIRES` names a pack it is installed on top of — one name, or several.
+What it requires arrives **before** it, a pack lands on what it needs, and it
+leaves **after** it, when the last pack that required it goes.
+
+The second half is what makes an invisible pack possible. `PACK_VISIBLE := no`
+is a pack in no list: not in `add_pack`'s, not in `manage_packs`' checklist, not
+in `gmake packs_list`. You cannot choose it, and you cannot remove it by hand —
+either one would pull the base out from under a pack still installed. It arrives
+with the pack that requires it, it leaves with the last one that does, and it is
+never alone.
+
+`devops` is the first of them, and the mirror of `vision`: the project targets
+python and gcp both need, against a tool with no target.
+
+Each of the two requires it for a reason of its own: `gcp` reads `PACKAGE_NAME`
+and `DOCKER_BASE_IMAGE`, whose sample is `devops`'s, and `python` fabricates the
+projects its targets build, push and configure. Neither requires it for a macro:
+what a target calls — `check_vars`, `confirm_action` — is the socle's, loaded
+with every module, and a pack that writes a target declares nothing.
 
 ## Two packs, one package
 
@@ -128,10 +181,7 @@ in survives, and a pack installed later is covered by the next run. See
 
 ## Not yet
 
-Two fields have no reader, and are absent for that reason: `PACK_CONTRACT` —
-the version of this contract, which no instance has ever met another of, since
-the packs and the installer still come from the same checkout — and
-`PACK_REQUIRES`, a pack needing another. The section above is why that one is
-not missed: a pack installs what it needs, so it has nothing to ask a neighbour
-for, and the removal rule protects the shared package either way. A field
-nothing reads is not a safety.
+One field has no reader, and is absent for that reason: `PACK_CONTRACT` — the
+version of this contract, which no instance has ever met another of, since the
+packs and the installer still come from the same checkout. A field nothing
+reads is not a safety.

@@ -28,8 +28,22 @@ and aliases — plus a smart archive extractor.
 | `fcheat` | Fuzzy-search the `cheatsheets/*.sh` command lists and load a command into the prompt (also `Alt + z`) |
 | `falias` | Fuzzy-search your aliases and load one into the prompt (also `Alt + y`) |
 
-The `cheatsheets/` directory is scanned every time the picker opens: add, edit,
-or remove files there to curate your own command menu.
+Two folders are scanned every time the picker opens: the socle's
+`cheatsheets/`, and each installed pack's own. Add, edit or remove files there
+to curate your own command menu; a pack that leaves takes its sheets with it.
+
+### The shell follows the packs too
+
+A pack may bring shell files (`zsh/*.zsh`) — `fnew` comes with the `python`
+pack's. They are read where they live, and the list is looked at again before
+every prompt, the way the picker asks its question at every opening. Install a
+pack from Windows while a shell is open and the next prompt says so and
+restarts the shell; remove one and the next prompt does the same, which is the
+only way its commands can stop existing.
+
+So one command is all it takes — and the shell right after a change is the
+first one that sees it: the restart happens at a prompt boundary, which is why
+the command that noticed the change is the last one the old shell runs.
 
 A sheet can declare what it needs, in a comment on a line of its own:
 
@@ -53,5 +67,5 @@ current tree.
 
 ### Scaffolding
 
-`fnew` — the interactive project scaffolding picker — lives with the
-Makefile workflow: see [Project scaffolding](../make/project-setup.md).
+`fnew` — the interactive project scaffolding picker — comes with the `python`
+pack: see [Project scaffolding](../../packs/python/docs/project-setup.md).

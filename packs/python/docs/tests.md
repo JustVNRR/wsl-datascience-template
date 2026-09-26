@@ -1,6 +1,6 @@
 # Tests
 
-[← Back to the README](../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../../README.md#optional-tooling)
 
 Run a project's pytest suite, split into lanes by marker.
 

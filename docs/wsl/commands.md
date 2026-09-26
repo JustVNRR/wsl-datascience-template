@@ -283,6 +283,20 @@ Which one? (0 to cancel) 1
 Only the packs the instance does not have yet are offered. The packs are the
 folders under `packs\`: a folder carrying a `pack.conf` is a pack.
 
+The list is the packs a **user** chooses. A pack that says `PACK_VISIBLE := no`
+in its `pack.conf` is never in it: it is a shared dependency — `devops` is the
+project targets several packs need — and it arrives with the pack that requires
+it, before it, in the same run:
+
+```text
+==> Installing 'devops' in 'ubuntu-template'...
+    It comes with 'gcp', which requires it.
+    Your password may be asked: the packages belong to root.
+
+==> Installing 'gcp' in 'ubuntu-template'...
+    Your password may be asked: the packages belong to root.
+```
+
 **It asks for your password.** The packages and the APT address belong to root;
 the pack's `install.sh` runs as you inside the instance and takes `sudo` where
 it needs to. The prompt appears in this window, in the middle of the
@@ -325,6 +339,21 @@ Remove 'gcp'? [y/N] y
 
 The list comes from the instance, not from this repository: a pack installed by
 an older copy is still removable, because its `remove.sh` travelled with it.
+What is *not* in it is a pack marked invisible: it is nobody's to remove by
+hand, since removing it would pull the base out from under a pack still
+installed. It leaves with the last pack that requires it:
+
+```text
+==> Removing from 'ubuntu-template': python, devops
+    Each pack's own remove.sh runs first - what it installed leaves the system.
+    Then its folder leaves, and the gmake menu loses its commands.
+    'devops' goes with 'python': nothing installed requires it any more.
+Remove python, devops? [y/N]
+```
+
+The chosen pack goes first, and the packs it was holding up follow — that order
+is what lets a `remove.sh` ask whether a neighbour still claims its packages and
+get the right answer.
 
 Your password is asked here too. What the pack left in your files is not
 touched: your `gcloud` logins, the variables it copied into `.env.global`.
@@ -387,13 +416,18 @@ Space checks and unchecks, Enter applies, Escape cancels. Each list gets a line
 when it has something in it, and one question covers them both:
 
 ```text
-Will install : vision
+Will install : python, devops
+               (devops: required by python)
 Will remove  : gcp
                Their tools leave the system, and with them the dependencies
                nothing needs any more.
 
 Proceed? [Y/n]
 ```
+
+A pack nobody ticked gets its reason on the line under the list — it arrives
+because something requires it, or leaves because nothing does any more. A pack
+that came or went without that line would read like a mistake.
 
 If the boxes have not moved, it says so and stops there.
 
@@ -445,7 +479,7 @@ rebuild destroys it the same way. Before either:
 | `~/.ssh/` | A key generated inside cannot be recovered: copy it out, or plan to revoke and regenerate it |
 | `~/.config/gcloud/` | Both logins are redoable in minutes ([GCP onboarding](../../packs/gcp/docs/onboarding.md)) |
 | `~/.config/zsh/gmake/.env.global` | A handful of lines; `gmake env_global_enable` recreates them from the samples the instance carries |
-| `~/.config/zsh/cheatsheets/templates.tsv` | Only for rows you added inside the instance: the file is redeployed at build time — move the line into `zsh/` to keep it |
+| `~/.config/packs/python/cheatsheets/templates.tsv` | Only for rows you added inside the instance: `add_pack` copied the file there — move the line into the pack to keep it |
 
 `archive` is the way out: it writes the whole file system to a folder you can
 restore from later.

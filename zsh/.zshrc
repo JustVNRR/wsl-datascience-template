@@ -51,14 +51,43 @@ source "$ZDOTDIR/aliases.zsh"      # Command shortcuts and interactive falias to
 source "$ZDOTDIR/navigation.zsh"   # Directory hopping and fuzzy file pickers (cdv, cda, fv, fa)
 source "$ZDOTDIR/unzip.zsh"        # Interactive archive extraction handler
 source "$ZDOTDIR/cheatsheet.zsh"   # Custom cheatsheet selector (fcheat)
-source "$ZDOTDIR/scaffold.zsh"     # Interactive project scaffolding picker (fnew)
 
 # --- 4. ZLE KEYBINDINGS ---
 # Keybindings must load AFTER all custom functions and widgets are declared in memory
 source "$ZDOTDIR/bindings.zsh"
 
-# --- 5. DEVELOPMENT RUNTIMES ---
-source "$ZDOTDIR/python.zsh"
+# --- 5. PACKS ---
+# Each installed pack's shell files, read where they live. A pack's folder is
+# the whole switch, exactly as it is for its gmake modules: nothing is copied
+# into this directory, so a pack that leaves takes its zsh with it - and an
+# instance carrying no pack reads nothing here at all.
+#
+# The list is looked at again before every prompt, the way `gmake` asks its
+# question at every run and `fcheat` at every opening. A pack installed from
+# Windows while this shell was open is a command that answers on the next
+# prompt; a pack removed stops being read. When the list has changed the shell
+# restarts: that is `exec zsh` done by itself, and the only way to lose what a
+# departed pack had defined - nothing here can undefine a function it never
+# named, and no command from outside can reach into a running shell.
+# [@] and not $var: in zsh, "$array" of an EMPTY array is one empty word, and
+# this loop would then source "" - an instance carrying no pack is the case
+# that must work, not the one that crashes.
+typeset -ga _pack_zsh_loaded
+_pack_zsh_loaded=("$ZDOTDIR"/../packs/*/zsh/*.zsh(N))
+for _pack_zsh in "${_pack_zsh_loaded[@]}"; do
+    source "$_pack_zsh"
+done
+unset _pack_zsh
+
+_pack_zsh_follow() {
+    local -a now
+    now=("$ZDOTDIR"/../packs/*/zsh/*.zsh(N))
+    [[ "${(j: :)_pack_zsh_loaded}" == "${(j: :)now}" ]] && return 0
+    print -r -- "📦 the packs changed — restarting the shell"
+    exec zsh
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _pack_zsh_follow
 
 # --- 6. PROMPT ENGINE ---
 # Executed last to ensure runtime hooks and aliases are fully registered

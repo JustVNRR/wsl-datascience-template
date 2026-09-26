@@ -1,6 +1,6 @@
 # Lint
 
-[← Back to the README](../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../../README.md#optional-tooling)
 
 Static checks for Python (`ruff`) and shell (`shellcheck`) — non-destructive
 by default, with an auto-fix lane.
@@ -39,7 +39,7 @@ gmake lint-py PY_TARGETS="src/"
 
 ## Tools
 
-- `ruff` is installed globally by the build via `uv tool install ruff`; lint
-  rules live in each project's `pyproject.toml` (`[tool.ruff]`) — only the
-  tool lives on the machine.
+- `ruff` comes with the `python` pack (`uv tool install ruff`, in its
+  `install.sh`); lint rules live in each project's `pyproject.toml`
+  (`[tool.ruff]`) — only the tool lives on the machine.
 - `shellcheck` is bundled in the template image.

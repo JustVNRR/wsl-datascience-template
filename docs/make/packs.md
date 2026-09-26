@@ -2,7 +2,7 @@
 
 [← Back to the README](../../README.md#mlops-makefile-gmake)
 
-What this instance carries.
+What this instance carries — what you chose, not everything its folder holds.
 
 ## Target
 
@@ -21,6 +21,7 @@ its own `pack.conf`:
 Packs installed in this instance:
 
   gcp       The Google Cloud CLI (about 409 MB installed)
+  python    Python 3, uv and the scaffolding tools (about 570 MB installed)
   vision    ffmpeg, ImageMagick and Tesseract OCR (about 500 MB installed)
 
 A pack is added or removed from Windows:  .\wsl.ps1 add_pack  /  .\wsl.ps1 manage_packs
@@ -32,7 +33,17 @@ already listing what is loaded. Repeating any of it here would be a second list
 to keep in step, and "look in the picker" would say nothing useful when the
 picker holds hundreds of commands.
 
-With no pack installed, it says that, and where a pack comes from.
+A pack marked `PACK_VISIBLE := no` in its `pack.conf` has no line here either.
+It is a shared dependency — `devops`, the project targets python and gcp both need
+— and a shared engine is not a car: it does not belong in the list of what you
+asked for. It arrived with the pack that requires it, and leaves with the last
+one that does.
+
+That leaves one state where a pack is installed and nothing is listed, and it is
+not the same thing as an instance with no pack at all: a removal that stopped
+half way leaves a dependency behind with nothing left to require it. The command
+says which of the two it is, rather than print a header over nothing. An
+instance with no pack at all, it says so, and where a pack comes from.
 
 ## What it cannot say
 

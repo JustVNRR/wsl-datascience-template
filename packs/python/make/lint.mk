@@ -1,7 +1,7 @@
 # ==============================================================================
 # 🧹 LINT
 # ==============================================================================
-# Python : ruff — installed globally at first boot via `uv tool install ruff`;
+# Python : ruff — installed by this pack (`uv tool install ruff`, in install.sh);
 #   rules are configured per-project in pyproject.toml ([tool.ruff]).
 # Shell  : shellcheck — preinstalled in the template image.
 #   Debian/Ubuntu/WSL : sudo apt-get install shellcheck

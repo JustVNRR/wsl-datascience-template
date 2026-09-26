@@ -25,8 +25,9 @@
 #     target must appear in a cheatsheet; every .github/workflows/*.yml must be
 #     named in the README
 #   - templates.tsv format: every row must have 4 tab-separated columns and a
-#     known tool (copier/cruft/ccds). The picker skips a malformed row and warns
-#     on stderr, but only when someone runs fnew - this check never misses one
+#     known tool (copier/cruft/ccds). The catalog is the python pack's, and its
+#     path follows it. The picker skips a malformed row and warns on stderr, but
+#     only when someone runs fnew - this check never misses one
 #   - the docs and the menu say the same words (tests/doc-drift.sh): every
 #     command wsl.ps1 knows, looked for in the README table, the commands page
 #     and its sample menu. It found five drifted rows the day it was written
@@ -136,13 +137,67 @@ jobs:
             echo "::error::gcp_install/gcp_uninstall are gone - a pack arrives from Windows"
             bad=1
           fi
+          # A pack's targets go with its folder, the python ones as much as the
+          # gcp ones: lint, the test lanes and the scaffolding live in
+          # packs/python/make/*.mk. Their absence here is what an instance
+          # without the pack looks like.
+          if grep -qE '^  (lint|lint-py|lint-sh|lint-format|test|test-fast|test-functional|test-gcp|copier_project|cruft_project|ccds_project)[[:space:]]' help-bare.txt; then
+            echo "::error::a python pack target is in the menu without the pack's folder"
+            bad=1
+          fi
+          # The project targets came out of the socle with the devops pack - they
+          # build, push and configure ONE project, and an instance whose folders
+          # are empty has none. Nothing of them may stay behind here.
+          if grep -qE '^  (env_global_enable|env_project_enable|docker_build_local|docker_run_local|gh_pr_create|gh_pr_toreview|gh_pr_wip|gh_pr_ls)[[:space:]]' help-bare.txt; then
+            echo "::error::a devops pack target is in the menu without the pack's folder"
+            bad=1
+          fi
           # And the socle loses nothing to an empty packs folder
-          for target in help lint test env_global_enable docker_build_local; do
+          for target in help packs_list; do
             grep -q "^  ${target}[[:space:]]" help-bare.txt || {
               echo "::error::socle target '${target}' missing from the menu with no pack"
               bad=1
             }
           done
+          exit $bad
+
+      - name: No pack redefines a socle macro
+        run: |
+          # The socle's modules are read first and the packs' after, so a pack's
+          # own `define check_vars` would win in silence and every target that
+          # calls it - its neighbours' included - would lose its check. A comment
+          # cannot notice that; this can.
+          bad=0
+          for macro in check_vars confirm_action; do
+            if grep -rln "^define $macro$" packs/*/make/*.mk 2>/dev/null | grep -q .; then
+              echo "::error::a pack defines $macro - that macro is the socle's (zsh/gmake/make/macros.mk)"
+              bad=1
+            fi
+          done
+          exit $bad
+
+      - name: packs_list lists what the user chose
+        run: |
+          # A pack marked invisible is in no list, this one included: it is a
+          # shared dependency, and the command answers "what did I ask for?".
+          # Played on a folder of its own, so that the repository's own packs
+          # cannot make the check pass by accident.
+          mkdir -p /tmp/packs-list/asked /tmp/packs-list/hidden
+          printf 'PACK_DESCRIPTION := The one the user chose\n' > /tmp/packs-list/asked/pack.conf
+          printf 'PACK_DESCRIPTION := The one nobody chooses\nPACK_VISIBLE := no\n' > /tmp/packs-list/hidden/pack.conf
+          make -f zsh/gmake/Makefile PACKS_DIR=/tmp/packs-list packs_list > list.txt
+          bad=0
+          grep -q "asked" list.txt || { echo "::error::packs_list dropped a pack the user chose"; bad=1; }
+          grep -q "hidden" list.txt && { echo "::error::packs_list listed a pack marked PACK_VISIBLE := no"; bad=1; }
+          # And the other state, reachable when a removal stopped half way: a
+          # dependency left alone. It says so rather than print the header over
+          # nothing, which would read as a command that found no pack at all.
+          rm -rf /tmp/packs-list/asked
+          make -f zsh/gmake/Makefile PACKS_DIR=/tmp/packs-list packs_list > list-only.txt
+          grep -q "Nothing you chose" list-only.txt || {
+            echo "::error::packs_list does not say what is left when only a dependency is installed"
+            bad=1
+          }
           exit $bad
 
       - name: Cheatsheet doc drift (*_commands.sh vs gmake help)
@@ -267,7 +322,7 @@ jobs:
               }
             }
             END { exit bad }
-          ' zsh/cheatsheets/templates.tsv
+          ' packs/python/cheatsheets/templates.tsv
 
   # The suites that run the code. They are the only checks here that have ever
   # caught a bug in the scripts themselves - a menu that stacked copies of
