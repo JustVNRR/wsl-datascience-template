@@ -87,6 +87,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gh \
     jq \
     ripgrep \
+    # The line editor the scaffolding tools lack, and the reason the arrows work
+    # at cruft's and ccds' questions: cookiecutter reads a plain line, with no
+    # editor loaded in the process, so the bytes an arrow key sends land in the
+    # answer. packs/scaffold/make/project-setup.mk runs it in front of the three
+    # tools. A few hundred KB, and it has to be there before the first project.
+    rlwrap \
     shellcheck \
     zoxide \
     # Database CLI

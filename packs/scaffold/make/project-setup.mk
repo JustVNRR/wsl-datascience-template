@@ -4,6 +4,23 @@
 # The act: copy a template, finish the copy, and let the pack whose row it came
 # from do its part. The tools are taken by uvx at the moment one of them runs,
 # so nothing is installed here and nothing is left on the PATH.
+#
+# One tool is read from the image instead, because nothing else can do its job:
+# rlwrap. Two of the three ask their questions through cookiecutter, which reads
+# a plain line with no editor loaded in the process — the terminal is all there
+# is, and the bytes an arrow key sends land in the answer. rlwrap is that
+# editor, put in front of the command: it reads the keys, edits the line, and
+# hands the finished answer over. copier needs it for nothing (questionary is a
+# line editor of its own) and is wrapped all the same, so the three targets read
+# alike, and so does the direct call.
+#
+# No test for a terminal here: rlwrap makes that one itself, and better than a
+# test could - measured in a pipe, it hands the answer over untouched and exits
+# 0, so the CI and the pipes read exactly as they did before. What this variable
+# guards is the other case: an instance that has not installed rlwrap yet (an
+# older distro, a machine where the image's package is missing). There the name
+# is empty, the commands run plain, and the only thing lost is the editing.
+RLWRAP := $(shell command -v rlwrap 2>/dev/null)
 
 # The part every project wants, whatever language it is written in: the .env the
 # template's own sample describes. That is all of it - the sample is shaped by
@@ -45,7 +62,7 @@ SCAFFOLD_GOALS += copier_project cruft_project ccds_project
 copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Copier..."
-	@uvx --from copier copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
+	@$(RLWRAP) uvx --from copier copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
 	$(call scaffold_generic_after)
 	$(call scaffold_after,$(TEMPLATE_PACK))
 	@echo "✅ Project ready in $(PROJECT_NAME)/"
@@ -57,7 +74,7 @@ CHECKOUT_ARG = $(if $(PROJECT_TEMPLATE_VERSION),--checkout $(PROJECT_TEMPLATE_VE
 cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Cruft..."
-	@uvx --from cruft cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
+	@$(RLWRAP) uvx --from cruft cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
 	$(call scaffold_generic_after)
 	$(call scaffold_after,$(TEMPLATE_PACK))
 	@echo "✅ Project ready in $(PROJECT_NAME)/"
@@ -74,7 +91,7 @@ cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fn
 ccds_project: ## Scaffold a project with CCDS v2 from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with ccds..."
-	@uvx --from cookiecutter-data-science ccds --accept-hooks yes $(CHECKOUT_ARG) -o . $(PROJECT_TEMPLATE_REPO) project_name=$(PROJECT_NAME) repo_name=$(PROJECT_NAME)
+	@$(RLWRAP) uvx --from cookiecutter-data-science ccds --accept-hooks yes $(CHECKOUT_ARG) -o . $(PROJECT_TEMPLATE_REPO) project_name=$(PROJECT_NAME) repo_name=$(PROJECT_NAME)
 	$(call scaffold_generic_after)
 	$(call scaffold_after,$(TEMPLATE_PACK))
 	@echo "✅ Project ready in $(PROJECT_NAME)/"

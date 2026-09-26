@@ -133,12 +133,20 @@ The tool column decides which `gmake` target runs: a template that only exists
 as a cookiecutter template cannot be scaffolded with `copier`, and the reverse
 is true too. When the same repository appears twice, the descriptions say why.
 
-Two of the three do not let you edit an answer: `copier` asks through a line
-editor (questionary, over prompt-toolkit), so the arrows and the rest work while
-you answer, while `cruft` and `ccds` ask through cookiecutter, which reads a
-plain line — the terminal's own editing is all there is, and an arrow key lands
-in the answer as the bytes it sends. That is the tools' own engines, not this
-pack: they behave like that wherever they run.
+Only one of the three can edit an answer on its own: `copier` asks through a
+line editor (questionary, over prompt-toolkit), so the arrows and the rest work
+while you answer. `cruft` and `ccds` ask through cookiecutter, which reads a
+plain line — with no editor loaded in the process, the terminal's own editing is
+all there is, and an arrow key lands in the answer as the bytes it sends.
+
+So all three run under `rlwrap`, which is in the image for that: it reads your
+keys, edits the line, and hands the finished answer to the tool. It steps aside
+where there is nothing to edit — a pipe, the CI, a command with no terminal —
+and the answer is then read exactly as before.
+
+`copier` needs none of that and is wrapped all the same, so the three targets
+read alike. What `rlwrap` adds is the editing, not the questions: a tool that
+reads a plain line still does.
 
 ### Where they come from
 
