@@ -199,7 +199,7 @@ A pack ships samples, never the real files. `gmake env_global_enable` and
 `gmake env_project_enable` read the socle's samples and every installed pack's,
 and append only what the file does not already define — so a value you filled
 in survives, and a pack installed later is covered by the next run. See
-[Environment files](make/env.md).
+[Environment files](../packs/devops/docs/env.md).
 
 ## Not yet
 
