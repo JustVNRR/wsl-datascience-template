@@ -30,7 +30,7 @@ packs/<name>/
 Only the first three are always there. The rest is what the pack needs: `vision`
 brings no target, no variable of its own and no sample — its folder is a
 `pack.conf`, two scripts, a sheet and a page. `devops` is the other extreme, with
-no package to install — its folder carries modules, two samples and its pages,
+no package to install — its folder carries modules, one sample and its pages,
 and its two scripts have nothing to do but say so. `scaffold` is both at once:
 one package to install (uv), targets, a sheet, a sample and its pages.
 
@@ -199,7 +199,7 @@ A pack ships samples, never the real files. `gmake env_global_enable` and
 `gmake env_project_enable` read the socle's samples and every installed pack's,
 and append only what the file does not already define — so a value you filled
 in survives, and a pack installed later is covered by the next run. See
-[Environment files](../packs/devops/docs/env.md).
+[Environment files](make/env.md).
 
 ## Not yet
 

@@ -119,6 +119,7 @@ help: ## Show this help menu
 # ==============================================================================
 # check_vars and confirm_action are the socle's, in make/macros.mk beside this
 # file - loaded with the other modules, so a pack that writes a target uses them
-# without declaring anything. merge_env_samples is a pack's: it assembles the
-# .env files, and the dev pack is the only thing that assembles them. Neither is
-# defined here: this file loads, prints the menu and holds the gate.
+# without declaring anything. merge_env_samples is the socle's too, in
+# make/env.mk with the two targets that call it: the .env.global it builds is
+# the file this Makefile loads above, before it reads a single pack. None of the
+# three is defined here: this file loads, prints the menu and holds the gate.

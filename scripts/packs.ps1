@@ -67,8 +67,8 @@ function Get-AvailablePacks {
 # Does this pack bring anything for the user's own .env files? Read from the
 # folder, like everything else here: a sample is a file, and a pack that ships
 # none has nothing to merge. It decides whether a command ends by pointing at
-# `gmake env_global_enable` - the target itself comes with the devops pack, which
-# is to say with the samples.
+# `gmake env_global_enable` - the target itself is the socle's, so it is there
+# whether or not a pack is.
 function Test-PackShipsSamples {
     param([string]$Path)
 

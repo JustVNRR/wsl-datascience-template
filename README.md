@@ -11,7 +11,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
-- **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs, the environment files), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
+- **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
 
 ---
 
@@ -71,7 +71,7 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
    - Only values shared across all projects belong in the shared `.env.global`
    - Anything identifying a project (project ids, resource names) lives in its `.env`.
-   - Both are gitignored, and both are built from committed samples by [`gmake env_global_enable` / `gmake env_project_enable`](packs/devops/docs/env.md) — the samples the packs ship beside their modules. The commands only ever add what is missing.
+   - Both are gitignored, and both are built from committed samples by [`gmake env_global_enable` / `gmake env_project_enable`](docs/make/env.md) — the socle's two, and the block each installed pack ships beside its modules. The commands only ever add what is missing.
 
 - **`gmake` vs `make`:**
   - Type `gmake` (without any arguments) to display a formatted help menu listing every gmake target (GCP compute, BigQuery, Docker, Cloud Run, etc.).
@@ -87,19 +87,20 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
+| Any | [Environment files](docs/make/env.md) | `env_global_enable`, `env_project_enable` |
 | Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
 
-Everything else a project needs — its environment files, its image, its pull
-requests — is a pack's, and the socle's own menu is one line long because an
-instance with no project has nothing to build, push or configure.
+Everything else a project needs — its image, its pull requests — is a pack's.
+The socle's own menu stops at what an instance with no project can still do:
+carry packs, and write the `.env` files it reads before it reads a single pack.
 
 Then the packs. Each one is listed once — the README does not follow a pack as
 it grows, and a pack leaves with its folder:
 
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
-| `devops` | [The devops pack](packs/devops/docs/devops.md) | `env_*_enable`, `docker_*`, `gh_pr_*` |
+| `devops` | [The devops pack](packs/devops/docs/devops.md) | `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
 | `scaffold` | [Project scaffolding, the pack](packs/scaffold/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
@@ -169,6 +170,7 @@ the repository at runtime.
 │   ├── gmake/               # MLOps Makefile ecosystem (the gmake alias)
 │   │   ├── Makefile         # Entrypoint: loads the modules, builds the menu, gates where targets run
 │   │   └── make/            # The socle's modules (pages in docs/make/)
+│   │       ├── env.mk       # the .env files, and the commands that build them
 │   │       ├── macros.mk    # what a target calls before it runs (check_vars, confirm_action)
 │   │       └── packs.mk     # what this instance carries (gmake packs_list)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
@@ -187,11 +189,10 @@ the repository at runtime.
 │   ├── wsl/                 # Instance administration: the commands, their options, examples
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── packs/                   # Optional tooling, one folder per pack
-│   ├── devops/              # the project targets: Docker, GitHub PRs, the environment files
+│   ├── devops/              # the project targets: Docker, GitHub PRs
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
-│   │   ├── env.global.sample  # the pack's shared defaults (the header of .env.global)
 │   │   ├── env.project.sample # the pack's project variables (PACKAGE_NAME, DOCKER_*)
 │   │   ├── make/            # the pack's modules, loaded as soon as the folder is there
 │   │   ├── cheatsheets/     # its fcheat sheets: the docker commands, its gmake targets
@@ -259,6 +260,8 @@ deleting the distro deletes all of it.
 ~/.config/zsh/               # = zsh/ from the repository
 ├── gmake/
 │   ├── .env.global          # Shared defaults (gmake env_global_enable)
+│   ├── env.global.sample    # The header every .env.global opens on
+│   ├── env.project.sample   # The header a project's .env opens on
 │   ├── Makefile
 │   └── make/*.mk            # the socle's modules
 └── .zshrc, modules, prompts/, cheatsheets/

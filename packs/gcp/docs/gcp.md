@@ -4,8 +4,8 @@
 
 Projects, Cloud Storage buckets, and service accounts — the ground floor of
 the GCP modules. All targets read the cascading `.env.global` / `.env`
-configuration, which [`env_global_enable` and `env_project_enable`](../../devops/docs/env.md)
-assemble from the samples the packs ship.
+configuration, which [`env_global_enable` and `env_project_enable`](../../../docs/make/env.md)
+assemble from the samples the socle and the packs ship.
 
 New to GCP entirely? Start with the [onboarding guide](onboarding.md).
 

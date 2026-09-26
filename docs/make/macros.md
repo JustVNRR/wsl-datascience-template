@@ -15,13 +15,14 @@ target uses them and declares nothing.
 Both are `define`d, never run: they cost nothing until a recipe calls them, so
 the module can be loaded before or after the targets that use it.
 
-The third macro that was theirs, `merge_env_samples`, is a pack's: it assembles
-the `.env` files, and [the devops pack](../../packs/devops/docs/env.md) is the
-only thing that assembles them.
+The third macro, `merge_env_samples`, sits in `make/env.mk` beside its two
+targets and is the socle's for the same reason: it assembles the `.env` files,
+and the `.env.global` it builds is loaded by this Makefile before it reads a
+single pack. See [Environment files](env.md).
 
 ## The one thing to know
 
-**A pack must never define either of these.** The socle's modules are read
+**A pack must never define any of the three.** The socle's modules are read
 first and the packs' after, so a pack's own `define check_vars` would win in
 silence — and every target that calls it, the pack's neighbours included, would
 lose its check. The CI greps for it on every push; a comment cannot notice.

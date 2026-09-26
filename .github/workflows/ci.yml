@@ -148,14 +148,16 @@ jobs:
             bad=1
           fi
           # The project targets came out of the socle with the devops pack - they
-          # build, push and configure ONE project, and an instance whose folders
-          # are empty has none. Nothing of them may stay behind here.
-          if grep -qE '^  (env_global_enable|env_project_enable|docker_build_local|docker_run_local|gh_pr_create|gh_pr_toreview|gh_pr_wip|gh_pr_ls)[[:space:]]' help-bare.txt; then
+          # build and push ONE project, and an instance whose folders are empty
+          # has none. Nothing of them may stay behind here. The two .env targets
+          # are not on this list any more: they went back to the socle, and the
+          # loop below is what keeps them there.
+          if grep -qE '^  (docker_build_local|docker_run_local|gh_pr_create|gh_pr_toreview|gh_pr_wip|gh_pr_ls)[[:space:]]' help-bare.txt; then
             echo "::error::a devops pack target is in the menu without the pack's folder"
             bad=1
           fi
           # And the socle loses nothing to an empty packs folder
-          for target in help packs_list; do
+          for target in help packs_list env_global_enable env_project_enable; do
             grep -q "^  ${target}[[:space:]]" help-bare.txt || {
               echo "::error::socle target '${target}' missing from the menu with no pack"
               bad=1
@@ -170,9 +172,9 @@ jobs:
           # calls it - its neighbours' included - would lose its check. A comment
           # cannot notice that; this can.
           bad=0
-          for macro in check_vars confirm_action; do
+          for macro in check_vars confirm_action merge_env_samples; do
             if grep -rln "^define $macro$" packs/*/make/*.mk 2>/dev/null | grep -q .; then
-              echo "::error::a pack defines $macro - that macro is the socle's (zsh/gmake/make/macros.mk)"
+              echo "::error::a pack defines $macro - the socle defines it in zsh/gmake/make/"
               bad=1
             fi
           done
