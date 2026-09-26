@@ -230,8 +230,8 @@ the repository at runtime.
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
 │   └── *.ps1                # list, build, start, stop, shell, add_pack,
-│                            # remove_pack, manage_packs, unregister, archive,
-│                            # restore, duplicate, shrink
+│                            # remove_pack, manage_packs, icons, unregister,
+│                            # archive, restore, duplicate, shrink
 ├── tests/                   # The suites that RUN the code: the arrow menu with a
 │                            # scripted keyboard, the pack checklist, build's
 │                            # questions over a stand-in docker, the doc drift
@@ -321,6 +321,7 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) | choose the packs an instance should carry |
+| [`.\wsl.ps1 icons`](docs/wsl/commands.md#icons) | choose the icon of an instance |
 | [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |

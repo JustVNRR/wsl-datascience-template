@@ -97,6 +97,126 @@ function Test-FontInstalled {
     return $false
 }
 
+# ---------------------------------------------------------------------------
+# THE LOOK OF AN INSTANCE
+# ---------------------------------------------------------------------------
+# One file per instance, in its own folder: instance.json. It says the name, the
+# font and the colour scheme the instance wears, where its icon is, what that
+# icon is made of, and whether Docker Desktop knows it. An archive carries that
+# very file beside the tar, so its shape is decided once, here - what an archive
+# writes is what the instance folder holds, and reading it back is the same
+# shape of file in both places.
+#
+# Nothing is stored beside the picture: an instance has a file, not one per
+# thing that can be changed.
+#
+#   {
+#       "Name":  "distro",
+#       "Font":  "MesloLGS NF",
+#       "ColorScheme":  "One Half Dark",
+#       "IconFrom":  "D:\\WSL\\distro\\terminal-icon.png",
+#       "IconText":  "DI",
+#       "IconTop":  "#148F8A",
+#       "IconBottom":  "#0E6B67",
+#       "IconTextColor":  "#FFFFFF",
+#       "Docker":  "yes"
+#   }
+#
+# The four Icon* fields are the recipe of the icon: they are what lets one change
+# keep the others - other letters, same colours. An image of your own is not a
+# drawing and has no recipe, so they are simply absent.
+
+# Where an instance lives, asked of the registry rather than guessed: the folder
+# holding its disk. $null when nothing registered here carries that name.
+function Get-InstanceFolder {
+    param([string]$Name)
+
+    $Props = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue |
+        ForEach-Object { Get-ItemProperty $_.PSPath } |
+        Where-Object { $_.DistributionName -eq $Name } |
+        Select-Object -First 1
+    if (-not $Props) { return $null }
+    return ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+}
+
+# The file as the instance has it, or $null when it has none yet. A file that
+# cannot be read is not a reason to stop: it is treated as absent, and the next
+# write replaces it.
+function Get-InstanceLook {
+    param([string]$Name)
+
+    $Folder = Get-InstanceFolder -Name $Name
+    if (-not $Folder) { return $null }
+    $File = Join-Path $Folder "instance.json"
+    if (-not (Test-Path $File)) { return $null }
+    try { return (Get-Content $File -Raw | ConvertFrom-Json) } catch { return $null }
+}
+
+# What an icon is made of, read off a look: a table of parameters, ready for the
+# drawing script. Empty when the look carries no recipe - an image of your own is
+# not a drawing, and an instance built before any of this existed has none.
+function Get-IconRecipe {
+    param([PSCustomObject]$Look, [string]$Name)
+
+    if (-not $Look -and $Name) { $Look = Get-InstanceLook -Name $Name }
+    if (-not $Look) { return @{} }
+    if (-not ($Look.PSObject.Properties.Name -contains "IconText")) { return @{} }
+    return @{
+        Text      = $Look.IconText
+        Top       = $Look.IconTop
+        Bottom    = $Look.IconBottom
+        TextColor = $Look.IconTextColor
+    }
+}
+
+# The look, the icon's recipe beside it, in the order the file is written. The
+# font, the colours and Docker come from this machine - or from what an archive
+# held, when a restore or a copy is putting it back. The icon path is always the
+# instance's own: the picture is copied into its folder either way.
+function New-InstanceLook {
+    param(
+        [string]$Name,
+        [hashtable]$Icon = @{},
+        [PSCustomObject]$From = $null,
+        [string]$IconFrom
+    )
+
+    if ($From) {
+        $Font = $From.Font
+        $Scheme = $From.ColorScheme
+        $Docker = $From.Docker
+        if (-not $IconFrom) { $IconFrom = $From.IconFrom }
+    } else {
+        $Appearance = Get-InstanceAppearance -Name $Name
+        $Font = $Appearance.Font
+        $Scheme = $Appearance.ColorScheme
+        $IconFrom = $Appearance.IconFrom
+        $Docker = Get-DockerState -Name $Name
+    }
+
+    $Look = [ordered]@{
+        Name        = $Name
+        Font        = $Font
+        ColorScheme = $Scheme
+        IconFrom    = $IconFrom
+    }
+    if ($Icon.Text) {
+        $Look.IconText      = $Icon.Text
+        $Look.IconTop       = $Icon.Top
+        $Look.IconBottom    = $Icon.Bottom
+        $Look.IconTextColor = $Icon.TextColor
+    }
+    if ($Docker) { $Look.Docker = $Docker }
+    return [PSCustomObject]$Look
+}
+
+# Write it where it belongs: in the instance's own folder.
+function Set-InstanceLook {
+    param([string]$InstallPath, [PSCustomObject]$Look)
+
+    $Look | ConvertTo-Json | Set-Content -Path (Join-Path $InstallPath "instance.json") -Encoding Utf8
+}
+
 # What an instance looks like right now: the fragment this repository wrote
 # when it built the instance, what Windows Terminal's own settings say the user
 # changed since, or the template's defaults - in that order. A settings file
@@ -138,11 +258,8 @@ function Get-InstanceAppearance {
     }
 
     # The icon lives next to the disk, where build.ps1 put it
-    $Registry = Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue |
-        ForEach-Object { Get-ItemProperty $_.PSPath } |
-        Where-Object { $_.DistributionName -eq $Name }
-    if ($Registry) {
-        $Folder = ($Registry.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+    $Folder = Get-InstanceFolder -Name $Name
+    if ($Folder) {
         $Icon = Join-Path $Folder "terminal-icon.png"
         if (Test-Path $Icon) { $Appearance.IconFrom = $Icon }
     }
@@ -156,11 +273,13 @@ function Save-InstanceState {
     param([string]$Name, [string]$Folder)
 
     $Appearance = Get-InstanceAppearance -Name $Name
-    $Docker = Get-DockerState -Name $Name
-    $Appearance | Add-Member -NotePropertyName Docker -NotePropertyValue $Docker
+    # The same file the instance keeps in its own folder, refreshed: what this
+    # machine has right now, and the icon's recipe as the instance noted it.
+    $Look = New-InstanceLook -Name $Name -Icon (Get-IconRecipe -Name $Name)
+    $Docker = $Look.Docker
 
     if (-not (Test-Path $Folder)) { New-Item -ItemType Directory -Path $Folder -Force | Out-Null }
-    $Appearance | ConvertTo-Json | Set-Content -Path (Join-Path $Folder "instance.json") -Encoding Utf8
+    $Look | ConvertTo-Json | Set-Content -Path (Join-Path $Folder "instance.json") -Encoding Utf8
 
     if ($Appearance.IconFrom) {
         Copy-Item -Path $Appearance.IconFrom -Destination (Join-Path $Folder "terminal-icon.png") -Force
@@ -217,6 +336,12 @@ function Set-InstanceState {
     } elseif ($Appearance.IconFrom -and (Test-Path $Appearance.IconFrom)) {
         Copy-Item -Path $Appearance.IconFrom -Destination $IconPath -Force
     }
+
+    # The instance keeps its own copy of the file - the same shape, under its own
+    # name, the icon pointing at its own folder. The recipe comes with it, or a
+    # later change of letters or colours would start again from the name.
+    Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $Name `
+        -From $Appearance -IconFrom $IconPath -Icon (Get-IconRecipe -Look $Appearance))
 
     $FragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
     New-Item -ItemType Directory -Force $FragmentDir | Out-Null

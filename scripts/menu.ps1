@@ -73,6 +73,58 @@ function Set-ConsoleTop {
     }
 }
 
+# Blank lines the console will let us blank. Best effort, and that is the whole
+# design: a host that will not say where the cursor is, or will not move it,
+# keeps its lines and loses nothing else - a test, a pipe, a capture stays a
+# readable log, which is exactly what the numbered prompt gives it.
+#
+# One column short of the width on purpose: a line written into the last cell
+# scrolls the console, and the rows just blanked would move up under our feet.
+function Clear-ConsoleLines {
+    param([int]$Top, [int]$Count = 0)
+
+    $Cursor = Get-ConsoleTop
+    if ($null -eq $Cursor) { return }
+    if ($Count -le 0) { $Count = $Cursor - $Top }
+    if ($Count -le 0) { return }
+
+    $Size = Get-ConsoleSize
+    $Blank = " " * ([Math]::Max(1, $Size[0] - 1))
+    for ($Row = 0; $Row -lt $Count; $Row++) {
+        if (-not (Set-ConsoleTop ($Top + $Row))) { return }
+        Write-Host $Blank
+    }
+    $null = Set-ConsoleTop $Top
+}
+
+# The block each menu drew, in the order they were drawn: what a command needs to
+# take a menu back off the screen. A command that asks its questions below a menu
+# would otherwise leave that menu behind it, and a visit of four turns would
+# leave four of them stacked, each pushing the last one up.
+$global:MenuBlocks = @()
+
+# Take the last one off: the menu that has just been answered.
+function Clear-MenuBlock {
+    if (-not $global:MenuBlocks -or $global:MenuBlocks.Count -eq 0) { return }
+
+    $Block = $global:MenuBlocks[-1]
+    $global:MenuBlocks = @($global:MenuBlocks | Select-Object -First ($global:MenuBlocks.Count - 1))
+    Clear-ConsoleLines -Top $Block.Top -Count $Block.Height
+}
+
+# And all of them, leaving the cursor where the highest one started: for a
+# command that takes the screen over from the menus it came through - the way
+# in, the instance it picked - and opens on a question instead.
+function Clear-MenuBlocks {
+    $Highest = $null
+    while ($global:MenuBlocks -and $global:MenuBlocks.Count -gt 0) {
+        $Block = $global:MenuBlocks[-1]
+        if ($null -eq $Highest -or $Block.Top -lt $Highest) { $Highest = $Block.Top }
+        Clear-MenuBlock
+    }
+    if ($null -ne $Highest) { $null = Set-ConsoleTop $Highest }
+}
+
 # One row of the list, as it is drawn: the marker and the colours say where the
 # choice is, so a terminal that renders neither still reads correctly.
 function Format-MenuRow {
@@ -254,6 +306,13 @@ function Select-WithArrows {
     # answers the keys, it simply does not repaint - there is nothing to paint
     # on.
     $CanPaint = ($null -ne $Cursor) -and ($Top -ge 0)
+
+    # Remember the block for whoever wants it off the screen later: the blank
+    # line and the title above the first row, the hint below the last. Read back
+    # only when it can be painted on - there is nothing to take off a log.
+    if ($CanPaint) {
+        $global:MenuBlocks += @{ Top = ($Top - 2); Height = ($Visible + 3) }
+    }
 
     while ($true) {
         $Key = if ($KeyReader) { & $KeyReader } else { Read-MenuKey }

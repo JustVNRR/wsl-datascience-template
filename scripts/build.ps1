@@ -378,9 +378,14 @@ try {
     # below drops the icon line, so the profile keeps Terminal's own icon.
     $IconPath = Join-Path $InstallPath "terminal-icon.png"
     $IconDrawn = $false
+    $Icon = @{}
     try {
-        & "$RepoRoot\assets\make-icon.ps1" -Name $DistroName -Out $IconPath -Quiet
+        # -What: the letters and the colours it settled on are read back, and go
+        # into the instance's own file below, so that a later change of one keeps
+        # the other.
+        $Drawn = & "$RepoRoot\assets\make-icon.ps1" -Name $DistroName -Out $IconPath -Quiet -What | ConvertFrom-Json
         $IconDrawn = $true
+        $Icon = @{ Text = $Drawn.Text; Top = $Drawn.Top; Bottom = $Drawn.Bottom; TextColor = $Drawn.TextColor }
     } catch {
         Remove-Item $IconPath -Force -ErrorAction SilentlyContinue
         Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor Yellow
@@ -480,6 +485,12 @@ $IconJson
         Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor Yellow
         $TerminalProfileOk = $false
     }
+
+    # What this instance looks like, written in its own folder - the file an
+    # archive carries. Written here, the fragment in place, so the font and the
+    # colours it reads are the ones just applied, and with the icon's recipe: a
+    # later change of letters or colours keeps the other half.
+    Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
 
     # The packs, before the screen that says the instance is done - and in a try
     # of their own. Their own try is the point: a pack that fails must not reach

@@ -19,6 +19,7 @@ WSL DataScience template
     add_pack     install a pack into an instance
     remove_pack  uninstall a pack from an instance
     manage_packs choose the packs an instance should carry
+    icons        choose the icon of an instance
     unregister   remove an instance
     archive      write an instance to a named archive
     restore      rebuild an instance from an archive
@@ -32,6 +33,11 @@ instances, the packs, the archives - and it is answered the same way. Where
 there is no console to read a key from (a script, a pipe), that menu becomes
 the numbered prompt it used to be, and the answer is typed.
 
+A menu that has been answered comes off the screen before the next question, and
+the next menu takes its place: a visit of four questions is one screen rather
+than four stacked menus. With no console there is nothing to take back - a log
+is read, not looked at - so every line stays.
+
 ## All commands
 
 | Command | What it does |
@@ -44,6 +50,7 @@ the numbered prompt it used to be, and the answer is typed.
 | [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
+| [`.\wsl.ps1 icons`](#icons) | choose the icon of an instance |
 | [`.\wsl.ps1 unregister`](#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
@@ -60,6 +67,7 @@ virtual disk:
 D:\WSL\ubuntu-template\
 ├── ext4.vhdx
 ├── terminal-icon.png        drawn from the name, and kept here
+├── instance.json            its look: the font, the colours, the icon's recipe
 └── .wsl-datascience-template
 ```
 
@@ -75,7 +83,7 @@ D:\WSL\
 └── archives\                 an archive is a folder too
     └── ubuntu-template\
         ├── ubuntu-template.tar.gz   the instance's file system
-        ├── instance.json            its font, colours, and Docker state
+        ├── instance.json            its look, the same file the instance keeps
         └── terminal-icon.png        its icon
 ```
 
@@ -450,6 +458,52 @@ removed, what was placed, what was never touched.
 
 ---
 
+## `icons`
+
+Draws the icon of an instance, or puts an image of yours in its place. The
+script the build calls does the drawing, so the letters and the colours follow
+the same rule in both places.
+
+```powershell
+.\wsl.ps1 icons
+```
+
+It takes no options: the instance comes from the list, and the icon is the next
+question. It keeps asking — change the colours, then the text, and both are
+kept; Escape leaves, and nothing moves but the icon.
+
+```text
+Icon of 'ubuntu-ml-dev'
+  > By Default
+    text
+    colors
+    local file
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+| Choice | What it does |
+| :--- | :--- |
+| `By Default` | the letters and the colour pair the name gives |
+| `text` | one to three characters, typed — the current ones are the default answer |
+| `colors` | one of eight pairs, each shown with your letters on it |
+| `local file` | a PNG, JPG, ICO or BMP, copied in place |
+
+The icon is a **file**, not a setting: `terminal-icon.png` in the instance's own
+folder, the one its Terminal profile points at. Nothing else is written, and
+nothing has to be stopped — an icon is read when a tab opens, so a tab already
+open keeps the one it drew.
+
+Changing one part keeps the other. The recipe of the last drawing — its letters,
+its three colours — is noted in the instance's own `instance.json`, the same file
+an archive carries, so picking other colours keeps the letters you typed, and the
+other way round. An image of your own replaces the picture and leaves the recipe
+alone: changing your mind starts from it again rather than from the name.
+
+The icon travels with the instance: `archive` takes the file and the picture,
+`restore` and `duplicate` put both back.
+
+---
+
 ## `unregister`
 
 Removes an instance and everything it left on Windows.
@@ -491,8 +545,8 @@ restore from later.
 ## `archive`
 
 Writes an instance to an archive: the file system, **plus what a tar cannot
-carry** — the icon, the font and the colour scheme the instance was using, and
-whether Docker Desktop knew it.
+carry** — the icon and what it is made of, the font and the colour scheme the
+instance was using, and whether Docker Desktop knew it.
 
 ```powershell
 .\wsl.ps1 archive

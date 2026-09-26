@@ -33,6 +33,7 @@ $Commands = @(
     @{ Name = "add_pack";   What = "install a pack into an instance" },
     @{ Name = "remove_pack"; What = "uninstall a pack from an instance" },
     @{ Name = "manage_packs"; What = "choose the packs an instance should carry" },
+    @{ Name = "icons";      What = "choose the icon of an instance" },
     @{ Name = "unregister"; What = "remove an instance" },
     @{ Name = "archive";    What = "write an instance to a named archive" },
     @{ Name = "restore";    What = "rebuild an instance from an archive" },

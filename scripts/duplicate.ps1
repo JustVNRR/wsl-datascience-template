@@ -29,8 +29,8 @@ $SourceDistro = $Source.Name
 
 # Captured now, while the source's profile is still the one it was built with:
 # a copy that comes out bare is not a copy.
-$Look = Get-InstanceAppearance -Name $SourceDistro
-$Look | Add-Member -NotePropertyName Docker -NotePropertyValue (Get-DockerState -Name $SourceDistro)
+# Its file, recipe included: a copy comes out with everything a redraw needs.
+$Look = New-InstanceLook -Name $SourceDistro -Icon (Get-IconRecipe -Name $SourceDistro)
 
 # 0-bis. The copy's name. Typed, because there is nothing to pick from - it
 # does not exist yet. The question comes back until the name is usable.

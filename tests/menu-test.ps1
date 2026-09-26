@@ -201,5 +201,64 @@ Check "the window followed the choice (i6 current)" $Last "i4|i5|#i6"
 Check "and the choice is still right" $Picked "i6"
 
 Write-Output ""
+Write-Output "--- taking a menu back off the screen ---"
+# What each menu drew is remembered, so a command can take it off again: a visit
+# of four turns must not leave four menus stacked, each pushing the last one up.
+# The console here is a stand-in that records where the cursor was sent, which is
+# how the rows cleared can be read back - the drawing itself is not what is being
+# checked, and has its own section above.
+$global:MenuBlocks = @()
+$script:Cleared = @()
+function Write-MenuRow { param([int]$Index, [int]$Current, [string[]]$Labels) }
+function Get-ConsoleTop { return 40 }
+function Set-ConsoleTop { param([int]$Top) $script:Cleared += $Top; return $true }
+function Get-ConsoleSize { return @(40, 24) }
+
+$script:Queue = New-Object System.Collections.Queue
+$script:Queue.Enqueue([ConsoleKey]::Enter)
+$Reader = { $script:Queue.Dequeue() }
+$null = Select-FromList -Title "T" -Items @("a", "b", "c") -KeyReader $Reader
+
+Check "a menu remembers the block it drew" $global:MenuBlocks.Count 1
+Check "  ... from its blank line to its hint" `
+    ("$($global:MenuBlocks[0].Top)/$($global:MenuBlocks[0].Height)") "34/6"
+
+# It has been answered: it comes off whole - the six rows of the block, and the
+# cursor left at its top for what comes next.
+$script:Cleared = @()
+Clear-MenuBlock
+Check "and it comes off the screen" ($script:Cleared -join ",") "34,35,36,37,38,39,34"
+Check "  ... and is forgotten" $global:MenuBlocks.Count 0
+Check "clearing nothing is not an error" (& { Clear-MenuBlock; "survived" }) "survived"
+
+# Two menus, as a command that picks an instance and then asks a question leaves
+# them: both go, and the cursor goes back to the highest one.
+$script:Queue = New-Object System.Collections.Queue
+$script:Queue.Enqueue([ConsoleKey]::Enter)
+$script:Queue.Enqueue([ConsoleKey]::Enter)
+$Reader = { $script:Queue.Dequeue() }
+$null = Select-FromList -Title "T" -Items @("a", "b", "c") -KeyReader $Reader
+$null = Select-FromList -Title "T" -Items @("a", "b", "c") -KeyReader $Reader
+Check "two menus are remembered" $global:MenuBlocks.Count 2
+$script:Cleared = @()
+Clear-MenuBlocks
+Check "both come off, and the cursor lands on the first" $script:Cleared[-1] "34"
+Check "  ... and nothing is left" $global:MenuBlocks.Count 0
+
+# And where there is no screen, nothing is remembered and nothing is cleared: a
+# run whose answers are piped in stays a log, which is what the numbered prompt
+# is for.
+$global:MenuBlocks = @()
+function Get-ConsoleTop { return $null }
+$script:Cleared = @()
+$script:Queue = New-Object System.Collections.Queue
+$script:Queue.Enqueue([ConsoleKey]::Enter)
+$null = Select-FromList -Title "T" -Items @("a", "b", "c") -KeyReader $Reader
+Check "no screen, no block remembered" $global:MenuBlocks.Count 0
+Clear-MenuBlock
+Clear-MenuBlocks
+Check "and nothing to clear moves nothing" ($script:Cleared -join ",") ""
+
+Write-Output ""
 Write-Output ("failures: " + $Failures)
 exit $Failures

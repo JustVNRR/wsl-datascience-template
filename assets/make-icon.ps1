@@ -17,6 +17,21 @@ param (
     # in a line of its own, and the drawing has nothing to add there.
     [switch]$Quiet,
 
+    # The table itself, one row per line, for the command that asks which
+    # colours to use. Nothing is drawn.
+    [switch]$ListPairs,
+
+    # The letters this name would be drawn with, and nothing else: for a caller
+    # that has to offer them as a default before drawing anything.
+    [switch]$Letters,
+
+    # Say what was drawn, in one line of JSON on the output stream: the letters
+    # and the three colours, after the name has given them or the caller has.
+    # For a caller that has to note them - what they go in is the caller's file,
+    # and there is one per instance, not one per thing that can be changed. Said
+    # with this, the drawing keeps its own chatter to itself.
+    [switch]$What,
+
     [string]$Out = "terminal-icon.png"
 )
 
@@ -25,7 +40,11 @@ param (
 # repository, so copying this single file is enough to reuse it.
 #
 #   .\make-icon.ps1 -Name wagon -Out D:\WSL\wagon\terminal-icon.png
+#   .\make-icon.ps1 -Name wagon -What -Out ...       # and say what was drawn,
+#                                                    # one line of JSON
 #   .\make-icon.ps1 -Text ML -Top "#3B82F6"          # by hand, for another use
+#   .\make-icon.ps1 -ListPairs                       # the colours a name can get
+#   .\make-icon.ps1 -Letters -Name wagon             # the letters it would be drawn with
 #
 # The monogram width, the corner radius and the gradient direction are fixed on
 # purpose: they were chosen by eye for legibility at tab size (~16 px), where a
@@ -42,14 +61,14 @@ param (
 # calculation. The first row is the orange this repository shipped for years;
 # the others are its neighbours.
 $Palette = @(
-    @{ Top = "#CF7040"; Bottom = "#B95E30"; Text = "#FFFFFF" },   # orange
-    @{ Top = "#3B82F6"; Bottom = "#2563EB"; Text = "#FFFFFF" },   # blue
-    @{ Top = "#2E8B57"; Bottom = "#1F5C3E"; Text = "#FFFFFF" },   # green
-    @{ Top = "#7C5CBF"; Bottom = "#5B3F9E"; Text = "#FFFFFF" },   # purple
-    @{ Top = "#C0453B"; Bottom = "#93291F"; Text = "#FFFFFF" },   # red
-    @{ Top = "#148F8A"; Bottom = "#0E6B67"; Text = "#FFFFFF" },   # teal
-    @{ Top = "#4B5563"; Bottom = "#374151"; Text = "#FFFFFF" },   # graphite
-    @{ Top = "#E3C567"; Bottom = "#C9A73F"; Text = "#2A2410" }    # sand, dark text
+    @{ Name = "orange";   Top = "#CF7040"; Bottom = "#B95E30"; Text = "#FFFFFF" },
+    @{ Name = "blue";     Top = "#3B82F6"; Bottom = "#2563EB"; Text = "#FFFFFF" },
+    @{ Name = "green";    Top = "#2E8B57"; Bottom = "#1F5C3E"; Text = "#FFFFFF" },
+    @{ Name = "purple";   Top = "#7C5CBF"; Bottom = "#5B3F9E"; Text = "#FFFFFF" },
+    @{ Name = "red";      Top = "#C0453B"; Bottom = "#93291F"; Text = "#FFFFFF" },
+    @{ Name = "teal";     Top = "#148F8A"; Bottom = "#0E6B67"; Text = "#FFFFFF" },
+    @{ Name = "graphite"; Top = "#4B5563"; Bottom = "#374151"; Text = "#FFFFFF" },
+    @{ Name = "sand";     Top = "#E3C567"; Bottom = "#C9A73F"; Text = "#2A2410" }
 )
 
 # The two letters a name is read by. A name in one piece gives its first two
@@ -86,6 +105,22 @@ function Get-PaletteIndex {
         $Hash = ($Hash * 31 + [int]$Character) % 1000003
     }
     return [int]($Hash % $Palette.Count)
+}
+
+# The table, for the command that offers it to choose from: one row per line,
+# tab-separated - name, background top, background bottom, text colour. It is
+# read by another script, so it goes to the output stream, not to the console.
+if ($ListPairs) {
+    foreach ($Row in $Palette) {
+        "{0}`t{1}`t{2}`t{3}" -f $Row.Name, $Row.Top, $Row.Bottom, $Row.Text
+    }
+    return
+}
+
+if ($Letters) {
+    if (-not $Name) { throw "The letters are read from a name: give a -Name." }
+    Get-Letters $Name
+    return
 }
 
 if (-not $Name -and -not $Text) {
@@ -169,7 +204,16 @@ $bitmap.Save($target, [System.Drawing.Imaging.ImageFormat]::Png)
 $canvas.Dispose()
 $bitmap.Dispose()
 
-if (-not $Quiet) {
+if ($What) {
+    [PSCustomObject]@{
+        Text      = $Text
+        Top       = $Top
+        Bottom    = $Bottom
+        TextColor = $TextColor
+    } | ConvertTo-Json -Compress
+}
+
+if (-not $Quiet -and -not $What) {
     Write-Host ("Wrote {0}" -f $target)
     Write-Host ("  {0}x{0} px, monogram '{1}', {2} -> {3}" -f $Size, $Text, $Top, $Bottom)
 }

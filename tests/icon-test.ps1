@@ -16,6 +16,10 @@
 $ErrorActionPreference = "Stop"
 
 $IconScript = Join-Path $PSScriptRoot "..\assets\make-icon.ps1"
+# The script writes terminal-icon.png into the current folder when -Out is not
+# given. Every drawing below names its file, and this is the check that says so:
+# a suite that drops an image in the checkout is a suite that gets committed.
+$StrayAtStart = Test-Path (Join-Path (Get-Location) "terminal-icon.png")
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("icon-test-" + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $Tmp -Force | Out-Null
 
@@ -59,12 +63,18 @@ function Invoke-Icon {
     return $Lines
 }
 
-# What the script said it drew: its line reads "monogram 'WA', #CF7040 -> ..."
-function Get-DrawnLetters {
+# What the script said it drew: its line reads "monogram 'WA', #CF7040 -> #B95E30"
+function Get-DrawnLine {
     param([string[]]$Arguments)
 
     $Lines = Invoke-Icon $Arguments
-    $Line = @($Lines | Where-Object { "$_" -match "monogram '" })[0]
+    return @($Lines | Where-Object { "$_" -match "monogram '" })[0]
+}
+
+function Get-DrawnLetters {
+    param([string[]]$Arguments)
+
+    $Line = Get-DrawnLine $Arguments
     if ($Line -match "monogram '([^']*)'") { return $Matches[1] }
     return "<nothing drawn>"
 }
@@ -104,6 +114,63 @@ Check "the same letters, another name, another colour" `
 Check "a monogram given by hand is drawn as asked" `
     (Get-DrawnLetters @("-Text", "ML", "-Out", (Join-Path $Tmp "by-hand-ml.png"))) "ML"
 
+# The table the colours are chosen from, read the way `icons` reads it: one row
+# per line, tab-separated, the name first.
+$Pairs = @(Invoke-Icon @("-ListPairs"))
+Check "the table has eight pairs" $Pairs.Count 8
+Check "every row is a name and three colours" (@($Pairs | Where-Object { ($_ -split "`t").Count -ne 4 }).Count) 0
+Check "the first pair is the orange of this repository" ($Pairs[0] -split "`t")[0] "orange"
+
+# A colour given by hand wins over the name's own - what `icons` relies on when
+# a pair is picked from that table, and the letters stay the name's. Every
+# drawing here names its file: the script's own default would put one in
+# whatever folder the suite was started from.
+$Line = Get-DrawnLine @("-Name", "wagon", "-Top", "#000000", "-Bottom", "#111111", "-TextColor", "#FFFFFF",
+                        "-Out", (Join-Path $Tmp "colours-by-hand.png"))
+Check "a colour given by hand is used as given" ("$Line".Contains("#000000 -> #111111")) $true
+Check "and the letters still come from the name" `
+    (Get-DrawnLetters @("-Name", "wagon", "-Out", (Join-Path $Tmp "name-only.png"))) "WA"
+
+# The call `icons` makes: the drawing script in the same process, told what to
+# draw through a table of parameters held in a variable.
+#
+# Both halves of that sentence were learned the hard way, the day the command was
+# first run. A LIST is handed over in order and not by name - "-Text" lands where
+# a colour belongs, and the drawing dies on a colour that is not one. And an
+# inline @{...} is not a splat at all: it is one value, handed over as the first
+# argument - asked to draw "wagon", it drew System.Collections.Hashtable, which
+# reads 'SC' and comes out teal.
+#
+# So the shape of the call is checked, and not only that it runs: the file has to
+# be the same one a child process draws when asked the same thing in the ordinary
+# way.
+$InProcess = Join-Path $Tmp "in-process.png"
+$ViaChild = Join-Path $Tmp "via-child.png"
+$Draw = @{ Name = "wagon"; Text = "ABC" }
+$Drawn = $true
+try {
+    & $IconScript @Draw -Out $InProcess -Quiet
+} catch {
+    $Drawn = $false
+    Write-Host ("      (in this process: " + $_.Exception.Message + ")")
+}
+$null = Invoke-Icon @("-Name", "wagon", "-Text", "ABC", "-Out", $ViaChild, "-Quiet")
+Check "in this process, told by name" $Drawn $true
+Check "and the same file as the same call made by a child" (Get-FileHash $InProcess).Hash (Get-FileHash $ViaChild).Hash
+
+# What the icon is made of is said on the output stream when -What is asked for:
+# one line of JSON, the letters and the three colours, for a caller that has to
+# note them somewhere. The file they go in belongs to the caller - one per
+# instance, not one per thing that can be changed - and nothing is dropped beside
+# the picture.
+$Noted = Join-Path $Tmp "noted.png"
+$Told = @(Invoke-Icon @("-Name", "wagon", "-Text", "ABC", "-Top", "#3B82F6", "-Bottom", "#2563EB", "-Out", $Noted, "-What"))
+$Said = $Told[-1] | ConvertFrom-Json
+Check "what was drawn is said, in one line" $Told.Count 1
+Check "with the letters that were drawn" $Said.Text "ABC"
+Check "and the colours that were drawn" "$($Said.Top) $($Said.Bottom) $($Said.TextColor)" "#3B82F6 #2563EB #FFFFFF"
+Check "and nothing is written beside the picture" (Test-Path ([System.IO.Path]::ChangeExtension($Noted, ".json"))) $false
+
 # Nothing to draw is refused, and leaves no file behind.
 $Nothing = Join-Path $Tmp "nothing.png"
 Check "neither -Name nor -Text: refused" ($null -eq (Invoke-Icon @("-Out", $Nothing))) $true
@@ -113,6 +180,9 @@ Check "and no file was written" (Test-Path $Nothing) $false
 $Bytes = [System.IO.File]::ReadAllBytes($First)
 Check "the icon is a PNG" (($Bytes[0..7] | ForEach-Object { $_.ToString("X2") }) -join "") "89504E470D0A1A0A"
 Check "and it has pixels in it" ($Bytes.Length -gt 1000) $true
+
+# See the top of this file: no drawing may land in the folder the suite runs from.
+Check "nothing was drawn into the working folder" (Test-Path (Join-Path (Get-Location) "terminal-icon.png")) $StrayAtStart
 
 Remove-Item -Recurse -Force $Tmp
 
