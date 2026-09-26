@@ -137,12 +137,14 @@ jobs:
             echo "::error::gcp_install/gcp_uninstall are gone - a pack arrives from Windows"
             bad=1
           fi
-          # A pack's targets go with its folder, the python ones as much as the
-          # gcp ones: lint, the test lanes and the scaffolding live in
-          # packs/python/make/*.mk. Their absence here is what an instance
-          # without the pack looks like.
+          # A pack's targets go with its folder, the scaffolding ones as much as
+          # the python ones: lint and the test lanes live in
+          # packs/python/make/*.mk, the three *_project targets in
+          # packs/scaffold/make/*.mk. Their absence here is what an instance
+          # without the packs looks like - and scaffold comes with python, so a
+          # bare instance has neither.
           if grep -qE '^  (lint|lint-py|lint-sh|lint-format|test|test-fast|test-functional|test-gcp|copier_project|cruft_project|ccds_project)[[:space:]]' help-bare.txt; then
-            echo "::error::a python pack target is in the menu without the pack's folder"
+            echo "::error::a scaffolding or python pack target is in the menu without the pack's folder"
             bad=1
           fi
           # The project targets came out of the socle with the devops pack - they

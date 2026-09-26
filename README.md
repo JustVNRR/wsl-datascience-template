@@ -10,7 +10,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **A modern shell** — Zsh, Oh My Zsh, and Starship, with fzf everywhere and Rust-based replacements for `ls` and `cat` ([shell environment](#shell-environment-zsh)).
 - **Command memory** — cheatsheets stored as plain files, fuzzy-injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
-- **Project scaffolding** — with the `python` pack, `fnew` fuzzy-picks a template from your curated catalog — or takes one by URL — and bootstraps the virtual environment and direnv.
+- **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
 - **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs, the environment files), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
 
 ---
@@ -101,14 +101,15 @@ it grows, and a pack leaves with its folder:
 | :--- | :--- | :--- |
 | `devops` | [The devops pack](packs/devops/docs/devops.md) | `env_*_enable`, `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
-| `python` | [Python](packs/python/docs/python.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project`, `lint*`, `test*` |
+| `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
+| `scaffold` | [Project scaffolding, the pack](packs/scaffold/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
 
 The pack table is a pack's extremes: `devops` brings targets and no tool, `vision`
 brings a tool and no target — it installs ffmpeg, ImageMagick and Tesseract, and
-their commands go to the cheatsheet picker. `devops` is also the one pack nobody
-chooses: `python` and `gcp` require it, so it is installed and removed with
-them, and it is in no list.
+their commands go to the cheatsheet picker. `devops` and `scaffold` are the two
+nobody chooses: `python` and `gcp` require the first, `python` requires the
+second, and neither is in a list.
 
 What a pack is, what it must contain, and how to add one:
 [`docs/packs.md`](docs/packs.md). One reaches an instance with
@@ -139,9 +140,12 @@ leaves with `remove_pack`.
 
 ### Python & Data Science
 
-The image carries none of it: `uv`, Python 3, the four packages most wheels are
-compiled with (`build-essential`, `python3-dev`, `libffi-dev`, `libssl-dev`) and
-the scaffolding tools arrive with the [`python` pack](packs/python/docs/python.md).
+The image carries none of it: `uv`, Python 3, ruff and the four packages most
+wheels are compiled with (`build-essential`, `python3-dev`, `libffi-dev`,
+`libssl-dev`) arrive with the [`python` pack](packs/python/docs/python.md). The
+scaffolding tools come with
+[the `scaffold` pack](packs/scaffold/docs/scaffold.md), which `python` requires
+and which takes each tool from uv's cache the day it is first used.
 
 ---
 
@@ -200,12 +204,21 @@ the repository at runtime.
 │   │   ├── make/            # the pack's modules, loaded as soon as the folder is there
 │   │   ├── cheatsheets/     # the pack's fcheat sheets, each with its `# requires:` header
 │   │   └── docs/            # the pack's pages, onboarding walkthrough included
-│   ├── python/              # Python 3, uv, the compiler, the scaffolding tools
+│   ├── python/              # Python 3, uv, ruff, the compiler a wheel is built with
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
-│   │   ├── make/            # its modules: lint, the test lanes, project setup
+│   │   ├── make/            # its modules: lint, the test lanes, the venv
 │   │   ├── cheatsheets/     # its fcheat sheets, and the catalog fnew reads
+│   │   ├── zsh/             # its shell files: uv's PATH and completions
+│   │   └── docs/            # the pack's pages, one per module
+│   ├── scaffold/            # making a project: fnew, the picker, the three targets
+│   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
+│   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
+│   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   ├── env.global.sample  # the direct-call variables (PROJECT_TEMPLATE_*, TEMPLATE_PACK)
+│   │   ├── make/            # the scaffolding targets, and the after-copy step
+│   │   ├── cheatsheets/     # its fcheat sheets: the scaffolding commands
 │   │   ├── zsh/             # its shell files: uv's PATH, the fnew picker
 │   │   └── docs/            # the pack's pages, one per module
 │   └── vision/              # ffmpeg, ImageMagick, Tesseract: media and OCR tools

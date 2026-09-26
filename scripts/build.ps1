@@ -697,8 +697,8 @@ if ($Deployed) {
     # I, where, and what now" instead of on an anonymous prompt. ~/projects
     # comes from /etc/skel, and fnew refuses to run from anywhere else.
     #
-    # A pack may have something to say here - python's line points at fnew, the
-    # command it brings - and it says it in its own pack.conf. So no sentence of
+    # A pack may have something to say here - scaffold's line points at fnew,
+    # the command it brings - and it says it in its own pack.conf. So no sentence of
     # this script names a pack or a command: a pack whose folder is not in the
     # instance prints nothing, which is what a missing command should say. The
     # packs line just below says what is in place.

@@ -45,16 +45,23 @@ function Check {
     }
 }
 
-# The shape Get-AvailablePacks hands back, declarations included: gcp and python
-# require devops, and devops is the invisible one - it is in no list, and it
-# travels with what requires it. Its row is absent from the checklist, which is
-# also what every numbered answer below counts on: were it offered, the
-# numbering would shift and every scenario would answer about the wrong pack.
+# The shape Get-AvailablePacks hands back, declarations included: gcp requires
+# devops, python requires devops AND scaffold, and those two are the invisible
+# ones - a pack in no list, travelling with what requires it. Their rows are
+# absent from the checklist, which is also what every numbered answer below
+# counts on: were one offered, the numbering would shift and every scenario
+# would answer about the wrong pack.
+#
+# Two invisible packs, because a run can hold one of them and let the other go
+# (python and gcp are installed, python leaves: devops stays, scaffold does not)
+# - and because the two requirements of a single pack arrive in the order that
+# pack names them.
 $Available = @(
-    [PSCustomObject]@{ Name = "gcp";    Path = "X:\packs\gcp";    Description = "Google Cloud CLI";  Requires = @("devops"); Visible = $true },
-    [PSCustomObject]@{ Name = "vision"; Path = "X:\packs\vision"; Description = "Image and OCR tools"; Requires = @();    Visible = $true },
-    [PSCustomObject]@{ Name = "python"; Path = "X:\packs\python"; Description = "Python toolchain";  Requires = @("devops"); Visible = $true },
-    [PSCustomObject]@{ Name = "devops"; Path = "X:\packs\devops"; Description = "Project targets";   Requires = @();    Visible = $false }
+    [PSCustomObject]@{ Name = "gcp";      Path = "X:\packs\gcp";      Description = "Google Cloud CLI";    Requires = @("devops");            Visible = $true },
+    [PSCustomObject]@{ Name = "vision";   Path = "X:\packs\vision";   Description = "Image and OCR tools"; Requires = @();                    Visible = $true },
+    [PSCustomObject]@{ Name = "python";   Path = "X:\packs\python";   Description = "Python toolchain";    Requires = @("devops","scaffold"); Visible = $true },
+    [PSCustomObject]@{ Name = "devops";   Path = "X:\packs\devops";   Description = "Project targets";     Requires = @();                    Visible = $false },
+    [PSCustomObject]@{ Name = "scaffold"; Path = "X:\packs\scaffold"; Description = "Project scaffolding"; Requires = @();                    Visible = $false }
 )
 
 Write-Output "--- Select-Packs: what the checklist means ---"
@@ -111,26 +118,30 @@ Write-Output ""
 Write-Output "--- Select-Packs: the packs nobody picks ---"
 
 # 8. What the instance already carries is not installed a second time. devops is
-#    there, python is ticked, and python travels alone: the pack that is already
-#    in place is not copied over itself and its install.sh does not run again.
+#    there, python is ticked, and the requirement that is already in place is
+#    not copied over itself - its install.sh does not run again. What is missing
+#    still arrives, and before the pack that requires it: scaffold, then python,
+#    in the order python's own declaration names them.
 #    Installing gcp on an instance that has carried python for months is that
 #    same case - and devops stays, held by the arrival of the same run.
 $Selection = Select-Packs -Title "T" -Available $Available -Installed @("devops")
 Check "a requirement already installed is not installed again" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "python / "
+    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "scaffold,python / "
 
 # 9. An invisible pack has no row, so nobody can untick it - it leaves when the
-#    last pack that requires it does, and in the same answer (devops is python's
-#    requirement; the scenario starts from that pair installed).
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("python", "devops")
-Check "the last claimant leaves -> the invisible one goes too" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python,devops"
+#    last pack that requires it does, and in the same answer. python is the only
+#    claimant of the two it requires, so both follow it out.
+$Selection = Select-Packs -Title "T" -Available $Available -Installed @("python", "devops", "scaffold")
+Check "the last claimant leaves -> the invisible ones go too" `
+    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python,devops,scaffold"
 
-# 10. ... and it stays while an installed pack still requires it. That is the
-#     whole reason it is not offered: another claimant is still there to hold it.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("python", "gcp", "devops")
-Check "another claimant holds it -> it stays" `
-    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python"
+# 10. ... and one stays while an installed pack still requires it. That is the
+#     whole reason they are not offered: another claimant is there to hold it.
+#     gcp requires devops, and nothing requires scaffold: the same run holds one
+#     and lets the other go, which is what a single invisible pack cannot show.
+$Selection = Select-Packs -Title "T" -Available $Available -Installed @("python", "gcp", "devops", "scaffold")
+Check "another claimant holds it -> it stays, and the other one goes" `
+    ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python,scaffold"
 
 # 11. What an instance carried is not what the checklist shows: a predecessor
 #     that had an invisible pack must not bring it back through a tick nobody

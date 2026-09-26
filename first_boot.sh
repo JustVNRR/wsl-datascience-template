@@ -74,10 +74,11 @@ enabled=true
 appendWindowsPath=true
 WSLCONF
 
-# No Python here, and that is deliberate: `uv python install 3` and the five
-# scaffolding tools used to run at this point. They are the `python` pack's now,
-# and they arrive on the instance that asks for them, with `.\wsl.ps1 add_pack`
-# or by being chosen while the instance is built.
+# No Python here, and that is deliberate: `uv python install 3` and the
+# scaffolding tools used to run at this point. They come with the packs now - uv
+# and the interpreter with `python`, the tools with `scaffold` - and they arrive
+# on the instance that asks for them, with `.\wsl.ps1 add_pack` or by being
+# chosen while the instance is built.
 
 # Export username for build script display
 echo -n "$NEW_USER" > /tmp/installed_user

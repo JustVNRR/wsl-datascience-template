@@ -2,11 +2,17 @@
 # PROJECT SCAFFOLDING (FNEW)
 # ============================================================
 # This file is the pack's: the socle reads it where it lives
-# (~/.config/packs/python/zsh/scaffold.zsh) and copies nothing anywhere. It reads
-# the catalogs of every installed pack, one per pack, and the folder that holds
-# them is resolved from this file rather than from a directory of the socle's -
-# `%x` is the file currently being read, which is also the right answer from
-# inside a function (there, `$0` is the function's own name).
+# (~/.config/packs/scaffold/zsh/scaffold.zsh) and copies nothing anywhere. It
+# reads the catalogs of every installed pack, one per pack, and the folder that
+# holds them is resolved from this file rather than from a directory of the
+# socle's - `%x` is the file currently being read, which is also the right
+# answer from inside a function (there, `$0` is the function's own name).
+
+# uv - and the tools `uvx` takes from its cache - live in ~/.local/bin. The pack
+# declares its own PATH rather than editing the shell's startup files, so a
+# removal has nothing to undo in yours; the python pack declares the same line,
+# both of them running uv.
+export PATH="$HOME/.local/bin:$PATH"
 
 # Interactively fuzzy-select a project template from every installed pack's
 # catalog (packs/*/cheatsheets/templates.tsv) and print

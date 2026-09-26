@@ -9,8 +9,13 @@
 #   - the compiler and the headers are root's business, asked for once, in a
 #     single sudo - one `sudo bash -c` is asked at a point where the keyboard is
 #     still free, whereas several small suds would each need the ticket;
-#   - Python and the tools belong to the user who runs this. uv installs and
+#   - Python and its tools belong to the user who runs this. uv installs and
 #     manages them under ~/.local, so removing them never asks for a password.
+#
+# The tools that create a project - copier, cruft, ccds - are not installed
+# here: they belong to the scaffold pack, which takes each one from uv's cache
+# the day it is first used. What this script installs is what a project's
+# environment needs: an interpreter, and ruff to lint it.
 
 set -euo pipefail
 
@@ -35,22 +40,28 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends $packages"
 
-echo "➕ Installing Python 3 and the scaffolding tools..."
-# UV_NO_MODIFY_PATH: left alone, uv's installer adds a line to the shell's
-# startup files - ~/.zshenv among them - to put itself on the PATH. The pack
-# declares its own PATH in its own zsh file, so a removal has nothing to undo in
-# yours.
-# pipefail is on from the top of this script, and it is what makes the pipe safe:
-# a curl that fails would feed the installer an empty script, which exits 0, and
-# the failure would surface one step later, on a missing `uv`.
-curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
-uv python install 3
-uv tool install copier
-uv tool install cruft
-uv tool install ruff
-uv tool install cookiecutter
-uv tool install cookiecutter-data-science
+# uv may already be there: this pack requires the scaffold pack, which installs
+# it and comes first. Asking the machine rather than installing a second time
+# keeps the download to one.
+if command -v uv >/dev/null 2>&1; then
+    echo "✅ uv is already installed ($(uv --version)) — nothing to do."
+else
+    echo "➕ Installing uv..."
+    # UV_NO_MODIFY_PATH: left alone, uv's installer adds a line to the shell's
+    # startup files - ~/.zshenv among them - to put itself on the PATH. Each pack
+    # that needs it declares its own PATH in its own zsh file, so a removal has
+    # nothing to undo in yours.
+    # pipefail is on from the top of this script, and it is what makes the pipe
+    # safe: a curl that fails would feed the installer an empty script, which
+    # exits 0, and the failure would surface one step later, on a missing `uv`.
+    curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
+fi
 
-echo "✅ Python 3 and its tools are installed."
+echo "➕ Installing Python 3 and ruff..."
+uv python install 3
+uv tool install ruff
+
+echo "✅ Python 3, uv and ruff are installed."
 echo "   The commands are in the cheatsheet picker (fcheat)."
-echo "   Next: fnew scaffolds a project; add the gcp pack for the MLOps targets."
+echo "   Next: fnew makes a project (it comes with the scaffold pack);"
+echo "   add the gcp pack for the MLOps targets."
