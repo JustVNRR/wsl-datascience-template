@@ -42,6 +42,7 @@ one package to install (uv), targets, a sheet, a sample and its pages.
 | `PACK_REQUIRES` | the packs it is installed on top of |
 | `PACK_VISIBLE` | `no` keeps it out of every list: nobody chooses it |
 | `PACK_PACKAGES` | the system packages it installs — named once, read by both scripts, and by a neighbour's removal |
+| `PACK_OUTSIDE_APT` | the tools it installs outside apt (a binary in `~/.local`) — named for the same reason, and read the same way |
 | `PACK_IDENTIFYING_VARS` | the variables refused in a shared `.env.global` |
 | `PACK_WELCOME` | the line `build` prints on a fresh instance, when this pack is among the chosen ones |
 
@@ -152,6 +153,14 @@ removing a package, its `remove.sh` looks for that name in the declarations of
 the packs still installed — `pack.conf`, and `install.sh` as well for a pack
 written before `PACK_PACKAGES` existed. A claimed package is left where it is,
 and the last pack to want it takes it away with it.
+
+What apt never sees goes through the same question. A tool a pack installs
+itself — a binary under `~/.local`, outside dpkg's graph — is declared in
+`PACK_OUTSIDE_APT`, and its `remove.sh` asks before erasing a single file. `uv`
+is the case that exists: `python` uses it for a project's environment, `scaffold`
+for every tool it runs, so the first of the two to leave leaves it where it is
+and the last one takes it away, with the interpreter it downloaded and its
+cache.
 
 Two things a `remove.sh` never does:
 
