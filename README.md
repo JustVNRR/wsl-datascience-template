@@ -182,8 +182,7 @@ the repository at runtime.
 │   │   └── starship.zsh     # Starship initialization hook
 │   └── unzip.zsh            # Interactive archive extraction handler
 ├── assets/
-│   ├── make-icon.ps1        # Regenerates the icon below (standalone PowerShell)
-│   └── terminal-icon.png    # Windows Terminal profile icon (copied next to the VHDX)
+│   └── make-icon.ps1        # Draws an instance's icon from its name (standalone PowerShell)
 ├── docs/
 │   ├── make/                # Documentation of the socle's gmake modules
 │   ├── wsl/                 # Instance administration: the commands, their options, examples

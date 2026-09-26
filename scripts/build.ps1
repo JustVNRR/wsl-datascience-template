@@ -367,7 +367,24 @@ try {
     Install-NerdFont | Out-Null
 
     Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor Cyan
-    Copy-Item "$RepoRoot\assets\terminal-icon.png" "$InstallPath\terminal-icon.png" -Force
+
+    # The icon is drawn from the instance's own name - the letters and the
+    # colours both come from it, so the same name always draws the same icon.
+    # Nothing is said about a drawing that worked: the icon is there because
+    # there has to be one, not because it is worth announcing.
+    #
+    # It is decoration, though, and a build already finished does not die for
+    # it: a drawing that fails is reported, leaves no file, and the fragment
+    # below drops the icon line, so the profile keeps Terminal's own icon.
+    $IconPath = Join-Path $InstallPath "terminal-icon.png"
+    $IconDrawn = $false
+    try {
+        & "$RepoRoot\assets\make-icon.ps1" -Name $DistroName -Out $IconPath -Quiet
+        $IconDrawn = $true
+    } catch {
+        Remove-Item $IconPath -Force -ErrorAction SilentlyContinue
+        Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor Yellow
+    }
 
     # Find the distro's Terminal profile GUID: WSL writes one fragment file per
     # import under Fragments\Microsoft.WSL (named {guid}.json, containing the
@@ -435,8 +452,12 @@ try {
     }
 
     if ($ProfileGuid) {
-        $IconPath = Join-Path $InstallPath "terminal-icon.png"
         New-Item -ItemType Directory -Force $OurFragmentDir | Out-Null
+        # No icon drawn, no icon line: Terminal then shows its own, which is
+        # what step 9 said when the drawing failed. The variable sits at the
+        # start of its line - a here-string is literal, so the line is written
+        # whole by it, spaces included.
+        $IconJson = if ($IconDrawn) { '            "icon": "' + ($IconPath -replace '\\', '\\') + '",' } else { '' }
         # Layered over WSL's own profile via "updates"; the user's settings.json
         # is never touched. UTF-8 matters: PowerShell's default encoding is not.
         $FragmentJson = @"
@@ -444,7 +465,7 @@ try {
     "profiles": [
         {
             "updates": "$ProfileGuid",
-            "icon": "$($IconPath -replace '\\','\\')",
+$IconJson
             "font": { "face": "MesloLGS NF" },
             "colorScheme": "One Half Dark",
             "suppressApplicationTitle": true

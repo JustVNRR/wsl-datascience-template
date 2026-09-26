@@ -1,19 +1,31 @@
 [CmdletBinding()]
 param (
-    [string]$Text = "DS",
-    [string]$Top = "#CF7040",
-    [string]$Bottom = "#B95E30",
-    [string]$TextColor = "#FFFFFF",
+    # The instance's name. The letters AND the colours are read from it, so one
+    # name is the whole icon - and the same name always draws the same one.
+    [string]$Name,
+
+    # A monogram and colours given by hand. Whatever is given here wins over
+    # what -Name would have chosen; nothing here is required.
+    [string]$Text,
+    [string]$Top,
+    [string]$Bottom,
+    [string]$TextColor,
+
     [int]$Size = 256,
+
+    # For a caller that reports on its own: the build draws an icon and says so
+    # in a line of its own, and the drawing has nothing to add there.
+    [switch]$Quiet,
+
     [string]$Out = "terminal-icon.png"
 )
 
-# Generates the Windows Terminal profile icon shipped in this folder, and the
-# icon of any other project that wants one: the script has no dependency on
-# this repository, so copying this single file is enough to reuse it.
+# Generates the Windows Terminal profile icon of an instance, and the icon of
+# any other project that wants one: the script has no dependency on this
+# repository, so copying this single file is enough to reuse it.
 #
-#   .\make-icon.ps1                                  # regenerate in place
-#   .\make-icon.ps1 -Text ML -Top "#3B82F6"          # another monogram, blue
+#   .\make-icon.ps1 -Name wagon -Out D:\WSL\wagon\terminal-icon.png
+#   .\make-icon.ps1 -Text ML -Top "#3B82F6"          # by hand, for another use
 #
 # The monogram width, the corner radius and the gradient direction are fixed on
 # purpose: they were chosen by eye for legibility at tab size (~16 px), where a
@@ -24,6 +36,70 @@ param (
 #     treats an overlap as a hole: the D's stem gets a hairline vertical seam.
 #   - centring on the glyph INK bounds, not the font em box. The em box keeps
 #     room for descenders this monogram does not have, so the text sits high.
+
+# The pairs a name chooses from: a flat background, and the text colour that
+# reads on it. Both were picked by eye, so legibility is a choice rather than a
+# calculation. The first row is the orange this repository shipped for years;
+# the others are its neighbours.
+$Palette = @(
+    @{ Top = "#CF7040"; Bottom = "#B95E30"; Text = "#FFFFFF" },   # orange
+    @{ Top = "#3B82F6"; Bottom = "#2563EB"; Text = "#FFFFFF" },   # blue
+    @{ Top = "#2E8B57"; Bottom = "#1F5C3E"; Text = "#FFFFFF" },   # green
+    @{ Top = "#7C5CBF"; Bottom = "#5B3F9E"; Text = "#FFFFFF" },   # purple
+    @{ Top = "#C0453B"; Bottom = "#93291F"; Text = "#FFFFFF" },   # red
+    @{ Top = "#148F8A"; Bottom = "#0E6B67"; Text = "#FFFFFF" },   # teal
+    @{ Top = "#4B5563"; Bottom = "#374151"; Text = "#FFFFFF" },   # graphite
+    @{ Top = "#E3C567"; Bottom = "#C9A73F"; Text = "#2A2410" }    # sand, dark text
+)
+
+# The two letters a name is read by. A name in one piece gives its first two
+# letters (wagon -> WA); a name in several gives the first letter of the first
+# two (my-project -> MP, new_distro2 -> ND). The cut is on the separators a name
+# may carry, and a piece opening on a digit is not a word: Ubuntu-22.04 -> UB,
+# where U2 would have named a version. A one-letter name gives one letter.
+function Get-Letters {
+    param([string]$Instance)
+
+    $Pieces = @($Instance -split '[-_.]' | Where-Object { $_ -match '^[A-Za-z]' })
+    if ($Pieces.Count -ge 2) {
+        return ($Pieces[0].Substring(0, 1) + $Pieces[1].Substring(0, 1)).ToUpper()
+    }
+
+    $Word = @($Instance -split '[-_.]' | Where-Object { $_ })[0]
+    if (-not $Word) { return "?" }
+    if ($Word.Length -ge 2) { return $Word.Substring(0, 2).ToUpper() }
+    return $Word.ToUpper()
+}
+
+# Which row of the table a name gets. Not the .NET GetHashCode(): it is seeded
+# per process, so the same name would come back a different colour on every run
+# - the one thing an icon must never do. This one is written out, so it has no
+# such secret and gives the same answer on any machine, in any PowerShell. The
+# position of a letter counts, and 31 and the modulo are the usual small primes:
+# a name is that many characters, and neighbours in a list (test1, test2) must
+# not land on the same row.
+function Get-PaletteIndex {
+    param([string]$Instance)
+
+    $Hash = [long]0
+    foreach ($Character in $Instance.ToLowerInvariant().ToCharArray()) {
+        $Hash = ($Hash * 31 + [int]$Character) % 1000003
+    }
+    return [int]($Hash % $Palette.Count)
+}
+
+if (-not $Name -and -not $Text) {
+    throw "Nothing to draw: give a -Name (the letters and the colours come from it) or a -Text."
+}
+
+$Row = $Palette[0]
+if ($Name) {
+    $Row = $Palette[(Get-PaletteIndex $Name)]
+    if (-not $Text) { $Text = Get-Letters $Name }
+}
+if (-not $Top) { $Top = $Row.Top }
+if (-not $Bottom) { $Bottom = $Row.Bottom }
+if (-not $TextColor) { $TextColor = $Row.Text }
 
 Add-Type -AssemblyName System.Drawing
 
@@ -53,8 +129,7 @@ $canvas.SmoothingMode = 'AntiAlias'
 $canvas.Clear([System.Drawing.Color]::Transparent)
 
 # Rounded to a whole pixel: a fractional margin puts the tile edge mid-pixel,
-# which softens it - and it keeps this script byte-identical to the icon
-# already committed, so the file in this folder provably comes from here.
+# which softens it.
 $margin = [single][Math]::Round($Size * 0.023)
 $rect = New-Object System.Drawing.RectangleF($margin, $margin,
             [single]($Size - 2 * $margin), [single]($Size - 2 * $margin))
@@ -94,5 +169,7 @@ $bitmap.Save($target, [System.Drawing.Imaging.ImageFormat]::Png)
 $canvas.Dispose()
 $bitmap.Dispose()
 
-Write-Host ("Wrote {0}" -f $target)
-Write-Host ("  {0}x{0} px, monogram '{1}', {2} -> {3}" -f $Size, $Text, $Top, $Bottom)
+if (-not $Quiet) {
+    Write-Host ("Wrote {0}" -f $target)
+    Write-Host ("  {0}x{0} px, monogram '{1}', {2} -> {3}" -f $Size, $Text, $Top, $Bottom)
+}

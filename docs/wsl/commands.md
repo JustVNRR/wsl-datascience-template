@@ -59,7 +59,7 @@ virtual disk:
 ```text
 D:\WSL\ubuntu-template\
 ├── ext4.vhdx
-├── terminal-icon.png
+├── terminal-icon.png        drawn from the name, and kept here
 └── .wsl-datascience-template
 ```
 
