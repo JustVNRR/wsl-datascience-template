@@ -172,8 +172,25 @@ fnew() {
         return 1
     fi
 
+    # The name is asked with the line editor, so that the arrows and the
+    # backspace work like they do on any command line: `read` has no editing at
+    # all - its `-e` means "echo what you read", not "let the reader edit" - and
+    # the escape sequence the terminal sends for an arrow key lands in the
+    # variable: a name corrected with the left arrow came out as
+    # `my_project_fl^[[D`. Nothing but a terminal can edit, so a shell with no
+    # terminal (a pipe, a test) keeps `read`, which is what such a caller wants
+    # anyway. `vared -c` because the variable is not set yet, and because the
+    # text stays there between two attempts: a name refused by the check below
+    # is offered again to be fixed, not retyped.
+    # `|| return` on both: with no more input to read (a pipe running dry, a
+    # Ctrl-C at the prompt) the loop must stop rather than refuse the same name
+    # forever.
     while true; do
-        read "project_name?Project folder: "
+        if [[ -o interactive && -t 0 ]]; then
+            vared -p "Project folder: " -c project_name || return
+        else
+            read "project_name?Project folder: " || return
+        fi
         if [[ "$project_name" =~ ^[a-zA-Z0-9][a-zA-Z0-9._-]*$ ]]; then
             break
         fi
