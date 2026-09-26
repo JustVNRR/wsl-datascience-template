@@ -259,6 +259,14 @@ Clear-MenuBlock
 Clear-MenuBlocks
 Check "and nothing to clear moves nothing" ($script:Cleared -join ",") ""
 
+# And loading this file again - which every script that loads instance.ps1 does -
+# keeps what was already recorded. It did not: the list was written anew at the
+# top of this file, so the menu the way in had drawn was forgotten by the command
+# behind it, and stayed on the screen. Measured here, on the day it was found.
+$global:MenuBlocks = @(@{ Top = 3; Height = 5 })
+. (Join-Path $PSScriptRoot "..\scripts\menu.ps1")
+Check "loading this file again keeps what was recorded" $global:MenuBlocks.Count 1
+
 Write-Output ""
 Write-Output ("failures: " + $Failures)
 exit $Failures

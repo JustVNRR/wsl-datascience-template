@@ -19,7 +19,7 @@ WSL DataScience template
     add_pack     install a pack into an instance
     remove_pack  uninstall a pack from an instance
     manage_packs choose the packs an instance should carry
-    icons        choose the icon of an instance
+    theme        choose the icon and font of an instance
     unregister   remove an instance
     archive      write an instance to a named archive
     restore      rebuild an instance from an archive
@@ -50,7 +50,7 @@ is read, not looked at - so every line stays.
 | [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
-| [`.\wsl.ps1 icons`](#icons) | choose the icon of an instance |
+| [`.\wsl.ps1 theme`](#theme) | choose the icon and font of an instance |
 | [`.\wsl.ps1 unregister`](#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
@@ -458,19 +458,36 @@ removed, what was placed, what was never touched.
 
 ---
 
-## `icons`
+## `theme`
+
+What an instance wears: its icon and its font. The instance is asked first, once;
+the menu behind it holds the two things that can be changed, and it is drawn
+again after each of them — changing the icon and then the font is one visit, and
+Escape is the way out of it.
+
+```powershell
+.\wsl.ps1 theme
+```
+
+```text
+Our Instances
+  > ubuntu-ml-dev                running    2,1 GB
+    ...
+
+Theme of 'ubuntu-ml-dev'
+  > icon   the tile in the tab
+    font   what the whole terminal is written in
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+### `icon`
 
 Draws the icon of an instance, or puts an image of yours in its place. The
 script the build calls does the drawing, so the letters and the colours follow
 the same rule in both places.
 
-```powershell
-.\wsl.ps1 icons
-```
-
-It takes no options: the instance comes from the list, and the icon is the next
-question. It keeps asking — change the colours, then the text, and both are
-kept; Escape leaves, and nothing moves but the icon.
+It keeps asking — change the colours, then the text, and both are kept; Escape
+brings the theme menu back, and nothing moves but the icon.
 
 ```text
 Icon of 'ubuntu-ml-dev'
@@ -501,6 +518,31 @@ alone: changing your mind starts from it again rather than from the name.
 
 The icon travels with the instance: `archive` takes the file and the picture,
 `restore` and `duplicate` put both back.
+
+### `font`
+
+Sets what the whole terminal is written in, for one instance.
+
+```text
+Font of 'ubuntu-ml-dev'
+  > JetBrainsMono NF                  icons
+    MesloLGS NF                       icons   (current)
+    Cascadia Mono
+    Consolas
+    ...
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+The list is the fonts a terminal can use: the monospaced ones Windows has, with
+the weights of a family left out — a profile takes the family, not the weight —
+and the symbol fonts Windows ships left out too. `icons` marks the fonts that
+carry the glyphs a prompt is drawn with, measured by asking each font file, and
+they come first: a font without them draws a box where your prompt has a folder.
+
+A console writes every row in the font *it* is set to, so no list can show a font
+in itself. The preview is the choice: the profile changes, and the next tab is
+written in it. Windows Terminal's own settings (`Ctrl+,`) do show them all in
+their own face, for browsing.
 
 ---
 

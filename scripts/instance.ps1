@@ -217,6 +217,62 @@ function Set-InstanceLook {
     $Look | ConvertTo-Json | Set-Content -Path (Join-Path $InstallPath "instance.json") -Encoding Utf8
 }
 
+# The profile Windows Terminal knows an instance by: the guid WSL wrote in its
+# own fragment when the instance was imported. Asked with a few tries, because a
+# fresh import and this question cross - the fragment lands a moment later.
+function Get-WslProfileGuid {
+    param([string]$Name)
+
+    $Folder = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
+    for ($Attempt = 1; $Attempt -le 5; $Attempt++) {
+        if (Test-Path $Folder) {
+            foreach ($File in (Get-ChildItem $Folder -Filter *.json | Sort-Object LastWriteTime -Descending)) {
+                try {
+                    foreach ($Entry in (Get-Content $File.FullName -Raw | ConvertFrom-Json).profiles) {
+                        if ($Entry.name -eq $Name -and $Entry.guid) { return $Entry.guid }
+                    }
+                } catch { }
+            }
+        }
+        Start-Sleep -Seconds 1
+    }
+    return $null
+}
+
+# The Terminal profile of an instance, as this repository writes it: layered over
+# WSL's own profile via "updates", so the user's settings.json is never touched.
+# UTF-8 matters: PowerShell's default encoding is not.
+#
+# The icon line is left out when there is no icon to point at: Terminal then
+# shows its own, which is what the build promises when a drawing fails. The
+# variable sits at the start of its line - a here-string is literal, so the line
+# is written whole by it, spaces included.
+function Set-InstanceFragment {
+    param([string]$Name, [string]$Guid, [string]$Font, [string]$ColorScheme, [string]$IconPath)
+
+    $FragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+    New-Item -ItemType Directory -Force $FragmentDir | Out-Null
+    $IconJson = if ($IconPath -and (Test-Path $IconPath)) {
+        '            "icon": "' + ($IconPath -replace '\\', '\\') + '",'
+    } else {
+        ''
+    }
+    $FragmentJson = @"
+{
+    "profiles": [
+        {
+            "updates": "$Guid",
+$IconJson
+            "font": { "face": "$Font" },
+            "colorScheme": "$ColorScheme",
+            "suppressApplicationTitle": true
+        }
+    ]
+}
+"@
+    Set-Content -Path (Join-Path $FragmentDir "$Name.json") -Value $FragmentJson -Encoding Utf8
+}
+
 # What an instance looks like right now: the fragment this repository wrote
 # when it built the instance, what Windows Terminal's own settings say the user
 # changed since, or the template's defaults - in that order. A settings file
@@ -310,20 +366,7 @@ function Set-InstanceState {
     }
 
     # The guid WSL just gave the instance: its own fragment, written on import
-    $Guid = $null
-    $WslFragments = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
-    for ($Attempt = 1; $Attempt -le 5 -and -not $Guid; $Attempt++) {
-        if (Test-Path $WslFragments) {
-            foreach ($File in (Get-ChildItem $WslFragments -Filter *.json | Sort-Object LastWriteTime -Descending)) {
-                try {
-                    foreach ($Entry in (Get-Content $File.FullName -Raw | ConvertFrom-Json).profiles) {
-                        if (-not $Guid -and $Entry.name -eq $Name -and $Entry.guid) { $Guid = $Entry.guid }
-                    }
-                } catch { }
-            }
-        }
-        if (-not $Guid) { Start-Sleep -Seconds 1 }
-    }
+    $Guid = Get-WslProfileGuid -Name $Name
 
     if (-not $Guid) {
         Write-Host "  * Look             : no WSL fragment for '$Name' yet - not re-applied" -ForegroundColor Yellow
@@ -343,24 +386,8 @@ function Set-InstanceState {
     Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $Name `
         -From $Appearance -IconFrom $IconPath -Icon (Get-IconRecipe -Look $Appearance))
 
-    $FragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
-    New-Item -ItemType Directory -Force $FragmentDir | Out-Null
-    # Layered over WSL's own profile via "updates"; the user's settings.json is
-    # never touched. Same shape as the fragment build.ps1 writes.
-    $FragmentJson = @"
-{
-    "profiles": [
-        {
-            "updates": "$Guid",
-            "icon": "$($IconPath -replace '\\','\\')",
-            "font": { "face": "$($Appearance.Font)" },
-            "colorScheme": "$($Appearance.ColorScheme)",
-            "suppressApplicationTitle": true
-        }
-    ]
-}
-"@
-    Set-Content -Path (Join-Path $FragmentDir "$Name.json") -Value $FragmentJson -Encoding Utf8
+    Set-InstanceFragment -Name $Name -Guid $Guid -Font $Appearance.Font `
+        -ColorScheme $Appearance.ColorScheme -IconPath $IconPath
     Write-Host "  * Look             : font '$($Appearance.Font)', colours '$($Appearance.ColorScheme)', icon re-applied" -ForegroundColor Green
 
     if (-not (Test-FontInstalled $Appearance.Font)) {

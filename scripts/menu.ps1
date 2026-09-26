@@ -101,7 +101,13 @@ function Clear-ConsoleLines {
 # take a menu back off the screen. A command that asks its questions below a menu
 # would otherwise leave that menu behind it, and a visit of four turns would
 # leave four of them stacked, each pushing the last one up.
-$global:MenuBlocks = @()
+#
+# Written once and never reset. This file is loaded again by every script that
+# loads instance.ps1 - the way in, the theme menu, the command behind it - and a
+# reset at the top of it threw away the blocks drawn before that load: the main
+# menu was never taken off the screen, because the command that should have taken
+# it off had already forgotten it.
+if ($null -eq $global:MenuBlocks) { $global:MenuBlocks = @() }
 
 # Take the last one off: the menu that has just been answered.
 function Clear-MenuBlock {

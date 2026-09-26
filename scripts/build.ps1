@@ -457,28 +457,10 @@ try {
     }
 
     if ($ProfileGuid) {
-        New-Item -ItemType Directory -Force $OurFragmentDir | Out-Null
-        # No icon drawn, no icon line: Terminal then shows its own, which is
-        # what step 9 said when the drawing failed. The variable sits at the
-        # start of its line - a here-string is literal, so the line is written
-        # whole by it, spaces included.
-        $IconJson = if ($IconDrawn) { '            "icon": "' + ($IconPath -replace '\\', '\\') + '",' } else { '' }
-        # Layered over WSL's own profile via "updates"; the user's settings.json
-        # is never touched. UTF-8 matters: PowerShell's default encoding is not.
-        $FragmentJson = @"
-{
-    "profiles": [
-        {
-            "updates": "$ProfileGuid",
-$IconJson
-            "font": { "face": "MesloLGS NF" },
-            "colorScheme": "One Half Dark",
-            "suppressApplicationTitle": true
-        }
-    ]
-}
-"@
-        Set-Content -Path (Join-Path $OurFragmentDir "$DistroName.json") -Value $FragmentJson -Encoding Utf8
+        # No icon drawn, no icon line: Terminal then shows its own, which is what
+        # step 9 said when the drawing failed.
+        Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Font "MesloLGS NF" `
+            -ColorScheme "One Half Dark" -IconPath $(if ($IconDrawn) { $IconPath } else { "" })
         Write-Host "  * Terminal profile : icon + font + color scheme + tab title applied (profile $ProfileGuid)" -ForegroundColor Green
         $TerminalProfileOk = $true
     } else {

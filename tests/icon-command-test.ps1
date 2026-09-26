@@ -1,5 +1,6 @@
-# Drives `.\wsl.ps1 icons` the way a script would: the numbered prompt, answers
-# on standard input, no console anywhere.
+# Drives `icon` the way a script would: the numbered prompt, answers on standard
+# input, no console anywhere. It is the command behind `.\wsl.ps1 theme`, which
+# is why the file it drives is not the one the menu names.
 #
 # The instance it works on exists for the length of the test - a registry key of
 # this test's own, a folder carrying the marker, a name of its own. The answers
@@ -16,15 +17,15 @@
 #
 # It needs no instance, no console and no Docker Desktop.
 #
-# Usage:  powershell -NoProfile -File tests\icons-command-test.ps1
+# Usage:  powershell -NoProfile -File tests\icon-command-test.ps1
 
 $ErrorActionPreference = "Stop"
 
 # For Get-Distros and the marker test: the list the command itself builds.
 . (Join-Path $PSScriptRoot "..\scripts\instance.ps1")
 
-$IconsScript = Join-Path $PSScriptRoot "..\scripts\icons.ps1"
-$Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("icons-command-test-" + [Guid]::NewGuid().ToString("N"))
+$IconScript = Join-Path $PSScriptRoot "..\scripts\icon.ps1"
+$Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("icon-command-test-" + [Guid]::NewGuid().ToString("N"))
 $FakeName = "icon-command-test"
 $FakeFolder = Join-Path $Tmp "instance"
 $IconPath = Join-Path $FakeFolder "terminal-icon.png"
@@ -51,7 +52,7 @@ function Invoke-Icons {
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $Lines = $Answers | & powershell -NoProfile -File $IconsScript 2>&1
+        $Lines = $Answers | & powershell -NoProfile -File $IconScript 2>&1
     } finally {
         $ErrorActionPreference = $Preference
     }
@@ -61,6 +62,22 @@ function Invoke-Icons {
 function Get-Recipe {
     if (-not (Test-Path $Recipe)) { return $null }
     return (Get-Content $Recipe -Raw | ConvertFrom-Json)
+}
+
+# The way in: `.\wsl.ps1 theme` names the two commands, and the one it names is
+# the one that runs. Driven from here because it is the only door - a menu that
+# dispatches nowhere leaves both commands unreachable.
+function Invoke-Theme {
+    param([string[]]$Answers)
+
+    $Preference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $Lines = $Answers | & powershell -NoProfile -File (Join-Path $PSScriptRoot "..\scripts\theme.ps1") 2>&1
+    } finally {
+        $ErrorActionPreference = $Preference
+    }
+    return $Lines
 }
 
 New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
@@ -154,6 +171,15 @@ try {
     $Saved = Get-Recipe
     Check "two changes in one run: the letters are the typed ones" $Saved.IconText "ABC"
     Check "two changes in one run: and the colours are the picked ones" "$($Saved.IconTop) $($Saved.IconBottom)" "#3B82F6 #2563EB"
+
+    # 11. The way in: the instance is asked once, the menu holds both commands,
+    # and it is drawn again once the command it handed over to is done. Answers:
+    # the instance, "icon", then Escape on the icon menu, then Escape here.
+    $Out = Invoke-Theme @("$Pick", "1", "0", "0")
+    Check "theme offers both commands" (@($Out | Where-Object { "$_".Contains("what the whole terminal is written in") }).Count -gt 0) $true
+    Check "hands over to the icon command" (@($Out | Where-Object { "$_".Contains("Icon of '$FakeName'") }).Count -gt 0) $true
+    Check "which does not ask for the instance again" (@($Out | Where-Object { "$_".Contains("Our Instances") }).Count) 1
+    Check "and the menu comes back when it is done" (@($Out | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $Tmp -ErrorAction SilentlyContinue

@@ -1,8 +1,11 @@
 [CmdletBinding()]
-param ()
-
-# No parameter on purpose: the instance comes from the list, never from the
-# command line. Typing a name by heart is a name you can get wrong.
+param (
+    # The instance, when the theme menu has already asked which one. Not an
+    # option and not documented as one: no command of this family takes a name
+    # typed by heart - this is how the level above hands over, and the command is
+    # not a command of wsl.ps1 in the first place.
+    [string]$DistroName
+)
 #
 # The icon is a file, not a setting: terminal-icon.png in the instance's own
 # folder, the one the Terminal profile points at. This command draws another
@@ -33,9 +36,19 @@ if (-not (Test-Path $IconScript)) {
     exit 1
 }
 
-# 1. Which instance, and where its icon lives
-$Distro = Select-Distro
-$DistroName = $Distro.Name
+# 1. Which instance, and where its icon lives. Given, or asked.
+$HandedOver = [bool]$DistroName
+if ($HandedOver) {
+    $Distro = Get-Distros | Where-Object { $_.Name -eq $DistroName } | Select-Object -First 1
+    if (-not $Distro) {
+        Write-Host ""
+        Write-Host "[ABORT] No instance named '$DistroName' is registered here." -ForegroundColor Red
+        exit 1
+    }
+} else {
+    $Distro = Select-Distro
+    $DistroName = $Distro.Name
+}
 $IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
 
 # The menus it came through - the way in, the instance it picked - come off the
@@ -259,12 +272,22 @@ while ($true) {
     $Changed = $true
 }
 
+# Leaving: the menu goes too, and the level above draws its own where this one
+# was. A menu that stayed here would sit above it, and the screen would grow a
+# level every time somebody went down and came back up.
+Clear-MenuBlock
+
 if (-not $Changed) {
+    # Handed over: the level above owns the goodbye, and it has its menu to draw
+    # where this one was.
+    if ($HandedOver) { exit 0 }
     Write-Host ""
     Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
     exit 0
 }
 
-Write-Host "'$DistroName' is done. A tab that is already open keeps the icon it drew." -ForegroundColor DarkGray
-Write-Host ""
+if (-not $HandedOver) {
+    Write-Host "'$DistroName' is done. A tab that is already open keeps the icon it drew." -ForegroundColor DarkGray
+    Write-Host ""
+}
 exit 0
