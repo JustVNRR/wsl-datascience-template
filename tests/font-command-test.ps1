@@ -121,6 +121,14 @@ try {
     $Wanted = [array]::IndexOf($Fonts, "Consolas") + 1
     $null = Invoke-Font @("$Pick", "$Wanted")
 
+    # Written for Terminal to read, and Terminal will not read a byte-order mark:
+    # Set-Content -Encoding Utf8 writes one, and every fragment this repository
+    # wrote until it was measured began with one - so none of them was ever
+    # applied. The icon, the font and the colours all went into a file Terminal
+    # quietly ignored. WSL's own fragment starts with a brace, and so must ours.
+    $Bytes = [System.IO.File]::ReadAllBytes($OurFragment)
+    Check "the fragment starts with a brace, not a mark" ([char]$Bytes[0]) "{"
+
     $Written = Get-Content $OurFragment -Raw | ConvertFrom-Json
     Check "the font is written into our profile" $Written.profiles[0].font.face "Consolas"
     Check "  ... under the guid Terminal knows" $Written.profiles[0].updates "{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}"

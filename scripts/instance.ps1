@@ -241,12 +241,19 @@ function Get-WslProfileGuid {
 
 # The Terminal profile of an instance, as this repository writes it: layered over
 # WSL's own profile via "updates", so the user's settings.json is never touched.
-# UTF-8 matters: PowerShell's default encoding is not.
 #
 # The icon line is left out when there is no icon to point at: Terminal then
 # shows its own, which is what the build promises when a drawing fails. The
 # variable sits at the start of its line - a here-string is literal, so the line
 # is written whole by it, spaces included.
+#
+# Written WITHOUT a byte-order mark, and that is not a detail: Set-Content
+# -Encoding Utf8 writes one, Terminal does not read a fragment that begins with
+# one, and every fragment this repository wrote until it was measured began with
+# one - so none of them was ever applied. The icon, the font and the colours were
+# all written into a file Terminal quietly ignored. WSL's own fragment, which
+# works, begins with a brace; so does Terminal's settings.json. So does this one
+# now.
 function Set-InstanceFragment {
     param([string]$Name, [string]$Guid, [string]$Font, [string]$ColorScheme, [string]$IconPath)
 
@@ -270,7 +277,9 @@ $IconJson
     ]
 }
 "@
-    Set-Content -Path (Join-Path $FragmentDir "$Name.json") -Value $FragmentJson -Encoding Utf8
+    $Target = Join-Path $FragmentDir "$Name.json"
+    $Utf8NoMark = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($Target, $FragmentJson, $Utf8NoMark)
 }
 
 # What an instance looks like right now: the fragment this repository wrote
