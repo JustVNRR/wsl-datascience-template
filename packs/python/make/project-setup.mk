@@ -47,6 +47,19 @@ define init_venv
 	@cd $(PROJECT_NAME) && ( [ -f .env ] || [ ! -f .env.sample ] || { echo "📝 Creating ./.env from the project's .env.sample..."; cp .env.sample .env; } )
 endef
 
+# What runs once a template has been copied is declared by the pack that
+# curates the row, here, beside the macro it names - so the two cannot drift
+# apart. `fnew` reads this declaration off the row it picked and names the pack
+# on the make command line; called directly, the target names it in
+# TEMPLATE_PACK instead.
+SCAFFOLD_AFTER_python := init_venv
+
+# The call: $(call $(VAR)) is a macro whose name comes from a variable, which is
+# the whole trick - this file never spells out the name of a pack's step, and a
+# pack that declares nothing (or a call that names no pack) expands to nothing
+# at all: the template is copied and the project is left alone.
+scaffold_after = $(if $(SCAFFOLD_AFTER_$(1)),$(call $(SCAFFOLD_AFTER_$(1))))
+
 # ==============================================================================
 # PROJECT SETUP WORKFLOW
 # ==============================================================================
@@ -62,7 +75,7 @@ copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Copier..."
 	@copier copy $(COPIER_REF_ARG) $(PROJECT_TEMPLATE_REPO) ./$(PROJECT_NAME)
-	$(init_venv)
+	$(call scaffold_after,$(TEMPLATE_PACK))
 	@echo "✅ Project ready in $(PROJECT_NAME)/"
 
 # Optional pinned template ref/tag: --vcs-ref for Copier, --checkout for Cruft
@@ -73,7 +86,7 @@ cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fn
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with Cruft..."
 	@cruft create $(PROJECT_TEMPLATE_REPO) $(CHECKOUT_ARG) --extra-context '{"project_name": "$(PROJECT_NAME)", "repo_name": "$(PROJECT_NAME)"}'
-	$(init_venv)
+	$(call scaffold_after,$(TEMPLATE_PACK))
 	@echo "✅ Project ready in $(PROJECT_NAME)/"
 
 # The `ccds` CLI (cookiecutter-data-science v2) wants its extra context as
@@ -87,5 +100,5 @@ ccds_project: ## Scaffold a project with CCDS v2 from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_NAME PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with ccds..."
 	@ccds --accept-hooks yes $(CHECKOUT_ARG) -o . $(PROJECT_TEMPLATE_REPO) project_name=$(PROJECT_NAME) repo_name=$(PROJECT_NAME)
-	$(init_venv)
+	$(call scaffold_after,$(TEMPLATE_PACK))
 	@echo "✅ Project ready in $(PROJECT_NAME)/"

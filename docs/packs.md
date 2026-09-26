@@ -72,6 +72,13 @@ precisely so it can: `$(error)` fires when make *reads* the line, and a target
 nobody declares would be treated as a project target and refused from
 `~/projects` with a message about a project root that is not the point.
 
+A pack also curates its own template catalog (`cheatsheets/templates.tsv`), and
+`fnew` reads every installed pack's, tagging each row with the pack it was read
+from. What runs once such a row's template has been copied is that pack's to
+declare — `SCAFFOLD_AFTER_python := init_venv`, in the same module — and `fnew`
+names the row's pack on the make command line. A pack that declares nothing
+names nothing: its projects are copied and left alone.
+
 Removing is the same story from the other end: `.\wsl.ps1 remove_pack` runs the
 pack's own `remove.sh` first, then deletes the folder, then takes back the
 dependencies that came in with the pack and that no `remove.sh` ever named —
@@ -100,9 +107,9 @@ they live** — `~/.config/packs/*/zsh/*.zsh`, from the `.zshrc` that loads
 everything else. Nothing is copied into `~/.config/zsh`: a pack that leaves
 takes its commands out of the shell exactly as it takes its targets out of the
 menu, and an instance carrying no pack reads nothing there at all. The `python`
-pack's `fnew` and the catalog it reads travel together that way — the picker
-resolves its catalog from its own file's location, not from a path that only
-exists in the socle.
+pack's `fnew` and the catalogs it reads travel together that way — the picker
+resolves them from its own file's location, not from a path that only exists in
+the socle.
 
 ## Two packs, one choice
 

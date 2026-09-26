@@ -14,8 +14,9 @@ environment and direnv bootstrapped along the way.
 | `ccds_project` | Scaffold a project with the `ccds` CLI (Cookiecutter Data Science v2), from `~/projects` only (the `fnew` picker delegates here) |
 
 All three targets only run from `~/projects` itself and scaffold into
-`./$(PROJECT_NAME)`, then run `init_venv`, which
-auto-detects the project's dependency manifest:
+`./$(PROJECT_NAME)`, then run the after-copy step of the pack the row came from
+— for this pack's own rows, `init_venv`, which auto-detects the project's
+dependency manifest:
 
 - `uv.lock`, or a `pyproject.toml` with a PEP 621 `[project]` table → `uv sync`
   (creates `.venv`, installs dependencies and the `dev` group by default)
@@ -42,6 +43,7 @@ The bootstrap finishes with the two files a fresh project needs to be usable:
 | `PROJECT_NAME` | yes | Destination directory, created relative to the current directory |
 | `PROJECT_TEMPLATE_REPO` | yes | Anything Copier/Cruft accepts (`gh:` shorthand or full git URL) |
 | `PROJECT_TEMPLATE_VERSION` | no | Pin a template ref/tag — passed as `--vcs-ref` (Copier) or `--checkout` (Cruft and ccds) |
+| `TEMPLATE_PACK` | no | Pack whose step runs once the template is copied (`fnew` passes the row's pack; a direct call reads it from `.env.global`, where `python` sets it) |
 
 ## The `fnew` picker
 
@@ -90,8 +92,18 @@ per tool — and neither works with the other's.
 
 ## The catalog
 
-The catalog (`packs/python/cheatsheets/templates.tsv`, in this pack) is the
-short list of templates worth keeping: one per line, tab-separated.
+Each pack ships its own catalog — this one is
+`packs/python/cheatsheets/templates.tsv` — and `fnew` reads them all: one line
+per template, tab-separated, and the pack it was read from shown first in the
+picker:
+
+```text
+python · copier @9.18.2  |  astral-sh/uv-fastapi  |  FastAPI service
+java   · copier          |  spring-guides/gs-boot |  Spring Boot minimal
+```
+
+That pack is the one whose after-copy step runs, so a row belongs in the
+catalog of the pack that knows what to do with the project it produces.
 
 An entry belongs there when a **checkable fact** justifies it:
 
@@ -145,9 +157,10 @@ leaves a `.cruft.json` behind, which you may not want for a one-off.
 ### Adding a line
 
 `fnew` ignores any line that is not four tab-separated columns, and says so on
-stderr — a row typed with spaces would otherwise simply never appear in the
-picker, which looks exactly like an empty catalog. The safe way to append one
-is a `printf` with an explicit `\t`, which cannot turn into spaces:
+stderr, naming the catalog it found the row in — a row typed with spaces would
+otherwise simply never appear in the picker, which looks exactly like an empty
+catalog. The safe way to append one is a `printf` with an explicit `\t`, which
+cannot turn into spaces:
 
 ```bash
 printf '%s\t%s\t%s\t%s\n' \
@@ -166,3 +179,8 @@ meant to survive one belongs in the repository, in the pack's own
 gmake copier_project PROJECT_NAME=my-analysis PROJECT_TEMPLATE_REPO=gh:owner/python-copier-template-ds
 gmake cruft_project PROJECT_NAME=my-analysis PROJECT_TEMPLATE_REPO=gh:owner/cookiecutter-data-science PROJECT_TEMPLATE_VERSION=v1
 ```
+
+Called by name, a target has no row to read, so it takes the pack to run from
+`TEMPLATE_PACK` in `.env.global` — where this pack sets `python`, which is why
+the venv is bootstrapped here as it is under `fnew`. `TEMPLATE_PACK=` on the
+command line copies the template and runs nothing else.
