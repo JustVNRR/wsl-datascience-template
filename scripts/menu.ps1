@@ -92,12 +92,22 @@ function Format-MenuRow {
 # tail is cut rather than the menu refused: the description loses its end, the
 # arrows keep working. A window that will not say how wide it is (a test, a
 # captured run) gets no cutting at all.
+#
+# What goes in front of the label is part of the row, and -Prefix says how much
+# of it there is: 4 for the "  > " marker, 8 for a checklist row that also
+# carries the "[x] " box, 0 for the title and the hint, which have neither. The
+# box is what this was written for: the cut left room for the marker only, so a
+# checklist row came out four characters too wide, wrapped, and the next
+# keypress painted the choice one line off - the row it replaced stayed where it
+# was, with its old marker, and the same pack appeared twice, one unchecked and
+# one checked. The title and the hint are lines of the same block and obey the
+# same rule: any line of it that wraps moves everything below by one.
 function Format-MenuLabels {
-    param([string[]]$Labels, [int]$Width)
+    param([string[]]$Labels, [int]$Width, [int]$Prefix = 4)
     if ($Width -le 0) { return $Labels }
     $Room = $Width - 1
     return @($Labels | ForEach-Object {
-        $Max = $Room - 4                      # the "  > " marker in front
+        $Max = $Room - $Prefix
         if ($_.Length -le $Max) { $_ }
         else { $_.Substring(0, [Math]::Max(1, $Max - 3)) + "..." }
     })
@@ -210,7 +220,12 @@ function Select-WithArrows {
     $Hint = if ($Multi) { "  up/down to move, space to check, Enter to apply, Escape to cancel" }
             else { "  up/down to move, Enter to choose, Escape to cancel" }
     $Size = Get-ConsoleSize
-    $Shown = Format-MenuLabels -Labels $Labels -Width $Size[0]
+    # Every line of the block is cut to the window, the title and the hint
+    # included: one line that wraps moves the rows below it by one, and the
+    # repainting arithmetic is written for a block of exactly Visible + 3 lines.
+    $Shown = Format-MenuLabels -Labels $Labels -Width $Size[0] -Prefix $(if ($Multi) { 8 } else { 4 })
+    $ShownTitle = @(Format-MenuLabels -Labels @($Title) -Width $Size[0] -Prefix 0)[0]
+    $ShownHint = @(Format-MenuLabels -Labels @($Hint) -Width $Size[0] -Prefix 0)[0]
 
     # A list taller than the window is scrolled rather than refused: only the
     # rows that fit are drawn, and the window follows the choice. Three lines
@@ -227,11 +242,11 @@ function Select-WithArrows {
     # exactly what scrolled. That was the bug: every arrow added one more copy
     # of the list, lower each time, whenever the console had scrolled.
     Write-Host ""
-    if ($Title) { Write-Host "$Title" -ForegroundColor Cyan }
+    if ($ShownTitle) { Write-Host "$ShownTitle" -ForegroundColor Cyan }
     for ($Row = 0; $Row -lt $Visible; $Row++) {
         Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown -Checked $Checked
     }
-    Write-Host $Hint -ForegroundColor DarkGray
+    Write-Host $ShownHint -ForegroundColor DarkGray
 
     $Cursor = Get-ConsoleTop
     $Top = if ($null -ne $Cursor) { $Cursor - ($Visible + 1) } else { 0 }
