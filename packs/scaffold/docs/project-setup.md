@@ -133,6 +133,13 @@ The tool column decides which `gmake` target runs: a template that only exists
 as a cookiecutter template cannot be scaffolded with `copier`, and the reverse
 is true too. When the same repository appears twice, the descriptions say why.
 
+Two of the three do not let you edit an answer: `copier` asks through a line
+editor (questionary, over prompt-toolkit), so the arrows and the rest work while
+you answer, while `cruft` and `ccds` ask through cookiecutter, which reads a
+plain line — the terminal's own editing is all there is, and an arrow key lands
+in the answer as the bytes it sends. That is the tools' own engines, not this
+pack: they behave like that wherever they run.
+
 ### Where they come from
 
 One family, not three rivals. **Cookiecutter** came first (2013): a template is
