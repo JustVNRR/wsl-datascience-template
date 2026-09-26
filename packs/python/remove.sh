@@ -76,6 +76,18 @@ for package in $packages; do
     fi
 done
 
+# ruff is this pack's, and it goes back whether or not uv stays: it is the one
+# thing here that another pack's uv has nothing to do with. Both halves matter.
+# The environment under uv's tree is where ruff lives, and the shim in
+# ~/.local/bin is where the next install trips: uv refuses to write an
+# executable that is already there ("Executable already exists: ruff"), so a
+# shim left behind is an install that fails every time it is run again - and
+# worse, a shim whose target has just been removed is a command that answers
+# "No such file or directory" to whoever types it.
+echo "➖ Removing ruff..."
+rm -f "$HOME/.local/bin/ruff"
+rm -rf "$HOME/.local/share/uv/tools/ruff"
+
 if claimed_elsewhere uv; then
     echo "⏭️  uv: another installed pack claims it — left in place, with what it manages."
 else

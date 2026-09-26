@@ -59,7 +59,12 @@ fi
 
 echo "➕ Installing Python 3 and ruff..."
 uv python install 3
-uv tool install ruff
+# --force: a shim left by an install that stopped halfway makes uv refuse to
+# write ruff's ("Executable already exists: ruff"), and a pack whose install can
+# only be re-run after cleaning up by hand is a pack that never finishes - the
+# message above the prompt says "run this again to finish", and it has to be
+# true.
+uv tool install --force ruff
 
 echo "✅ Python 3, uv and ruff are installed."
 echo "   The commands are in the cheatsheet picker (fcheat)."
