@@ -71,8 +71,12 @@ while ($true) {
     $Visited = $true
 }
 
+# Coming out: the menu goes with the visit. Ending on the menu you have just
+# finished with reads like the command never returned - what is left is the line
+# below, and the prompt.
+Clear-MenuScreen
+
 if (-not $Visited) {
-    Write-Host ""
     Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
     exit 0
 }
