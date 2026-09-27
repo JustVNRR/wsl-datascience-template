@@ -19,6 +19,7 @@ WSL DataScience template
     add_pack     install a pack into an instance
     remove_pack  uninstall a pack from an instance
     manage_packs choose the packs an instance should carry
+    theme        choose the icon, font and colours
     unregister   remove an instance
     archive      write an instance to a named archive
     restore      rebuild an instance from an archive
@@ -32,6 +33,13 @@ instances, the packs, the archives - and it is answered the same way. Where
 there is no console to read a key from (a script, a pipe), that menu becomes
 the numbered prompt it used to be, and the answer is typed.
 
+Going down a level, or coming back up, clears the screen: a visit is one menu at
+a time, and nothing is ever drawn over something else. The price, and it is the
+one that was chosen over a cleverer arrangement: what was above — the output of
+the command before, what was typed — goes with it. With no console there is
+nothing to clear, so a run whose answers are piped in keeps every line: a log is
+read, not looked at.
+
 ## All commands
 
 | Command | What it does |
@@ -44,6 +52,7 @@ the numbered prompt it used to be, and the answer is typed.
 | [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
+| [`.\wsl.ps1 theme`](#theme) | choose the icon, font and colours |
 | [`.\wsl.ps1 unregister`](#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
@@ -59,7 +68,8 @@ virtual disk:
 ```text
 D:\WSL\ubuntu-template\
 ├── ext4.vhdx
-├── terminal-icon.png
+├── terminal-icon.png        drawn from the name, and kept here
+├── instance.json            its look: the font, the colours, the icon's recipe
 └── .wsl-datascience-template
 ```
 
@@ -75,7 +85,7 @@ D:\WSL\
 └── archives\                 an archive is a folder too
     └── ubuntu-template\
         ├── ubuntu-template.tar.gz   the instance's file system
-        ├── instance.json            its font, colours, and Docker state
+        ├── instance.json            its look, the same file the instance keeps
         └── terminal-icon.png        its icon
 ```
 
@@ -450,6 +460,135 @@ removed, what was placed, what was never touched.
 
 ---
 
+## `theme`
+
+What an instance wears: its icon, its font and its colours. The instance is asked
+first, once; the menu behind it holds the things that can be changed, and it is
+drawn again after each of them — changing the icon and then the font is one
+visit.
+
+Escape walks back up the way it came: from the theme menu to the list of
+instances, so another one can be picked, and from that list to the prompt.
+
+```powershell
+.\wsl.ps1 theme
+```
+
+```text
+Our Instances
+  > ubuntu-ml-dev                running    2,1 GB
+    ...
+
+Theme of 'ubuntu-ml-dev'
+  > icon    the tile in the tab
+    font    what the whole terminal is written in
+    color   the background, the text, and sixteen colours
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+### `icon`
+
+Draws the icon of an instance, or puts an image of yours in its place. The
+script the build calls does the drawing, so the letters and the colours follow
+the same rule in both places.
+
+It keeps asking — change the colours, then the text, and both are kept; Escape
+brings the theme menu back, and nothing moves but the icon.
+
+```text
+Icon of 'ubuntu-ml-dev'
+  > By Default
+    text
+    colors
+    local file
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+| Choice | What it does |
+| :--- | :--- |
+| `By Default` | the letters and the colour pair the name gives |
+| `text` | one to three characters, typed — the current ones are the default answer |
+| `colors` | one of eight pairs, each shown with your letters on it |
+| `local file` | a PNG, JPG, ICO or BMP, copied in place |
+
+The icon is a **file**, not a setting: `terminal-icon.png` in the instance's own
+folder, the one its Terminal profile points at. Nothing else is written, and
+nothing has to be stopped.
+
+The theme menu asks Windows Terminal to look again when the visit is over:
+Terminal watches its own settings file, and a change to it makes it read the
+profiles again, the fragments included. A reload cannot land on a pane that is
+running a menu, so **nothing appears while you are still in there** — the change
+shows the moment you leave. The colours change on the spot then; the font and the
+icon belong to a tab as it is opened, so those want a new one.
+
+Changing one part keeps the other. The recipe of the last drawing — its letters,
+its three colours — is noted in the instance's own `instance.json`, the same file
+an archive carries, so picking other colours keeps the letters you typed, and the
+other way round. An image of your own replaces the picture and leaves the recipe
+alone: changing your mind starts from it again rather than from the name.
+
+The icon travels with the instance: `archive` takes the file and the picture,
+`restore` and `duplicate` put both back.
+
+### `font`
+
+Sets what the whole terminal is written in, for one instance.
+
+```text
+Font of 'ubuntu-ml-dev'
+  > JetBrainsMono NF                 (current)
+    JetBrainsMonoNL NF
+    MesloLGS NF
+    Cascadia Mono NF
+    ...
+  up/down to move, Enter to choose, Escape to cancel
+  Get more Nerd Fonts at https://www.nerdfonts.com
+```
+
+The list is the fonts a prompt can be written in: the monospaced families Windows
+has — the weights of a family are left out, a profile takes the family — that
+carry the glyphs a prompt is drawn with, measured by asking each font file. A
+font without them draws a box where your prompt has a folder, so it is not
+offered, and the line under the list says where more of them come from.
+
+The font in use is in the list whatever it carries, and marked `(current)`: it is
+what you came to look at, and on a machine with no Nerd Font at all it is the
+only row there is. The build installs one and writes it into the profile, so an
+instance of this template starts on a font that carries them.
+
+A console writes every row in the font *it* is set to, so no list can show a font
+in itself. The preview is the choice: the profile changes, and the next tab is
+written in it.
+
+### `color`
+
+Sets the colours of the whole terminal, for one instance.
+
+```text
+Colours of 'ubuntu-ml-dev'
+  > Campbell
+    Campbell Powershell
+    CGA
+    ...
+    One Half Dark                          (current)
+    ...
+    Vintage Custom
+  up/down to move, Enter to choose, Escape to cancel
+```
+
+The list is every scheme this machine can be told to use: the ones Windows
+Terminal ships — read from the file inside its own package — and the ones you
+added or wrote over, your version of a name winning over the shipped one. Each is
+shown in its own colours, with three of them beside it, and the one in use is
+marked.
+
+That file is JSON with comments in it, which PowerShell's own reader refuses. The
+command reads it all the same, without touching it: it is Terminal's file, and
+nothing here writes to it.
+
+---
+
 ## `unregister`
 
 Removes an instance and everything it left on Windows.
@@ -491,8 +630,8 @@ restore from later.
 ## `archive`
 
 Writes an instance to an archive: the file system, **plus what a tar cannot
-carry** — the icon, the font and the colour scheme the instance was using, and
-whether Docker Desktop knew it.
+carry** — the icon and what it is made of, the font and the colour scheme the
+instance was using, and whether Docker Desktop knew it.
 
 ```powershell
 .\wsl.ps1 archive

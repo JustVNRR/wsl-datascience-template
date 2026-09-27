@@ -367,7 +367,29 @@ try {
     Install-NerdFont | Out-Null
 
     Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor Cyan
-    Copy-Item "$RepoRoot\assets\terminal-icon.png" "$InstallPath\terminal-icon.png" -Force
+
+    # The icon is drawn from the instance's own name - the letters and the
+    # colours both come from it, so the same name always draws the same icon.
+    # Nothing is said about a drawing that worked: the icon is there because
+    # there has to be one, not because it is worth announcing.
+    #
+    # It is decoration, though, and a build already finished does not die for
+    # it: a drawing that fails is reported, leaves no file, and the fragment
+    # below drops the icon line, so the profile keeps Terminal's own icon.
+    $IconPath = Join-Path $InstallPath "terminal-icon.png"
+    $IconDrawn = $false
+    $Icon = @{}
+    try {
+        # -What: the letters and the colours it settled on are read back, and go
+        # into the instance's own file below, so that a later change of one keeps
+        # the other.
+        $Drawn = & "$RepoRoot\assets\make-icon.ps1" -Name $DistroName -Out $IconPath -Quiet -What | ConvertFrom-Json
+        $IconDrawn = $true
+        $Icon = @{ Text = $Drawn.Text; Top = $Drawn.Top; Bottom = $Drawn.Bottom; TextColor = $Drawn.TextColor }
+    } catch {
+        Remove-Item $IconPath -Force -ErrorAction SilentlyContinue
+        Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor Yellow
+    }
 
     # Find the distro's Terminal profile GUID: WSL writes one fragment file per
     # import under Fragments\Microsoft.WSL (named {guid}.json, containing the
@@ -435,30 +457,26 @@ try {
     }
 
     if ($ProfileGuid) {
-        $IconPath = Join-Path $InstallPath "terminal-icon.png"
-        New-Item -ItemType Directory -Force $OurFragmentDir | Out-Null
-        # Layered over WSL's own profile via "updates"; the user's settings.json
-        # is never touched. UTF-8 matters: PowerShell's default encoding is not.
-        $FragmentJson = @"
-{
-    "profiles": [
-        {
-            "updates": "$ProfileGuid",
-            "icon": "$($IconPath -replace '\\','\\')",
-            "font": { "face": "MesloLGS NF" },
-            "colorScheme": "One Half Dark",
-            "suppressApplicationTitle": true
-        }
-    ]
-}
-"@
-        Set-Content -Path (Join-Path $OurFragmentDir "$DistroName.json") -Value $FragmentJson -Encoding Utf8
+        # No icon drawn, no icon line: Terminal then shows its own, which is what
+        # step 9 said when the drawing failed.
+        Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Font "MesloLGS NF" `
+            -ColorScheme "One Half Dark" -IconPath $(if ($IconDrawn) { $IconPath } else { "" })
         Write-Host "  * Terminal profile : icon + font + color scheme + tab title applied (profile $ProfileGuid)" -ForegroundColor Green
         $TerminalProfileOk = $true
     } else {
         Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor Yellow
         $TerminalProfileOk = $false
     }
+
+    # What this instance looks like, written in its own folder - the file an
+    # archive carries. Written here, the fragment in place, so the font and the
+    # colours it reads are the ones just applied, and with the icon's recipe: a
+    # later change of letters or colours keeps the other half.
+    Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
+
+    # And Terminal is asked to look again: the profile of an instance that did
+    # not exist a minute ago appears without closing it.
+    Update-TerminalSettings
 
     # The packs, before the screen that says the instance is done - and in a try
     # of their own. Their own try is the point: a pack that fails must not reach

@@ -33,7 +33,7 @@
 #     and its sample menu. It found five drifted rows the day it was written
 #
 # The second job, on windows-latest, is the one that RUNS the code instead of
-# reading it, because that is where PowerShell and wsl.exe are. Three suites,
+# reading it, because that is where PowerShell and wsl.exe are. Seven suites,
 # none of which needs an instance, a console or Docker Desktop:
 #   - tests/menu-test.ps1        the arrow menu, driven by a scripted keyboard:
 #                                wrapping, Escape, digits, the cursor read back
@@ -47,6 +47,22 @@
 #   - tests/build-question-test.sh  build's questions and its failure path, with
 #                                a stand-in docker on the PATH (tests/fake-docker/)
 #                                that hands the import a file which is not a tar
+#   - tests/icon-test.ps1        the icon an instance is given: the letters a
+#                                name turns into, and the same name drawing the
+#                                same file in two separate processes
+#   - tests/icon-command-test.ps1  the icon command, behind `.\wsl.ps1 theme`,
+#                                on an instance it makes for itself (a registry
+#                                key of its own, taken back out): other letters
+#                                keep the colours, other colours keep the letters
+#   - tests/font-command-test.ps1  the font command, on the same kind of
+#                                instance: the list is the fonts that carry a
+#                                prompt's icons, one that carries none is not in
+#                                it, and picking one writes it into the profile
+#                                and the instance
+#   - tests/color-command-test.ps1  the colour command, on the same kind of
+#                                instance: the schemes are listed, the one in
+#                                use is marked, and picking one writes it into
+#                                the profile and the instance
 # Every bug the scripts themselves have had was caught here, and none of these
 # checks can be replaced by reading the files.
 
@@ -367,3 +383,19 @@ jobs:
       - name: build's questions, with a stand-in docker
         shell: bash
         run: bash tests/build-question-test.sh
+
+      - name: The icon an instance is given, from its name
+        shell: bash
+        run: powershell -NoProfile -File tests/icon-test.ps1
+
+      - name: Choosing an instance's icon, on an instance of the test's own
+        shell: bash
+        run: powershell -NoProfile -File tests/icon-command-test.ps1
+
+      - name: Choosing an instance's font, on an instance of the test's own
+        shell: bash
+        run: powershell -NoProfile -File tests/font-command-test.ps1
+
+      - name: Choosing an instance's colours, on an instance of the test's own
+        shell: bash
+        run: powershell -NoProfile -File tests/color-command-test.ps1

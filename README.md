@@ -182,8 +182,7 @@ the repository at runtime.
 │   │   └── starship.zsh     # Starship initialization hook
 │   └── unzip.zsh            # Interactive archive extraction handler
 ├── assets/
-│   ├── make-icon.ps1        # Regenerates the icon below (standalone PowerShell)
-│   └── terminal-icon.png    # Windows Terminal profile icon (copied next to the VHDX)
+│   └── make-icon.ps1        # Draws an instance's icon from its name (standalone PowerShell)
 ├── docs/
 │   ├── make/                # Documentation of the socle's gmake modules
 │   ├── wsl/                 # Instance administration: the commands, their options, examples
@@ -230,12 +229,17 @@ the repository at runtime.
 │       └── docs/            # the pack's page
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
+│   ├── theme.ps1            # What `theme` opens, and the menu it asks with
+│   ├── icon.ps1             #   the icon alone: its letters, its colours, an image
+│   ├── font.ps1             #   the font alone
+│   ├── color.ps1            #   the colours alone
 │   └── *.ps1                # list, build, start, stop, shell, add_pack,
-│                            # remove_pack, manage_packs, unregister, archive,
-│                            # restore, duplicate, shrink
+│                            # remove_pack, manage_packs, theme, unregister,
+│                            # archive, restore, duplicate, shrink
 ├── tests/                   # The suites that RUN the code: the arrow menu with a
 │                            # scripted keyboard, the pack checklist, build's
-│                            # questions over a stand-in docker, the doc drift
+│                            # questions over a stand-in docker, the icon a name
+│                            # draws, the icon, font and colour commands, doc drift
 │   └── fake-docker/         # That stand-in: answers the preflight, fails the import
 ├── .github/
 │   └── workflows/
@@ -291,7 +295,7 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 
 | Workflow | Runs on | What it proves |
 | :--- | :--- | :--- |
-| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the makefile parses with a complete help menu, the docs and cheatsheets stay in sync with the `gmake` modules — and three suites on Windows drive the real code: the arrow menu with a scripted keyboard, the pack checklist, `build`'s questions over a stand-in docker |
+| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the makefile parses with a complete help menu, the docs and cheatsheets stay in sync with the `gmake` modules — and seven suites on Windows drive the real code: the arrow menu with a scripted keyboard, the pack checklist, `build`'s questions over a stand-in docker, the icon a name draws, and the icon, font and colour commands on an instance of their own |
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
 They check the **repository** — the files, and the code run against stand-ins,
@@ -322,6 +326,7 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 manage_packs`](docs/wsl/commands.md#manage_packs) | choose the packs an instance should carry |
+| [`.\wsl.ps1 theme`](docs/wsl/commands.md#theme) | choose the icon, font and colours |
 | [`.\wsl.ps1 unregister`](docs/wsl/commands.md#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](docs/wsl/commands.md#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
