@@ -248,12 +248,27 @@ function Update-TerminalSettings {
 
     foreach ($Path in $Paths) {
         if (-not (Test-Path $Path)) { continue }
-        try {
-            (Get-Item $Path).LastWriteTime = Get-Date
-            Start-Sleep -Milliseconds 800
-            (Get-Item $Path).LastWriteTime = Get-Date
-        } catch { }
+        try { (Get-Item $Path).LastWriteTime = Get-Date } catch { }
     }
+
+    # And again, from a small process left behind, two seconds later.
+    #
+    # This is the part that matters, and it took three wrong guesses and two of
+    # the user's own tests to find: touching the file from inside the command
+    # does nothing - even a second later, even twice - while the very same touch
+    # typed at the prompt once the command has returned changes an open tab on
+    # the spot. The reload has to land when the pane is sitting idle at its
+    # prompt, not while a command is running in it.
+    $Script = @"
+Start-Sleep -Seconds 2
+foreach (`$Path in @(
+$(($Paths | ForEach-Object { "    '" + $_ + "'" }) -join ",`n")
+)) { if (Test-Path `$Path) { (Get-Item `$Path).LastWriteTime = Get-Date } }
+"@
+    $Encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Script))
+    try {
+        Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-EncodedCommand", $Encoded -WindowStyle Hidden
+    } catch { }
 }
 
 # The profile Windows Terminal knows an instance by: the guid WSL wrote in its
