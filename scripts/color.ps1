@@ -210,18 +210,12 @@ while ($true) {
                 (ConvertTo-Rgb $Scheme.background), (ConvertTo-Rgb $Scheme.foreground), $Text
         }
 
-        # What the row is, then what it looks like. The swatches go last because
-        # the window decides where the end of the line is, and a cut must eat the
-        # picture before it eats a word. The mark is already in the padded text -
-        # appending it here as well printed it twice, which is what the width
-        # check caught.
-        foreach ($Ink in @("red", "green", "blue")) {
-            if ($Coloured -and $Scheme -and $Scheme.$Ink) {
-                $Sample += ("{0}[48;2;{1}m  " -f $Escape, (ConvertTo-Rgb $Scheme.$Ink))
-            }
-        }
-        if ($Coloured) { $Sample += "$Escape[0m" }
-
+        # And nothing else. There used to be three coloured swatches beside the
+        # name, and they were the wrong idea twice over: the row is already
+        # painted in the colours of its scheme, which is the whole preview, and
+        # the swatches made the label longer than the window - so it was cut, and
+        # what showed was a fragment of a colour block and the menu's own "...".
+        # Reported as "je sais pas ce que c'est ces trucs au bout".
         $Sample
     } -DefaultIndex $Default
 
