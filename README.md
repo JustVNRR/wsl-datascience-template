@@ -75,6 +75,7 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
 - **`gmake` vs `make`:**
   - Type `gmake` (without any arguments) to display a formatted help menu listing every gmake target (GCP compute, BigQuery, Docker, Cloud Run, etc.).
+  - Type `gmake` then Tab to complete a target — the same list, each entry followed by its description.
   - Use `fnew (recommended)`, `gmake copier_project`, `gmake cruft_project` or `gmake ccds_project` from `~/projects` to scaffold a project template.
   - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the `Makefile` in `~/.config/zsh/gmake`.
   - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in your current project folder.
@@ -167,7 +168,8 @@ the repository at runtime.
 │   ├── cheatsheet.zsh       # Interactive cheatsheet selector (fcheat)
 │   ├── cheatsheets/         # Auto-scanned data files: CTRL+H command lists (fcheat)
 │   │   └── *_commands.sh    # The commands an instance always has: bash, git, the gmake menu
-│   ├── gmake/               # MLOps Makefile ecosystem (the gmake alias)
+│   ├── completion.zsh       # gmake's targets on Tab, read from the Makefile itself
+│   ├── gmake/               # MLOps Makefile ecosystem (the gmake command)
 │   │   ├── Makefile         # Entrypoint: loads the modules, builds the menu, gates where targets run
 │   │   └── make/            # The socle's modules (pages in docs/make/)
 │   │       ├── env.mk       # the .env files, and the commands that build them
