@@ -196,6 +196,14 @@ while ($true) {
         # after the name it belongs to, it jumped from row to row.
         $Here = if ($Name -eq $Current) { "(current)" } else { "" }
         $Text = "{0,-20} {1,-11}" -f $Name, $Here
+
+        # The mark in red, so it is found before the row is read - and the colour
+        # is put around the word INSIDE the padded text: padding a string that
+        # already carries escapes would count them as letters and break the
+        # column the rows are aligned on.
+        if ($Here -and $Coloured) {
+            $Text = $Text -replace [regex]::Escape($Here), ("{0}[91m{1}{0}[39m" -f $Escape, $Here)
+        }
         $Sample = $Text
 
         # The scheme itself, and three of its colours beside it. What is being
