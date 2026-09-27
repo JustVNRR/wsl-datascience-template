@@ -65,3 +65,15 @@ bindkey '^[y' _falias_widget
 # relaunched the last named command, a zsh feature almost nobody uses.
 zle -N _fcheat_widget
 bindkey '^[z' _fcheat_widget
+
+# --- 3. COMPLETION MENU ---
+
+# Escape leaves a completion menu. The block zsh lists stays on screen below
+# the line once it is printed, and nothing redraws over it - the cursor is
+# brought back up to the line, and every erase goes downwards from there - so
+# the ways out were to pick an entry or to clear the line and start again. In
+# the menu keymap Escape is bound to nothing; send-break is the widget that
+# abandons the completion, and the block goes with it. That keymap belongs to
+# zsh/complist: without the module there is no `menuselect` to bind.
+zmodload zsh/complist
+bindkey -M menuselect '\e' send-break
