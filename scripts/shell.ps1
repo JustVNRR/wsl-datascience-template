@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -22,9 +22,9 @@ $Distro = Select-Distro
 $DistroName = $Distro.Name
 
 Write-Host ""
-Write-Host "==> Opening a shell in '$DistroName'..." -ForegroundColor Cyan
+Write-Host "==> Opening a shell in '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 if ((Get-DistroNames -Running) -notcontains $DistroName) {
-    Write-Host "  It was stopped: WSL starts it on the way in, which takes a moment." -ForegroundColor DarkGray
+    Write-Host "  It was stopped: WSL starts it on the way in, which takes a moment." -ForegroundColor (Get-MessageColour muted)
 }
 
 # 2. The shell itself. `--cd ~` lands in the instance's home rather than in the

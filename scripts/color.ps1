@@ -21,70 +21,14 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
 
-# Windows Terminal writes JSON with comments and with a comma left before a
-# closing bracket. PowerShell's reader refuses both - and a blind replace on the
-# text is worse than refusing: that file holds a string of every punctuation
-# mark there is ("wordDelimiters"), and taking a comma out of IT breaks the JSON
-# somewhere that has nothing to do with commas. Measured, after two attempts
-# that did exactly that.
-#
-# So the walk below knows what a string is: inside quotes nothing is touched, a
-# "//" outside quotes runs to the end of its line, and a comma followed by a
-# closing bracket - outside a string - is dropped. Anything else is left alone,
-# and a file that still will not parse is no schemes at all, not a crash.
-function Read-TerminalJson {
-    param([string]$Path)
-
-    if (-not $Path -or -not (Test-Path $Path)) { return $null }
-    try {
-        $Text = [System.IO.File]::ReadAllText($Path)
-    } catch {
-        return $null
-    }
-
-    try {
-        $Out = New-Object System.Text.StringBuilder
-        $InString = $false
-        for ($Index = 0; $Index -lt $Text.Length; $Index++) {
-            $Char = $Text[$Index]
-
-            if ($InString) {
-                $null = $Out.Append($Char)
-                if ($Char -eq '\') {
-                    $Index++
-                    if ($Index -lt $Text.Length) { $null = $Out.Append($Text[$Index]) }
-                    continue
-                }
-                if ($Char -eq '"') { $InString = $false }
-                continue
-            }
-
-            if ($Char -eq '"') { $InString = $true; $null = $Out.Append($Char); continue }
-
-            if ($Char -eq '/' -and ($Index + 1) -lt $Text.Length -and $Text[$Index + 1] -eq '/') {
-                while ($Index -lt $Text.Length -and $Text[$Index] -ne "`n") { $Index++ }
-                $null = $Out.Append("`n")
-                continue
-            }
-
-            if ($Char -eq ',') {
-                $Next = $Index + 1
-                while ($Next -lt $Text.Length -and [char]::IsWhiteSpace($Text[$Next])) { $Next++ }
-                if ($Next -lt $Text.Length -and ($Text[$Next] -eq '}' -or $Text[$Next] -eq ']')) { continue }
-            }
-
-            $null = $Out.Append($Char)
-        }
-        return ($Out.ToString() | ConvertFrom-Json)
-    } catch {
-        return $null
-    }
-}
+# The reader this file needs lives in message.ps1, which instance.ps1 loads
+# with everything the commands share: Windows Terminal writes JSON with
+# comments, and the walk that knows what a string is lives there, once.
 
 # Every colour scheme this machine can wear, by name: the name is what a profile
 # takes, and what is behind it is what the list shows.
@@ -143,7 +87,7 @@ if ($HandedOver) {
     $Distro = Get-Distros | Where-Object { $_.Name -eq $DistroName } | Select-Object -First 1
     if (-not $Distro) {
         Write-Host ""
-        Write-Host "[ABORT] No instance named '$DistroName' is registered here." -ForegroundColor Red
+        Write-Host "[ABORT] No instance named '$DistroName' is registered here." -ForegroundColor (Get-MessageColour error)
         exit 1
     }
 } else {
@@ -157,21 +101,21 @@ Clear-MenuScreen
 $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$DistroName.json"
 if (-not (Test-Path $OurFragment)) {
     Write-Host ""
-    Write-Host "[WARNING] This instance has no Terminal profile of ours - the colours would not show." -ForegroundColor Yellow
-    Write-Host "          Build it again, or set them by hand in Ctrl+," -ForegroundColor DarkGray
+    Write-Host "[WARNING] This instance has no Terminal profile of ours - the colours would not show." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "          Build it again, or set them by hand in Ctrl+," -ForegroundColor (Get-MessageColour muted)
 }
 
 $Escape = [char]27
 $Coloured = Test-ColourOutput
 
 Write-Host ""
-Write-Host "Reading the colour schemes Windows Terminal has..." -ForegroundColor DarkGray
+Write-Host "Reading the colour schemes Windows Terminal has..." -ForegroundColor (Get-MessageColour muted)
 
 $Schemes = Get-ColorSchemes
 if ($Schemes.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No colour scheme could be read on this machine." -ForegroundColor Red
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    Write-Host "[ABORT] No colour scheme could be read on this machine." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 $Rows = @($Schemes.Keys | Sort-Object)
@@ -239,8 +183,8 @@ while ($true) {
     $Guid = Get-WslProfileGuid -Name $DistroName
     if (-not $Guid) {
         Write-Host ""
-        Write-Host "[ABORT] Windows Terminal has no profile for '$DistroName' - the colours cannot be applied." -ForegroundColor Red
-        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+        Write-Host "[ABORT] Windows Terminal has no profile for '$DistroName' - the colours cannot be applied." -ForegroundColor (Get-MessageColour error)
+        Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
         exit 1
     }
 
@@ -263,7 +207,7 @@ if (-not $Changed) {
     # where this one was.
     if ($HandedOver) { exit 0 }
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 

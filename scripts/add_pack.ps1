@@ -18,7 +18,7 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -39,7 +39,7 @@ Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$D
 $InstanceHome = Get-InstanceHome -DistroName $DistroName
 if (-not $InstanceHome) {
     Write-Host ""
-    Write-Host "[ABORT] '$DistroName' did not say where its user's home is." -ForegroundColor Red
+    Write-Host "[ABORT] '$DistroName' did not say where its user's home is." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 $PacksDirectory = "$InstanceHome/.config/packs"
@@ -48,8 +48,8 @@ $PacksDirectory = "$InstanceHome/.config/packs"
 $Available = @(Get-AvailablePacks)
 if ($Available.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No pack found in $PacksRoot." -ForegroundColor Red
-    Write-Host "        A pack is a folder there carrying a pack.conf." -ForegroundColor Yellow
+    Write-Host "[ABORT] No pack found in $PacksRoot." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        A pack is a folder there carrying a pack.conf." -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -60,7 +60,7 @@ $Candidates = @($Available | Where-Object { $_.Visible -and $Installed -notconta
 
 if ($Candidates.Count -eq 0) {
     Write-Host ""
-    Write-Host "[OK] '$DistroName' already has every pack this repository offers." -ForegroundColor Green
+    Write-Host "[OK] '$DistroName' already has every pack this repository offers." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
@@ -68,7 +68,7 @@ if ($Candidates.Count -eq 0) {
 # drawn in place, and anything printed under them gets painted over.
 if ($Installed.Count -gt 0) {
     Write-Host ""
-    Write-Host ("       Already in '$DistroName': {0}" -f ($Installed -join ", ")) -ForegroundColor DarkGray
+    Write-Host ("       Already in '$DistroName': {0}" -f ($Installed -join ", ")) -ForegroundColor (Get-MessageColour muted)
 }
 
 $Pack = Select-FromList -Title "Packs available for '$DistroName':" -Items $Candidates -Label {
@@ -78,7 +78,7 @@ $Pack = Select-FromList -Title "Packs available for '$DistroName':" -Items $Cand
 
 if (-not $Pack) {
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
@@ -99,16 +99,16 @@ foreach ($Entry in $ToInstall) {
     $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Entry.Name
 
     Write-Host ""
-    Write-Host "==> Installing '$($Entry.Name)' in '$DistroName'..." -ForegroundColor Cyan
+    Write-Host "==> Installing '$($Entry.Name)' in '$DistroName'..." -ForegroundColor (Get-MessageColour info)
     if ($Entry.Name -ne $PackName) {
-        Write-Host "    It comes with '$PackName', which requires it." -ForegroundColor DarkGray
+        Write-Host "    It comes with '$PackName', which requires it." -ForegroundColor (Get-MessageColour muted)
     }
-    Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor DarkGray
+    Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor (Get-MessageColour muted)
 
     $Code = 0
     if (-not (Copy-PackIntoInstance -DistroName $DistroName -PackPath $Entry.Path -Target $Target -ExitCode ([ref]$Code))) {
-        Write-Host "[ABORT] Could not copy the pack's files into '$DistroName' (exit code $Code)." -ForegroundColor Red
-        Write-Host "        The message above is the instance's own answer." -ForegroundColor Yellow
+        Write-Host "[ABORT] Could not copy the pack's files into '$DistroName' (exit code $Code)." -ForegroundColor (Get-MessageColour error)
+        Write-Host "        The message above is the instance's own answer." -ForegroundColor (Get-MessageColour hint)
         exit $Code
     }
 
@@ -122,22 +122,22 @@ foreach ($Entry in $ToInstall) {
     # it stopped.
     if ($InstallCode -ne 0) {
         Write-Host ""
-        Write-Host "[FAIL] The installation did not complete (exit code $InstallCode)." -ForegroundColor Red
+        Write-Host "[FAIL] The installation did not complete (exit code $InstallCode)." -ForegroundColor (Get-MessageColour error)
         Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
-        Write-Host "       The pack's files were removed: nothing of it stays in the instance." -ForegroundColor Yellow
-        Write-Host "       Whatever the install had already put in place is still there - run this again to finish." -ForegroundColor Yellow
+        Write-Host "       The pack's files were removed: nothing of it stays in the instance." -ForegroundColor (Get-MessageColour hint)
+        Write-Host "       Whatever the install had already put in place is still there - run this again to finish." -ForegroundColor (Get-MessageColour hint)
         exit $InstallCode
     }
 }
 
 Write-Host ""
-Write-Host "==> '$PackName' is installed in '$DistroName'." -ForegroundColor Green
-Write-Host "    Open a shell in it to use it:  .\wsl.ps1 shell" -ForegroundColor DarkGray
+Write-Host "==> '$PackName' is installed in '$DistroName'." -ForegroundColor (Get-MessageColour success)
+Write-Host "    Open a shell in it to use it:  .\wsl.ps1 shell" -ForegroundColor (Get-MessageColour muted)
 # The pack's samples travelled with its folder, but nothing has merged them into
 # the user's own .env files - those are theirs, and no install writes into them.
 # Said here, once, because it is the one step an install leaves over - and only
 # when a sample travelled: a pack that ships none has nothing to merge.
 if (@($ToInstall | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
-    Write-Host "    Then, in there:  gmake env_global_enable   (adds the pack's variables)" -ForegroundColor DarkGray
+    Write-Host "    Then, in there:  gmake env_global_enable   (adds the pack's variables)" -ForegroundColor (Get-MessageColour muted)
 }
 exit 0

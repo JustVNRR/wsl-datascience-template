@@ -17,16 +17,16 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
 
 if ($Ignored) {
     Write-Host ""
-    Write-Host "[ABORT] This command takes no options any more: it asks for the name." -ForegroundColor Red
-    Write-Host "        Run it on its own:  .\wsl.ps1 build" -ForegroundColor Yellow
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    Write-Host "[ABORT] This command takes no options any more: it asks for the name." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Run it on its own:  .\wsl.ps1 build" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -58,11 +58,11 @@ function Install-NerdFont {
     }
 
     if ($IsFontInstalled) {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected ($FontName)." -ForegroundColor Green
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected ($FontName)." -ForegroundColor (Get-MessageColour success)
         return $true
     }
 
-    Write-Host "==> Starship prompt requires a Nerd Font. Downloading $FontName..." -ForegroundColor Yellow
+    Write-Host "==> Starship prompt requires a Nerd Font. Downloading $FontName..." -ForegroundColor (Get-MessageColour info)
 
     # 2. Download, then install the font PER-USER (no admin required). Both are
     # best effort: the prompt looks worse without the font, but neither a download
@@ -92,10 +92,10 @@ function Install-NerdFont {
         if (-not (Get-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -ErrorAction SilentlyContinue)) {
             New-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -Value $DestFontPath -PropertyType String -Force | Out-Null
         }
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed $FontName for current user." -ForegroundColor Green
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed $FontName for current user." -ForegroundColor (Get-MessageColour success)
         return $false
     } catch {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $_" -ForegroundColor Red
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $_" -ForegroundColor (Get-MessageColour error)
         return $false
     }
 }
@@ -116,8 +116,8 @@ $ContainerName = "wsl-temp-export-$([guid]::NewGuid().ToString().Substring(0, 8)
 # silence it - the user would see a raw daemon error instead of this message.
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Write-Host ""
-    Write-Host "[ABORT] Docker is not installed, or not on the PATH." -ForegroundColor Red
-    Write-Host "        Install Docker Desktop (see Prerequisites in the README), then run this script again." -ForegroundColor Yellow
+    Write-Host "[ABORT] Docker is not installed, or not on the PATH." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Install Docker Desktop (see Prerequisites in the README), then run this script again." -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -129,9 +129,9 @@ $ErrorActionPreference = $PreviousEAP
 
 if ($DockerExitCode -ne 0) {
     Write-Host ""
-    Write-Host "[ABORT] Docker is not responding." -ForegroundColor Red
-    Write-Host "        Start Docker Desktop, wait for it to finish starting, then run this script again." -ForegroundColor Yellow
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    Write-Host "[ABORT] Docker is not responding." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Start Docker Desktop, wait for it to finish starting, then run this script again." -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -140,21 +140,21 @@ if ($DockerExitCode -ne 0) {
 # before anything is created. The checks hold on a first build too, where no
 # distro exists yet and the banner never shows.
 Write-Host ""
-Write-Host "==> Creating a new instance" -ForegroundColor Cyan
+Write-Host "==> Creating a new instance" -ForegroundColor (Get-MessageColour info)
 
 $DistroName = $null
 while (-not $DistroName) {
     $Answer = [string](Read-Host "Name of the instance (CTRL+C to abort)")
     if ([string]::IsNullOrWhiteSpace($Answer)) {
         Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
     $Answer = $Answer.Trim()
     if ($Answer -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
         $DistroName = $Answer
     } else {
-        Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor Yellow
+        Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor (Get-MessageColour hint)
     }
 }
 
@@ -210,12 +210,12 @@ while (-not $InstallPath) {
     }
 
     if (-not $Full) {
-        Write-Host "  '$Folder' is not a usable path." -ForegroundColor Yellow
+        Write-Host "  '$Folder' is not a usable path." -ForegroundColor (Get-MessageColour warning)
     } elseif ($Elsewhere) {
-        Write-Host "  $Full is, or holds, the folder of '$($Elsewhere.Name)'." -ForegroundColor Yellow
-        Write-Host "  Erasing it would take that instance with it." -ForegroundColor Yellow
+        Write-Host "  $Full is, or holds, the folder of '$($Elsewhere.Name)'." -ForegroundColor (Get-MessageColour warning)
+        Write-Host "  Erasing it would take that instance with it." -ForegroundColor (Get-MessageColour warning)
     } elseif ($Occupied) {
-        Write-Host "  $Full already exists, please choose another location." -ForegroundColor Yellow
+        Write-Host "  $Full already exists, please choose another location." -ForegroundColor (Get-MessageColour warning)
     } else {
         # Shown before it is created, and confirmed: the common answer is yes,
         # and a no is a change of mind about the location, not about anything
@@ -233,7 +233,7 @@ while (-not $InstallPath) {
     $Answer = [string](Read-Host "Folder for '$DistroName' (or Enter to cancel)")
     if ([string]::IsNullOrWhiteSpace($Answer)) {
         Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
     $Folder = $Answer.Trim()
@@ -253,32 +253,30 @@ $ExistingDistros = (wsl.exe --list --quiet 2>$null) | ForEach-Object { ($_ -repl
 if ($ExistingDistros -contains $DistroName) {
     [Console]::Beep(1000, 400)
     Write-Host ""
-    Write-Host " /!\ ================================================================ /!\" -ForegroundColor White -BackgroundColor DarkRed
-    Write-Host " |                     DANGER: TOTAL DATA LOSS IMMINENT               |" -ForegroundColor White -BackgroundColor DarkRed
-    Write-Host " \!/ ================================================================ \!/" -ForegroundColor White -BackgroundColor DarkRed
+    Write-DangerBanner
     Write-Host ""
-    Write-Host "  A WSL distribution named '$DistroName' ALREADY exists." -ForegroundColor Red
+    Write-Host "  A WSL distribution named '$DistroName' ALREADY exists." -ForegroundColor (Get-MessageColour error)
     Write-Host ""
-    Write-Host "  Proceeding will PERMANENTLY DESTROY this distribution:" -ForegroundColor Yellow
-    Write-Host "    - Executing: wsl --unregister $DistroName" -ForegroundColor DarkGray
-    Write-Host "    - Erasing the install folder: $InstallPath" -ForegroundColor DarkGray
-    Write-Host "    - IRREVERSIBLE DELETION of the virtual disk (VHDX)" -ForegroundColor DarkGray
-    Write-Host "    - TOTAL LOSS of projects, SSH keys, and all files in /home" -ForegroundColor DarkGray
+    Write-Host "  Proceeding will PERMANENTLY DESTROY this distribution:" -ForegroundColor (Get-MessageColour warning)
+    Write-Host "    - Executing: wsl --unregister $DistroName" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "    - Erasing the install folder: $InstallPath" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "    - IRREVERSIBLE DELETION of the virtual disk (VHDX)" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "    - TOTAL LOSS of projects, SSH keys, and all files in /home" -ForegroundColor (Get-MessageColour muted)
     Write-Host ""
-    Write-Host "  THIS OPERATION CANNOT BE UNDONE." -ForegroundColor Red
+    Write-Host "  THIS OPERATION CANNOT BE UNDONE." -ForegroundColor (Get-MessageColour error)
     Write-Host ""
-    Write-Host " ----------------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host " Press ENTER to abort immediately." -ForegroundColor Yellow
-    Write-Host " To confirm DESTRUCTION, type the exact name of the distribution:" -ForegroundColor Yellow
+    Write-Host " ----------------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
+    Write-Host " Press ENTER to abort immediately." -ForegroundColor (Get-MessageColour hint)
+    Write-Host " To confirm DESTRUCTION, type the exact name of the distribution:" -ForegroundColor (Get-MessageColour hint)
     $Confirmation = Read-Host " Confirm"
-    Write-Host " ----------------------------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host " ----------------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
     Write-Host ""
 
     # -cne, not -ne: PowerShell's -ne ignores case, while the banner above asks
     # for the exact name. The point is that the name is read and typed, not
     # that a reflexive Enter carries through.
     if ($Confirmation -cne $DistroName) {
-        Write-Host "[ABORT] Operation cancelled. No data was modified." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled. No data was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
 }
@@ -299,7 +297,7 @@ if ($AvailablePacks.Count -gt 0) {
         if ($PreviousHome) {
             $PreChecked = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory "$PreviousHome/.config/packs")
         } else {
-            Write-Host "  Could not read what '$DistroName' carries: no pack arrives checked." -ForegroundColor Yellow
+            Write-Host "  Could not read what '$DistroName' carries: no pack arrives checked." -ForegroundColor (Get-MessageColour warning)
         }
     }
 
@@ -310,7 +308,7 @@ if ($AvailablePacks.Count -gt 0) {
 
     if ($null -eq $PackSelection -or $PackSelection.ToAdd.Count -eq 0) {
         Write-Host ""
-        Write-Host "[OK] No pack selected: '$DistroName' will be built without one." -ForegroundColor Green
+        Write-Host "[OK] No pack selected: '$DistroName' will be built without one." -ForegroundColor (Get-MessageColour success)
         $PackSelection = $null
     }
 }
@@ -320,16 +318,16 @@ if ($AvailablePacks.Count -gt 0) {
 $Deployed = $false
 
 try {
-    Write-Host "==> 1. Building Docker rootfs image..." -ForegroundColor Cyan
+    Write-Host "==> 1. Building Docker rootfs image..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { docker build -t $ImageTag . } "Docker build failed."
 
-    Write-Host "==> 2. Creating temporary export container..." -ForegroundColor Cyan
+    Write-Host "==> 2. Creating temporary export container..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { docker create --name $ContainerName $ImageTag } "Container creation failed."
 
-    Write-Host "==> 3. Exporting filesystem to temporary archive ($TarPath)..." -ForegroundColor Cyan
+    Write-Host "==> 3. Exporting filesystem to temporary archive ($TarPath)..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { docker export -o $TarPath $ContainerName } "Docker export failed."
 
-    Write-Host "==> 4. Preparing installation folder: $InstallPath" -ForegroundColor Cyan
+    Write-Host "==> 4. Preparing installation folder: $InstallPath" -ForegroundColor (Get-MessageColour info)
     # Same trap as the Docker probe above: 2>$null does not silence wsl.exe,
     # which writes a mojibake UTF-16 error whenever the distro does not exist
     # yet - i.e. on every first build. The exit code is ignored on purpose.
@@ -342,7 +340,7 @@ try {
     }
     New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
 
-    Write-Host "==> 5. Importing into WSL ($DistroName)..." -ForegroundColor Cyan
+    Write-Host "==> 5. Importing into WSL ($DistroName)..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { wsl.exe --import $DistroName $InstallPath $TarPath --version 2 } "WSL import failed."
 
     # Marked the moment it is registered, before the steps that can still fail:
@@ -351,22 +349,22 @@ try {
     # instance behind, not an invisible one.
     New-InstanceMarker -Folder $InstallPath -By "build"
 
-    Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor Cyan
+    Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { wsl.exe -d $DistroName -u root /root/first_boot.sh } "The first_boot.sh configuration script failed."
 
     # Retrieve configured username from temporary file
     $ConfiguredUser = (wsl.exe -d $DistroName -u root cat /tmp/installed_user).Trim()
     wsl.exe -d $DistroName -u root rm -f /tmp/installed_user
 
-    Write-Host "==> 7. Shutting down distro to persist systemd and user configuration..." -ForegroundColor Cyan
+    Write-Host "==> 7. Shutting down distro to persist systemd and user configuration..." -ForegroundColor (Get-MessageColour info)
     wsl.exe --terminate $DistroName
 
-    Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor Cyan
+    Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor (Get-MessageColour info)
     # The function prints its own status line; discard the boolean it returns
     # (a bare call would print True/False to the console).
     Install-NerdFont | Out-Null
 
-    Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor Cyan
+    Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
 
     # The icon is drawn from the instance's own name - the letters and the
     # colours both come from it, so the same name always draws the same icon.
@@ -388,7 +386,7 @@ try {
         $Icon = @{ Text = $Drawn.Text; Top = $Drawn.Top; Bottom = $Drawn.Bottom; TextColor = $Drawn.TextColor }
     } catch {
         Remove-Item $IconPath -Force -ErrorAction SilentlyContinue
-        Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor Yellow
+        Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
     }
 
     # Find the distro's Terminal profile GUID: WSL writes one fragment file per
@@ -431,11 +429,11 @@ try {
                     Copy-Item $SettingsPath "$SettingsPath.bak" -Force
                     $Settings.profiles.list = $Kept
                     $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding Utf8
-                    Write-Host "  * Terminal profile : pruned $($All.Count - $Kept.Count) ghost '$DistroName' entries from settings.json" -ForegroundColor Green
+                    Write-Host "  * Terminal profile : pruned $($All.Count - $Kept.Count) ghost '$DistroName' entries from settings.json" -ForegroundColor (Get-MessageColour success)
                 }
             } catch {
-                Write-Host "  * Terminal profile : ghost entries NOT pruned in $SettingsPath" -ForegroundColor Yellow
-                Write-Host "                       (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor DarkGray
+                Write-Host "  * Terminal profile : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
+                Write-Host "                       (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
             }
         }
     }
@@ -450,7 +448,7 @@ try {
                 $Target = ($Fragment.profiles | Where-Object { $_.updates } | Select-Object -First 1).updates
                 if ($Target -and ($LiveGuids -notcontains $Target)) {
                     Remove-Item $File.FullName -Force
-                    Write-Host "  * Terminal profile : removed stale fragment $($File.Name)" -ForegroundColor Green
+                    Write-Host "  * Terminal profile : removed stale fragment $($File.Name)" -ForegroundColor (Get-MessageColour success)
                 }
             } catch { }
         }
@@ -461,10 +459,10 @@ try {
         # step 9 said when the drawing failed.
         Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Font "MesloLGS NF" `
             -ColorScheme "One Half Dark" -IconPath $(if ($IconDrawn) { $IconPath } else { "" })
-        Write-Host "  * Terminal profile : icon + font + color scheme + tab title applied (profile $ProfileGuid)" -ForegroundColor Green
+        Write-Host "  * Terminal profile : icon + font + color scheme + tab title applied (profile $ProfileGuid)" -ForegroundColor (Get-MessageColour success)
         $TerminalProfileOk = $true
     } else {
-        Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor Yellow
+        Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor (Get-MessageColour warning)
         $TerminalProfileOk = $false
     }
 
@@ -499,7 +497,7 @@ try {
             $PacksDirectory = "$NewHome/.config/packs"
 
             Write-Host ""
-            Write-Host "==> Installing the packs..." -ForegroundColor Cyan
+            Write-Host "==> Installing the packs..." -ForegroundColor (Get-MessageColour info)
             $PackFailure = Invoke-PackApply -DistroName $DistroName -PacksDirectory $PacksDirectory `
                 -ToAdd $PackSelection.ToAdd -ResumeHint "Run .\wsl.ps1 manage_packs to finish."
 
@@ -536,40 +534,40 @@ try {
     }
 
     Clear-Host
-    Write-Host "============================================================" -ForegroundColor Green
-    Write-Host "       WSL Data Science Instance Successfully Deployed!     " -ForegroundColor Green
-    Write-Host "============================================================" -ForegroundColor Green
+    Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
+    Write-Host "       WSL Data Science Instance Successfully Deployed!     " -ForegroundColor (Get-MessageColour success)
+    Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
     Write-Host ""
-    Write-Host "  * Distribution Name : " -NoNewline; Write-Host "$DistroName" -ForegroundColor Cyan
-    Write-Host "  * Default User      : " -NoNewline; Write-Host "$ConfiguredUser" -ForegroundColor Cyan
-    Write-Host "  * Install Path      : " -NoNewline; Write-Host "$InstallPath" -ForegroundColor DarkGray
+    Write-Host "  * Distribution Name : " -NoNewline; Write-Host "$DistroName" -ForegroundColor (Get-MessageColour info)
+    Write-Host "  * Default User      : " -NoNewline; Write-Host "$ConfiguredUser" -ForegroundColor (Get-MessageColour info)
+    Write-Host "  * Install Path      : " -NoNewline; Write-Host "$InstallPath" -ForegroundColor (Get-MessageColour muted)
     Write-Host "  * Terminal profile  : " -NoNewline
     if ($TerminalProfileOk) {
-        Write-Host "icon, font, color scheme, tab title" -ForegroundColor Green
+        Write-Host "icon, font, color scheme, tab title" -ForegroundColor (Get-MessageColour success)
     } else {
-        Write-Host "not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor Yellow
+        Write-Host "not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor (Get-MessageColour hint)
     }
     Write-Host "  * Packs             : " -NoNewline; Write-Host "$PackLine" -ForegroundColor $PackLineColour
     Write-Host ""
 
-    Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host "To launch your session, run:" -ForegroundColor Yellow
-    Write-Host "  wsl -d $DistroName" -ForegroundColor White
-    Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "To launch your session, run:" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "  wsl -d $DistroName" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
     Write-Host ""
 
     $Deployed = $true
 }
 catch {
     Write-Host ""
-    Write-Host "============================================================" -ForegroundColor Red
-    Write-Host " [ERROR] DURING DEPLOYMENT" -ForegroundColor Red
-    Write-Host "============================================================" -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host "============================================================" -ForegroundColor (Get-MessageColour error)
+    Write-Host " [ERROR] DURING DEPLOYMENT" -ForegroundColor (Get-MessageColour error)
+    Write-Host "============================================================" -ForegroundColor (Get-MessageColour error)
+    Write-Host $_.Exception.Message -ForegroundColor (Get-MessageColour error)
     Write-Host ""
 }
 finally {
-    Write-Host "==> Cleaning up temporary build artifacts..." -ForegroundColor Yellow
+    Write-Host "==> Cleaning up temporary build artifacts..." -ForegroundColor (Get-MessageColour info)
 
     # The trap of step 0 again: under $ErrorActionPreference = "Stop" docker
     # writes its errors as TERMINATING ones, and one raised here would bury the
@@ -586,23 +584,23 @@ finally {
     if ($Deployed) {
         # Prompt whether to retain or purge the local Docker image
         Write-Host ""
-        Write-Host ("-" * 60) -ForegroundColor DarkGray
+        Write-Host ("-" * 60) -ForegroundColor (Get-MessageColour muted)
         $KeepDockerImage = Read-Host "Keep Docker image [Y/n]?"
 
         if ($KeepDockerImage -match "^[nN]$") {
-            Write-Host "==> Removing Docker image '$ImageTag'..." -ForegroundColor Yellow
+            Write-Host "==> Removing Docker image '$ImageTag'..." -ForegroundColor (Get-MessageColour info)
             $PreviousEAP = $ErrorActionPreference
             $ErrorActionPreference = "Continue"
             docker rmi -f $ImageTag *> $null
             $RemoveExitCode = $LASTEXITCODE
             $ErrorActionPreference = $PreviousEAP
             if ($RemoveExitCode -eq 0) {
-                Write-Host "Docker image removed." -ForegroundColor Green
+                Write-Host "Docker image removed." -ForegroundColor (Get-MessageColour success)
             } else {
-                Write-Host "The image could not be removed - a container is probably using it. It stays on disk." -ForegroundColor Yellow
+                Write-Host "The image could not be removed - a container is probably using it. It stays on disk." -ForegroundColor (Get-MessageColour warning)
             }
         } else {
-            Write-Host "Docker image retained." -ForegroundColor Green
+            Write-Host "Docker image retained." -ForegroundColor (Get-MessageColour success)
         }
     } else {
         # Nothing was deployed: the image is what a retry starts from, and there
@@ -610,12 +608,12 @@ finally {
         # stopped before the import - past that point a distro exists, and the
         # next run opens on the destruction prompt instead.
         Write-Host ""
-        Write-Host ("-" * 60) -ForegroundColor DarkGray
+        Write-Host ("-" * 60) -ForegroundColor (Get-MessageColour muted)
         $StillRegistered = (wsl.exe --list --quiet 2>$null) | ForEach-Object { ($_ -replace "`0", "").Trim() }
         if ($StillRegistered -contains $DistroName) {
-            Write-Host "A distribution named '$DistroName' is registered: the next run will offer to destroy and rebuild it." -ForegroundColor Yellow
+            Write-Host "A distribution named '$DistroName' is registered: the next run will offer to destroy and rebuild it." -ForegroundColor (Get-MessageColour warning)
         } else {
-            Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor DarkGray
+            Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor (Get-MessageColour muted)
         }
 
         # The packs were chosen before the machine started; the deployment
@@ -623,9 +621,9 @@ finally {
         # which ones, so the news is exact rather than a guess.
         if ($null -ne $PackSelection) {
             $WantedPacks = ($PackSelection.ToAdd | ForEach-Object { $_.Name }) -join ", "
-            Write-Host "The packs chosen earlier ($WantedPacks) were not installed: the build stopped before them." -ForegroundColor Yellow
+            Write-Host "The packs chosen earlier ($WantedPacks) were not installed: the build stopped before them." -ForegroundColor (Get-MessageColour warning)
             if ($StillRegistered -contains $DistroName) {
-                Write-Host "Once it is usable, .\wsl.ps1 manage_packs installs them in it." -ForegroundColor DarkGray
+                Write-Host "Once it is usable, .\wsl.ps1 manage_packs installs them in it." -ForegroundColor (Get-MessageColour muted)
             }
         }
     }
@@ -721,11 +719,11 @@ if ($Deployed) {
     # instance prints nothing, which is what a missing command should say. The
     # packs line just below says what is in place.
     Clear-Host
-    Write-Host "Welcome, $ConfiguredUser." -ForegroundColor Green
-    Write-Host "You are now logged in to $DistroName." -ForegroundColor Green
+    Write-Host "Welcome, $ConfiguredUser." -ForegroundColor (Get-MessageColour success)
+    Write-Host "You are now logged in to $DistroName." -ForegroundColor (Get-MessageColour success)
     if ($null -ne $PackSelection) {
         foreach ($Pack in $PackSelection.ToAdd) {
-            if ($Pack.Welcome) { Write-Host $Pack.Welcome -ForegroundColor Yellow }
+            if ($Pack.Welcome) { Write-Host $Pack.Welcome -ForegroundColor (Get-MessageColour hint) }
         }
     }
     if ($PackReport) {

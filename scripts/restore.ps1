@@ -14,7 +14,7 @@ $ArchiveFolder = Join-Path $Root "archives"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -23,10 +23,10 @@ if (-not (Test-Path $InstanceLib)) {
 # around: it is the answer, and it says how to fill it.
 if (-not (Test-Path $ArchiveFolder)) {
     Write-Host ""
-    Write-Host "[ABORT] There are no archives: $ArchiveFolder does not exist." -ForegroundColor Red
-    Write-Host "        Nothing to restore:" -ForegroundColor Yellow
-    Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor Yellow
-    Write-Host "            - Or move the existing ones back into $ArchiveFolder" -ForegroundColor Yellow
+    Write-Host "[ABORT] There are no archives: $ArchiveFolder does not exist." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Nothing to restore:" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "            - Or move the existing ones back into $ArchiveFolder" -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -39,10 +39,10 @@ $Archives = @(Get-ChildItem -Path $ArchiveFolder -Directory |
 
 if ($Archives.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] The archives folder is empty: $ArchiveFolder" -ForegroundColor Red
-    Write-Host "        Nothing to restore:" -ForegroundColor Yellow
-    Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor Yellow
-    Write-Host "            - Or move the existing ones back into $ArchiveFolder" -ForegroundColor Yellow
+    Write-Host "[ABORT] The archives folder is empty: $ArchiveFolder" -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Nothing to restore:" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "            - Create one with  .\wsl.ps1 archive" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "            - Or move the existing ones back into $ArchiveFolder" -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -58,26 +58,26 @@ $Chosen = Select-FromList -Title "Archives in $ArchiveFolder (most recent first)
 
 if (-not $Chosen) {
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
 # 3. Name the new instance
 Write-Host ""
-Write-Host "Restoring $($Chosen.Name) as a new instance." -ForegroundColor Cyan
+Write-Host "Restoring $($Chosen.Name) as a new instance." -ForegroundColor (Get-MessageColour info)
 $Name = [string](Read-Host "Name of the new instance (Enter to cancel)")
 if ([string]::IsNullOrWhiteSpace($Name)) {
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 $Name = $Name.Trim()
 
 if ($Name -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
     Write-Host ""
-    Write-Host "[ABORT] '$Name' is not usable as an instance name" -ForegroundColor Red
-    Write-Host "        (letters, digits, '.', '_' and '-' only)." -ForegroundColor Yellow
-    Write-Host "        Nothing was created." -ForegroundColor DarkGray
+    Write-Host "[ABORT] '$Name' is not usable as an instance name" -ForegroundColor (Get-MessageColour error)
+    Write-Host "        (letters, digits, '.', '_' and '-' only)." -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Nothing was created." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -86,9 +86,9 @@ if ($Name -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
 # not do it, and does not pretend to: it names the command.
 if ((Get-DistroNames) -contains $Name) {
     Write-Host ""
-    Write-Host "[ABORT] An instance named '$Name' already exists." -ForegroundColor Red
-    Write-Host "        Remove it first, then run this again:" -ForegroundColor Yellow
-    Write-Host "          .\wsl.ps1 unregister        (pick '$Name' in the list)" -ForegroundColor White
+    Write-Host "[ABORT] An instance named '$Name' already exists." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Remove it first, then run this again:" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "          .\wsl.ps1 unregister        (pick '$Name' in the list)" -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -97,9 +97,9 @@ if ((Get-DistroNames) -contains $Name) {
 $InstallPath = [System.IO.Path]::GetFullPath((Join-Path $Root $Name))
 if (Test-Path $InstallPath) {
     Write-Host ""
-    Write-Host "[ABORT] A folder with that name already exists:" -ForegroundColor Red
-    Write-Host "        $InstallPath" -ForegroundColor Yellow
-    Write-Host "        Move or delete it, then run this again." -ForegroundColor Yellow
+    Write-Host "[ABORT] A folder with that name already exists:" -ForegroundColor (Get-MessageColour error)
+    Write-Host "        $InstallPath" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Move or delete it, then run this again." -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -109,18 +109,18 @@ $ChosenTar = Get-ChildItem -Path $Chosen.FullName -Filter "*.tar*" -File |
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
 Write-Host ""
-Write-Host "==> Creating '$Name' from $($Chosen.Name)" -ForegroundColor Cyan
-Write-Host "  * Archive          : $($ChosenTar.FullName) ($(Format-Size $ChosenTar.Length))" -ForegroundColor DarkGray
-Write-Host "  * Install folder   : $InstallPath" -ForegroundColor DarkGray
+Write-Host "==> Creating '$Name' from $($Chosen.Name)" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Archive          : $($ChosenTar.FullName) ($(Format-Size $ChosenTar.Length))" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  * Install folder   : $InstallPath" -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
 
 try {
     Invoke-External { wsl.exe --import $Name $InstallPath $ChosenTar.FullName --version 2 } "The import failed."
 } catch {
     Write-Host ""
-    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "        The archive is untouched. A half-registered '$Name' may be left" -ForegroundColor Yellow
-    Write-Host "        behind:  .\wsl.ps1 unregister        (pick '$Name' in the list)" -ForegroundColor Yellow
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
+    Write-Host "        The archive is untouched. A half-registered '$Name' may be left" -ForegroundColor (Get-MessageColour warning)
+    Write-Host "        behind:  .\wsl.ps1 unregister        (pick '$Name' in the list)" -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -130,14 +130,14 @@ New-InstanceMarker -Folder $InstallPath -By "restore"
 
 Set-InstanceState -Name $Name -InstallPath $InstallPath -Folder $Chosen.FullName
 
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "       '$Name' restored from an archive" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
+Write-Host "       '$Name' restored from an archive" -ForegroundColor (Get-MessageColour success)
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
-Write-Host "  * Install folder   : " -NoNewline; Write-Host "$InstallPath" -ForegroundColor Cyan
-Write-Host "  * From             : " -NoNewline; Write-Host "$($Chosen.Name)" -ForegroundColor Cyan
+Write-Host "  * Install folder   : " -NoNewline; Write-Host "$InstallPath" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * From             : " -NoNewline; Write-Host "$($Chosen.Name)" -ForegroundColor (Get-MessageColour info)
 Write-Host ""
-Write-Host "  The archive is kept." -ForegroundColor Yellow
-Write-Host "  Windows Terminal: restart it to see the icon, the font and the colour" -ForegroundColor DarkGray
-Write-Host "  scheme that came back with the archive." -ForegroundColor DarkGray
+Write-Host "  The archive is kept." -ForegroundColor (Get-MessageColour hint)
+Write-Host "  Windows Terminal: restart it to see the icon, the font and the colour" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  scheme that came back with the archive." -ForegroundColor (Get-MessageColour muted)
 Write-Host ""

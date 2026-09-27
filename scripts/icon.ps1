@@ -21,7 +21,7 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -31,8 +31,8 @@ if (-not (Test-Path $InstanceLib)) {
 $IconScript = Join-Path (Split-Path -Path $PSScriptRoot -Parent) "assets\make-icon.ps1"
 if (-not (Test-Path $IconScript)) {
     Write-Host ""
-    Write-Host "[ABORT] assets\make-icon.ps1 is missing - the checkout is incomplete." -ForegroundColor Red
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    Write-Host "[ABORT] assets\make-icon.ps1 is missing - the checkout is incomplete." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -42,7 +42,7 @@ if ($HandedOver) {
     $Distro = Get-Distros | Where-Object { $_.Name -eq $DistroName } | Select-Object -First 1
     if (-not $Distro) {
         Write-Host ""
-        Write-Host "[ABORT] No instance named '$DistroName' is registered here." -ForegroundColor Red
+        Write-Host "[ABORT] No instance named '$DistroName' is registered here." -ForegroundColor (Get-MessageColour error)
         exit 1
     }
 } else {
@@ -63,8 +63,8 @@ Clear-MenuScreen
 $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$DistroName.json"
 if (-not (Test-Path $OurFragment)) {
     Write-Host ""
-    Write-Host "[WARNING] This instance has no Terminal profile of ours - the icon would not show." -ForegroundColor Yellow
-    Write-Host "          Build it again, or set the icon by hand in Ctrl+," -ForegroundColor DarkGray
+    Write-Host "[WARNING] This instance has no Terminal profile of ours - the icon would not show." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "          Build it again, or set the icon by hand in Ctrl+," -ForegroundColor (Get-MessageColour muted)
 }
 
 # The escape character, and whether colours are worth writing: the second from
@@ -82,7 +82,7 @@ function Read-Answer {
     $Answer = [string](Read-Host).Trim()
     if ([string]::IsNullOrWhiteSpace($Answer)) {
         Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
     return $Answer
@@ -130,7 +130,7 @@ function Invoke-IconChoice {
                 if ([string]::IsNullOrWhiteSpace($Answer)) {
                     if (-not $Suggestion) {
                         Write-Host ""
-                        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+                        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
                         exit 0
                     }
                     $Draw.Text = $Suggestion
@@ -140,7 +140,7 @@ function Invoke-IconChoice {
                     $Draw.Text = $Answer.ToUpper()
                     break
                 }
-                Write-Host "  One to three letters or digits." -ForegroundColor Yellow
+                Write-Host "  One to three letters or digits." -ForegroundColor (Get-MessageColour hint)
             }
         }
         "colours" {
@@ -164,7 +164,7 @@ function Invoke-IconChoice {
             }
             if (-not $Picked) {
                 Write-Host ""
-                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+                Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
                 exit 0
             }
             $Field = $Picked -split "`t"
@@ -176,11 +176,11 @@ function Invoke-IconChoice {
             while (-not $Source) {
                 $Answer = (Read-Answer "Path of the image, PNG JPG ICO or BMP (CTRL+C to abort)").Trim('"')
                 if (-not (Test-Path -LiteralPath $Answer -PathType Leaf)) {
-                    Write-Host "  No file at that path." -ForegroundColor Yellow
+                    Write-Host "  No file at that path." -ForegroundColor (Get-MessageColour warning)
                     continue
                 }
                 if ((Split-Path -Leaf $Answer) -notmatch '\.(png|jpg|jpeg|ico|bmp)$') {
-                    Write-Host "  The name has to end in .png, .jpg, .jpeg, .ico or .bmp." -ForegroundColor Yellow
+                    Write-Host "  The name has to end in .png, .jpg, .jpeg, .ico or .bmp." -ForegroundColor (Get-MessageColour hint)
                     continue
                 }
                 $Source = (Resolve-Path -LiteralPath $Answer).Path
@@ -199,8 +199,8 @@ function Invoke-IconChoice {
             $Drawn = & $IconScript @Draw -Out $IconPath -Quiet -What | ConvertFrom-Json
         } catch {
             Write-Host ""
-            Write-Host "[ABORT] The icon could not be drawn: $($_.Exception.Message)" -ForegroundColor Red
-            Write-Host "        The icon that was there is still there." -ForegroundColor DarkGray
+            Write-Host "[ABORT] The icon could not be drawn: $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
+            Write-Host "        The icon that was there is still there." -ForegroundColor (Get-MessageColour muted)
             exit 1
         }
         $Icon = @{
@@ -267,7 +267,7 @@ if (-not $Changed) {
     # where this one was.
     if ($HandedOver) { exit 0 }
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 

@@ -40,6 +40,15 @@ the command before, what was typed — goes with it. With no console there is
 nothing to clear, so a run whose answers are piped in keeps every line: a log is
 read, not looked at.
 
+Every line is a message, and a message says what it **is** rather than what
+colour to write it in: an error, a warning, a success, a detail, a hint. The
+colour comes from the colour scheme of the Windows Terminal profile the command
+runs in — that scheme's own red, yellow, green or text colour, the version of
+each that is read on its background — so the output stays readable on a dark
+scheme and on a light one, and changing the scheme changes it. Where there is no
+scheme to read (a console window, another terminal, a script), the colours a
+console has always had are used.
+
 ## All commands
 
 | Command | What it does |

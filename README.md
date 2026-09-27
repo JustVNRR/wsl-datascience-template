@@ -229,6 +229,8 @@ the repository at runtime.
 │       └── docs/            # the pack's page
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
+│   ├── message.ps1          #   and the colour a message takes, read from the
+│                            #   colour scheme of the window it is printed in
 │   ├── theme.ps1            # What `theme` opens, and the menu it asks with
 │   ├── icon.ps1             #   the icon alone: its letters, its colours, an image
 │   ├── font.ps1             #   the font alone
@@ -239,7 +241,8 @@ the repository at runtime.
 ├── tests/                   # The suites that RUN the code: the arrow menu with a
 │                            # scripted keyboard, the pack checklist, build's
 │                            # questions over a stand-in docker, the icon a name
-│                            # draws, the icon, font and colour commands, doc drift
+│                            # draws, the icon, font and colour commands, the
+│                            # colour a message takes, doc drift
 │   └── fake-docker/         # That stand-in: answers the preflight, fails the import
 ├── .github/
 │   └── workflows/
@@ -295,7 +298,7 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 
 | Workflow | Runs on | What it proves |
 | :--- | :--- | :--- |
-| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the makefile parses with a complete help menu, the docs and cheatsheets stay in sync with the `gmake` modules — and seven suites on Windows drive the real code: the arrow menu with a scripted keyboard, the pack checklist, `build`'s questions over a stand-in docker, the icon a name draws, and the icon, font and colour commands on an instance of their own |
+| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the makefile parses with a complete help menu, the docs and cheatsheets stay in sync with the `gmake` modules — and eight suites on Windows drive the real code: the arrow menu with a scripted keyboard, the pack checklist, `build`'s questions over a stand-in docker, the icon a name draws, the icon, font and colour commands on an instance of their own, and the colour a message takes on schemes the test writes out |
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
 They check the **repository** — the files, and the code run against stand-ins,

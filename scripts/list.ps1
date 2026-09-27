@@ -17,7 +17,7 @@ $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -27,15 +27,15 @@ if (-not (Test-Path $InstanceLib)) {
 $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
 if ($All.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
-    Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
+    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
 $Running = Get-DistroNames -Running
 
 Write-Host ""
-Write-Host "Instances of this template:" -ForegroundColor Cyan
+Write-Host "Instances of this template:" -ForegroundColor (Get-MessageColour info)
 for ($Index = 0; $Index -lt $All.Count; $Index++) {
     $Entry = $All[$Index]
     $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
@@ -55,7 +55,7 @@ if (Test-Path $ArchiveFolder) {
 
 if ($Archives.Count -gt 0) {
     Write-Host ""
-    Write-Host "Archives in ${ArchiveFolder} (most recent first):" -ForegroundColor Cyan
+    Write-Host "Archives in ${ArchiveFolder} (most recent first):" -ForegroundColor (Get-MessageColour info)
     foreach ($Entry in $Archives) {
         $Tar = Get-ChildItem -Path $Entry.FullName -Filter "*.tar*" -File |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -79,12 +79,12 @@ if (Test-Path $Root) {
 
 if ($Forgotten.Count -gt 0) {
     Write-Host ""
-    Write-Host "Folders left behind by an instance that is gone:" -ForegroundColor Yellow
+    Write-Host "Folders left behind by an instance that is gone:" -ForegroundColor (Get-MessageColour hint)
     foreach ($Folder in $Forgotten) {
         Write-Host ("      {0,-30} {1,10}  {2}" -f $Folder.Name,
-            (Format-Size (Get-VhdxSize $Folder.FullName)), $Folder.FullName) -ForegroundColor Yellow
+            (Format-Size (Get-VhdxSize $Folder.FullName)), $Folder.FullName) -ForegroundColor (Get-MessageColour hint)
     }
-    Write-Host "      No instance claims them, and no command removes them: delete them by hand." -ForegroundColor DarkGray
+    Write-Host "      No instance claims them, and no command removes them: delete them by hand." -ForegroundColor (Get-MessageColour muted)
 }
 
 Write-Host ""

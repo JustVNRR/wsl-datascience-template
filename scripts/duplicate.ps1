@@ -17,7 +17,7 @@ $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -38,23 +38,23 @@ while ($true) {
     $Answer = [string](Read-Host "Name of the copy")
     if ([string]::IsNullOrWhiteSpace($Answer)) {
         Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was created." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
     if ($Answer.Trim() -match '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
         $NewDistroName = $Answer.Trim()
         break
     }
-    Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor Yellow
+    Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor (Get-MessageColour hint)
 }
 
 # The copy must not land on a name that exists: this script never unregisters
 # anything, so a name already taken is a dead end, not something to resolve.
 if ($AllDistros | Where-Object { $_.Name -eq $NewDistroName }) {
     Write-Host ""
-    Write-Host "[ABORT] An instance named '$NewDistroName' already exists." -ForegroundColor Red
-    Write-Host "        Pick another name." -ForegroundColor Yellow
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    Write-Host "[ABORT] An instance named '$NewDistroName' already exists." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Pick another name." -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -64,16 +64,16 @@ if ($AllDistros | Where-Object { $_.Name -eq $NewDistroName }) {
 $StoppedByUs = $false
 if ((Get-DistroNames -Running) -contains $SourceDistro) {
     Write-Host ""
-    Write-Host "  '$SourceDistro' is running, and this needs it stopped." -ForegroundColor Yellow
-    Write-Host "  Save what you have open in there: stopping it loses anything unsaved." -ForegroundColor Yellow
+    Write-Host "  '$SourceDistro' is running, and this needs it stopped." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "  Save what you have open in there: stopping it loses anything unsaved." -ForegroundColor (Get-MessageColour warning)
     $StopIt = [string](Read-Host "Stop it now? [Y/n]")
     if ($StopIt -match "^[nN]") {
         Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
     Invoke-External { wsl.exe --terminate $SourceDistro } "Could not stop '$SourceDistro'."
-    Write-Host "  Stopped." -ForegroundColor DarkGray
+    Write-Host "  Stopped." -ForegroundColor (Get-MessageColour muted)
     $StoppedByUs = $true
 }
 
@@ -101,18 +101,18 @@ $DriveLetter = (Split-Path -Qualifier $FullDestination).TrimEnd(':')
 $FreeBytes = (Get-PSDrive -Name $DriveLetter).Free
 
 Write-Host ""
-Write-Host "==> Duplicating '$SourceDistro' into '$NewDistroName'" -ForegroundColor Cyan
-Write-Host "  * Source disk      : $(Format-Size $DiskBytes)" -ForegroundColor DarkGray
-Write-Host "  * Needed on $DriveLetter`:      : $(Format-Size $NeededBytes) (archive + copy at peak)" -ForegroundColor DarkGray
-Write-Host "  * Free on $DriveLetter`:        : $(Format-Size $FreeBytes)" -ForegroundColor DarkGray
-Write-Host "  * Install folder   : $FullDestination" -ForegroundColor DarkGray
+Write-Host "==> Duplicating '$SourceDistro' into '$NewDistroName'" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Source disk      : $(Format-Size $DiskBytes)" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  * Needed on $DriveLetter`:      : $(Format-Size $NeededBytes) (archive + copy at peak)" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  * Free on $DriveLetter`:        : $(Format-Size $FreeBytes)" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  * Install folder   : $FullDestination" -ForegroundColor (Get-MessageColour muted)
 
 if ($FreeBytes -lt $NeededBytes) {
     Write-Host ""
-    Write-Host "[ABORT] Not enough room on $DriveLetter`:." -ForegroundColor Red
-    Write-Host "        Needed: $(Format-Size $NeededBytes) - free: $(Format-Size $FreeBytes)." -ForegroundColor Yellow
-    Write-Host "        Free some space, then run this again." -ForegroundColor Yellow
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    Write-Host "[ABORT] Not enough room on $DriveLetter`:." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Needed: $(Format-Size $NeededBytes) - free: $(Format-Size $FreeBytes)." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "        Free some space, then run this again." -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -125,18 +125,18 @@ if (-not (Test-Path -Path $DestinationDir)) {
 # cases - it is worth twice the instance's disk on a drive that has just been
 # checked for room, and leaving it behind would eat that room for nothing.
 try {
-    Write-Host "==> 1. Reading the source (the source itself is not modified)..." -ForegroundColor Cyan
+    Write-Host "==> 1. Reading the source (the source itself is not modified)..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { wsl.exe --export $SourceDistro $TempArchive --format tar.gz } "The export failed."
 
-    Write-Host "==> 2. Registering '$NewDistroName' from it..." -ForegroundColor Cyan
+    Write-Host "==> 2. Registering '$NewDistroName' from it..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { wsl.exe --import $NewDistroName $FullDestination $TempArchive --version $($Source.Version) } "The import failed."
 } catch {
     Write-Host ""
-    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "        The source was not modified." -ForegroundColor DarkGray
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
+    Write-Host "        The source was not modified." -ForegroundColor (Get-MessageColour muted)
     if ($_.Exception.Message -like "*import*") {
-        Write-Host "        A half-registered '$NewDistroName' may be left behind:" -ForegroundColor Yellow
-        Write-Host "        remove it with  .\wsl.ps1 unregister        (pick '$NewDistroName' in the list)" -ForegroundColor Yellow
+        Write-Host "        A half-registered '$NewDistroName' may be left behind:" -ForegroundColor (Get-MessageColour warning)
+        Write-Host "        remove it with  .\wsl.ps1 unregister        (pick '$NewDistroName' in the list)" -ForegroundColor (Get-MessageColour hint)
     }
     exit 1
 } finally {
@@ -157,16 +157,16 @@ New-InstanceMarker -Folder $FullDestination -By "duplicate"
 Set-InstanceState -Name $NewDistroName -InstallPath $FullDestination -Appearance $Look
 
 Write-Host ""
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "       '$NewDistroName' is a copy of '$SourceDistro'" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
+Write-Host "       '$NewDistroName' is a copy of '$SourceDistro'" -ForegroundColor (Get-MessageColour success)
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
-Write-Host "  * Install folder   : " -NoNewline; Write-Host "$FullDestination" -ForegroundColor Cyan
-Write-Host "  * Copy on disk     : " -NoNewline; Write-Host "$(Format-Size $CopyBytes)" -ForegroundColor Cyan
-Write-Host "  * WSL version      : " -NoNewline; Write-Host "$($Source.Version)" -ForegroundColor Cyan
+Write-Host "  * Install folder   : " -NoNewline; Write-Host "$FullDestination" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Copy on disk     : " -NoNewline; Write-Host "$(Format-Size $CopyBytes)" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * WSL version      : " -NoNewline; Write-Host "$($Source.Version)" -ForegroundColor (Get-MessageColour info)
 Write-Host ""
-Write-Host "  Windows Terminal: the copy gets a profile of its own, with the icon," -ForegroundColor DarkGray
-Write-Host "  the font and the colours of the source. Restart Terminal to see it." -ForegroundColor DarkGray
+Write-Host "  Windows Terminal: the copy gets a profile of its own, with the icon," -ForegroundColor (Get-MessageColour muted)
+Write-Host "  the font and the colours of the source. Restart Terminal to see it." -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
 
 # The source was running when this started: leave it the way it was found.
@@ -175,9 +175,9 @@ Write-Host ""
 if ($StoppedByUs) {
     try {
         Invoke-External { wsl.exe -d $SourceDistro --exec /bin/true } "Could not restart '$SourceDistro'."
-        Write-Host "'$SourceDistro' is running again." -ForegroundColor Green
+        Write-Host "'$SourceDistro' is running again." -ForegroundColor (Get-MessageColour success)
     } catch {
-        Write-Host "Could not restart '$SourceDistro' - start it with: wsl -d $SourceDistro" -ForegroundColor Yellow
+        Write-Host "Could not restart '$SourceDistro' - start it with: wsl -d $SourceDistro" -ForegroundColor (Get-MessageColour warning)
     }
     Write-Host ""
 }

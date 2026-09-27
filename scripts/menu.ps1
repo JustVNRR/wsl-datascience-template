@@ -36,6 +36,12 @@
 # every command loads instance.ps1.
 # ==============================================================================
 
+# What a line says and the colour it takes. Loaded here too, and not only by
+# instance.ps1: tests\menu-test.ps1 drives this file on its own, and a file that
+# draws every line it draws as a message says where that colour comes from.
+# Loading a file of definitions twice costs one read and defines the same names.
+. (Join-Path $PSScriptRoot "message.ps1")
+
 # Is there a keyboard we can read without hanging? Both checks are cheap and
 # neither one blocks: CursorTop and KeyAvailable throw without a console, and
 # a throw is an answer.
@@ -158,7 +164,7 @@ function Write-MenuRow {
     param([int]$Index, [int]$Current, [string[]]$Labels, [bool[]]$Checked)
     $Row = Format-MenuRow -Index $Index -Current $Current -Labels $Labels -Checked $Checked
     if ($Index -eq $Current) {
-        Write-Host $Row -ForegroundColor Cyan
+        Write-Host $Row -ForegroundColor (Get-MessageColour info)
     } else {
         Write-Host $Row
     }
@@ -192,13 +198,13 @@ function Select-ByNumber {
             # be seen, and with no console to paint on there is nowhere else to
             # put it.
             Write-Host ""
-            if ($Title) { Write-Host "$Title" -ForegroundColor Cyan }
+            if ($Title) { Write-Host "$Title" -ForegroundColor (Get-MessageColour info) }
             for ($Index = 0; $Index -lt $Count; $Index++) {
                 $Box = if ($Checked[$Index]) { "[x]" } else { "[ ]" }
                 Write-Host ("  {0,2}.  {1} {2}" -f ($Index + 1), $Box, $Labels[$Index])
             }
             Write-Host "   0.  Cancel"
-            if ($Note) { Write-Host "  $Note" -ForegroundColor DarkGray }
+            if ($Note) { Write-Host "  $Note" -ForegroundColor (Get-MessageColour muted) }
 
             $Answer = [string](Read-Host "Number toggles, v applies, 0 cancels")
             if ([string]::IsNullOrWhiteSpace($Answer) -or $Answer.Trim() -eq "0") { return $null }
@@ -215,17 +221,17 @@ function Select-ByNumber {
                 $Checked[$Number - 1] = -not $Checked[$Number - 1]
                 continue
             }
-            Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
+            Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor (Get-MessageColour warning)
         }
     }
 
     Write-Host ""
-    if ($Title) { Write-Host "$Title" -ForegroundColor Cyan }
+    if ($Title) { Write-Host "$Title" -ForegroundColor (Get-MessageColour info) }
     for ($Index = 0; $Index -lt $Count; $Index++) {
         Write-Host ("  {0,2}.  {1}" -f ($Index + 1), $Labels[$Index])
     }
     Write-Host "   0.  Cancel"
-    if ($Note) { Write-Host "  $Note" -ForegroundColor DarkGray }
+    if ($Note) { Write-Host "  $Note" -ForegroundColor (Get-MessageColour muted) }
 
     while ($true) {
         $Answer = [string](Read-Host "Which one? (0 to cancel)")
@@ -235,7 +241,7 @@ function Select-ByNumber {
             if ($Number -eq 0) { return $null }
             if ($Number -ge 1 -and $Number -le $Count) { return $Items[$Number - 1] }
         }
-        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor Yellow
+        Write-Host "  '$Answer' is not one of the numbers above." -ForegroundColor (Get-MessageColour warning)
     }
 }
 
@@ -296,12 +302,12 @@ function Select-WithArrows {
     # exactly what scrolled. That was the bug: every arrow added one more copy
     # of the list, lower each time, whenever the console had scrolled.
     Write-Host ""
-    if ($ShownTitle) { Write-Host "$ShownTitle" -ForegroundColor Cyan }
+    if ($ShownTitle) { Write-Host "$ShownTitle" -ForegroundColor (Get-MessageColour info) }
     for ($Row = 0; $Row -lt $Visible; $Row++) {
         Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown -Checked $Checked
     }
-    Write-Host $ShownHint -ForegroundColor DarkGray
-    if ($ShownNote) { Write-Host $ShownNote -ForegroundColor DarkGray }
+    Write-Host $ShownHint -ForegroundColor (Get-MessageColour muted)
+    if ($ShownNote) { Write-Host $ShownNote -ForegroundColor (Get-MessageColour muted) }
 
     $Cursor = Get-ConsoleTop
     $Top = if ($null -ne $Cursor) { $Cursor - ($Visible + 1 + $Extra) } else { 0 }
@@ -452,8 +458,8 @@ function Select-Distro {
     $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
     if ($All.Count -eq 0) {
         Write-Host ""
-        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
-        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
+        Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
+        Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor (Get-MessageColour hint)
         exit 1
     }
 
@@ -467,7 +473,7 @@ function Select-Distro {
     if (-not $Chosen) {
         if ($AllowCancel) { return $null }
         Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
     return $Chosen

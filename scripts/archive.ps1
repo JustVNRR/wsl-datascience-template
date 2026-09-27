@@ -35,7 +35,7 @@ $ArchiveFolder = Join-Path $Root "archives"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -61,18 +61,18 @@ if ($DistroName) {
     $Distro = Get-Distro $DistroName
     if (-not $Distro) {
         Write-Host ""
-        Write-Host "[ABORT] No registered distro named '$DistroName'." -ForegroundColor Red
-        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+        Write-Host "[ABORT] No registered distro named '$DistroName'." -ForegroundColor (Get-MessageColour error)
+        Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
         exit 1
     }
     # Named on the command line, so nothing has vouched for it: the same check
     # the list does, and it comes before anything is written.
     if (-not (Test-TemplateInstance -Folder $Distro.BasePath)) {
         Write-Host ""
-        Write-Host "[ABORT] '$DistroName' is not an instance of this template." -ForegroundColor Red
-        Write-Host "        An instance is ours when it carries the marker, and only" -ForegroundColor Yellow
-        Write-Host "        build, restore and duplicate write one." -ForegroundColor Yellow
-        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+        Write-Host "[ABORT] '$DistroName' is not an instance of this template." -ForegroundColor (Get-MessageColour error)
+        Write-Host "        An instance is ours when it carries the marker, and only" -ForegroundColor (Get-MessageColour hint)
+        Write-Host "        build, restore and duplicate write one." -ForegroundColor (Get-MessageColour hint)
+        Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
         exit 1
     }
 } else {
@@ -89,16 +89,16 @@ $DiskBytes = if (Test-Path $VhdxPath) { (Get-Item $VhdxPath).Length } else { 0 }
 $StoppedByUs = $false
 if ((Get-DistroNames -Running) -contains $DistroName) {
     Write-Host ""
-    Write-Host "  '$DistroName' is running, and this needs it stopped." -ForegroundColor Yellow
-    Write-Host "  Save what you have open in there: stopping it loses anything unsaved." -ForegroundColor Yellow
+    Write-Host "  '$DistroName' is running, and this needs it stopped." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "  Save what you have open in there: stopping it loses anything unsaved." -ForegroundColor (Get-MessageColour warning)
     $StopIt = [string](Read-Host "Stop it now? [Y/n]")
     if ($StopIt -match "^[nN]") {
         Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
     Invoke-External { wsl.exe --terminate $DistroName } "Could not stop '$DistroName'."
-    Write-Host "  Stopped." -ForegroundColor DarkGray
+    Write-Host "  Stopped." -ForegroundColor (Get-MessageColour muted)
     $StoppedByUs = $true
 }
 
@@ -124,16 +124,16 @@ if ($Name) {
     $Existing = @(Get-ChildItem -Path $ArchiveFolder -Directory | Sort-Object Name)
     Write-Host ""
     if ($Existing.Count -eq 0) {
-        Write-Host "No archive yet in $ArchiveFolder." -ForegroundColor DarkGray
+        Write-Host "No archive yet in $ArchiveFolder." -ForegroundColor (Get-MessageColour muted)
     } else {
-        Write-Host "Archives already in ${ArchiveFolder}:" -ForegroundColor Cyan
+        Write-Host "Archives already in ${ArchiveFolder}:" -ForegroundColor (Get-MessageColour info)
         foreach ($Entry in $Existing) {
             $Tar = Get-ChildItem -Path $Entry.FullName -Filter "*.tar*" -File |
                 Sort-Object LastWriteTime -Descending | Select-Object -First 1
             $Size = 0
             if ($Tar) { $Size = $Tar.Length }
             Write-Host ("  {0,-30} {1,10}  {2}" -f $Entry.Name, (Format-Size $Size),
-                $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm")) -ForegroundColor DarkGray
+                $Entry.LastWriteTime.ToString("yyyy-MM-dd HH:mm")) -ForegroundColor (Get-MessageColour muted)
         }
     }
     Write-Host ""
@@ -143,9 +143,9 @@ if ($Name) {
 
 if ($Chosen -match '[\\/]') {
     Write-Host ""
-    Write-Host "[ABORT] '$Chosen' is a path. Give a name - it lands in:" -ForegroundColor Red
-    Write-Host "        $ArchiveFolder" -ForegroundColor Yellow
-    Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+    Write-Host "[ABORT] '$Chosen' is a path. Give a name - it lands in:" -ForegroundColor (Get-MessageColour error)
+    Write-Host "        $ArchiveFolder" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -156,7 +156,7 @@ $Destination = Join-Path $ArchiveDir "$Chosen.$Format"
 # name was typed - and typing a name that exists is how you replace an archive.
 # Said out loud rather than done quietly.
 if (Test-Path -Path $ArchiveDir) {
-    Write-Host "  '$Chosen' exists: replacing its archive." -ForegroundColor Yellow
+    Write-Host "  '$Chosen' exists: replacing its archive." -ForegroundColor (Get-MessageColour warning)
 }
 if (-not (Test-Path -Path $ArchiveDir)) {
     New-Item -ItemType Directory -Path $ArchiveDir -Force | Out-Null
@@ -167,16 +167,16 @@ if (-not (Test-Path -Path $ArchiveDir)) {
 # but "usually" is not a guarantee, and a full drive stops the export.
 $FreeBytes = (Get-PSDrive -Name (Split-Path -Qualifier $Destination).TrimEnd(':')).Free
 Write-Host ""
-Write-Host "==> Backing up '$DistroName'" -ForegroundColor Cyan
-Write-Host "  * Instance disk    : $(Format-Size $DiskBytes)" -ForegroundColor DarkGray
-Write-Host "  * Free on target   : $(Format-Size $FreeBytes)" -ForegroundColor DarkGray
-Write-Host "  * Archive          : $Destination ($Format)" -ForegroundColor DarkGray
+Write-Host "==> Backing up '$DistroName'" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Instance disk    : $(Format-Size $DiskBytes)" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  * Free on target   : $(Format-Size $FreeBytes)" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  * Archive          : $Destination ($Format)" -ForegroundColor (Get-MessageColour muted)
 
 if ($DiskBytes -gt 0 -and $FreeBytes -lt $DiskBytes) {
-    Write-Host "  * Note             : less free space than the disk's size." -ForegroundColor Yellow
-    Write-Host "                       The archive is normally much smaller - it holds used" -ForegroundColor DarkGray
-    Write-Host "                       data, not free blocks. If it does not fit, the export" -ForegroundColor DarkGray
-    Write-Host "                       stops and leaves a partial file, which this script deletes." -ForegroundColor DarkGray
+    Write-Host "  * Note             : less free space than the disk's size." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "                       The archive is normally much smaller - it holds used" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "                       data, not free blocks. If it does not fit, the export" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "                       stops and leaves a partial file, which this script deletes." -ForegroundColor (Get-MessageColour muted)
 }
 
 # 5. Export
@@ -189,8 +189,8 @@ try {
         Remove-Item -Path $Destination -Force -ErrorAction SilentlyContinue
     }
     Write-Host ""
-    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "        The partial archive was removed. Nothing else was modified." -ForegroundColor DarkGray
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
+    Write-Host "        The partial archive was removed. Nothing else was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -198,23 +198,23 @@ $Archive = Get-Item -Path $Destination
 $Elapsed = (Get-Date) - $Started
 
 Write-Host ""
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "       Backup of '$DistroName' written" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
+Write-Host "       Backup of '$DistroName' written" -ForegroundColor (Get-MessageColour success)
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
 # The look goes next to the tar, once the export has succeeded: a folder half
 # written is worse than one that says what is missing from it.
 Save-InstanceState -Name $DistroName -Folder $ArchiveDir
 
-Write-Host "  * Archive          : " -NoNewline; Write-Host "$ArchiveDir" -ForegroundColor Cyan
-Write-Host "  * Tar              : " -NoNewline; Write-Host "$($Archive.Name) ($(Format-Size $Archive.Length))" -ForegroundColor Cyan
-Write-Host "  * Instance disk    : " -NoNewline; Write-Host "$(Format-Size $DiskBytes)" -ForegroundColor Cyan
-Write-Host "  * Time             : " -NoNewline; Write-Host "$([int]$Elapsed.TotalMinutes) min $($Elapsed.Seconds) s" -ForegroundColor Cyan
+Write-Host "  * Archive          : " -NoNewline; Write-Host "$ArchiveDir" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Tar              : " -NoNewline; Write-Host "$($Archive.Name) ($(Format-Size $Archive.Length))" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Instance disk    : " -NoNewline; Write-Host "$(Format-Size $DiskBytes)" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Time             : " -NoNewline; Write-Host "$([int]$Elapsed.TotalMinutes) min $($Elapsed.Seconds) s" -ForegroundColor (Get-MessageColour info)
 Write-Host ""
-Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
-Write-Host "To restore it as a new instance:" -ForegroundColor Yellow
-Write-Host "  .\wsl.ps1 restore        (it lists the archives, this one included)" -ForegroundColor White
-Write-Host "------------------------------------------------------------" -ForegroundColor DarkGray
+Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
+Write-Host "To restore it as a new instance:" -ForegroundColor (Get-MessageColour hint)
+Write-Host "  .\wsl.ps1 restore        (it lists the archives, this one included)" -ForegroundColor (Get-MessageColour hint)
+Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
 
 # 6. What becomes of the instance now that its archive is on disk. All three
@@ -248,9 +248,9 @@ if ($AfterExport -eq "Start") {
     # this script opening a shell in it.
     try {
         Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."
-        Write-Host "'$DistroName' is running." -ForegroundColor Green
+        Write-Host "'$DistroName' is running." -ForegroundColor (Get-MessageColour success)
     } catch {
-        Write-Host "Could not start '$DistroName' - start it with: wsl -d $DistroName" -ForegroundColor Yellow
+        Write-Host "Could not start '$DistroName' - start it with: wsl -d $DistroName" -ForegroundColor (Get-MessageColour warning)
     }
     Write-Host ""
 } elseif ($AfterExport -eq "Delete") {
@@ -260,17 +260,17 @@ if ($AfterExport -eq "Start") {
     $UnregisterScript = Join-Path $PSScriptRoot "unregister.ps1"
     if (Test-Path $UnregisterScript) {
         # unregister.ps1 takes no name: it lists and the user picks again.
-        Write-Host "Pick '$DistroName' in the list below, and type its name to confirm." -ForegroundColor DarkGray
+        Write-Host "Pick '$DistroName' in the list below, and type its name to confirm." -ForegroundColor (Get-MessageColour muted)
         & $UnregisterScript
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "The archive is the only copy of '$DistroName' left." -ForegroundColor DarkGray
+            Write-Host "The archive is the only copy of '$DistroName' left." -ForegroundColor (Get-MessageColour muted)
         }
     } else {
-        Write-Host "unregister.ps1 is not next to this script. To delete it, run:" -ForegroundColor Yellow
-        Write-Host "  wsl --unregister $DistroName" -ForegroundColor White
+        Write-Host "unregister.ps1 is not next to this script. To delete it, run:" -ForegroundColor (Get-MessageColour warning)
+        Write-Host "  wsl --unregister $DistroName" -ForegroundColor (Get-MessageColour hint)
     }
     Write-Host ""
 } else {
-    Write-Host "'$DistroName' is left stopped." -ForegroundColor DarkGray
+    Write-Host "'$DistroName' is left stopped." -ForegroundColor (Get-MessageColour muted)
     Write-Host ""
 }

@@ -18,7 +18,7 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -32,7 +32,7 @@ Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$D
 $InstanceHome = Get-InstanceHome -DistroName $DistroName
 if (-not $InstanceHome) {
     Write-Host ""
-    Write-Host "[ABORT] '$DistroName' did not say where its user's home is." -ForegroundColor Red
+    Write-Host "[ABORT] '$DistroName' did not say where its user's home is." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 $PacksDirectory = "$InstanceHome/.config/packs"
@@ -41,8 +41,8 @@ $PacksDirectory = "$InstanceHome/.config/packs"
 $Available = @(Get-AvailablePacks)
 if ($Available.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No pack found in $PacksRoot." -ForegroundColor Red
-    Write-Host "        A pack is a folder there carrying a pack.conf." -ForegroundColor Yellow
+    Write-Host "[ABORT] No pack found in $PacksRoot." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        A pack is a folder there carrying a pack.conf." -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 $Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
@@ -52,12 +52,12 @@ $Selection = Select-Packs -Title "Packs for '$DistroName'" -Available $Available
 
 if ($null -eq $Selection) {
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 if ($Selection.ToAdd.Count -eq 0 -and $Selection.ToRemove.Count -eq 0) {
     Write-Host ""
-    Write-Host "[OK] Nothing to do: '$DistroName' already has exactly that." -ForegroundColor Green
+    Write-Host "[OK] Nothing to do: '$DistroName' already has exactly that." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
@@ -70,13 +70,13 @@ if ($null -ne $Failure) { exit $Failure.ExitCode }
 # so the answer is what is there, not what this run meant to do.
 $Now = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 Write-Host ""
-Write-Host "==> '$DistroName' now carries: $(if ($Now.Count -gt 0) { $Now -join ', ' } else { 'no pack' })" -ForegroundColor Green
+Write-Host "==> '$DistroName' now carries: $(if ($Now.Count -gt 0) { $Now -join ', ' } else { 'no pack' })" -ForegroundColor (Get-MessageColour success)
 if ($Selection.ToAdd.Count -gt 0) {
-    Write-Host "    Open a shell in it to use them:  .\wsl.ps1 shell" -ForegroundColor DarkGray
+    Write-Host "    Open a shell in it to use them:  .\wsl.ps1 shell" -ForegroundColor (Get-MessageColour muted)
     # Only when one of them brought variables to merge: the target itself is the
     # devops pack's, and a pack that ships no sample has nothing there to add.
     if (@($Selection.ToAdd | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
-        Write-Host "    Then, in there:  gmake env_global_enable   (adds their variables)" -ForegroundColor DarkGray
+        Write-Host "    Then, in there:  gmake env_global_enable   (adds their variables)" -ForegroundColor (Get-MessageColour muted)
     }
 }
 exit 0
