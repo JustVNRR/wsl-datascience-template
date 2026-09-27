@@ -42,11 +42,10 @@ foreach ($Choice in $Choices) {
 $Distro = Select-Distro
 $DistroName = $Distro.Name
 
-# 2. Which of the two, again and again. What has been done is written in the
+# 2. Which of the three, again and again. What has been done is written in the
 # instance, and the menu comes back until Escape says the visit is over - the
-# level below takes itself off the screen and this one is drawn again where it
-# was.
-Clear-MenuBlocks
+# level below clears the screen, and this one is drawn on a clean one.
+Clear-MenuScreen
 
 $Default = 0
 $Visited = $false
@@ -62,9 +61,8 @@ while ($true) {
 
     $Default = [array]::IndexOf($Choices, $Chosen)
 
-    # The menu has been answered: it goes, and the command it named takes the
-    # screen - to give it back when it is done with it.
-    Clear-MenuBlock
+    # The menu has been answered: the command it named takes the screen - and
+    # clears it itself, the way it came in.
     & (Join-Path $PSScriptRoot "$($Chosen.Name).ps1") -DistroName $DistroName
     $Visited = $true
 }

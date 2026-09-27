@@ -50,7 +50,7 @@ $IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
 
 # The menus it came through - the way in, the theme menu, the instance it picked
 # - come off the screen: this command asks its own question.
-Clear-MenuBlocks
+Clear-MenuScreen
 
 $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$DistroName.json"
 if (-not (Test-Path $OurFragment)) {
@@ -219,10 +219,9 @@ while ($true) {
 
     if (-not $Picked) { break }
 
-    # The menu has been answered: it goes, and the answer takes its place - which
-    # goes too when it is in, so the list comes back exactly where it was.
-    Clear-MenuBlock
-    $WorkTop = Get-ConsoleTop
+    # The menu has been answered: the screen goes clean, and the question takes
+    # its place - then the screen again, so the list comes back on its own.
+    Clear-MenuScreen
 
     $Default = [array]::IndexOf($Fonts, $Picked)
 
@@ -246,14 +245,9 @@ while ($true) {
         Write-Host "  Not installed on Windows: '$($Picked.Name)' - the profile points at it anyway." -ForegroundColor Yellow
     }
 
-    Clear-ConsoleLines -Top $WorkTop
+    Clear-MenuScreen
     $Changed = $true
 }
-
-# Leaving: the menu goes too, and the level above draws its own where this one
-# was. A menu that stayed here would sit above it, and the screen would grow a
-# level every time somebody went down and came back up.
-Clear-MenuBlock
 
 if (-not $Changed) {
     # Handed over: the level above owns the goodbye, and it has its menu to draw

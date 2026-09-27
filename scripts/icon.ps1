@@ -6,11 +6,11 @@ param (
     # not a command of wsl.ps1 in the first place.
     [string]$DistroName
 )
-#
+
 # The icon is a file, not a setting: terminal-icon.png in the instance's own
 # folder, the one the Terminal profile points at. This command draws another
 # over it, or copies an image of yours there. Nothing else is written - and
-# nothing has to be stopped for it: an icon is read when a tab opens.
+# nothing has to be stopped for it: an icon belongs to a tab as it is opened.
 #
 # It keeps asking: one change keeps the others, so changing two things is the
 # ordinary way to use it, and the menu comes back after each one. Escape is how
@@ -54,7 +54,7 @@ $IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
 # The menus it came through - the way in, the instance it picked - come off the
 # screen: this command opens on its own question, and a visit of four turns is
 # one screen rather than four stacked menus.
-Clear-MenuBlocks
+Clear-MenuScreen
 
 # The one thing worth saying before the question - where the icon is, and what
 # was drawn there last, are both said inside it. This one is said because it is
@@ -242,9 +242,9 @@ while ($true) {
 
     if (-not $Chosen) { break }
 
-    # The menu has been answered: it goes, and the question takes its place.
-    Clear-MenuBlock
-    $WorkTop = Get-ConsoleTop
+    # The menu has been answered: the screen goes clean, and the answer takes its
+    # place - then the screen again, so the menu comes back on its own.
+    Clear-MenuScreen
 
     # The same place next time: two changes are one visit.
     $Default = [array]::IndexOf($Choices, $Chosen)
@@ -253,14 +253,9 @@ while ($true) {
 
     # And the question goes when the answer is in: the menu comes back exactly
     # where it was, so the screen holds one thing at a time.
-    Clear-ConsoleLines -Top $WorkTop
+    Clear-MenuScreen
     $Changed = $true
 }
-
-# Leaving: the menu goes too, and the level above draws its own where this one
-# was. A menu that stayed here would sit above it, and the screen would grow a
-# level every time somebody went down and came back up.
-Clear-MenuBlock
 
 if (-not $Changed) {
     # Handed over: the level above owns the goodbye, and it has its menu to draw

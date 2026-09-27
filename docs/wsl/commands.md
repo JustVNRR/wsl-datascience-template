@@ -33,10 +33,12 @@ instances, the packs, the archives - and it is answered the same way. Where
 there is no console to read a key from (a script, a pipe), that menu becomes
 the numbered prompt it used to be, and the answer is typed.
 
-A menu that has been answered comes off the screen before the next question, and
-the next menu takes its place: a visit of four questions is one screen rather
-than four stacked menus. With no console there is nothing to take back - a log
-is read, not looked at - so every line stays.
+Going down a level, or coming back up, clears the screen: a visit is one menu at
+a time, and nothing is ever drawn over something else. The price, and it is the
+one that was chosen over a cleverer arrangement: what was above — the output of
+the command before, what was typed — goes with it. With no console there is
+nothing to clear, so a run whose answers are piped in keeps every line: a log is
+read, not looked at.
 
 ## All commands
 

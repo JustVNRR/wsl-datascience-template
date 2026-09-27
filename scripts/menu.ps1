@@ -95,62 +95,21 @@ function ConvertTo-Rgb {
                            [Convert]::ToInt32($Hex.Substring(4, 2), 16)
 }
 
-# Blank lines the console will let us blank. Best effort, and that is the whole
-# design: a host that will not say where the cursor is, or will not move it,
-# keeps its lines and loses nothing else - a test, a pipe, a capture stays a
-# readable log, which is exactly what the numbered prompt gives it.
+# A clean screen, for going down a level or coming back up one.
 #
-# One column short of the width on purpose: a line written into the last cell
-# scrolls the console, and the rows just blanked would move up under our feet.
-function Clear-ConsoleLines {
-    param([int]$Top, [int]$Count = 0)
-
-    $Cursor = Get-ConsoleTop
-    if ($null -eq $Cursor) { return }
-    if ($Count -le 0) { $Count = $Cursor - $Top }
-    if ($Count -le 0) { return }
-
-    $Size = Get-ConsoleSize
-    $Blank = " " * ([Math]::Max(1, $Size[0] - 1))
-    for ($Row = 0; $Row -lt $Count; $Row++) {
-        if (-not (Set-ConsoleTop ($Top + $Row))) { return }
-        Write-Host $Blank
-    }
-    $null = Set-ConsoleTop $Top
-}
-
-# The block each menu drew, in the order they were drawn: what a command needs to
-# take a menu back off the screen. A command that asks its questions below a menu
-# would otherwise leave that menu behind it, and a visit of four turns would
-# leave four of them stacked, each pushing the last one up.
+# What this replaces is worth writing down, because it looked clever and was not.
+# The first version remembered, for every menu, the row it started on and how
+# many lines it took, and blanked exactly those lines when the menu was done. Row
+# numbers are absolute, and the console moves: one line too many printed, one
+# scroll, and every remembered row is a row off - the next menu was drawn over
+# the prompt, the one before it stayed where it was. It was reported with a
+# screenshot of exactly that, and the fix is to stop counting.
 #
-# Written once and never reset. This file is loaded again by every script that
-# loads instance.ps1 - the way in, the theme menu, the command behind it - and a
-# reset at the top of it threw away the blocks drawn before that load: the main
-# menu was never taken off the screen, because the command that should have taken
-# it off had already forgotten it.
-if ($null -eq $global:MenuBlocks) { $global:MenuBlocks = @() }
-
-# Take the last one off: the menu that has just been answered.
-function Clear-MenuBlock {
-    if (-not $global:MenuBlocks -or $global:MenuBlocks.Count -eq 0) { return }
-
-    $Block = $global:MenuBlocks[-1]
-    $global:MenuBlocks = @($global:MenuBlocks | Select-Object -First ($global:MenuBlocks.Count - 1))
-    Clear-ConsoleLines -Top $Block.Top -Count $Block.Height
-}
-
-# And all of them, leaving the cursor where the highest one started: for a
-# command that takes the screen over from the menus it came through - the way
-# in, the instance it picked - and opens on a question instead.
-function Clear-MenuBlocks {
-    $Highest = $null
-    while ($global:MenuBlocks -and $global:MenuBlocks.Count -gt 0) {
-        $Block = $global:MenuBlocks[-1]
-        if ($null -eq $Highest -or $Block.Top -lt $Highest) { $Highest = $Block.Top }
-        Clear-MenuBlock
-    }
-    if ($null -ne $Highest) { $null = Set-ConsoleTop $Highest }
+# Clearing is one call and cannot drift. The price, and it is the one that was
+# chosen: what was above - the output of the command before, what was typed - is
+# gone with it.
+function Clear-MenuScreen {
+    try { Clear-Host } catch { }
 }
 
 # One row of the list, as it is drawn: the marker and the colours say where the
@@ -334,13 +293,6 @@ function Select-WithArrows {
     # answers the keys, it simply does not repaint - there is nothing to paint
     # on.
     $CanPaint = ($null -ne $Cursor) -and ($Top -ge 0)
-
-    # Remember the block for whoever wants it off the screen later: the blank
-    # line and the title above the first row, the hint below the last. Read back
-    # only when it can be painted on - there is nothing to take off a log.
-    if ($CanPaint) {
-        $global:MenuBlocks += @{ Top = ($Top - 2); Height = ($Visible + 3) }
-    }
 
     while ($true) {
         $Key = if ($KeyReader) { & $KeyReader } else { Read-MenuKey }
