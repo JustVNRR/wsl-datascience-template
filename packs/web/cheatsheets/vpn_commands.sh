@@ -2,38 +2,41 @@
 # TUNNEL CHEATSHEET (wireguard / proton)
 # requires: wg
 # ==========================================
-# The `web` pack's tunnel: one WireGuard profile per server in /etc/wireguard,
-# the DNS through openresolv, and WSL's own boot hook for the automatic start.
-# The pack installs from Windows (`.\wsl.ps1 add_pack`), its page is
-# packs/web/docs/vpn.md, and the module behind these targets is make/vpn.mk.
+# The `web` pack's tunnel: your servers are in ~/.config/vpn/servers.json, the
+# server in use and the kill switch are two lines of
+# ~/.config/zsh/gmake/.env.global, and /etc/wireguard/vpn.conf is written from
+# both before every mount - it is read, never edited. The pack installs from
+# Windows (`.\wsl.ps1 add_pack`), its page is packs/web/docs/vpn.md, and the
+# module behind these targets is make/vpn.mk.
 # Offered only while the tools are installed - the header above hides the sheet
 # when they were removed by hand.
 
 # --- 1. THE TUNNEL (gmake) ---
-gmake vpn_status                               # Up or down, the DNS, the exit IP, what starts with the distro
-gmake vpn_up                                   # Connect - the menu picks the server
-gmake vpn_up VPN_PROFILE=ch                    # ... or name one, and skip the menu
+gmake vpn_status                               # Up or down, the server, the kill switch, the DNS, the exit IP
+gmake vpn_up                                   # Connect, with the server VPN_PROFILE names
+gmake vpn_up VPN_PROFILE=ch                    # ... or name another for this one call
+gmake vpn_up_from_list                         # Connect, picking the server from the JSON in a menu
 gmake vpn_down                                 # Disconnect
-gmake vpn_server                               # Choose the server the distro starts with
-gmake vpn_auto_on                              # Bring the tunnel up with the distro
-gmake vpn_auto_off                             # Stop bringing it up
+gmake vpn_server                               # Choose the server the distro starts with (menu)
+gmake vpn_server VPN_PROFILE=ch                # ... or name it, and skip the menu
+gmake vpn_ks_on                                # Put the kill switch in, and remount the tunnel
+gmake vpn_ks_off                               # Take it out, and remount
+gmake vpn_auto_on                              # Bring the tunnel up when the distro starts
+gmake vpn_auto_off                             # Stop bringing it up with the distro
 
-# --- 2. ADD A SERVER, OR TAKE ONE OUT ---
-gmake vpn_profile_add VPN_PROFILE=ch           # New profile from the sample, then the editor opens
-gmake vpn_profile_remove VPN_PROFILE=ch        # Delete one (it asks first: the file holds your key)
+# --- 2. THE SERVERS ---
+gmake vpn_edit_profiles                        # The JSON of servers, in nano ($EDITOR wins when set)
+jq . ~/.config/vpn/servers.json                # What it holds, when you want to read it
+jq -r '.servers[].id' ~/.config/vpn/servers.json   # Just the ids, one per line
 
-# --- 3. WHAT IS REALLY HAPPENING ---
+# --- 3. THE TWO VARIABLES ---
+grep VPN_ ~/.config/zsh/gmake/.env.global      # VPN_PROFILE and VPN_KILL_SWITCH
+gmake env_global_enable                        # Adds what the samples carry and the file lacks
+
+# --- 4. WHAT IS REALLY HAPPENING ---
 sudo wg show                                   # The interface, its peer, the last handshake
-sudo wg show interfaces                        # Which profile is up
+sudo cat /etc/wireguard/vpn.conf               # What the pack generated - a read, never an edit
 cat /etc/resolv.conf                           # 10.2.0.1 = the DNS goes through the tunnel
 curl -s https://am.i.mullvad.net/ip            # The exit IP the world sees
-sudo wg-quick down proton                      # The manual way, when a target is not at hand
-
-# --- 4. THE PROFILES ---
-sudo ls /etc/wireguard                        # One .conf per server, and the marker `auto`
-sudo nano /etc/wireguard/ch.conf               # Edit one: the keys stay, the [Peer] changes
-sudo cat /etc/wireguard/auto                   # The profile the distro starts with
-
-# --- 5. WHEN THE AUTOMATIC START DOES NOTHING ---
-sudo tail -20 /var/log/web-vpn.log             # What the boot hook tried, and why it stopped
-cat /etc/wsl.conf                              # [boot] command= and [network] generateResolvConf
+sudo iptables -S OUTPUT | head -3              # The kill switch, while a tunnel is up
+tail -20 /var/log/web-vpn.log                  # What the boot hook tried, and why it stopped

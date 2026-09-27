@@ -3,122 +3,535 @@
 # THE TUNNEL - WHAT THE gmake TARGETS CALL
 # ==============================================================================
 # The subcommands, one per target in make/vpn.mk, and one reason for the split:
-# what needs a terminal (a menu) or a decision (which profile is up) lives here
+# what needs a terminal (a menu) or a decision (which server is up) lives here
 # rather than inside a recipe, so each recipe stays one line and this file is
 # read like any other shell script.
 #
-# The recipe is the user's own, written up in the pack's page: WireGuard profiles
-# in /etc/wireguard, openresolv for the DNS, the kill switch inside the profile,
-# and WSL's own boot hook for the automatic start (not a systemd unit - see
-# bin/vpn-boot.sh).
+# Three files hold this half of the pack:
 #
-# Nothing here writes to a profile: the keys are the user's. What this script
-# owns is which profile the distro starts with, and nothing else.
+#   ~/.config/vpn/servers.json    your servers: one entry per Proton server, with
+#                                 its own keys. Yours - the pack seeds it from
+#                                 its sample, and never writes in it again.
+#   ~/.config/zsh/gmake/.env.global
+#                                 VPN_PROFILE (the server to use, and the one the
+#                                 distro starts with) and VPN_KILL_SWITCH. The
+#                                 socle loads this file into every gmake run, and
+#                                 `gmake env_global_enable` merges the pack's two
+#                                 lines into it.
+#   /etc/wireguard/vpn.conf       NOT yours, and not a file anyone edits: it is
+#                                 written here, out of the two above, right
+#                                 before every mount. The interface is therefore
+#                                 always `vpn` - which is what keeps the kill
+#                                 switch's rules stable (they carry %i).
+#
+# The boot hook goes through this same file (bin/vpn-boot.sh), so the profile
+# cannot be stale at the moment it is used: it is rebuilt at every start too.
+#
+# The recipe is the user's own, written up in the pack's page: WireGuard profiles
+# over openresolv for the DNS, the kill switch as two iptables lines, and WSL's
+# own boot hook for the automatic start (not a systemd unit - see vpn-boot.sh).
 
 set -euo pipefail
 
 WG_DIR=/etc/wireguard
-MARKER=$WG_DIR/auto
+IFACE=vpn
+CONF=$WG_DIR/$IFACE.conf
 BOOT_SCRIPT=/usr/local/sbin/web-vpn-boot
 BOOT_LOG=/var/log/web-vpn.log
 HOOK="command=$BOOT_SCRIPT"
 WSLCONF=/etc/wsl.conf
 
 here=$(cd "$(dirname "$0")" && pwd)
+SAMPLE=$here/../vpn.servers.sample
+
+# The user's files, under $HOME - and $HOME is the instance's user both when a
+# gmake target runs this and when the boot hook does: the hook finds that user
+# and hands it over before calling (see bin/vpn-boot.sh).
+SERVERS=$HOME/.config/vpn/servers.json
+GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
+
+# The DNS and the MTU are constants of the generator, not variables: they are the
+# same for every Proton server, and duplicating them in each entry would be four
+# lines to keep in step. An entry may carry "dns" or "mtu" of its own - a server
+# that needs another value wins - and then it is written here. The peer's
+# "persistent_keepalive" is the same arrangement: nothing by default, and a
+# number in an entry when that server needs one.
+DNS_DEFAULT=10.2.0.1
+MTU_DEFAULT=1420
+
+# The kill switch: two iptables lines, in the generated profile, that reject
+# whatever would leave outside the tunnel. The mark is the one wg-quick puts on
+# its own packets, and LOCAL destinations (loopback, WSLg, the Docker socket) are
+# spared - without that last part, the terminal this was typed in would go quiet
+# first. The $( ) below belongs to wg-quick: it is expanded when the tunnel comes
+# up, not here.
+# shellcheck disable=SC2016
+KS_UP='iptables -I OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT && ip6tables -I OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT'
+# shellcheck disable=SC2016
+KS_DOWN='iptables -D OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT && ip6tables -D OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT'
 
 die() {
     printf '❌ %s\n' "$*" >&2
     exit 1
 }
 
-# The profiles, without the .conf suffix. The directory is root-only (mode 700),
-# so the listing goes through sudo - and the reading happens on this side of the
-# pipe: what comes back is a list of names, not a directory handle.
-profiles() {
-    sudo ls -1 "$WG_DIR" 2>/dev/null | sed -n 's/\.conf$//p' | sort || true
+# Privileged work, and it has to work both ways round: a gmake target runs this
+# as the instance's user (sudo, and its password prompt), and the boot hook runs
+# it as root, where sudo would be one indirection too many.
+as_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        sudo "$@"
+    fi
 }
 
-# The interface that is up, or nothing at all. wg-quick names the interface after
-# the profile, so this is also the name of the profile in use.
-# `|| true` on both: when the tools are gone (a removal that stopped half way)
-# sudo fails, pipefail makes the pipeline fail, and a caller under `set -e`
-# would stop on a question it merely could not answer.
-active() {
-    sudo wg show interfaces 2>/dev/null | awk 'NR == 1 { print; exit }' || true
+# The files below are the user's, and $HOME is what says which user. Started as
+# root with root's own home - `sudo vpn.sh up`, which is not how this is called -
+# it would read /root/.config and answer for nobody. The boot hook sets HOME
+# before calling, so it is not concerned by this.
+if [ "$(id -u)" -eq 0 ] && [ "${HOME:-}" = /root ]; then
+    die "this reads your own files: run it as yourself (gmake vpn_up), not through sudo."
+fi
+
+# --- the JSON of servers ------------------------------------------------------
+
+# jq reads it, and nothing greps inside it: a structured file is read by a tool
+# that knows the structure, and one that does not parse is an error with a line
+# number rather than a wrong value. jq is in the image, like the rest of what
+# this pack leans on.
+json_ok() {
+    [ -f "$SERVERS" ] && jq -e . "$SERVERS" > /dev/null 2>&1
 }
 
-# Does that profile exist? Asked as root, for the same reason as the listing.
-has_profile() {
-    sudo test -f "$WG_DIR/$1.conf"
+# Every id, one per line, in the file's order: what the menus show, and what the
+# composer looks a server up by.
+ids() {
+    [ -f "$SERVERS" ] || return 0
+    jq -r '(.servers // [])[] | .id // empty' "$SERVERS" 2>/dev/null || true
 }
 
-# The name of a profile is the name of its file, and wg-quick takes the file's
-# name as the interface's - and Linux refuses an interface name longer than 15
-# characters. Anything that would need quoting is refused with it, and so is
-# `auto`: that one is the marker the boot hook reads, and a profile by that name
-# would be two files fighting over one path.
-valid_profile_name() {
-    case "$1" in
-    "" | auto | *[!a-zA-Z0-9_-]* | ????????????????*) return 1 ;;
-    esac
+# One field of one entry, empty when the entry has none. Two functions rather
+# than one, because the peer's fields are one level down and that is the whole
+# difference.
+field() {
+    jq -r --arg id "$1" --arg k "$2" '(.servers // [])[] | select(.id == $id) | .[$k] // empty' "$SERVERS" 2>/dev/null || true
+}
+
+peer_field() {
+    jq -r --arg id "$1" --arg k "$2" '(.servers // [])[] | select(.id == $id) | (.peer // {})[$k] // empty' "$SERVERS" 2>/dev/null || true
+}
+
+# How many entries carry that id. It has to be exactly one: two entries with the
+# same id are two answers to one question, and the composer would write one of
+# them without saying which.
+entries() {
+    jq -r --arg id "$1" '[ (.servers // [])[] | select(.id == $id) ] | length' "$SERVERS" 2>/dev/null || printf '0'
+}
+
+# What an id may be. It names a server in the menus, and it is written into
+# .env.global, where make reads it: a space would be trimmed, a `#` would cut the
+# line short and an `=` would end the name. So letters, digits, dot, dash,
+# underscore - and no length limit any more, since it is no longer an interface
+# name (the interface is `vpn`, always).
+VALID_ID='^[A-Za-z0-9._-]+$'
+valid_id() {
+    printf '%s' "$1" | grep -qE "$VALID_ID"
+}
+
+# Are every id of the file usable, and each of them once? Asked after the editor
+# closed on it: the file is the user's, and this is what a menu and a variable
+# can carry.
+check_ids() {
+    local id seen=
+    while read -r id; do
+        [ -n "$id" ] || continue
+        if ! valid_id "$id"; then
+            printf '⚠️  id "%s" is not usable: letters, digits, dot, dash and underscore only.\n' "$id" >&2
+            printf '   It is shown in the menus and written into .env.global, where a space or a # would not survive.\n' >&2
+            return 1
+        fi
+        case " $seen " in
+        *" $id "*)
+            printf '⚠️  id "%s" appears twice - one entry per server.\n' "$id" >&2
+            return 1
+            ;;
+        esac
+        seen="$seen $id"
+    done < <(ids)
     return 0
+}
+
+# --- the two variables --------------------------------------------------------
+
+# Read from .env.global, never from the environment this was started with. A make
+# target hands a value down by naming it on the command line, and the recipe
+# passes it as an argument; reading the exported copy here would answer with what
+# .env.global held when make started - the one stale answer these two files exist
+# to avoid.
+env_var() {
+    local name=$1 line
+    [ -r "$GLOBAL_ENV" ] || return 0
+    line=$(grep -E "^[[:space:]]*$name=" "$GLOBAL_ENV" | tail -n 1 || true)
+    printf '%s\n' "${line#*=}"
+}
+
+server_var() {
+    env_var VPN_PROFILE
+}
+
+ks_on() {
+    case "$(env_var VPN_KILL_SWITCH)" in
+    true | TRUE | True | yes | 1) return 0 ;;
+    *) return 1 ;;
+    esac
+}
+
+# What the kill switch reads as, in one line, for vpn_status and for the message
+# a mount ends with.
+ks_line() {
+    if [ ! -r "$GLOBAL_ENV" ]; then
+        printf 'off (no %s yet - gmake env_global_enable builds it)\n' "$GLOBAL_ENV"
+    elif ks_on; then
+        printf 'on\n'
+    else
+        printf 'off (%s)\n' "$(env_var VPN_KILL_SWITCH)"
+    fi
+}
+
+# Writing one of the two variables. That file is the socle's - make reads it, and
+# `gmake env_global_enable` fills it in from the samples - so this writes one
+# line of it and nothing else: the line is replaced where it is, or appended when
+# the variable is not there yet (which is what a machine that never ran
+# env_global_enable looks like). The value is an id, checked by valid_id before
+# this is called, or the literal true/false: no byte of either needs escaping.
+write_env() {
+    local name=$1 value=$2
+    [ -f "$GLOBAL_ENV" ] || die "no $GLOBAL_ENV yet - 'gmake env_global_enable' builds it from the samples."
+    if grep -qE "^[[:space:]]*$name=" "$GLOBAL_ENV"; then
+        sed -i -E "s|^[[:space:]]*$name=.*|$name=$value|" "$GLOBAL_ENV"
+    else
+        printf '\n%s=%s\n' "$name" "$value" >> "$GLOBAL_ENV"
+    fi
+    printf '📝 %s=%s (%s)\n' "$name" "$value" "$GLOBAL_ENV"
+}
+
+# --- the tunnel ---------------------------------------------------------------
+
+# Is a tunnel up? wg-quick names the interface after the file it read, and the
+# file is always vpn.conf - so the question is one comparison.
+is_up() {
+    [ "$(as_root wg show interfaces 2>/dev/null | head -n 1)" = "$IFACE" ]
 }
 
 # The menu. fzf, like the other pickers of this shell (fcheat, fnew), and the
 # whole list on screen: three servers do not need a scrolling window.
 # It needs a terminal, and says which way round that is: a menu cannot be
-# answered from a pipe or a script, and the profile can be named instead.
+# answered from a pipe or a script, and a server can be named instead.
 pick() {
-    local choice
-    if ! choice=$(profiles | fzf --prompt="$1 > " --info=inline --layout=reverse); then
-        die "no server chosen - a menu needs a terminal. Name one instead: gmake <target> VPN_PROFILE=<name>"
+    local list choice
+    list=$(ids)
+    [ -n "$list" ] || die "no server in $SERVERS yet - gmake vpn_edit_profiles opens it."
+    if ! choice=$(printf '%s\n' "$list" | fzf --prompt="$1 > " --info=inline --layout=reverse); then
+        die "no server chosen - a menu needs a terminal. Name one instead: gmake <target> VPN_PROFILE=<id>"
     fi
     [ -n "$choice" ] || die "no server chosen."
     printf '%s\n' "$choice"
 }
 
-# Is the distro told to start the tunnel? The marker says which profile, the
-# [boot] line says that anything is started at all.
+# The generated profile - the whole point of the two files above: it is not read,
+# edited or handed to wg-quick by anyone, it is what servers.json and the two
+# variables say, written out just before the tunnel is raised. Every path that
+# wants a tunnel goes through here, the boot hook included. A correction made in
+# this file by hand is a correction to *this* function, and the next mount would
+# take it away again.
+compose() {
+    local id=$1 private address pub endpoint allowed dns mtu keepalive pair name value
+
+    [ -n "$id" ] || die "no server named: gmake vpn_server picks the default, gmake vpn_up_from_list shows the menu."
+    if ! valid_id "$id"; then
+        die "'$id' cannot be a server id: letters, digits, dot, dash and underscore only."
+    fi
+    [ -f "$SERVERS" ] || die "no $SERVERS yet - gmake vpn_edit_profiles creates it from the sample."
+    if ! json_ok; then
+        die "$SERVERS is not valid JSON: $(jq . "$SERVERS" 2>&1 | head -n 1)"
+    fi
+    case "$(entries "$id")" in
+    1) ;;
+    0) die "no server '$id' in $SERVERS. It holds: $(ids | paste -sd' ' -). gmake vpn_edit_profiles opens it." ;;
+    *) die "'$id' appears more than once in $SERVERS - one entry per server. gmake vpn_edit_profiles opens it." ;;
+    esac
+
+    private=$(field "$id" private_key)
+    address=$(field "$id" address)
+    pub=$(peer_field "$id" public_key)
+    endpoint=$(peer_field "$id" endpoint)
+    allowed=$(peer_field "$id" allowed_ips)
+    dns=$(field "$id" dns)
+    mtu=$(field "$id" mtu)
+    keepalive=$(peer_field "$id" persistent_keepalive)
+    dns=${dns:-$DNS_DEFAULT}
+    mtu=${mtu:-$MTU_DEFAULT}
+
+    # What a profile cannot do without - and the sample's placeholders are not
+    # values. A half-filled entry would fail with wg-quick's own words ("Key is
+    # not the correct length"), which say nothing about this file: so it is said
+    # here, before anything is written.
+    for pair in "private_key=$private" "address=$address" "peer.public_key=$pub" \
+        "peer.endpoint=$endpoint" "peer.allowed_ips=$allowed"; do
+        name=${pair%%=*}
+        value=${pair#*=}
+        if [ -z "$value" ] || [ "${value#PASTE-}" != "$value" ]; then
+            die "server '$id': $name is missing in $SERVERS. gmake vpn_edit_profiles fills it in."
+        fi
+    done
+
+    # Written as root, mode 600: it carries the private key. The mode is set on
+    # the empty file before anything is written into it - `install` truncates an
+    # existing file without changing its mode, tee would take the umask - and the
+    # content follows on stdin, so no copy of the key lands anywhere else.
+    as_root install -d -m 0700 "$WG_DIR"
+    as_root install -m 600 /dev/null "$CONF"
+    {
+        printf '# Generated by the web pack from %s\n' "$SERVERS"
+        printf '# Server: %s - do not edit this file: gmake vpn_up rewrites it.\n' "$id"
+        printf '\n[Interface]\n'
+        printf 'PrivateKey = %s\n' "$private"
+        printf 'Address    = %s\n' "$address"
+        printf 'DNS        = %s\n' "$dns"
+        printf 'MTU        = %s\n' "$mtu"
+        if ks_on; then
+            printf 'PostUp     = %s\n' "$KS_UP"
+            printf 'PreDown    = %s\n' "$KS_DOWN"
+        fi
+        printf '\n[Peer]\n'
+        printf 'PublicKey  = %s\n' "$pub"
+        printf 'AllowedIPs = %s\n' "$allowed"
+        printf 'Endpoint   = %s\n' "$endpoint"
+        # Only when the entry carries one: it keeps a tunnel alive behind a NAT
+        # that would otherwise close the mapping, and it is off unless asked for.
+        [ -z "$keepalive" ] || printf 'PersistentKeepalive = %s\n' "$keepalive"
+    } | as_root tee "$CONF" > /dev/null
+}
+
+# Raising the tunnel, with the server named: the profile is rebuilt first, so
+# what comes up is what the JSON and the variables say right now. A tunnel
+# already up goes down first - it is the same interface, and wg-quick needs the
+# file it came up with to undo its own addresses and routes.
+cmd_up() {
+    local wanted=${1:-}
+
+    if [ -z "$wanted" ]; then
+        if [ ! -f "$GLOBAL_ENV" ]; then
+            die "no $GLOBAL_ENV yet - 'gmake env_global_enable' builds it from the samples."
+        fi
+        wanted=$(server_var)
+        [ -n "$wanted" ] || die "VPN_PROFILE is not set in $GLOBAL_ENV - gmake vpn_server picks the server, gmake vpn_up_from_list shows the menu."
+    fi
+
+    if is_up; then
+        printf '⤵️  %s down (the profile is rebuilt before every mount)\n' "$IFACE"
+        as_root wg-quick down "$IFACE"
+    fi
+    compose "$wanted"
+    as_root wg-quick up "$IFACE"
+    if ks_on; then
+        printf '✅ the tunnel is up - server %s, kill switch on\n' "$wanted"
+    else
+        printf '✅ the tunnel is up - server %s (gmake vpn_ks_on adds the kill switch)\n' "$wanted"
+    fi
+}
+
+# The same, with the server picked from the menu.
+cmd_up_from_list() {
+    local wanted
+    wanted=$(pick "VPN server")
+    cmd_up "$wanted"
+}
+
+cmd_down() {
+    if ! is_up; then
+        printf 'ℹ️  no tunnel is up.\n'
+        return 0
+    fi
+    as_root wg-quick down "$IFACE"
+    printf '✅ the tunnel is down.\n'
+}
+
+# The default: the server the distro starts with. It is VPN_PROFILE, so this
+# writes a line of .env.global - and it switches to it right away when a tunnel
+# is up, so "the server I chose" and "the server I am on" do not disagree until
+# the next start.
+cmd_server() {
+    local wanted=${1:-}
+
+    if [ -z "$wanted" ]; then
+        wanted=$(pick "The server the distro starts with")
+    fi
+    if ! valid_id "$wanted"; then
+        die "'$wanted' cannot be a server id: letters, digits, dot, dash and underscore only."
+    fi
+    if [ -f "$SERVERS" ] && [ "$(entries "$wanted")" != 1 ]; then
+        die "no server '$wanted' in $SERVERS. It holds: $(ids | paste -sd' ' -). gmake vpn_edit_profiles opens it."
+    fi
+
+    write_env VPN_PROFILE "$wanted"
+
+    # Named explicitly, and not read back from the variable: the value this
+    # process was started with is the one from before the line above.
+    if is_up; then
+        printf '🔁 Switching to %s now.\n' "$wanted"
+        cmd_up "$wanted"
+    else
+        printf 'ℹ️  It will be used by the next mount, and by the next start of the distro.\n'
+    fi
+    if ! hook_present; then
+        printf 'ℹ️  The automatic start is off - gmake vpn_auto_on turns it on.\n'
+    fi
+}
+
+# The kill switch, on or off: one line of .env.global, and a remount when a
+# tunnel is up, so that the answer is true now and not at the next start.
+cmd_kill_switch() {
+    local what=${1:-} value wanted
+
+    case "$what" in
+    on) value=true ;;
+    off) value=false ;;
+    *) die "kill_switch takes 'on' or 'off'" ;;
+    esac
+
+    # A remount needs a server the JSON still holds, and that is asked *before*
+    # the variable is written: a failure here would otherwise leave the variable
+    # changed and the tunnel as it was, which reads as "half done" from outside.
+    if is_up; then
+        wanted=$(server_var)
+        [ "$(entries "$wanted")" = 1 ] ||
+            die "the tunnel is up, and VPN_PROFILE names '$wanted', which $SERVERS does not hold any more. gmake vpn_server picks one, then try this again."
+    fi
+
+    write_env VPN_KILL_SWITCH "$value"
+
+    if is_up; then
+        printf '🔁 Remounting the tunnel on %s, so this is true now.\n' "$wanted"
+        cmd_up "$wanted"
+    else
+        printf 'ℹ️  It applies to the next mount.\n'
+    fi
+}
+
+cmd_edit_profiles() {
+    local editor
+
+    if [ ! -f "$SERVERS" ]; then
+        install -d -m 0700 "$(dirname "$SERVERS")"
+        install -m 600 "$SAMPLE" "$SERVERS"
+        printf '📝 %s was created from the package sample - fill in your keys.\n' "$SERVERS"
+    fi
+    if ! json_ok; then
+        die "$SERVERS does not parse, and this will not open a broken file: $(jq . "$SERVERS" 2>&1 | head -n 1)"
+    fi
+
+    printf 'ℹ️  One entry per server: the id, the address, the private key, and the peer.\n'
+    printf '   Both keys and the address come from your Proton account:\n'
+    printf '   Downloads, "WireGuard configuration".\n'
+
+    # The editor is yours: $EDITOR when it is set (one command, no arguments),
+    # nano otherwise - nano is in the image, and it is what the cheatsheets use.
+    editor=${EDITOR:-nano}
+    "$editor" "$SERVERS"
+
+    # What the editor left behind. jq says where and why when it does not parse;
+    # the ids are checked too, since they are what a menu shows and what
+    # .env.global carries. Nothing is read from the file until both hold.
+    if ! json_ok; then
+        printf '⚠️  %s does not parse any more: %s\n' "$SERVERS" "$(jq . "$SERVERS" 2>&1 | head -n 1)" >&2
+        printf '   gmake vpn_edit_profiles opens it again - nothing is read from it until it does.\n' >&2
+        return 1
+    fi
+    check_ids || return 1
+    printf '✅ %s: %s\n' "$SERVERS" "$(ids | paste -sd' ' -)"
+}
+
+# The automatic start: one line under [boot] in /etc/wsl.conf, which is WSL's own
+# hook (the page says why not a systemd unit). Which server no longer belongs to
+# this: it is VPN_PROFILE, and the hook reads it from the same .env.global this
+# script does.
 hook_present() {
-    sudo grep -qxF "$HOOK" "$WSLCONF" 2>/dev/null
+    as_root grep -qxF "$HOOK" "$WSLCONF" 2>/dev/null
 }
 
 # Both are written idempotently: turning the automatic start on twice leaves one
-# line and one marker, and the boot script is replaced by the pack's own copy.
-# The line goes under [boot] and nowhere else - /etc/wsl.conf is also where the
-# install wrote generateResolvConf, and rewriting the file whole would take that
-# with it.
+# line and one copy of the boot script. The line goes under [boot] and nowhere
+# else - /etc/wsl.conf is also where the install wrote generateResolvConf, and
+# rewriting the file whole would take that with it.
 hook_on() {
-    sudo install -m 0755 "$here/vpn-boot.sh" "$BOOT_SCRIPT"
+    as_root install -m 0755 "$here/vpn-boot.sh" "$BOOT_SCRIPT"
     if hook_present; then
         return 0
     fi
-    if sudo grep -q '^\[boot\]' "$WSLCONF" 2>/dev/null; then
-        sudo sed -i "\|^\[boot\]|a $HOOK" "$WSLCONF"
+    if as_root grep -q '^\[boot\]' "$WSLCONF" 2>/dev/null; then
+        as_root sed -i "\|^\[boot\]|a $HOOK" "$WSLCONF"
     else
-        printf '\n[boot]\n%s\n' "$HOOK" | sudo tee -a "$WSLCONF" > /dev/null
+        printf '\n[boot]\n%s\n' "$HOOK" | as_root tee -a "$WSLCONF" > /dev/null
     fi
     hook_present || die "the [boot] line could not be written to $WSLCONF"
 }
 
 hook_off() {
-    if sudo test -f "$WSLCONF"; then
-        sudo sed -i "\|^${HOOK}$|d" "$WSLCONF"
+    if as_root test -f "$WSLCONF"; then
+        as_root sed -i "\|^${HOOK}$|d" "$WSLCONF"
     fi
-    sudo rm -f "$BOOT_SCRIPT"
+    as_root rm -f "$BOOT_SCRIPT"
+}
+
+cmd_auto() {
+    case "${1:-}" in
+    on)
+        if [ ! -f "$GLOBAL_ENV" ]; then
+            die "no $GLOBAL_ENV yet - 'gmake env_global_enable' builds it from the samples."
+        fi
+        [ -n "$(server_var)" ] ||
+            die "VPN_PROFILE is not set in $GLOBAL_ENV - gmake vpn_server picks the server first."
+        hook_on
+        printf '✅ The tunnel will come up with the distro, server %s.\n' "$(server_var)"
+        printf '   Nothing happens now: it is the next start of the distro that runs it.\n'
+        ;;
+    off)
+        hook_off
+        printf '✅ The distro will not bring the tunnel up.\n'
+        printf '   A tunnel that is up right now stays up - gmake vpn_down takes it down.\n'
+        ;;
+    *)
+        die "auto takes 'on' or 'off'"
+        ;;
+    esac
 }
 
 cmd_status() {
-    local up ns exit_ip starts last
+    local id count ns exit_ip last
 
-    up=$(active)
-    if [ -n "$up" ]; then
-        printf '🔒 Tunnel      : up (%s)\n' "$up"
+    if is_up; then
+        printf '🔒 Tunnel      : up (%s)\n' "$IFACE"
     else
         printf '⚪ Tunnel      : down\n'
     fi
 
-    printf '   Profiles    : %s\n' "$(profiles | paste -sd' ' - || echo 'none')"
+    id=$(server_var)
+    count=$(ids | wc -l)
+    if [ ! -f "$SERVERS" ]; then
+        printf '   Servers     : none (no %s - gmake vpn_edit_profiles creates it)\n' "$SERVERS"
+    elif [ "$count" = 0 ]; then
+        printf '   Servers     : none in %s - gmake vpn_edit_profiles opens it\n' "$SERVERS"
+    elif [ -n "$id" ]; then
+        printf '   Servers     : %s in %s\n' "$count" "$SERVERS"
+        printf '   Server      : %s (VPN_PROFILE)\n' "$id"
+    else
+        printf '   Servers     : %s in %s\n' "$count" "$SERVERS"
+        printf '   Server      : none named - gmake vpn_server picks one\n'
+    fi
+
+    printf '   Kill switch : %s\n' "$(ks_line)"
 
     ns=$(sed -n 's/^nameserver[[:space:]]\+//p' /etc/resolv.conf | head -n 1)
     printf '   DNS         : %s\n' "${ns:-none}"
@@ -127,162 +540,14 @@ cmd_status() {
     printf '   Exit IP     : %s\n' "${exit_ip:-unreachable}"
 
     if hook_present; then
-        starts=$(sudo cat "$MARKER" 2>/dev/null || true)
-        printf '   Starts with : the distro, profile %s\n' "${starts:-?}"
+        printf '   Starts with : the distro\n'
     else
         printf '   Starts with : nothing (gmake vpn_auto_on turns it on)\n'
     fi
 
-    last=$(sudo tail -n 1 "$BOOT_LOG" 2>/dev/null || true)
+    last=$(as_root tail -n 1 "$BOOT_LOG" 2>/dev/null || true)
     [ -n "$last" ] && printf '   Last start  : %s\n' "$last"
     return 0
-}
-
-# Connect, now. Without a name, the menu decides - and when a profile is already
-# up and another is wanted, this is also the switch: down first, up after.
-cmd_up() {
-    local wanted current
-    wanted=${1:-}
-    if [ -z "$wanted" ]; then
-        wanted=$(pick "VPN server") || die "no server chosen - nothing was started."
-    fi
-    has_profile "$wanted" || die "no profile '$wanted' in $WG_DIR"
-
-    current=$(active)
-    if [ "$current" = "$wanted" ]; then
-        printf 'ℹ️  %s is already up.\n' "$wanted"
-        return 0
-    fi
-    if [ -n "$current" ]; then
-        printf '⤵️  %s down\n' "$current"
-        sudo wg-quick down "$current"
-    fi
-    sudo wg-quick up "$wanted"
-    printf '✅ %s is up.\n' "$wanted"
-}
-
-cmd_down() {
-    local current
-    current=$(active)
-    if [ -z "$current" ]; then
-        printf 'ℹ️  no tunnel is up.\n'
-        return 0
-    fi
-    sudo wg-quick down "$current"
-    printf '✅ %s is down.\n' "$current"
-}
-
-# The default: the server the distro starts with. It switches to it right away
-# when a tunnel is up, so "the server I chose" and "the server I am on" do not
-# disagree until the next restart.
-cmd_server() {
-    local wanted current
-    wanted=${1:-}
-    if [ -z "$wanted" ]; then
-        wanted=$(pick "The server the distro starts with") || die "no server chosen - nothing was changed."
-    fi
-    has_profile "$wanted" || die "no profile '$wanted' in $WG_DIR"
-
-    printf '%s\n' "$wanted" | sudo tee "$MARKER" > /dev/null
-    printf '✅ %s is the server the distro starts with.\n' "$wanted"
-
-    current=$(active)
-    if [ -n "$current" ] && [ "$current" != "$wanted" ]; then
-        sudo wg-quick down "$current"
-        sudo wg-quick up "$wanted"
-        printf '🔁 Switched to %s now.\n' "$wanted"
-    fi
-
-    if ! hook_present; then
-        printf 'ℹ️  The automatic start is off - gmake vpn_auto_on turns it on.\n'
-    fi
-}
-
-# A new profile starts from the pack's sample, so the four lines nobody
-# remembers - the address, the resolver, the MTU, the kill switch - are already
-# there and only the two keys and the peer are to paste. It is never written
-# over a profile that exists: that file carries a private key, and replacing it
-# silently is the one move this pack does not make.
-cmd_profile_add() {
-    local name=${1:-} editor
-    [ -n "$name" ] || die "which profile? gmake vpn_profile_add VPN_PROFILE=<name>"
-    valid_profile_name "$name" ||
-        die "'$name' cannot be a profile name: 15 characters at most, letters, digits, - and _ (it becomes both a file name and an interface name)."
-
-    if has_profile "$name"; then
-        printf 'ℹ️  %s already exists - opening it, nothing was written.\n' "$WG_DIR/$name.conf"
-    else
-        sudo install -d -m 0700 "$WG_DIR"
-        sudo install -m 600 "$here/../vpn.conf.sample" "$WG_DIR/$name.conf"
-        printf '📝 %s was created from the sample: the MTU and the kill switch are in it.\n' "$WG_DIR/$name.conf"
-        printf '   Paste your private key, the address, and the [Peer] block - then save.\n'
-    fi
-
-    # The editor is yours: $EDITOR when it is set (one command, no arguments),
-    # nano otherwise - nano is in the image, and it is what the cheatsheets
-    # already use for a profile.
-    editor=${EDITOR:-nano}
-    sudo "$editor" "$WG_DIR/$name.conf"
-
-    if sudo test -s "$WG_DIR/$name.conf"; then
-        printf '✅ %s is in place - gmake vpn_up offers it.\n' "$name"
-    else
-        printf '⚠️  %s is empty: gmake vpn_up will refuse it.\n' "$WG_DIR/$name.conf"
-    fi
-}
-
-# Removing one takes the tunnel down first when it is the one that is up:
-# wg-quick needs the file to undo the addresses and the routes it added, and the
-# file is what is about to go.
-cmd_profile_remove() {
-    local name=${1:-} current
-    [ -n "$name" ] || die "which profile? gmake vpn_profile_remove VPN_PROFILE=<name>"
-    has_profile "$name" || die "no profile '$name' in $WG_DIR"
-
-    current=$(active)
-    if [ "$current" = "$name" ]; then
-        sudo wg-quick down "$name"
-        printf '⤵️  %s was up: it is down.\n' "$name"
-    fi
-
-    sudo rm -f "$WG_DIR/$name.conf"
-    printf '✅ %s is gone.\n' "$name"
-
-    if [ "$(sudo cat "$MARKER" 2>/dev/null || true)" = "$name" ]; then
-        printf '⚠️  It was the profile the distro starts with.\n'
-        printf '    Pick another with gmake vpn_server, or the boot hook will only say so in %s.\n' "$BOOT_LOG"
-    fi
-}
-
-cmd_auto() {
-    local what wanted
-    what=${1:-}
-    case "$what" in
-    on)
-        wanted=${2:-}
-        if [ -z "$wanted" ]; then
-            wanted=$(active)
-        fi
-        if [ -z "$wanted" ]; then
-            wanted=$(pick "The server the distro starts with") || die "no server chosen - nothing was changed."
-        fi
-        has_profile "$wanted" || die "no profile '$wanted' in $WG_DIR"
-
-        printf '%s\n' "$wanted" | sudo tee "$MARKER" > /dev/null
-        hook_on
-        printf '✅ The tunnel will come up with the distro, profile %s.\n' "$wanted"
-        printf '   Nothing happens now: it is the next start of the distro that runs it.\n'
-        ;;
-    off)
-        hook_off
-        sudo rm -f "$MARKER"
-        printf '✅ The distro will not bring the tunnel up.\n'
-        printf '   A tunnel that is up right now stays up - gmake vpn_down takes it down.\n'
-        ;;
-    *)
-        die "auto takes 'on' or 'off'"
-        ;;
-    esac
 }
 
 case "${1:-}" in
@@ -294,21 +559,25 @@ up)
     shift
     cmd_up "$@"
     ;;
+up_from_list)
+    shift
+    cmd_up_from_list "$@"
+    ;;
 down)
     shift
     cmd_down "$@"
     ;;
-profile_add)
-    shift
-    cmd_profile_add "$@"
-    ;;
-profile_remove)
-    shift
-    cmd_profile_remove "$@"
-    ;;
 server)
     shift
     cmd_server "$@"
+    ;;
+kill_switch)
+    shift
+    cmd_kill_switch "$@"
+    ;;
+edit_profiles)
+    shift
+    cmd_edit_profiles "$@"
     ;;
 auto)
     shift
@@ -318,19 +587,20 @@ auto)
     cat <<'USAGE'
 usage: vpn.sh <command>
 
-  status              the tunnel, the profiles, the DNS, the exit IP, and what
-                      the distro starts with
-  up [profile]        connect now - the menu decides when no profile is named
-  down                disconnect
-  server [profile]    the server the distro starts with (and switch to it now)
-  auto on [profile]   bring the tunnel up with the distro
-  auto off            stop doing that
-  profile_add <name>  create a profile from the pack's sample, then edit it
-  profile_remove <name>  delete one (the caller asks first)
+  status                the tunnel, the server, the kill switch, the DNS, the
+                        exit IP, and what the distro starts with
+  up [id]               connect now, with the server VPN_PROFILE names
+  up_from_list          connect now, picking the server from the JSON in a menu
+  down                  disconnect
+  server [id]           the server the distro starts with - the menu picks one
+                        when no id is named (gmake vpn_server VPN_PROFILE=<id>)
+  kill_switch on|off    the kill switch in the tunnel, and a remount
+  auto on|off           bring the tunnel up with the distro
+  edit_profiles         open ~/.config/vpn/servers.json in the editor
 
 Every command is a gmake target of the same name: gmake vpn_status, vpn_up,
-vpn_down, vpn_server, vpn_auto_on, vpn_auto_off, vpn_profile_add,
-vpn_profile_remove.
+vpn_up_from_list, vpn_down, vpn_server, vpn_ks_on, vpn_ks_off, vpn_auto_on,
+vpn_auto_off, vpn_edit_profiles.
 USAGE
     exit 2
     ;;

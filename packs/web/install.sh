@@ -7,9 +7,10 @@
 #
 # Two halves, one folder. The browser comes from Mozilla's own repository - on
 # Ubuntu 24.04 the package named `firefox` is a transitional one that installs
-# the snap - and the tunnel is the user's own recipe, written up in
-# docs/vpn.md: WireGuard profiles in /etc/wireguard, openresolv for the DNS,
-# WSL's boot hook for the automatic start.
+# the snap - and the tunnel is the user's own recipe, written up in docs/vpn.md:
+# WireGuard, openresolv for the DNS, WSL's boot hook for the automatic start.
+# The servers it connects to live in ~/.config/vpn/servers.json, which this seeds
+# - or fills in from the profiles a first install had left in /etc/wireguard.
 #
 # Two of its moves are worth reading twice:
 #   - `systemd-resolved` is removed when it is there. It ships the `resolvconf`
@@ -117,19 +118,39 @@ apt-get update
 # --allow-downgrades\" on any machine where that stub was ever installed.
 apt-get install -y --no-install-recommends --allow-downgrades firefox"
 
-# The sample, and only when the folder holds no profile at all: a profile
-# carries the user's private key, and the one move this pack never makes is
-# writing over one of those. What it leaves is the shape - addresses, DNS, MTU,
-# kill switch - with the two keys to paste.
-if ! sudo bash -c 'ls /etc/wireguard/*.conf >/dev/null 2>&1'; then
-    sudo install -d -m 0700 /etc/wireguard
-    sudo install -m 600 "$here/vpn.conf.sample" /etc/wireguard/proton.conf
-    echo "📝 A profile sample is waiting in /etc/wireguard/proton.conf - paste your two keys in it."
-    echo "   In your Proton account: Downloads, 'WireGuard configuration'."
+# The servers, in one JSON in ~/.config/vpn (mode 600: it carries the private
+# keys). Three cases, in this order:
+#   - it is already there: nothing is touched, ever - that file is the user's;
+#   - profiles are still in /etc/wireguard (a machine that ran the first shape of
+#     this pack): their values move into the JSON, and the files stay where they
+#     are - they are the user's too, and deleting them is their call;
+#   - neither: the sample is copied over, and waits to be filled in.
+servers=$HOME/.config/vpn/servers.json
+if [ -f "$servers" ]; then
+    echo "ℹ️  $servers is already there - left untouched."
+else
+    # The pack's own sample, checked before it is copied: a broken one would be
+    # the user's file from the first minute, and jq is what reads it.
+    jq -e . "$here/vpn.servers.sample" > /dev/null ||
+        {
+            echo "❌ The pack's own sample of servers does not parse - nothing was written to $servers." >&2
+            exit 1
+        }
+    if ! bash "$here/bin/vpn-migrate.sh" "$servers"; then
+        echo "ℹ️  Nothing was migrated - the pack's sample is used instead."
+    fi
+    if [ ! -f "$servers" ]; then
+        install -d -m 0700 "$(dirname "$servers")"
+        install -m 600 "$here/vpn.servers.sample" "$servers"
+        echo "📝 $servers is waiting for your keys - one entry per server, and"
+        echo "   the file documents itself. Both keys and the address come from"
+        echo "   your Proton account: Downloads, 'WireGuard configuration'."
+        echo "   Then: gmake vpn_edit_profiles, and gmake vpn_up."
+    fi
 fi
 
 echo "✅ Firefox is installed, and 'fox' opens it - its commands are in the picker (fcheat)."
-echo "✅ WireGuard is installed: gmake vpn_status   (a profile first, see docs/vpn.md)"
+echo "✅ WireGuard is installed: gmake vpn_status   (servers first, see docs/vpn.md)"
 if [ -L /etc/resolv.conf ] || grep -q 'generateResolvConf' /etc/wsl.conf 2>/dev/null; then
     echo "ℹ️  The DNS setting is read when the distro starts: restart it once"
     echo "   (wsl.exe --terminate <distro>, from Windows) before the tunnel manages /etc/resolv.conf."

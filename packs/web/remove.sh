@@ -62,9 +62,17 @@ sudo rm -f /etc/apt/sources.list.d/mozilla.list \
            /etc/apt/preferences.d/firefox-no-snap \
            /etc/apt/keyrings/packages.mozilla.org.asc
 
+# The profile of /etc/wireguard: not a file of the user's, this one - the pack
+# writes it at every mount, out of the JSON - so it goes with the pack. The
+# tunnel is already down by now, which is what wg-quick needed it for.
+echo "➖ Removing the profile the pack generated..."
+sudo rm -f /etc/wireguard/vpn.conf
+
 echo "✅ The tunnel and the browser are gone, and Mozilla's repository with them."
 echo "   Left alone, on purpose:"
-echo "     - your WireGuard profiles in /etc/wireguard - they carry your private keys"
+echo "     - your servers, ~/.config/vpn/servers.json - it carries your private keys"
+echo "     - the VPN_PROFILE and VPN_KILL_SWITCH lines of ~/.config/zsh/gmake/.env.global"
+echo "     - the profiles an older install left in /etc/wireguard, if any are still there"
 echo "     - generateResolvConf = false in /etc/wsl.conf - a setting of the machine, not the pack's"
 echo "     - your Firefox profile, ~/.mozilla - bookmarks, passwords, history"
 echo "   systemd-resolved was removed to make room for openresolv:"

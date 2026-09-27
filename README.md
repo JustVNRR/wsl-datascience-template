@@ -12,7 +12,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
 - **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
-- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to Proton VPN, choose the server, and bring it up with the distro.
+- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to Proton VPN — the servers live in one JSON, the server in use and the kill switch are two lines of `.env.global` — and bring it up with the distro.
 
 ---
 
@@ -236,7 +236,8 @@ the repository at runtime.
 │       ├── pack.conf        # what it installs, and the line `add_pack` shows
 │       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │       ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
-│       ├── vpn.conf.sample  # a profile's shape: addresses, DNS, MTU, kill switch
+│       ├── vpn.servers.sample  # the servers, in JSON, waiting for your keys
+│       ├── env.global.sample   # VPN_PROFILE and VPN_KILL_SWITCH, for .env.global
 │       ├── bin/             # the tunnel's script, and what the boot hook runs
 │       ├── make/            # its gmake module: the vpn_* targets
 │       ├── zsh/             # its shell files: the `fox` function
