@@ -1,5 +1,5 @@
 # ==========================================
-# MAKEFILE CHEATSHEET (via alias gmake)
+# MAKEFILE CHEATSHEET (the gmake targets)
 # ==========================================
 # The socle's gmake targets: the ones that need no pack, which today is three. A
 # pack brings its targets and its sheet together, in its own folder: the project

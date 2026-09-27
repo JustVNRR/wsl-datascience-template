@@ -9,8 +9,14 @@ unalias lt 2>/dev/null
 # 2. CUSTOM SHORTCUTS & SYSTEM UTILITIES
 # ============================================================
 
-# Target the gmake Makefile inside $ZDOTDIR gmake directory
-alias gmake="make -f $ZDOTDIR/gmake/Makefile"
+# The gmake Makefile inside the $ZDOTDIR gmake directory. A function and not an
+# alias, for one reason: zsh expands an alias before it completes the line, so
+# a completion bound to the name of one is never consulted - Tab would complete
+# plain `make`, and this Makefile is not the one zsh would read. Same command
+# line either way.
+gmake() {
+    make -f "$ZDOTDIR/gmake/Makefile" "$@"
+}
 
 # Directory navigation & open network ports
 alias b='cd -'

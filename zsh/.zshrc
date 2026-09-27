@@ -51,6 +51,7 @@ source "$ZDOTDIR/aliases.zsh"      # Command shortcuts and interactive falias to
 source "$ZDOTDIR/navigation.zsh"   # Directory hopping and fuzzy file pickers (cdv, cda, fv, fa)
 source "$ZDOTDIR/unzip.zsh"        # Interactive archive extraction handler
 source "$ZDOTDIR/cheatsheet.zsh"   # Custom cheatsheet selector (fcheat)
+source "$ZDOTDIR/completion.zsh"   # Tab on gmake: the targets, read from the Makefile
 
 # --- 4. ZLE KEYBINDINGS ---
 # Keybindings must load AFTER all custom functions and widgets are declared in memory
