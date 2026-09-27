@@ -218,17 +218,15 @@ function Set-InstanceLook {
 }
 
 # Ask Windows Terminal to re-read what is written for its profiles, without
-# closing anything - the command that was wanted ("turn a distro's theme on or
-# restart it"), and one wt.exe does not have. Quoted in English: this file stays
-# pure ASCII, and the French was accented.
+# closing anything - turning a distro's theme on or restarting it without closing
+# a window, which wt.exe has no option for.
 #
 # Its own settings file is what it watches. A change to that file makes Terminal
 # re-read the whole of its settings, the fragments this repository writes
 # included, and a tab already open changes colour on the spot. Nothing is written
 # INTO the file: only its date is set to now, which is all a watcher looks at.
 #
-# WHEN this is called is the whole of the difficulty, and it was found by the
-# person using it, after three wrong attempts from here:
+# WHEN this is asked matters, and only one moment works:
 #
 #   - touched from inside a command, nothing happens, and nothing happens later
 #     either - even a second later, even twice;

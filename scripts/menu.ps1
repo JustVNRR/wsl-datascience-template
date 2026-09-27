@@ -105,8 +105,7 @@ function ConvertTo-Rgb {
 # many lines it took, and blanked exactly those lines when the menu was done. Row
 # numbers are absolute, and the console moves: one line too many printed, one
 # scroll, and every remembered row is a row off - the next menu was drawn over
-# the prompt, the one before it stayed where it was. It was reported with a
-# screenshot of exactly that, and the fix is to stop counting.
+# the prompt, the one before it stayed where it was. The fix is to stop counting.
 #
 # Clearing is one call and cannot drift. The price, and it is the one that was
 # chosen: what was above - the output of the command before, what was typed - is

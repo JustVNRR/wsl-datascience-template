@@ -234,8 +234,8 @@ Write-Output "--- a clean screen between levels ---"
 # that is the point: the version before it remembered, for every menu, the row it
 # started on and how many lines it took, and blanked exactly those rows. A row
 # number is absolute and the console moves - one scroll, and the next menu was
-# drawn over the prompt while the one before it stayed where it was. Reported
-# with a screenshot of exactly that, and replaced by this.
+# drawn over the prompt while the one before it stayed where it was. Replaced by
+# this.
 Check "clearing the screen is safe without one" (& { Clear-MenuScreen; "survived" }) "survived"
 
 Write-Output ""

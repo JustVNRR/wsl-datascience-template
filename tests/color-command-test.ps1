@@ -123,8 +123,8 @@ try {
 
     # And every row has the same width, the mark's column included. The names are
     # padded inside the colours, so the painted block of each row ends at the same
-    # column; without it the list is bars of different lengths, which was reported
-    # as it looked - with a screenshot of a barcode.
+    # column; without it the list is bars of different lengths - a barcode, not a
+    # list.
     $Widths = @()
     $Inside = $false
     foreach ($Line in $Out) {

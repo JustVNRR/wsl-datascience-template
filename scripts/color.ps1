@@ -223,7 +223,6 @@ while ($true) {
         # painted in the colours of its scheme, which is the whole preview, and
         # the swatches made the label longer than the window - so it was cut, and
         # what showed was a fragment of a colour block and the menu's own "...".
-        # Reported as "je sais pas ce que c'est ces trucs au bout".
         $Sample
     } -DefaultIndex $Default
 
@@ -271,7 +270,6 @@ if (-not $Changed) {
 # Ask Terminal to look again, and only when this command was run on its own: the
 # visit is over, the prompt is back, and the pane is idle - the one moment a
 # reload lands. Behind the theme menu this is not done here at all: the menu is
-# still running, and it asks when IT is over (see theme.ps1). Reported that way
-# too: "it works when I run the command, not through the menu".
+# still running, and it asks when IT is over (see theme.ps1).
 if (-not $HandedOver) { Update-TerminalSettings }
 exit 0
