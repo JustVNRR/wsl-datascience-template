@@ -37,8 +37,12 @@ foreach ($Choice in $Choices) {
     }
 }
 
-# 1. Which instance. The commands behind this menu are given the name rather than
-# asking again: it has been asked, and asking twice is how a visit becomes three.
+# 1. Which instance, on a screen of its own: the menu this one was reached from -
+# and everything typed before it - goes first.
+Clear-MenuScreen
+
+# The commands behind this menu are given the name rather than asking again: it
+# has been asked, and asking twice is how a visit becomes three.
 $Distro = Select-Distro
 $DistroName = $Distro.Name
 

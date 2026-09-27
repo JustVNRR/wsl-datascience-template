@@ -237,6 +237,11 @@ while ($true) {
     $Changed = $true
 }
 
+# Leaving, by Escape or because the visit is over: the menu goes too, so that the
+# level above draws its own on a clean screen instead of under this one. It is
+# the mirror of the clear at the top - down a level, up a level, same screen.
+Clear-MenuScreen
+
 if (-not $Changed) {
     # Handed over: the level above owns the goodbye, and it has its menu to draw
     # where this one was.
