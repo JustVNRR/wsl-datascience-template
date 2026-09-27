@@ -120,6 +120,20 @@ try {
     $Out = Invoke-Color @("$Pick", "0")
     $Schemes = @(Get-ListedSchemes $Out)
     Check "the schemes are listed" ($Schemes.Count -ge 1) $true
+
+    # And every row has the same width, the mark's column included. The names are
+    # padded inside the colours, so the painted block of each row ends at the same
+    # column; without it the list is bars of different lengths, which was reported
+    # as it looked - with a screenshot of a barcode.
+    $Widths = @()
+    $Inside = $false
+    foreach ($Line in $Out) {
+        if ("$Line" -like "Colours of '*'") { $Inside = $true; continue }
+        if (-not $Inside) { continue }
+        if ("$Line" -match '^\s*0\.') { break }
+        if ("$Line" -match '^\s*\d+\.\s+(.*)$') { $Widths += $Matches[1].Length }
+    }
+    Check "every row is the same width" (@($Widths | Sort-Object -Unique).Count) 1
     Check "the one the instance wears is in it" ($Schemes -contains $Planted) $true
     Check "and it is marked as the one in use" (@($Out | Where-Object { "$_" -like "*(current)*" }).Count -gt 0) $true
     Check "cancelling applied nothing" ((Get-Content $OurFragment -Raw | ConvertFrom-Json).profiles[0].colorScheme) $Planted
