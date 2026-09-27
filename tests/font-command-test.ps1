@@ -121,11 +121,11 @@ try {
     $Wanted = [array]::IndexOf($Fonts, "Consolas") + 1
     $null = Invoke-Font @("$Pick", "$Wanted")
 
-    # Written for Terminal to read, and Terminal will not read a byte-order mark:
-    # Set-Content -Encoding Utf8 writes one, and every fragment this repository
-    # wrote until it was measured began with one - so none of them was ever
-    # applied. The icon, the font and the colours all went into a file Terminal
-    # quietly ignored. WSL's own fragment starts with a brace, and so must ours.
+    # A rule, not a diagnosis: a byte-order mark is not part of JSON, the
+    # fragments that are known to work - WSL's own, Terminal's settings.json -
+    # begin with a brace, and PowerShell's -Encoding Utf8 writes a mark whether
+    # anyone asked for one. Whether Terminal refuses a marked file was never
+    # measured; what is written here has no mark.
     $Bytes = [System.IO.File]::ReadAllBytes($OurFragment)
     Check "the fragment starts with a brace, not a mark" ([char]$Bytes[0]) "{"
 

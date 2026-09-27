@@ -278,13 +278,18 @@ function Get-WslProfileGuid {
 # variable sits at the start of its line - a here-string is literal, so the line
 # is written whole by it, spaces included.
 #
-# Written WITHOUT a byte-order mark, and that is not a detail: Set-Content
-# -Encoding Utf8 writes one, Terminal does not read a fragment that begins with
-# one, and every fragment this repository wrote until it was measured began with
-# one - so none of them was ever applied. The icon, the font and the colours were
-# all written into a file Terminal quietly ignored. WSL's own fragment, which
-# works, begins with a brace; so does Terminal's settings.json. So does this one
-# now.
+# Written without a byte-order mark, and what is known and what is not is worth
+# keeping apart here.
+#
+# Known, measured: every fragment this repository wrote used to begin with EF BB
+# BF, because Set-Content -Encoding Utf8 writes one; the fragments that are known
+# to work - WSL's own, and Terminal's settings.json - begin with a brace; and a
+# mark is not part of JSON, whatever a reader does with it.
+#
+# Not known: whether Terminal refuses such a file. It was never seen alone - the
+# day the mark went, the reload changed too, and the reload is the half that was
+# measured (see Update-TerminalSettings). So this is a rule, not a diagnosis: the
+# file has no mark because a mark is not JSON.
 function Set-InstanceFragment {
     param([string]$Name, [string]$Guid, [string]$Font, [string]$ColorScheme, [string]$IconPath)
 
