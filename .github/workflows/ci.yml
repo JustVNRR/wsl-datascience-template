@@ -33,7 +33,7 @@
 #     and its sample menu. It found five drifted rows the day it was written
 #
 # The second job, on windows-latest, is the one that RUNS the code instead of
-# reading it, because that is where PowerShell and wsl.exe are. Seven suites,
+# reading it, because that is where PowerShell and wsl.exe are. Eight suites,
 # none of which needs an instance, a console or Docker Desktop:
 #   - tests/menu-test.ps1        the arrow menu, driven by a scripted keyboard:
 #                                wrapping, Escape, digits, the cursor read back
@@ -63,6 +63,12 @@
 #                                instance: the schemes are listed, the one in
 #                                use is marked, and picking one writes it into
 #                                the profile and the instance
+#   - tests/message-test.ps1     the colour a message takes, on schemes written
+#                                out in the test: the version of each colour
+#                                that is read on a dark scheme and on a light
+#                                one, the scheme's own text colour where it
+#                                offers nothing readable, and the names a
+#                                console gives when there is nothing to read
 # Every bug the scripts themselves have had was caught here, and none of these
 # checks can be replaced by reading the files.
 
@@ -399,3 +405,7 @@ jobs:
       - name: Choosing an instance's colours, on an instance of the test's own
         shell: bash
         run: powershell -NoProfile -File tests/color-command-test.ps1
+
+      - name: The colour a message takes, on schemes the test writes out
+        shell: bash
+        run: powershell -NoProfile -File tests/message-test.ps1

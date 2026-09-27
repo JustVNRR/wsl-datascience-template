@@ -16,7 +16,7 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -36,7 +36,7 @@ Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$D
 $InstanceHome = Get-InstanceHome -DistroName $DistroName
 if (-not $InstanceHome) {
     Write-Host ""
-    Write-Host "[ABORT] '$DistroName' did not say where its user's home is." -ForegroundColor Red
+    Write-Host "[ABORT] '$DistroName' did not say where its user's home is." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 $PacksDirectory = "$InstanceHome/.config/packs"
@@ -50,7 +50,7 @@ $Available = @(Get-AvailablePacks)
 $Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 if ($Installed.Count -eq 0) {
     Write-Host ""
-    Write-Host "[OK] '$DistroName' carries no pack - there is nothing to remove." -ForegroundColor Green
+    Write-Host "[OK] '$DistroName' carries no pack - there is nothing to remove." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
@@ -62,7 +62,7 @@ foreach ($Name in $Installed) {
 }
 if ($Offered.Count -eq 0) {
     Write-Host ""
-    Write-Host "[OK] '$DistroName' carries no pack you choose or remove by hand." -ForegroundColor Green
+    Write-Host "[OK] '$DistroName' carries no pack you choose or remove by hand." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
@@ -70,7 +70,7 @@ $PackName = Select-FromList -Title "Packs installed in '$DistroName':" -Items $O
 
 if (-not $PackName) {
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
@@ -96,22 +96,22 @@ foreach ($Name in $ToRemove) {
 }
 
 Write-Host ""
-Write-Host "==> Removing from '$DistroName': $($ToRemove -join ', ')" -ForegroundColor Cyan
-Write-Host "    Each pack's own remove.sh runs first - what it installed leaves the system." -ForegroundColor DarkGray
-Write-Host "    Then its folder leaves, and the gmake menu loses its commands." -ForegroundColor DarkGray
+Write-Host "==> Removing from '$DistroName': $($ToRemove -join ', ')" -ForegroundColor (Get-MessageColour info)
+Write-Host "    Each pack's own remove.sh runs first - what it installed leaves the system." -ForegroundColor (Get-MessageColour muted)
+Write-Host "    Then its folder leaves, and the gmake menu loses its commands." -ForegroundColor (Get-MessageColour muted)
 foreach ($Name in $Also) {
-    Write-Host "    '$Name' goes with '$PackName': nothing installed requires it any more." -ForegroundColor DarkGray
+    Write-Host "    '$Name' goes with '$PackName': nothing installed requires it any more." -ForegroundColor (Get-MessageColour muted)
 }
 if ($Missing.Count -gt 0) {
-    Write-Host "    No remove.sh in: $($Missing -join ', ') - installed before packs had one." -ForegroundColor Yellow
-    Write-Host "    Nothing of it is undone on the system side: only its files leave." -ForegroundColor Yellow
-    Write-Host "    To take its tool out by hand, open a shell in '$DistroName'." -ForegroundColor Yellow
+    Write-Host "    No remove.sh in: $($Missing -join ', ') - installed before packs had one." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "    Nothing of it is undone on the system side: only its files leave." -ForegroundColor (Get-MessageColour hint)
+    Write-Host "    To take its tool out by hand, open a shell in '$DistroName'." -ForegroundColor (Get-MessageColour hint)
 }
 $Confirm = [string](Read-Host "Remove $($ToRemove -join ', ')? [y/N]")
 
 if ($Confirm -notmatch "^[yY]") {
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
@@ -123,7 +123,7 @@ foreach ($Name in $ToRemove) {
 
     if ($Missing -notcontains $Name) {
         Write-Host ""
-        Write-Host "==> Removing '$Name'..." -ForegroundColor Cyan
+        Write-Host "==> Removing '$Name'..." -ForegroundColor (Get-MessageColour info)
         Invoke-PackScript -DistroName $DistroName -Target $Target -Script "remove.sh" -ExitCode ([ref]$Code)
         $RemoveCode = $Code
 
@@ -131,8 +131,8 @@ foreach ($Name in $ToRemove) {
         # place, and its files are what a second attempt needs.
         if ($RemoveCode -ne 0) {
             Write-Host ""
-            Write-Host "[FAIL] The pack could not remove itself (exit code $RemoveCode)." -ForegroundColor Red
-            Write-Host "       Nothing was deleted: '$Name' is still installed in '$DistroName'." -ForegroundColor Yellow
+            Write-Host "[FAIL] The pack could not remove itself (exit code $RemoveCode)." -ForegroundColor (Get-MessageColour error)
+            Write-Host "       Nothing was deleted: '$Name' is still installed in '$DistroName'." -ForegroundColor (Get-MessageColour hint)
             exit $RemoveCode
         }
     }
@@ -140,8 +140,8 @@ foreach ($Name in $ToRemove) {
     Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
     if ($Code -ne 0) {
         Write-Host ""
-        Write-Host "[FAIL] The pack's folder could not be deleted (exit code $Code)." -ForegroundColor Red
-        Write-Host "       '$Name' is out of the gmake menu, but its files are still in the instance." -ForegroundColor Yellow
+        Write-Host "[FAIL] The pack's folder could not be deleted (exit code $Code)." -ForegroundColor (Get-MessageColour error)
+        Write-Host "       '$Name' is out of the gmake menu, but its files are still in the instance." -ForegroundColor (Get-MessageColour warning)
         exit $Code
     }
 }
@@ -151,20 +151,20 @@ foreach ($Name in $ToRemove) {
 # anything, and the command says what happened either way. Once, at the end -
 # it is a question about the instance, not about a pack.
 Write-Host ""
-Write-Host "==> Taking back what the removed packs left on the system side..." -ForegroundColor Cyan
-Write-Host "    Their remove.sh scripts named what they installed; what remains is what" -ForegroundColor DarkGray
-Write-Host "    came in as a dependency. Nothing goes that apt - or a program outside" -ForegroundColor DarkGray
-Write-Host "    apt - still needs." -ForegroundColor DarkGray
+Write-Host "==> Taking back what the removed packs left on the system side..." -ForegroundColor (Get-MessageColour info)
+Write-Host "    Their remove.sh scripts named what they installed; what remains is what" -ForegroundColor (Get-MessageColour muted)
+Write-Host "    came in as a dependency. Nothing goes that apt - or a program outside" -ForegroundColor (Get-MessageColour muted)
+Write-Host "    apt - still needs." -ForegroundColor (Get-MessageColour muted)
 
 $CleanupCode = 0
 if (-not (Invoke-PackOrphanCleanup -DistroName $DistroName -ExitCode ([ref]$CleanupCode))) {
     # The packs are out either way; this is the tidy-up, not the removal.
     Write-Host ""
-    Write-Host "[WARN] The cleanup stopped early (exit code $CleanupCode)." -ForegroundColor Yellow
-    Write-Host "       They are gone, but some of their dependencies may remain." -ForegroundColor Yellow
+    Write-Host "[WARN] The cleanup stopped early (exit code $CleanupCode)." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "       They are gone, but some of their dependencies may remain." -ForegroundColor (Get-MessageColour hint)
 }
 
 Write-Host ""
-Write-Host "==> Removed from '$DistroName': $($ToRemove -join ', ')." -ForegroundColor Green
-Write-Host "    Open a shell in it: the gmake menu no longer offers their commands." -ForegroundColor DarkGray
+Write-Host "==> Removed from '$DistroName': $($ToRemove -join ', ')." -ForegroundColor (Get-MessageColour success)
+Write-Host "    Open a shell in it: the gmake menu no longer offers their commands." -ForegroundColor (Get-MessageColour muted)
 exit 0

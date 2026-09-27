@@ -17,7 +17,7 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -32,7 +32,7 @@ foreach ($Choice in $Choices) {
     $Script = Join-Path $PSScriptRoot "$($Choice.Name).ps1"
     if (-not (Test-Path $Script)) {
         Write-Host ""
-        Write-Host "[ABORT] scripts\$($Choice.Name).ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+        Write-Host "[ABORT] scripts\$($Choice.Name).ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
         exit 1
     }
 }
@@ -83,7 +83,7 @@ while ($true) {
 Clear-MenuScreen
 
 if (-not $Visited) {
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 

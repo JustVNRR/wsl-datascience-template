@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -23,8 +23,8 @@ if (-not (Test-Path $InstanceLib)) {
 $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
 if ($All.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
-    Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
+    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -33,8 +33,8 @@ $Eligible = @($All | Where-Object { $Running -contains $_.Name })
 
 if ($Eligible.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No instance is running." -ForegroundColor Red
-    Write-Host "        Nothing to stop." -ForegroundColor Yellow
+    Write-Host "[ABORT] No instance is running." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Nothing to stop." -ForegroundColor (Get-MessageColour hint)
     exit 1
 }
 
@@ -45,7 +45,7 @@ $Distro = Select-FromList -Title "Running instances - the ones that can be stopp
 
 if (-not $Distro) {
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
@@ -56,35 +56,35 @@ $DistroName = $Distro.Name
 # touched - only what is in memory. Asked once, default yes, because picking
 # the instance in the list was already a deliberate act.
 Write-Host ""
-Write-Host "  '$DistroName' will be stopped." -ForegroundColor Yellow
-Write-Host "  Whatever is open in there and not saved is lost; what is already" -ForegroundColor Yellow
-Write-Host "  written on the disk stays exactly as it is." -ForegroundColor Yellow
+Write-Host "  '$DistroName' will be stopped." -ForegroundColor (Get-MessageColour warning)
+Write-Host "  Whatever is open in there and not saved is lost; what is already" -ForegroundColor (Get-MessageColour warning)
+Write-Host "  written on the disk stays exactly as it is." -ForegroundColor (Get-MessageColour warning)
 $Confirm = [string](Read-Host "Stop it? [Y/n]")
 if ($Confirm -match "^[nN]") {
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
 Write-Host ""
-Write-Host "==> Stopping '$DistroName'..." -ForegroundColor Cyan
+Write-Host "==> Stopping '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 try {
     Invoke-External { wsl.exe --terminate $DistroName } "Could not stop '$DistroName'."
 } catch {
     Write-Host ""
-    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "        '$DistroName' may still be running." -ForegroundColor DarkGray
+    Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
+    Write-Host "        '$DistroName' may still be running." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
 Write-Host ""
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "       '$DistroName' is stopped" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
+Write-Host "       '$DistroName' is stopped" -ForegroundColor (Get-MessageColour success)
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
-Write-Host "  * Install folder   : " -NoNewline; Write-Host "$($Distro.BasePath)" -ForegroundColor Cyan
-Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size (Get-VhdxSize $Distro.BasePath))" -ForegroundColor Cyan
+Write-Host "  * Install folder   : " -NoNewline; Write-Host "$($Distro.BasePath)" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size (Get-VhdxSize $Distro.BasePath))" -ForegroundColor (Get-MessageColour info)
 Write-Host ""
-Write-Host "  Nothing on the disk was touched: closing an instance only ends what" -ForegroundColor DarkGray
-Write-Host "  was running. Start it again with  .\wsl.ps1 start" -ForegroundColor DarkGray
+Write-Host "  Nothing on the disk was touched: closing an instance only ends what" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  was running. Start it again with  .\wsl.ps1 start" -ForegroundColor (Get-MessageColour muted)
 Write-Host ""

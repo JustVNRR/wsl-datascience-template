@@ -34,7 +34,7 @@ $ErrorActionPreference = "Stop"
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -45,7 +45,7 @@ if ($HandedOver) {
     $Distro = Get-Distros | Where-Object { $_.Name -eq $DistroName } | Select-Object -First 1
     if (-not $Distro) {
         Write-Host ""
-        Write-Host "[ABORT] No instance named '$DistroName' is registered here." -ForegroundColor Red
+        Write-Host "[ABORT] No instance named '$DistroName' is registered here." -ForegroundColor (Get-MessageColour error)
         exit 1
     }
 } else {
@@ -61,8 +61,8 @@ Clear-MenuScreen
 $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$DistroName.json"
 if (-not (Test-Path $OurFragment)) {
     Write-Host ""
-    Write-Host "[WARNING] This instance has no Terminal profile of ours - the font would not show." -ForegroundColor Yellow
-    Write-Host "          Build it again, or set the font by hand in Ctrl+," -ForegroundColor DarkGray
+    Write-Host "[WARNING] This instance has no Terminal profile of ours - the font would not show." -ForegroundColor (Get-MessageColour warning)
+    Write-Host "          Build it again, or set the font by hand in Ctrl+," -ForegroundColor (Get-MessageColour muted)
 }
 
 # The glyph a prompt is drawn with, and the one that says a font is a Nerd Font
@@ -158,7 +158,7 @@ function Test-MonospaceFont {
 # with what it can draw. Asked once: the answers do not change while the command
 # runs.
 Write-Host ""
-Write-Host "Reading the fonts Windows has..." -ForegroundColor DarkGray
+Write-Host "Reading the fonts Windows has..." -ForegroundColor (Get-MessageColour muted)
 
 Add-Type -AssemblyName System.Drawing
 $Files = Get-FontFiles
@@ -252,8 +252,8 @@ while ($true) {
     $Guid = Get-WslProfileGuid -Name $DistroName
     if (-not $Guid) {
         Write-Host ""
-        Write-Host "[ABORT] Windows Terminal has no profile for '$DistroName' - the font cannot be applied." -ForegroundColor Red
-        Write-Host "        Nothing was modified." -ForegroundColor DarkGray
+        Write-Host "[ABORT] Windows Terminal has no profile for '$DistroName' - the font cannot be applied." -ForegroundColor (Get-MessageColour error)
+        Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
         exit 1
     }
 
@@ -263,7 +263,7 @@ while ($true) {
     Set-InstanceLook -InstallPath $Distro.BasePath -Look (New-InstanceLook -Name $DistroName)
 
     if (-not (Test-FontInstalled $Picked.Name)) {
-        Write-Host "  Not installed on Windows: '$($Picked.Name)' - the profile points at it anyway." -ForegroundColor Yellow
+        Write-Host "  Not installed on Windows: '$($Picked.Name)' - the profile points at it anyway." -ForegroundColor (Get-MessageColour warning)
     }
 
     Clear-MenuScreen
@@ -280,7 +280,7 @@ if (-not $Changed) {
     # where this one was.
     if ($HandedOver) { exit 0 }
     Write-Host ""
-    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
+    Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 

@@ -16,7 +16,7 @@ $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $InstanceLib
@@ -35,10 +35,10 @@ function Get-Distro {
 $Ours = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath })
 if ($Ours.Count -eq 0) {
     Write-Host ""
-    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor Red
-    Write-Host "        Nothing to remove." -ForegroundColor Yellow
-    Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor Yellow
-    Write-Host "        (A folder left behind by an earlier removal is deleted by hand: $Root)" -ForegroundColor DarkGray
+    Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Nothing to remove." -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Build one with  .\wsl.ps1 build" -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        (A folder left behind by an earlier removal is deleted by hand: $Root)" -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 
@@ -55,30 +55,28 @@ $FolderExisted = Test-Path $InstallPath
 if ($Distro) {
     [Console]::Beep(1000, 400)
     Write-Host ""
-    Write-Host " /!\ ================================================================ /!\" -ForegroundColor White -BackgroundColor DarkRed
-    Write-Host " |                     DANGER: TOTAL DATA LOSS IMMINENT               |" -ForegroundColor White -BackgroundColor DarkRed
-    Write-Host " \!/ ================================================================ \!/" -ForegroundColor White -BackgroundColor DarkRed
+    Write-DangerBanner
     Write-Host ""
-    Write-Host "  The WSL distribution '$DistroName' and ALL its data will be deleted:" -ForegroundColor Red
+    Write-Host "  The WSL distribution '$DistroName' and ALL its data will be deleted:" -ForegroundColor (Get-MessageColour error)
     Write-Host ""
-    Write-Host "  Proceeding will PERMANENTLY DESTROY this distribution:" -ForegroundColor Yellow
-    Write-Host "    - Executing: wsl --unregister $DistroName" -ForegroundColor DarkGray
-    Write-Host "    - IRREVERSIBLE DELETION of the virtual disk (VHDX)" -ForegroundColor DarkGray
-    Write-Host "    - TOTAL LOSS of projects, SSH keys, and all files in /home" -ForegroundColor DarkGray
+    Write-Host "  Proceeding will PERMANENTLY DESTROY this distribution:" -ForegroundColor (Get-MessageColour warning)
+    Write-Host "    - Executing: wsl --unregister $DistroName" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "    - IRREVERSIBLE DELETION of the virtual disk (VHDX)" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "    - TOTAL LOSS of projects, SSH keys, and all files in /home" -ForegroundColor (Get-MessageColour muted)
     Write-Host ""
-    Write-Host "  THIS OPERATION CANNOT BE UNDONE." -ForegroundColor Red
+    Write-Host "  THIS OPERATION CANNOT BE UNDONE." -ForegroundColor (Get-MessageColour error)
     Write-Host ""
-    Write-Host " ----------------------------------------------------------------------" -ForegroundColor DarkGray
-    Write-Host " Press ENTER to abort immediately." -ForegroundColor Yellow
-    Write-Host " To confirm DESTRUCTION, type the exact name of the distribution:" -ForegroundColor Yellow
+    Write-Host " ----------------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
+    Write-Host " Press ENTER to abort immediately." -ForegroundColor (Get-MessageColour hint)
+    Write-Host " To confirm DESTRUCTION, type the exact name of the distribution:" -ForegroundColor (Get-MessageColour hint)
     $Confirmation = Read-Host " Confirm"
-    Write-Host " ----------------------------------------------------------------------" -ForegroundColor DarkGray
+    Write-Host " ----------------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
     Write-Host ""
 
     # -cne, not -ne: PowerShell's -ne ignores case, while the banner above asks
     # for the exact name.
     if ($Confirmation -cne $DistroName) {
-        Write-Host "[ABORT] Operation cancelled. No data was modified." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled. No data was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
 
@@ -91,20 +89,20 @@ if ($Distro) {
         $ArchiveScript = Join-Path $PSScriptRoot "archive.ps1"
         if (-not (Test-Path $ArchiveScript)) {
             Write-Host ""
-            Write-Host "[ABORT] archive.ps1 is not next to this script - not deleting anything." -ForegroundColor Red
-            Write-Host "        The instance is untouched." -ForegroundColor DarkGray
+            Write-Host "[ABORT] archive.ps1 is not next to this script - not deleting anything." -ForegroundColor (Get-MessageColour error)
+            Write-Host "        The instance is untouched." -ForegroundColor (Get-MessageColour muted)
             exit 1
         }
         & $ArchiveScript -DistroName $DistroName -Name $DistroName -AfterExport Leave
         if ($LASTEXITCODE -ne 0) {
             Write-Host ""
-            Write-Host "[ABORT] The archive did not complete - not deleting anything." -ForegroundColor Red
-            Write-Host "        The instance is untouched." -ForegroundColor DarkGray
+            Write-Host "[ABORT] The archive did not complete - not deleting anything." -ForegroundColor (Get-MessageColour error)
+            Write-Host "        The instance is untouched." -ForegroundColor (Get-MessageColour muted)
             exit 1
         }
     }
 
-    Write-Host "==> Unregistering the distro..." -ForegroundColor Cyan
+    Write-Host "==> Unregistering the distro..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { wsl.exe --unregister $DistroName } "WSL unregister failed."
 }
 
@@ -115,21 +113,21 @@ if ($Distro) {
 # anything left here is the exception. The cases are told apart: a folder WSL
 # removed with the distribution is not a folder that was never there.
 if (Test-Path $InstallPath) {
-    Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor Cyan
+    Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor (Get-MessageColour info)
     Remove-Item -Recurse -Force $InstallPath
     $FolderState = "removed"
 } elseif ($FolderExisted) {
-    Write-Host "==> Installation folder already gone - wsl --unregister removes it with the distribution." -ForegroundColor Cyan
+    Write-Host "==> Installation folder already gone - wsl --unregister removes it with the distribution." -ForegroundColor (Get-MessageColour info)
     $FolderState = "removed with the distribution"
 } else {
-    Write-Host "==> No installation folder found ($InstallPath)." -ForegroundColor Cyan
+    Write-Host "==> No installation folder found ($InstallPath)." -ForegroundColor (Get-MessageColour info)
     $FolderState = "not found"
 }
 
 # ==============================================================================
 # 4. WINDOWS TERMINAL CLEANUP (ghost settings entries, our fragments)
 # ==============================================================================
-Write-Host "==> Cleaning Windows Terminal leftovers..." -ForegroundColor Cyan
+Write-Host "==> Cleaning Windows Terminal leftovers..." -ForegroundColor (Get-MessageColour info)
 
 # Live profile guids = the WSL fragments still on disk (WSL removed the dead one)
 $WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
@@ -165,12 +163,12 @@ foreach ($SettingsPath in @(
             $GhostsPruned += $All.Count - $Kept.Count
         }
     } catch {
-        Write-Host "  * settings.json : ghost entries NOT pruned in $SettingsPath" -ForegroundColor Yellow
-        Write-Host "                    (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor DarkGray
+        Write-Host "  * settings.json : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
+        Write-Host "                    (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
     }
 }
 if ($GhostsPruned -gt 0) {
-    Write-Host "  * settings.json : pruned $GhostsPruned ghost '$DistroName' entries" -ForegroundColor Green
+    Write-Host "  * settings.json : pruned $GhostsPruned ghost '$DistroName' entries" -ForegroundColor (Get-MessageColour success)
 }
 
 # Our appearance fragment files (one per distro, named <DistroName>.json)
@@ -197,7 +195,7 @@ if (Test-Path $OurFragmentDir) {
     }
 }
 if ($FragmentsRemoved -gt 0) {
-    Write-Host "  * fragments     : removed $FragmentsRemoved appearance file(s)" -ForegroundColor Green
+    Write-Host "  * fragments     : removed $FragmentsRemoved appearance file(s)" -ForegroundColor (Get-MessageColour success)
 }
 
 # ==============================================================================
@@ -219,10 +217,10 @@ if (Test-Path $DockerSettings) {
             $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
             [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
             Move-Item "$DockerSettings.tmp" $DockerSettings -Force
-            Write-Host "  * Docker Desktop : '$DistroName' removed from the integrated distros" -ForegroundColor Green
+            Write-Host "  * Docker Desktop : '$DistroName' removed from the integrated distros" -ForegroundColor (Get-MessageColour success)
         }
     } catch {
-        Write-Host "  * Docker Desktop : list not updated ($($_.Exception.Message))" -ForegroundColor Yellow
+        Write-Host "  * Docker Desktop : list not updated ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
     }
 }
 
@@ -230,21 +228,21 @@ if (Test-Path $DockerSettings) {
 # SUMMARY
 # ==============================================================================
 Write-Host ""
-Write-Host "============================================================" -ForegroundColor Green
-Write-Host "          WSL Data Science Instance Removed!" -ForegroundColor Green
-Write-Host "============================================================" -ForegroundColor Green
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
+Write-Host "          WSL Data Science Instance Removed!" -ForegroundColor (Get-MessageColour success)
+Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
-Write-Host "  * Distro          : " -NoNewline; Write-Host "$DistroName" -ForegroundColor Cyan
+Write-Host "  * Distro          : " -NoNewline; Write-Host "$DistroName" -ForegroundColor (Get-MessageColour info)
 Write-Host "  * Install folder  : " -NoNewline
 if ($FolderState -eq "removed") {
-    Write-Host "$FolderState" -ForegroundColor Green
+    Write-Host "$FolderState" -ForegroundColor (Get-MessageColour success)
 } elseif ($FolderState -eq "kept") {
-    Write-Host "$FolderState" -ForegroundColor Yellow
+    Write-Host "$FolderState" -ForegroundColor (Get-MessageColour warning)
 } else {
-    Write-Host "$FolderState" -ForegroundColor DarkGray
+    Write-Host "$FolderState" -ForegroundColor (Get-MessageColour muted)
 }
-Write-Host "  * Terminal ghosts : " -NoNewline; Write-Host "$GhostsPruned pruned" -ForegroundColor Cyan
-Write-Host "  * Fragments       : " -NoNewline; Write-Host "$FragmentsRemoved removed" -ForegroundColor Cyan
+Write-Host "  * Terminal ghosts : " -NoNewline; Write-Host "$GhostsPruned pruned" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Fragments       : " -NoNewline; Write-Host "$FragmentsRemoved removed" -ForegroundColor (Get-MessageColour info)
 Write-Host ""
 Write-Host " Restart Windows Terminal to refresh the profile list."
 Write-Host ""

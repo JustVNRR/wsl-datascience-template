@@ -42,6 +42,21 @@
 # incomplete, and the commands say so rather than run half blind.
 # ==============================================================================
 
+# ---------------------------------------------------------------------------
+# THE MESSAGES
+# ---------------------------------------------------------------------------
+# What a line says and the colour it takes. Loaded before everything else,
+# because every line below this one is a message - the guard right here
+# included, and that one prints uncoloured: the table it would ask is the file
+# that is missing.
+$MessageLib = Join-Path $PSScriptRoot "message.ps1"
+if (-not (Test-Path $MessageLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\message.ps1 is missing - the scripts\ folder is incomplete."
+    exit 1
+}
+. $MessageLib
+
 # The marker's name, kept here so that one file knows it and the others ask.
 # It is the repository's own name, like the Windows Terminal fragments folder,
 # so there is one string to remember in the whole project.
@@ -385,10 +400,10 @@ function Save-InstanceState {
         Copy-Item -Path $Appearance.IconFrom -Destination (Join-Path $Folder "terminal-icon.png") -Force
     }
 
-    Write-Host "  * Look             : font '$($Appearance.Font)', colours '$($Appearance.ColorScheme)'$(if ($Appearance.IconFrom) { ", icon copied" })" -ForegroundColor DarkGray
-    Write-Host "  * Docker Desktop   : $(if ($Docker -eq "yes") { "knows this instance" } elseif ($Docker -eq "no") { "does not know it" } else { "not installed, or unreadable" })" -ForegroundColor DarkGray
+    Write-Host "  * Look             : font '$($Appearance.Font)', colours '$($Appearance.ColorScheme)'$(if ($Appearance.IconFrom) { ", icon copied" })" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "  * Docker Desktop   : $(if ($Docker -eq "yes") { "knows this instance" } elseif ($Docker -eq "no") { "does not know it" } else { "not installed, or unreadable" })" -ForegroundColor (Get-MessageColour muted)
     if (-not (Test-FontInstalled $Appearance.Font)) {
-        Write-Host "                       '$($Appearance.Font)' is not installed on Windows" -ForegroundColor Yellow
+        Write-Host "                       '$($Appearance.Font)' is not installed on Windows" -ForegroundColor (Get-MessageColour warning)
     }
 }
 
@@ -402,7 +417,7 @@ function Set-InstanceState {
         if (-not (Test-Path $File)) {
             # An archive taken before this existed carries nothing to re-apply.
             # Said out loud, because the reports downstream promise a look.
-            Write-Host "  * Look             : the archive carries no instance.json - not re-applied" -ForegroundColor Yellow
+            Write-Host "  * Look             : the archive carries no instance.json - not re-applied" -ForegroundColor (Get-MessageColour warning)
             return
         }
         try { $Appearance = Get-Content $File -Raw | ConvertFrom-Json } catch { return }
@@ -413,7 +428,7 @@ function Set-InstanceState {
     $Guid = Get-WslProfileGuid -Name $Name
 
     if (-not $Guid) {
-        Write-Host "  * Look             : no WSL fragment for '$Name' yet - not re-applied" -ForegroundColor Yellow
+        Write-Host "  * Look             : no WSL fragment for '$Name' yet - not re-applied" -ForegroundColor (Get-MessageColour warning)
         return
     }
 
@@ -432,12 +447,12 @@ function Set-InstanceState {
 
     Set-InstanceFragment -Name $Name -Guid $Guid -Font $Appearance.Font `
         -ColorScheme $Appearance.ColorScheme -IconPath $IconPath
-    Write-Host "  * Look             : font '$($Appearance.Font)', colours '$($Appearance.ColorScheme)', icon re-applied" -ForegroundColor Green
+    Write-Host "  * Look             : font '$($Appearance.Font)', colours '$($Appearance.ColorScheme)', icon re-applied" -ForegroundColor (Get-MessageColour success)
 
     if (-not (Test-FontInstalled $Appearance.Font)) {
-        Write-Host "                       Not installed on Windows: '$($Appearance.Font)'." -ForegroundColor Yellow
-        Write-Host "                       The profile points at it, but the prompt will show boxes" -ForegroundColor Yellow
-        Write-Host "                       until it is installed." -ForegroundColor Yellow
+        Write-Host "                       Not installed on Windows: '$($Appearance.Font)'." -ForegroundColor (Get-MessageColour warning)
+        Write-Host "                       The profile points at it, but the prompt will show boxes" -ForegroundColor (Get-MessageColour warning)
+        Write-Host "                       until it is installed." -ForegroundColor (Get-MessageColour warning)
     }
 
     # Docker Desktop keeps the distros it knows in its own settings file, by
@@ -459,15 +474,15 @@ function Set-InstanceState {
                 $RestartCode = $LASTEXITCODE
                 $ErrorActionPreference = $PreviousEAP
                 if ($RestartCode -eq 0) {
-                    Write-Host "  * Docker Desktop   : added, and restarted to pick it up" -ForegroundColor Green
+                    Write-Host "  * Docker Desktop   : added, and restarted to pick it up" -ForegroundColor (Get-MessageColour success)
                 } else {
-                    Write-Host "  * Docker Desktop   : added - restart it for it to notice" -ForegroundColor Yellow
+                    Write-Host "  * Docker Desktop   : added - restart it for it to notice" -ForegroundColor (Get-MessageColour hint)
                 }
             } catch {
-                Write-Host "  * Docker Desktop   : could not be updated ($($_.Exception.Message))" -ForegroundColor Yellow
+                Write-Host "  * Docker Desktop   : could not be updated ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
             }
         } else {
-            Write-Host "  * Docker Desktop   : not added - its settings can take it later" -ForegroundColor DarkGray
+            Write-Host "  * Docker Desktop   : not added - its settings can take it later" -ForegroundColor (Get-MessageColour muted)
         }
     }
 }
@@ -649,7 +664,7 @@ function Get-InstanceHome {
 $MenuLib = Join-Path $PSScriptRoot "menu.ps1"
 if (-not (Test-Path $MenuLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\menu.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\menu.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $MenuLib
@@ -663,7 +678,7 @@ if (-not (Test-Path $MenuLib)) {
 $PacksLib = Join-Path $PSScriptRoot "packs.ps1"
 if (-not (Test-Path $PacksLib)) {
     Write-Host ""
-    Write-Host "[ABORT] scripts\packs.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] scripts\packs.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 . $PacksLib

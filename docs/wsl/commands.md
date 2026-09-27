@@ -40,6 +40,15 @@ the command before, what was typed — goes with it. With no console there is
 nothing to clear, so a run whose answers are piped in keeps every line: a log is
 read, not looked at.
 
+Every line is a message, and a message says what it **is** rather than what
+colour to write it in: an error, a warning, a success, a detail, a hint. The
+colour comes from the colour scheme of the Windows Terminal profile the command
+runs in — that scheme's own red, yellow, green or text colour, the version of
+each that is read on its background — so the output stays readable on a dark
+scheme and on a light one, and changing the scheme changes it. Where there is no
+scheme to read (a console window, another terminal, a script), the colours a
+console has always had are used.
+
 ## All commands
 
 | Command | What it does |
@@ -579,9 +588,9 @@ Colours of 'ubuntu-ml-dev'
 
 The list is every scheme this machine can be told to use: the ones Windows
 Terminal ships — read from the file inside its own package — and the ones you
-added or wrote over, your version of a name winning over the shipped one. Each is
-shown in its own colours, with three of them beside it, and the one in use is
-marked.
+added or wrote over, your version of a name winning over the shipped one. Each
+row is drawn in the colours of its own scheme — its background and its text — and
+the one in use is marked `(current)`.
 
 That file is JSON with comments in it, which PowerShell's own reader refuses. The
 command reads it all the same, without touching it: it is Terminal's file, and

@@ -339,7 +339,7 @@ function Select-Packs {
     $NotCarried = @($Installed | Where-Object { $Carried -notcontains $_ })
     if ($NotCarried.Count -gt 0) {
         Write-Host ""
-        Write-Host ("       Installed here, not from this repository - left alone: {0}" -f ($NotCarried -join ", ")) -ForegroundColor DarkGray
+        Write-Host ("       Installed here, not from this repository - left alone: {0}" -f ($NotCarried -join ", ")) -ForegroundColor (Get-MessageColour muted)
     }
 
     # What a pack requires travels with it, and what nothing requires any more
@@ -375,7 +375,7 @@ function Select-Packs {
     Write-Host ""
     if ($ToAdd.Count -gt 0) {
         Write-Host "Will install : " -NoNewline
-        Write-Host (($ToAdd | ForEach-Object { $_.Name }) -join ", ") -ForegroundColor Cyan
+        Write-Host (($ToAdd | ForEach-Object { $_.Name }) -join ", ") -ForegroundColor (Get-MessageColour info)
         $Because = @()
         foreach ($Pack in $ToAdd) {
             if ($Kept -notcontains $Pack.Name) {
@@ -383,18 +383,18 @@ function Select-Packs {
                 $Because += ("{0}: required by {1}" -f $Pack.Name, ($Who -join " and "))
             }
         }
-        if ($Because.Count -gt 0) { Write-Host ("               (" + ($Because -join "; ") + ")") -ForegroundColor DarkGray }
+        if ($Because.Count -gt 0) { Write-Host ("               (" + ($Because -join "; ") + ")") -ForegroundColor (Get-MessageColour muted) }
     }
     if ($ToRemove.Count -gt 0) {
         Write-Host "Will remove  : " -NoNewline
-        Write-Host ($ToRemove -join ", ") -ForegroundColor Cyan
+        Write-Host ($ToRemove -join ", ") -ForegroundColor (Get-MessageColour info)
         $Because = @()
         foreach ($Name in $ToRemove) {
             if ($Unticked -notcontains $Name) { $Because += ("{0}: nothing installed requires it any more" -f $Name) }
         }
-        if ($Because.Count -gt 0) { Write-Host ("               (" + ($Because -join "; ") + ")") -ForegroundColor DarkGray }
-        Write-Host "               Their tools leave the system, and with them the dependencies" -ForegroundColor DarkGray
-        Write-Host "               nothing needs any more." -ForegroundColor DarkGray
+        if ($Because.Count -gt 0) { Write-Host ("               (" + ($Because -join "; ") + ")") -ForegroundColor (Get-MessageColour muted) }
+        Write-Host "               Their tools leave the system, and with them the dependencies" -ForegroundColor (Get-MessageColour muted)
+        Write-Host "               nothing needs any more." -ForegroundColor (Get-MessageColour muted)
     }
     Write-Host ""
 
@@ -433,13 +433,13 @@ function Invoke-PackApply {
     Write-Host ""
     foreach ($Pack in $ToAdd) {
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Pack.Name
-        Write-Host "==> Placing '$($Pack.Name)'..." -ForegroundColor Cyan
+        Write-Host "==> Placing '$($Pack.Name)'..." -ForegroundColor (Get-MessageColour info)
         if (-not (Copy-PackIntoInstance -DistroName $DistroName -PackPath $Pack.Path -Target $Target -ExitCode ([ref]$Code))) {
             Write-Host ""
-            Write-Host "[FAIL] Could not copy '$($Pack.Name)' into '$DistroName' (exit code $Code)." -ForegroundColor Red
-            Write-Host "       Nothing was installed, and nothing was removed." -ForegroundColor Yellow
-            Write-Host "       A pack copied by this run before the failure is in place, waiting." -ForegroundColor Yellow
-            Write-Host "       $ResumeHint" -ForegroundColor Yellow
+            Write-Host "[FAIL] Could not copy '$($Pack.Name)' into '$DistroName' (exit code $Code)." -ForegroundColor (Get-MessageColour error)
+            Write-Host "       Nothing was installed, and nothing was removed." -ForegroundColor (Get-MessageColour hint)
+            Write-Host "       A pack copied by this run before the failure is in place, waiting." -ForegroundColor (Get-MessageColour hint)
+            Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
             return [PSCustomObject]@{ Pack = $Pack.Name; ExitCode = $Code }
         }
     }
@@ -451,27 +451,27 @@ function Invoke-PackApply {
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Name
         Write-Host ""
         if (Test-PackScript -DistroName $DistroName -Target $Target -Script "remove.sh" -ExitCode ([ref]$Code)) {
-            Write-Host "==> Removing '$Name'..." -ForegroundColor Cyan
+            Write-Host "==> Removing '$Name'..." -ForegroundColor (Get-MessageColour info)
             Invoke-PackScript -DistroName $DistroName -Target $Target -Script "remove.sh" -ExitCode ([ref]$Code)
             if ($Code -ne 0) {
                 Write-Host ""
-                Write-Host "[FAIL] '$Name' could not remove itself (exit code $Code)." -ForegroundColor Red
-                Write-Host "       It is still installed. The packs placed above are in place, and" -ForegroundColor Yellow
-                Write-Host "       none of them has been installed yet." -ForegroundColor Yellow
-                Write-Host "       $ResumeHint" -ForegroundColor Yellow
+                Write-Host "[FAIL] '$Name' could not remove itself (exit code $Code)." -ForegroundColor (Get-MessageColour error)
+                Write-Host "       It is still installed. The packs placed above are in place, and" -ForegroundColor (Get-MessageColour hint)
+                Write-Host "       none of them has been installed yet." -ForegroundColor (Get-MessageColour hint)
+                Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
                 return [PSCustomObject]@{ Pack = $Name; ExitCode = $Code }
             }
         } else {
-            Write-Host "==> '$Name' carries no remove.sh: only its files leave." -ForegroundColor Yellow
-            Write-Host "    Its tool stays on the system - take it out by hand if you want it gone." -ForegroundColor Yellow
+            Write-Host "==> '$Name' carries no remove.sh: only its files leave." -ForegroundColor (Get-MessageColour info)
+            Write-Host "    Its tool stays on the system - take it out by hand if you want it gone." -ForegroundColor (Get-MessageColour hint)
         }
 
         Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
         if ($Code -ne 0) {
             Write-Host ""
-            Write-Host "[FAIL] The folder of '$Name' could not be deleted (exit code $Code)." -ForegroundColor Red
-            Write-Host "       The instance is half way through." -ForegroundColor Yellow
-            Write-Host "       $ResumeHint" -ForegroundColor Yellow
+            Write-Host "[FAIL] The folder of '$Name' could not be deleted (exit code $Code)." -ForegroundColor (Get-MessageColour error)
+            Write-Host "       The instance is half way through." -ForegroundColor (Get-MessageColour warning)
+            Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
             return [PSCustomObject]@{ Pack = $Name; ExitCode = $Code }
         }
     }
@@ -480,8 +480,8 @@ function Invoke-PackApply {
     foreach ($Pack in $ToAdd) {
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Pack.Name
         Write-Host ""
-        Write-Host "==> Installing '$($Pack.Name)' in '$DistroName'..." -ForegroundColor Cyan
-        Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor DarkGray
+        Write-Host "==> Installing '$($Pack.Name)' in '$DistroName'..." -ForegroundColor (Get-MessageColour info)
+        Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor (Get-MessageColour muted)
         Invoke-PackScript -DistroName $DistroName -Target $Target -Script "install.sh" -ExitCode ([ref]$Code)
 
         # A half-installed pack is worse than none, exactly as in add_pack: the
@@ -494,10 +494,10 @@ function Invoke-PackApply {
             # the caller cannot see.
             $InstallCode = $Code
             Write-Host ""
-            Write-Host "[FAIL] The installation of '$($Pack.Name)' did not complete (exit code $InstallCode)." -ForegroundColor Red
+            Write-Host "[FAIL] The installation of '$($Pack.Name)' did not complete (exit code $InstallCode)." -ForegroundColor (Get-MessageColour error)
             Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
-            Write-Host "       Its files were removed. The packs before it are installed." -ForegroundColor Yellow
-            Write-Host "       $ResumeHint" -ForegroundColor Yellow
+            Write-Host "       Its files were removed. The packs before it are installed." -ForegroundColor (Get-MessageColour hint)
+            Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
             return [PSCustomObject]@{ Pack = $Pack.Name; ExitCode = $InstallCode }
         }
     }
@@ -506,11 +506,11 @@ function Invoke-PackApply {
     # nothing can still need them. Nothing to ask when nothing left.
     if ($ToRemove.Count -gt 0) {
         Write-Host ""
-        Write-Host "==> Taking back what the removed packs left on the system side..." -ForegroundColor Cyan
+        Write-Host "==> Taking back what the removed packs left on the system side..." -ForegroundColor (Get-MessageColour info)
         $CleanupCode = 0
         if (-not (Invoke-PackOrphanCleanup -DistroName $DistroName -ExitCode ([ref]$CleanupCode))) {
-            Write-Host "[WARN] The cleanup stopped early (exit code $CleanupCode)." -ForegroundColor Yellow
-            Write-Host "       The packs are in place; some dependencies may remain." -ForegroundColor Yellow
+            Write-Host "[WARN] The cleanup stopped early (exit code $CleanupCode)." -ForegroundColor (Get-MessageColour warning)
+            Write-Host "       The packs are in place; some dependencies may remain." -ForegroundColor (Get-MessageColour hint)
         }
     }
 

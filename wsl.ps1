@@ -17,6 +17,18 @@
 
 $Scripts = Join-Path $PSScriptRoot "scripts"
 
+# What a line says and the colour it takes. A command's own file loads it
+# through scripts\instance.ps1, but the lines below are this file's - the ones
+# it prints when there is no command to run. The guard prints uncoloured: the
+# table it would ask is the file that is missing.
+$MessageLib = Join-Path $Scripts "message.ps1"
+if (-not (Test-Path $MessageLib)) {
+    Write-Host ""
+    Write-Host "[ABORT] scripts\message.ps1 is missing - the scripts\ folder is incomplete."
+    exit 1
+}
+. $MessageLib
+
 # The order is the one the documentation uses, and it starts with the command
 # that answers "what do I have?" - list, then the rest along an instance's life.
 # Each line says what the command does and stops there: a menu is read at a
@@ -50,13 +62,13 @@ if ($args.Count -eq 0) {
     $InstanceLib = Join-Path $Scripts "instance.ps1"
     if (-not (Test-Path $InstanceLib)) {
         Write-Host ""
-        Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+        Write-Host "[ABORT] scripts\instance.ps1 is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
         exit 1
     }
     . $InstanceLib
 
     Write-Host ""
-    Write-Host "  (a command can also be typed:  .\wsl.ps1 <command> [options])" -ForegroundColor DarkGray
+    Write-Host "  (a command can also be typed:  .\wsl.ps1 <command> [options])" -ForegroundColor (Get-MessageColour muted)
 
     $Chosen = Select-FromList -Title "WSL DataScience template" -Items $Commands -Label {
         param($Command)
@@ -65,7 +77,7 @@ if ($args.Count -eq 0) {
 
     if (-not $Chosen) {
         Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was run." -ForegroundColor Green
+        Write-Host "[ABORT] Operation cancelled by user. Nothing was run." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
     $Verb = $Chosen.Name
@@ -77,10 +89,10 @@ $Chosen = $Commands | Where-Object { $_.Name -eq $Verb } | Select-Object -First 
 
 if (-not $Chosen) {
     Write-Host ""
-    Write-Host "[ABORT] '$($args[0])' is not one of the commands." -ForegroundColor Red
-    Write-Host "        Known:" -ForegroundColor Yellow
+    Write-Host "[ABORT] '$($args[0])' is not one of the commands." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Known:" -ForegroundColor (Get-MessageColour hint)
     foreach ($Command in $Commands) {
-        Write-Host "          $($Command.Name)" -ForegroundColor Yellow
+        Write-Host "          $($Command.Name)" -ForegroundColor (Get-MessageColour hint)
     }
     exit 1
 }
@@ -88,7 +100,7 @@ if (-not $Chosen) {
 $Script = Join-Path $Scripts "$($Chosen.Name).ps1"
 if (-not (Test-Path $Script)) {
     Write-Host ""
-    Write-Host "[ABORT] $Script is missing - the scripts\ folder is incomplete." -ForegroundColor Red
+    Write-Host "[ABORT] $Script is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
     exit 1
 }
 
