@@ -220,23 +220,39 @@ function Set-InstanceLook {
 # Ask Windows Terminal to re-read what is written for its profiles, without
 # closing anything.
 #
-# Its own settings file is watched, and a change to it makes Terminal re-read the
-# whole of its settings - the fragments this repository writes included, which is
-# the only way to reach them without restarting it. Nothing is written INTO the
-# file: only its date is set to now, which is all the watcher looks at.
+# Two files can be what Terminal is watching, and this touches both:
+#   - its own settings file, because a change to it makes Terminal re-read the
+#     whole of its settings, the fragments included - which is what makes a
+#     colour change appear in a tab already open, measured by hand;
+#   - and the fragments we wrote, in case the folder is watched on its own.
+# Neither file is written INTO: only their date is set to now, which is all a
+# watcher looks at.
 #
-# Measured, by the person it was written for: a tab already open changes colour
-# on the spot. So this is the command he asked for - "activer ou redémarrer le
-# theme d'une distro" - and it is why the three commands no longer tell anybody
-# to close their windows.
+# Twice, a moment apart, on the settings file: the first lands right after the
+# fragment is written and can be swallowed as part of the same notification.
+#
+# This is the command that was asked for - "activer ou redémarrer le thème d'une
+# distro" - and it is why the three commands no longer tell anybody to close
+# their windows.
 function Update-TerminalSettings {
-    foreach ($Path in @(
+    $Paths = @(
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
         "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
-    )) {
+    )
+
+    # Our own fragments too: one file per instance, and the one that was just
+    # written is in there.
+    $Ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+    foreach ($File in @(Get-ChildItem $Ours -Filter *.json -ErrorAction SilentlyContinue)) { $Paths += $File.FullName }
+
+    foreach ($Path in $Paths) {
         if (-not (Test-Path $Path)) { continue }
-        try { (Get-Item $Path).LastWriteTime = Get-Date } catch { }
+        try {
+            (Get-Item $Path).LastWriteTime = Get-Date
+            Start-Sleep -Milliseconds 800
+            (Get-Item $Path).LastWriteTime = Get-Date
+        } catch { }
     }
 }
 
