@@ -88,7 +88,6 @@ if (-not $Visited) {
 # is why the change shows when you leave, not while you are still in there.
 Update-TerminalSettings
 
-Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: the colours are" -ForegroundColor DarkGray
-Write-Host "there already, and a new tab shows the rest." -ForegroundColor DarkGray
-Write-Host ""
+# And nothing is said: the screen was cleared, the change is in the tab, and a
+# line explaining that would be one line too many. Silence is the report.
 exit 0

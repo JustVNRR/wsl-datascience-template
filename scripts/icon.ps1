@@ -275,10 +275,5 @@ if (-not $Changed) {
 # visit is over, the prompt is back, and the pane is idle - the one moment a
 # reload lands. Behind the theme menu this is not done here at all: the menu is
 # still running, and it asks when IT is over (see theme.ps1).
-if (-not $HandedOver) {
-    Update-TerminalSettings
-    Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: a new tab" -ForegroundColor DarkGray
-    Write-Host "wears the icon you chose." -ForegroundColor DarkGray
-    Write-Host ""
-}
+if (-not $HandedOver) { Update-TerminalSettings }
 exit 0
