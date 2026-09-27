@@ -463,9 +463,11 @@ removed, what was placed, what was never touched.
 ## `theme`
 
 What an instance wears: its icon and its font. The instance is asked first, once;
-the menu behind it holds the two things that can be changed, and it is drawn
-again after each of them — changing the icon and then the font is one visit, and
-Escape is the way out of it.
+the menu behind it holds the things that can be changed, and it is drawn again
+after each of them — changing the icon and then the font is one visit.
+
+Escape walks back up the way it came: from the theme menu to the list of
+instances, so another one can be picked, and from that list to the prompt.
 
 ```powershell
 .\wsl.ps1 theme

@@ -37,38 +37,44 @@ foreach ($Choice in $Choices) {
     }
 }
 
-# 1. Which instance, on a screen of its own: the menu this one was reached from -
-# and everything typed before it - goes first.
-Clear-MenuScreen
-
-# The commands behind this menu are given the name rather than asking again: it
-# has been asked, and asking twice is how a visit becomes three.
-$Distro = Select-Distro
-$DistroName = $Distro.Name
-
-# 2. Which of the three, again and again. What has been done is written in the
-# instance, and the menu comes back until Escape says the visit is over - the
-# level below clears the screen, and this one is drawn on a clean one.
-Clear-MenuScreen
-
-$Default = 0
+# 1. Which instance, and then which of the three - and Escape walks back up the
+# way it came: from the theme menu to the list of instances, so that another one
+# can be picked, and from the list to the prompt. One visit per instance is the
+# ordinary way to use this; changing two instances is two visits, and there is no
+# reason to leave the command to start it again.
 $Visited = $false
 
 while ($true) {
-    Write-Host ""
-    $Chosen = Select-FromList -Title "Theme of '$DistroName'" -Items $Choices -Label {
-        param($Choice)
-        "{0,-6} {1}" -f $Choice.Name, $Choice.About
-    } -DefaultIndex $Default
+    # The menu this one was reached from - and everything typed before it - goes
+    # first: the instance list gets a screen of its own.
+    Clear-MenuScreen
 
-    if (-not $Chosen) { break }
+    $Distro = Select-Distro -AllowCancel
+    if (-not $Distro) { break }
+    $DistroName = $Distro.Name
 
-    $Default = [array]::IndexOf($Choices, $Chosen)
+    Clear-MenuScreen
 
-    # The menu has been answered: the command it named takes the screen - and
-    # clears it itself, the way it came in.
-    & (Join-Path $PSScriptRoot "$($Chosen.Name).ps1") -DistroName $DistroName
-    $Visited = $true
+    # What has been done is written in the instance, and the menu comes back
+    # until Escape says the visit to THIS one is over - the level below clears
+    # the screen, and this one is drawn on a clean one.
+    $Default = 0
+    while ($true) {
+        Write-Host ""
+        $Chosen = Select-FromList -Title "Theme of '$DistroName'" -Items $Choices -Label {
+            param($Choice)
+            "{0,-6} {1}" -f $Choice.Name, $Choice.About
+        } -DefaultIndex $Default
+
+        if (-not $Chosen) { break }
+
+        $Default = [array]::IndexOf($Choices, $Chosen)
+
+        # The menu has been answered: the command it named takes the screen - and
+        # clears it itself, the way it came in.
+        & (Join-Path $PSScriptRoot "$($Chosen.Name).ps1") -DistroName $DistroName
+        $Visited = $true
+    }
 }
 
 # Coming out: the menu goes with the visit. Ending on the menu you have just

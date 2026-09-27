@@ -425,7 +425,13 @@ function Select-FromList {
 # is filtered on the marker: the machine holds other distributions - Docker
 # Desktop's, a colleague's - and none of them are ours to touch. An instance
 # that is not in this list is not missing; it is not ours.
+# The instance to work on, picked from the list of ours. Escape is the end of the
+# command that asked - the family's usual way out - unless -AllowCancel is given,
+# and then it is $null: for a command that has somewhere to go back to, the way
+# the theme menu has the list it came from.
 function Select-Distro {
+    param([switch]$AllowCancel)
+
     $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
     if ($All.Count -eq 0) {
         Write-Host ""
@@ -442,6 +448,7 @@ function Select-Distro {
     }
 
     if (-not $Chosen) {
+        if ($AllowCancel) { return $null }
         Write-Host ""
         Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor Green
         exit 0

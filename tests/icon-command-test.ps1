@@ -188,7 +188,9 @@ try {
 
     Check "theme offers both commands" (@($Out | Where-Object { "$_".Contains("what the whole terminal is written in") }).Count -gt 0) $true
     Check "hands over to the icon command" (@($Out | Where-Object { "$_".Contains("Icon of '$FakeName'") }).Count -gt 0) $true
-    Check "which does not ask for the instance again" (@($Out | Where-Object { "$_".Contains("Our Instances") }).Count) 1
+    # Twice: once to start with, and once more when the theme menu is left -
+    # Escape goes back up to the list, so that another instance can be picked.
+    Check "and the list comes back when the menu is left" (@($Out | Where-Object { "$_".Contains("Our Instances") }).Count) 2
     Check "and the menu comes back when it is done" (@($Out | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
     if ($Before) {
         Check "and Terminal was asked to look again, through the menu too" `

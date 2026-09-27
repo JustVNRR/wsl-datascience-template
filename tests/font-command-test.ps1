@@ -149,7 +149,9 @@ try {
         $ErrorActionPreference = $Preference
     }
     Check "theme hands over to the font command" (@($Themed | Where-Object { "$_".Contains("Font of '$FakeName'") }).Count -gt 0) $true
-    Check "which does not ask for the instance again" (@($Themed | Where-Object { "$_".Contains("Our Instances") }).Count) 1
+    # Twice: once to start with, and once more when the theme menu is left -
+    # Escape goes back up to the list, so that another instance can be picked.
+    Check "and the list comes back when the menu is left" (@($Themed | Where-Object { "$_".Contains("Our Instances") }).Count) 2
     Check "and the menu comes back when it is done" (@($Themed | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
