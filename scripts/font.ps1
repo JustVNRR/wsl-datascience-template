@@ -9,11 +9,17 @@ param (
 # What an instance is written in: the font of its Terminal profile - the whole
 # terminal, prompt and icons included. Reached through `.\wsl.ps1 theme`.
 #
-# The list is the fonts Windows says it has, asked of GDI+ rather than read off
-# the registry: those are the family names a Terminal profile takes. Beside each
-# name is what that font can do with the glyphs a prompt is drawn with, and the
-# ones that have them come first - a font without them draws a box where your
-# prompt has an icon.
+# The list is the fonts Windows has that carry the glyphs a prompt is drawn with,
+# asked of GDI+ rather than read off the registry - those are the family names a
+# Terminal profile takes - and measured on the font file rather than guessed from
+# the name: a font without them draws a box where the prompt has a folder, and
+# offering it would be offering the problem. The line under the list says where
+# more of them come from; the template installs one at build time, so the list is
+# never empty on a machine this repository built on.
+#
+# One font is in the list whether it carries icons or not: the one in use. It is
+# the thing a person comes here to see, and on a machine with no Nerd Font at all
+# it is the only row there is.
 #
 # What no console can do is show a font in itself: a terminal writes every row in
 # the font IT is set to, whatever we ask for. So the list says what can be
@@ -198,9 +204,13 @@ foreach ($Family in $Families) {
     $Fonts += @{ Name = $Family; Icons = $HasIcons }
 }
 
-# The ones that can draw a prompt first: the rest are for reading, not for a
-# terminal, and a long list is easier to walk when the short one is on top.
-$Fonts = @($Fonts | Sort-Object @{ Expression = { if ($_.Icons -eq $true) { 0 } else { 1 } } }, @{ Expression = { $_.Name } })
+# Only the ones a prompt can be written in. There is nothing to mark beside them
+# - a column that says "icons" on every row says nothing - and what a font
+# carries is asked of its file rather than read off its name: the Nerd Fonts are
+# recognisable by name and the rest are not, and a name is not a measurement.
+# A family whose file could not be read is not offered either: that is not the
+# same answer as "carries none", and this list only says what it measured.
+$Fonts = @($Fonts | Where-Object { $_.Icons -eq $true } | Sort-Object @{ Expression = { $_.Name } })
 
 $Default = 0
 $Changed = $false
@@ -210,12 +220,21 @@ while ($true) {
     # before may have changed it.
     $Current = (Get-InstanceAppearance -Name $DistroName).Font
 
-    $Picked = Select-FromList -Title "Font of '$DistroName'" -Items $Fonts -Label {
+    # And the one in use is always in the list, in its place among the others
+    # whether it carries icons or not: it is the row a person comes here to look
+    # at, and on a machine where no font carries them it is the only row there
+    # is - leaving with an empty list would read as "cancelled by user", which is
+    # not what happened.
+    $Rows = @($Fonts)
+    if ($Current -and -not @($Rows | Where-Object { $_.Name -eq $Current }).Count) {
+        $Rows = @(($Rows + @{ Name = $Current }) | Sort-Object @{ Expression = { $_.Name } })
+    }
+
+    $Picked = Select-FromList -Title "Font of '$DistroName'" -Items $Rows -Label {
         param($Font)
-        $Mark = if ($Font.Icons -eq $true) { "icons" } else { "" }
-        $Here = if ($Font.Name -eq $Current) { "  (current)" } else { "" }
-        "{0,-33} {1,-6}{2}" -f $Font.Name, $Mark, $Here
-    } -DefaultIndex $Default
+        $Here = if ($Font.Name -eq $Current) { "(current)" } else { "" }
+        "{0,-33} {1}" -f $Font.Name, $Here
+    } -DefaultIndex $Default -Note "Get more Nerd Fonts at https://www.nerdfonts.com"
 
     if (-not $Picked) { break }
 
@@ -223,7 +242,9 @@ while ($true) {
     # its place - then the screen again, so the list comes back on its own.
     Clear-MenuScreen
 
-    $Default = [array]::IndexOf($Fonts, $Picked)
+    # By name, not by reference: the row of the font in use is made again on
+    # every turn, so the object the last turn handed back is not in this list.
+    $Default = [array]::IndexOf(@($Rows | ForEach-Object { $_.Name }), $Picked.Name)
 
     # The profile is ours to write: the icon and the colours stay as they are,
     # the font is the one just chosen. WSL's own profile is only ever layered

@@ -128,6 +128,34 @@ Check "top read after (34..38, then 40) -> no drift" ($script:Moves -join ",") "
 Check "and the choice is still right" $Picked "b"
 
 Write-Output ""
+Write-Output "--- -Note: one more line of the same block ---"
+# A line of the block the arithmetic does not count is a line the rows are
+# painted off by - the shape of every bug this file has had. The note is one, and
+# it is counted everywhere: where the rows start, how many fit, and the line the
+# cursor is left on. Widened on purpose here (20 lines for five rows) so the two
+# halves read apart: without the note the rows would start at 34 and the way out
+# would be 40.
+function Get-ConsoleSize { return @(40, 20) }
+$script:Moves = @()
+$script:Queue = New-Object System.Collections.Queue
+$script:Queue.Enqueue([ConsoleKey]::DownArrow)
+$script:Queue.Enqueue([ConsoleKey]::Enter)
+$Reader = { $script:Queue.Dequeue() }
+$Noted = Select-FromList -Title "T" -Items @("a", "b", "c", "d", "e") -KeyReader $Reader `
+    -Note "Get more at https://example.test"
+Check "the rows (33..37) and the way out (40) count it" ($script:Moves -join ",") "33,34,35,36,37,40"
+Check "  ... and the choice is still right" $Noted "b"
+
+# And it is really drawn, not only counted: written under the list, where the
+# eye has finished reading the rows.
+$script:Queue = New-Object System.Collections.Queue
+$script:Queue.Enqueue([ConsoleKey]::Escape)
+$Reader = { $script:Queue.Dequeue() }
+$Drawn = @(Select-FromList -Title "T" -Items @("a", "b") -KeyReader $Reader -Note "Get more at https://example.test" 6>&1)
+Check "and it shows under the list" `
+    (@($Drawn | Where-Object { "$_" -like "*Get more at https://example.test*" }).Count) 1
+
+Write-Output ""
 Write-Output "--- multi-select: space checks, Enter hands the list back ---"
 function Run-Multi {
     param([ConsoleKey[]]$Keys, [object[]]$Items, [int[]]$Checked = @(), [scriptblock]$Label)

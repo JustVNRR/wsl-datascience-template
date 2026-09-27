@@ -55,9 +55,10 @@
 #                                key of its own, taken back out): other letters
 #                                keep the colours, other colours keep the letters
 #   - tests/font-command-test.ps1  the font command, on the same kind of
-#                                instance: the list is the monospaced fonts,
-#                                the symbol ones are not in it, and picking one
-#                                writes it into the profile and the instance
+#                                instance: the list is the fonts that carry a
+#                                prompt's icons, one that carries none is not in
+#                                it, and picking one writes it into the profile
+#                                and the instance
 #   - tests/color-command-test.ps1  the colour command, on the same kind of
 #                                instance: the schemes are listed, the one in
 #                                use is marked, and picking one writes it into

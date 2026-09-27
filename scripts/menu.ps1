@@ -6,7 +6,10 @@
 #
 # Select-FromList draws the same list so it can be walked with the arrows: up
 # and down move (and wrap), Enter chooses, Escape cancels, and in a list of
-# nine or fewer a digit chooses directly.
+# nine or fewer a digit chooses directly. -Note adds one line under the list,
+# for what a command has to say about the whole of it rather than about a row -
+# where the other fonts are, for the one list that offers a choice smaller than
+# what Windows has.
 #
 # With -Multi the same list is a checklist: space checks and unchecks where the
 # cursor is, Enter applies, Escape cancels, and what comes back is the list of
@@ -178,7 +181,8 @@ function Get-ConsoleSize {
 # typed, an empty answer cancelling. Read-Host returns an empty string when its
 # input is closed, so a run with no console can never loop forever.
 function Select-ByNumber {
-    param([string]$Title, [string[]]$Labels, [object[]]$Items, [switch]$Multi, [bool[]]$Checked)
+    param([string]$Title, [string[]]$Labels, [object[]]$Items, [switch]$Multi, [bool[]]$Checked,
+          [string]$Note = "")
 
     $Count = $Items.Count
 
@@ -195,6 +199,7 @@ function Select-ByNumber {
                 Write-Host ("  {0,2}.  {1} {2}" -f ($Index + 1), $Box, $Labels[$Index])
             }
             Write-Host "   0.  Cancel"
+            if ($Note) { Write-Host "  $Note" -ForegroundColor DarkGray }
 
             $Answer = [string](Read-Host "Number toggles, v applies, 0 cancels")
             if ([string]::IsNullOrWhiteSpace($Answer) -or $Answer.Trim() -eq "0") { return $null }
@@ -221,6 +226,7 @@ function Select-ByNumber {
         Write-Host ("  {0,2}.  {1}" -f ($Index + 1), $Labels[$Index])
     }
     Write-Host "   0.  Cancel"
+    if ($Note) { Write-Host "  $Note" -ForegroundColor DarkGray }
 
     while ($true) {
         $Answer = [string](Read-Host "Which one? (0 to cancel)")
@@ -250,7 +256,8 @@ function Select-WithArrows {
         [scriptblock]$KeyReader,
         [int]$Start = 0,
         [switch]$Multi,
-        [bool[]]$Checked
+        [bool[]]$Checked,
+        [string]$Note = ""
     )
 
     $Count = $Items.Count
@@ -261,15 +268,24 @@ function Select-WithArrows {
     $Size = Get-ConsoleSize
     # Every line of the block is cut to the window, the title and the hint
     # included: one line that wraps moves the rows below it by one, and the
-    # repainting arithmetic is written for a block of exactly Visible + 3 lines.
+    # repainting arithmetic is written for a block of exactly Visible + 3 lines,
+    # plus the note when there is one.
+    #
+    # The note is one more line of the same block, and it is counted as one
+    # everywhere below - the rows' top, the line the cursor is left on, the room
+    # kept for the lines around the list. A line of the block that the arithmetic
+    # does not know about is the bug this file was written against.
+    $Extra = if ($Note) { 1 } else { 0 }
     $Shown = Format-MenuLabels -Labels $Labels -Width $Size[0] -Prefix $(if ($Multi) { 8 } else { 4 })
     $ShownTitle = @(Format-MenuLabels -Labels @($Title) -Width $Size[0] -Prefix 0)[0]
     $ShownHint = @(Format-MenuLabels -Labels @($Hint) -Width $Size[0] -Prefix 0)[0]
+    $ShownNote = @(Format-MenuLabels -Labels @($Note) -Width $Size[0] -Prefix 0)[0]
 
     # A list taller than the window is scrolled rather than refused: only the
     # rows that fit are drawn, and the window follows the choice. Three lines
-    # are kept for the blank above the title and the hint below it.
-    $Visible = if ($Size[1] -gt 0) { [Math]::Min($Count, [Math]::Max(1, $Size[1] - 3)) } else { $Count }
+    # are kept for the blank above the title and the hint below it - and one more
+    # when the note takes a line of its own.
+    $Visible = if ($Size[1] -gt 0) { [Math]::Min($Count, [Math]::Max(1, $Size[1] - 3 - $Extra)) } else { $Count }
     # The choice starts in the middle when it can: it is where the eye goes.
     $First = [Math]::Max(0, [Math]::Min($Current - [int](($Visible - 1) / 2), $Count - $Visible))
 
@@ -286,9 +302,10 @@ function Select-WithArrows {
         Write-MenuRow -Index ($First + $Row) -Current $Current -Labels $Shown -Checked $Checked
     }
     Write-Host $ShownHint -ForegroundColor DarkGray
+    if ($ShownNote) { Write-Host $ShownNote -ForegroundColor DarkGray }
 
     $Cursor = Get-ConsoleTop
-    $Top = if ($null -ne $Cursor) { $Cursor - ($Visible + 1) } else { 0 }
+    $Top = if ($null -ne $Cursor) { $Cursor - ($Visible + 1 + $Extra) } else { 0 }
     # No cursor reading (a test, a host that will not say): the loop still
     # answers the keys, it simply does not repaint - there is nothing to paint
     # on.
@@ -308,7 +325,7 @@ function Select-WithArrows {
             # list it means nothing, and nothing is what it does.
             $Checked[$Current] = -not $Checked[$Current]
         } elseif ($Key -eq [ConsoleKey]::Enter) {
-            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
+            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1 + $Extra) }
             if ($Multi) {
                 $Wanted = @()
                 for ($Index = 0; $Index -lt $Count; $Index++) {
@@ -320,7 +337,7 @@ function Select-WithArrows {
             }
             return $Items[$Current]
         } elseif ($Key -eq [ConsoleKey]::Escape) {
-            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
+            if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1 + $Extra) }
             return $null
         } elseif (($Key -ge [ConsoleKey]::D1 -and $Key -le [ConsoleKey]::D9) -or
                   ($Key -ge [ConsoleKey]::NumPad1 -and $Key -le [ConsoleKey]::NumPad9)) {
@@ -330,7 +347,7 @@ function Select-WithArrows {
                 if ($Multi) {
                     $Checked[$Wanted] = -not $Checked[$Wanted]    # a digit checks, it does not leave
                 } else {
-                    if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1) }
+                    if ($CanPaint) { $null = Set-ConsoleTop ($Top + $Visible + 1 + $Extra) }
                     return $Items[$Wanted]
                 }
             }
@@ -372,7 +389,8 @@ function Select-FromList {
         [scriptblock]$KeyReader,
         [int]$DefaultIndex = 0,
         [switch]$Multi,
-        [int[]]$CheckedIndexes = @()
+        [int[]]$CheckedIndexes = @(),
+        [string]$Note = ""
     )
 
     $Items = @($Items)
@@ -399,10 +417,10 @@ function Select-FromList {
     $Arrows = [bool]$KeyReader -or (Test-KeyInput)
 
     if (-not $Arrows) {
-        $Chosen = Select-ByNumber -Title $Title -Labels $Labels -Items $Items -Multi:$Multi -Checked $Checked
+        $Chosen = Select-ByNumber -Title $Title -Labels $Labels -Items $Items -Multi:$Multi -Checked $Checked -Note $Note
     } else {
         $Chosen = Select-WithArrows -Title $Title -Labels $Labels -Items $Items -KeyReader $KeyReader `
-            -Start $DefaultIndex -Multi:$Multi -Checked $Checked
+            -Start $DefaultIndex -Multi:$Multi -Checked $Checked -Note $Note
     }
 
     # Multi hands back a list, and it has to survive the trip to the caller: an

@@ -6,12 +6,17 @@
 # reads a profile from, so that the font has a profile to be applied to. All
 # three are taken back out at the end, whatever happens.
 #
-# What is checked is what the command is for: the list it draws is the fonts a
-# terminal can use - monospaced, and without the symbol fonts Windows ships -
-# the font in use is marked, and picking one writes it into the profile this
-# repository owns and into the instance's own file. The list is read from a first
-# run that cancels, so the number to give on the second one is a number that was
-# really there.
+# What is checked is what the command is for: the list it draws is the fonts that
+# carry the glyphs a prompt is drawn with - a monospaced font that carries none
+# is not in it, and the symbol fonts Windows ships are not either - the font in
+# use is marked, where to get more of them is said, and picking one writes it
+# into the profile this repository owns and into the instance's own file. The
+# list is read from a first run that cancels, so the number to give on the second
+# one is a number that was really there.
+#
+# It says nothing about how MANY fonts are listed: a machine with no Nerd Font
+# has a list of one - the font in use, which is always in it - and that is the
+# list it should draw there.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
@@ -111,14 +116,24 @@ try {
     # drew is what the second run will be asked for
     $Out = Invoke-Font @("$Pick", "0")
     $Fonts = @(Get-ListedFonts $Out)
-    Check "the fonts are listed" ($Fonts.Count -ge 5) $true
-    Check "a font this machine is sure to have is in it" ($Fonts -contains "Consolas") $true
+    Check "the list is not empty" ($Fonts.Count -ge 1) $true
+    # What the list is for, checked with the font that shows it: Consolas is
+    # monospaced, it is on every Windows there is, and it carries none of the
+    # glyphs a prompt is drawn with.
+    Check "a font that carries no icons is not offered" ($Fonts -notcontains "Consolas") $true
     Check "and the symbol fonts are not" (@($Fonts | Where-Object { $_ -like "Wingdings*" }).Count) 0
     Check "the one in use is marked" (@($Out | Where-Object { "$_" -like "*(current)*" }).Count -gt 0) $true
+    Check "it says where more of them come from" (@($Out | Where-Object { "$_" -like "*nerdfonts.com*" }).Count -gt 0) $true
     Check "cancelling applied nothing" (Test-Path $OurFragment) $OurFragmentExisted
 
-    # 2. Picking one: the number it had in that list, given to a second run
-    $Wanted = [array]::IndexOf($Fonts, "Consolas") + 1
+    # 2. Picking one: the number it had in that list, given to a second run. A
+    # font other than the one in use, whenever the machine has one to offer:
+    # picking the current one would be written the same way whether the choice
+    # was read or not.
+    $Current = (Get-InstanceAppearance -Name $FakeName).Font
+    $Want = @($Fonts | Where-Object { $_ -ne $Current }) | Select-Object -First 1
+    if (-not $Want) { $Want = $Fonts[0] }
+    $Wanted = [array]::IndexOf($Fonts, $Want) + 1
     $null = Invoke-Font @("$Pick", "$Wanted")
 
     # A rule, not a diagnosis: a byte-order mark is not part of JSON, the
@@ -130,12 +145,12 @@ try {
     Check "the fragment starts with a brace, not a mark" ([char]$Bytes[0]) "{"
 
     $Written = Get-Content $OurFragment -Raw | ConvertFrom-Json
-    Check "the font is written into our profile" $Written.profiles[0].font.face "Consolas"
+    Check "the font is written into our profile" $Written.profiles[0].font.face "$Want"
     Check "  ... under the guid Terminal knows" $Written.profiles[0].updates "{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}"
     Check "  ... and the look around it is kept" ($Written.profiles[0].PSObject.Properties.Name -contains "colorScheme") $true
 
     $Saved = Get-Content $Recipe -Raw | ConvertFrom-Json
-    Check "and into the instance's own file" $Saved.Font "Consolas"
+    Check "and into the instance's own file" $Saved.Font "$Want"
     Check "which is still the instance's" $Saved.Name $FakeName
 
     # 3. The way it is reached: the theme menu asks which instance, hands over to
@@ -153,6 +168,19 @@ try {
     # Escape goes back up to the list, so that another instance can be picked.
     Check "and the list comes back when the menu is left" (@($Themed | Where-Object { "$_".Contains("Our Instances") }).Count) 2
     Check "and the menu comes back when it is done" (@($Themed | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
+
+    # 4. And the other half of the rule: the font in use is in the list whatever
+    # it carries. The instance is put on a font that carries no icons - Consolas
+    # is the one on every Windows - and the list has to show it anyway, marked:
+    # it is the row that says where you are, and on a machine where no font
+    # carries icons it is the only row there is. Written through the profile
+    # writer the command reads, so this is the state the command would find.
+    Set-InstanceFragment -Name $FakeName -Guid "{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}" `
+        -Font "Consolas" -ColorScheme "One Half Dark" -IconPath $null
+    $Out2 = Invoke-Font @("$Pick", "0")
+    $Fonts2 = @(Get-ListedFonts $Out2)
+    Check "the font in use is listed even without icons" ($Fonts2 -contains "Consolas") $true
+    Check "  ... and marked as the one in use" (@($Out2 | Where-Object { "$_" -like "*Consolas*(current)*" }).Count -gt 0) $true
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $WslFragment -Force -ErrorAction SilentlyContinue

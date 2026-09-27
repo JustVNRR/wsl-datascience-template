@@ -114,14 +114,14 @@ Check "the same letters, another name, another colour" `
 Check "a monogram given by hand is drawn as asked" `
     (Get-DrawnLetters @("-Text", "ML", "-Out", (Join-Path $Tmp "by-hand-ml.png"))) "ML"
 
-# The table the colours are chosen from, read the way `icons` reads it: one row
+# The table the colours are chosen from, read the way `icon` reads it: one row
 # per line, tab-separated, the name first.
 $Pairs = @(Invoke-Icon @("-ListPairs"))
 Check "the table has eight pairs" $Pairs.Count 8
 Check "every row is a name and three colours" (@($Pairs | Where-Object { ($_ -split "`t").Count -ne 4 }).Count) 0
 Check "the first pair is the orange of this repository" ($Pairs[0] -split "`t")[0] "orange"
 
-# A colour given by hand wins over the name's own - what `icons` relies on when
+# A colour given by hand wins over the name's own - what `icon` relies on when
 # a pair is picked from that table, and the letters stay the name's. Every
 # drawing here names its file: the script's own default would put one in
 # whatever folder the suite was started from.
@@ -131,7 +131,7 @@ Check "a colour given by hand is used as given" ("$Line".Contains("#000000 -> #1
 Check "and the letters still come from the name" `
     (Get-DrawnLetters @("-Name", "wagon", "-Out", (Join-Path $Tmp "name-only.png"))) "WA"
 
-# The call `icons` makes: the drawing script in the same process, told what to
+# The call `icon` makes: the drawing script in the same process, told what to
 # draw through a table of parameters held in a variable.
 #
 # Both halves of that sentence were learned the hard way, the day the command was

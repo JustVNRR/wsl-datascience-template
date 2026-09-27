@@ -19,7 +19,7 @@ WSL DataScience template
     add_pack     install a pack into an instance
     remove_pack  uninstall a pack from an instance
     manage_packs choose the packs an instance should carry
-    theme        choose the icon and font of an instance
+    theme        choose the icon, font and colours
     unregister   remove an instance
     archive      write an instance to a named archive
     restore      rebuild an instance from an archive
@@ -52,7 +52,7 @@ read, not looked at.
 | [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
 | [`.\wsl.ps1 manage_packs`](#manage_packs) | choose the packs an instance should carry |
-| [`.\wsl.ps1 theme`](#theme) | choose the icon and font of an instance |
+| [`.\wsl.ps1 theme`](#theme) | choose the icon, font and colours |
 | [`.\wsl.ps1 unregister`](#unregister) | remove an instance |
 | [`.\wsl.ps1 archive`](#archive) | write an instance to a named archive |
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
@@ -462,9 +462,10 @@ removed, what was placed, what was never touched.
 
 ## `theme`
 
-What an instance wears: its icon and its font. The instance is asked first, once;
-the menu behind it holds the things that can be changed, and it is drawn again
-after each of them — changing the icon and then the font is one visit.
+What an instance wears: its icon, its font and its colours. The instance is asked
+first, once; the menu behind it holds the things that can be changed, and it is
+drawn again after each of them — changing the icon and then the font is one
+visit.
 
 Escape walks back up the way it came: from the theme menu to the list of
 instances, so another one can be picked, and from that list to the prompt.
@@ -536,19 +537,25 @@ Sets what the whole terminal is written in, for one instance.
 
 ```text
 Font of 'ubuntu-ml-dev'
-  > JetBrainsMono NF                  icons
-    MesloLGS NF                       icons   (current)
-    Cascadia Mono
-    Consolas
+  > JetBrainsMono NF                 (current)
+    JetBrainsMonoNL NF
+    MesloLGS NF
+    Cascadia Mono NF
     ...
   up/down to move, Enter to choose, Escape to cancel
+  Get more Nerd Fonts at https://www.nerdfonts.com
 ```
 
-The list is the fonts a terminal can use: the monospaced ones Windows has, with
-the weights of a family left out — a profile takes the family, not the weight —
-and the symbol fonts Windows ships left out too. `icons` marks the fonts that
-carry the glyphs a prompt is drawn with, measured by asking each font file, and
-they come first: a font without them draws a box where your prompt has a folder.
+The list is the fonts a prompt can be written in: the monospaced families Windows
+has — the weights of a family are left out, a profile takes the family — that
+carry the glyphs a prompt is drawn with, measured by asking each font file. A
+font without them draws a box where your prompt has a folder, so it is not
+offered, and the line under the list says where more of them come from.
+
+The font in use is in the list whatever it carries, and marked `(current)`: it is
+what you came to look at, and on a machine with no Nerd Font at all it is the
+only row there is. The build installs one and writes it into the profile, so an
+instance of this template starts on a font that carries them.
 
 A console writes every row in the font *it* is set to, so no list can show a font
 in itself. The preview is the choice: the profile changes, and the next tab is
