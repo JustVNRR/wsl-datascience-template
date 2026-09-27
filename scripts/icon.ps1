@@ -271,8 +271,13 @@ if (-not $Changed) {
     exit 0
 }
 
+# Ask Terminal to look again - on both ways in. It started life inside the block
+# below, which only the command run on its own reaches: through the menu, the
+# change was written and Terminal was never told, so nothing appeared until every
+# window was closed.
+Update-TerminalSettings
+
 if (-not $HandedOver) {
-    Update-TerminalSettings
     Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: a new tab" -ForegroundColor DarkGray
     Write-Host "wears the icon you chose." -ForegroundColor DarkGray
     Write-Host ""

@@ -174,12 +174,26 @@ try {
 
     # 11. The way in: the instance is asked once, the menu holds both commands,
     # and it is drawn again once the command it handed over to is done. Answers:
-    # the instance, "icon", then Escape on the icon menu, then Escape here.
-    $Out = Invoke-Theme @("$Pick", "1", "0", "0")
+    # the instance, "icon", "By Default" (which changes something), Escape on the
+    # icon menu, Escape here.
+    #
+    # And Terminal is asked to look again on this path too. That was missing
+    # once: the reload lived in the block only a command run on its own reaches,
+    # and the report was exact - "it works when I run the command, not through
+    # the menu". The file Terminal watches is the proof, when it is there.
+    $Settings = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+    $Before = if (Test-Path $Settings) { (Get-Item $Settings).LastWriteTime } else { $null }
+
+    $Out = Invoke-Theme @("$Pick", "1", "1", "0", "0")
+
     Check "theme offers both commands" (@($Out | Where-Object { "$_".Contains("what the whole terminal is written in") }).Count -gt 0) $true
     Check "hands over to the icon command" (@($Out | Where-Object { "$_".Contains("Icon of '$FakeName'") }).Count -gt 0) $true
     Check "which does not ask for the instance again" (@($Out | Where-Object { "$_".Contains("Our Instances") }).Count) 1
     Check "and the menu comes back when it is done" (@($Out | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
+    if ($Before) {
+        Check "and Terminal was asked to look again, through the menu too" `
+            ((Get-Item $Settings).LastWriteTime -gt $Before) $true
+    }
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $Tmp -ErrorAction SilentlyContinue

@@ -188,6 +188,9 @@ while ($true) {
         param($Name)
 
         $Scheme = $Schemes[$Name]
+        # The mark comes before the swatches, not after them: a label longer than
+        # the window is cut from the right, and the one thing the list must say -
+        # which scheme is on right now - was the first thing to go.
         $Here = if ($Name -eq $Current) { "  (current)" } else { "" }
         $Sample = $Name
 
@@ -201,13 +204,20 @@ while ($true) {
         if ($Coloured -and $Scheme -and $Scheme.background -and $Scheme.foreground) {
             $Sample = "{0}[0m{0}[48;2;{1}m{0}[38;2;{2}m {3} {0}[0m" -f $Escape,
                 (ConvertTo-Rgb $Scheme.background), (ConvertTo-Rgb $Scheme.foreground), $Name
-            foreach ($Ink in @("red", "green", "blue")) {
-                if ($Scheme.$Ink) { $Sample += ("{0}[48;2;{1}m  " -f $Escape, (ConvertTo-Rgb $Scheme.$Ink)) }
-            }
-            $Sample += "$Escape[0m"
         }
 
-        "{0}{1}" -f $Sample, $Here
+        # What the row is, then what it looks like. The swatches go last because
+        # the window decides where the end of the line is, and a cut must eat the
+        # picture before it eats a word.
+        $Sample += $Here
+        foreach ($Ink in @("red", "green", "blue")) {
+            if ($Coloured -and $Scheme -and $Scheme.$Ink) {
+                $Sample += ("{0}[48;2;{1}m  " -f $Escape, (ConvertTo-Rgb $Scheme.$Ink))
+            }
+        }
+        if ($Coloured) { $Sample += "$Escape[0m" }
+
+        $Sample
     } -DefaultIndex $Default
 
     if (-not $Picked) { break }
@@ -251,8 +261,14 @@ if (-not $Changed) {
     exit 0
 }
 
+# Ask Terminal to look again - on both ways in. It started life inside the block
+# below, which only the command run on its own reaches: through the menu, the
+# change was written and Terminal was never told, so nothing appeared until every
+# window was closed. Reported exactly that way: "it works when I run the command,
+# not through the menu".
+Update-TerminalSettings
+
 if (-not $HandedOver) {
-    Update-TerminalSettings
     Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: the tab you" -ForegroundColor DarkGray
     Write-Host "are in is already in those colours. If it is not, open a new one." -ForegroundColor DarkGray
     Write-Host ""
