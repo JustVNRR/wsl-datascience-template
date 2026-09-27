@@ -218,8 +218,9 @@ function Set-InstanceLook {
 }
 
 # Ask Windows Terminal to re-read what is written for its profiles, without
-# closing anything - the command that was wanted ("activer ou redémarrer le thème
-# d'une distro"), and one wt.exe does not have.
+# closing anything - the command that was wanted ("turn a distro's theme on or
+# restart it"), and one wt.exe does not have. Quoted in English: this file stays
+# pure ASCII, and the French was accented.
 #
 # Its own settings file is what it watches. A change to that file makes Terminal
 # re-read the whole of its settings, the fragments this repository writes
