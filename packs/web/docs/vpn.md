@@ -32,18 +32,25 @@ One file per server in `/etc/wireguard`, mode `600`, root — `proton.conf`,
 `ch.conf`, `nl.conf`. They hold your private key and they are yours: the pack
 writes in none of them, and removing the pack does not delete them.
 
-```powershell
-.\wsl.ps1 add_pack      # pick the instance, then web
-```
+A name is a file name *and* an interface name, which is why it is 15
+characters at most, and made of letters, digits, `-` and `_`.
 
-The pack leaves one profile behind when the folder holds none: the sample from
-its own folder, with everything but the keys — so there is only one file to
-paste into instead of one to write.
+### Adding and removing one
+
+| Target | What it does |
+| :--- | :--- |
+| `vpn_profile_add <name>` | creates `/etc/wireguard/<name>.conf` from the pack's sample — the resolver, the MTU and the kill switch are already in it — then opens your editor on it (`$EDITOR` when you set one, `nano` otherwise). Paste your two keys and the `[Peer]` block, save, and `vpn_up` offers it |
+| `vpn_profile_remove <name>` | asks first, then deletes it. If that profile is the one that is up, the tunnel goes down first: `wg-quick` needs the file to undo the addresses and the routes it added |
 
 ```bash
-sudo nano /etc/wireguard/proton.conf    # paste the two keys, keep the rest
-sudo chmod 600 /etc/wireguard/proton.conf
+gmake vpn_profile_add VPN_PROFILE=ch        # write it (nano opens on it)
+gmake vpn_up VPN_PROFILE=ch                 # connect to it
+gmake vpn_server VPN_PROFILE=ch             # ... and make the distro start with it
 ```
+
+`vpn_profile_add` never writes over a profile that exists — that file carries a
+private key. On a fresh install the same sample is what the folder holds:
+`/etc/wireguard/proton.conf`, waiting for your keys.
 
 A key that leaks is revoked **in your Proton account** (WireGuard → delete the
 configuration): the server then refuses every new handshake. The profile on the

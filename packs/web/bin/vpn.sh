@@ -2,7 +2,7 @@
 # ==============================================================================
 # THE TUNNEL - WHAT THE gmake TARGETS CALL
 # ==============================================================================
-# Six subcommands, one per target in make/vpn.mk, and one reason for the split:
+# The subcommands, one per target in make/vpn.mk, and one reason for the split:
 # what needs a terminal (a menu) or a decision (which profile is up) lives here
 # rather than inside a recipe, so each recipe stays one line and this file is
 # read like any other shell script.
@@ -50,6 +50,18 @@ active() {
 # Does that profile exist? Asked as root, for the same reason as the listing.
 has_profile() {
     sudo test -f "$WG_DIR/$1.conf"
+}
+
+# The name of a profile is the name of its file, and wg-quick takes the file's
+# name as the interface's - and Linux refuses an interface name longer than 15
+# characters. Anything that would need quoting is refused with it, and so is
+# `auto`: that one is the marker the boot hook reads, and a profile by that name
+# would be two files fighting over one path.
+valid_profile_name() {
+    case "$1" in
+    "" | auto | *[!a-zA-Z0-9_-]* | ????????????????*) return 1 ;;
+    esac
+    return 0
 }
 
 # The menu. fzf, like the other pickers of this shell (fcheat, fnew), and the
@@ -186,6 +198,62 @@ cmd_server() {
     fi
 }
 
+# A new profile starts from the pack's sample, so the four lines nobody
+# remembers - the address, the resolver, the MTU, the kill switch - are already
+# there and only the two keys and the peer are to paste. It is never written
+# over a profile that exists: that file carries a private key, and replacing it
+# silently is the one move this pack does not make.
+cmd_profile_add() {
+    local name=${1:-} editor
+    [ -n "$name" ] || die "which profile? gmake vpn_profile_add VPN_PROFILE=<name>"
+    valid_profile_name "$name" ||
+        die "'$name' cannot be a profile name: 15 characters at most, letters, digits, - and _ (it becomes both a file name and an interface name)."
+
+    if has_profile "$name"; then
+        printf 'ℹ️  %s already exists - opening it, nothing was written.\n' "$WG_DIR/$name.conf"
+    else
+        sudo install -d -m 0700 "$WG_DIR"
+        sudo install -m 600 "$here/../vpn.conf.sample" "$WG_DIR/$name.conf"
+        printf '📝 %s was created from the sample: the MTU and the kill switch are in it.\n' "$WG_DIR/$name.conf"
+        printf '   Paste your private key, the address, and the [Peer] block - then save.\n'
+    fi
+
+    # The editor is yours: $EDITOR when it is set (one command, no arguments),
+    # nano otherwise - nano is in the image, and it is what the cheatsheets
+    # already use for a profile.
+    editor=${EDITOR:-nano}
+    sudo "$editor" "$WG_DIR/$name.conf"
+
+    if sudo test -s "$WG_DIR/$name.conf"; then
+        printf '✅ %s is in place - gmake vpn_up offers it.\n' "$name"
+    else
+        printf '⚠️  %s is empty: gmake vpn_up will refuse it.\n' "$WG_DIR/$name.conf"
+    fi
+}
+
+# Removing one takes the tunnel down first when it is the one that is up:
+# wg-quick needs the file to undo the addresses and the routes it added, and the
+# file is what is about to go.
+cmd_profile_remove() {
+    local name=${1:-} current
+    [ -n "$name" ] || die "which profile? gmake vpn_profile_remove VPN_PROFILE=<name>"
+    has_profile "$name" || die "no profile '$name' in $WG_DIR"
+
+    current=$(active)
+    if [ "$current" = "$name" ]; then
+        sudo wg-quick down "$name"
+        printf '⤵️  %s was up: it is down.\n' "$name"
+    fi
+
+    sudo rm -f "$WG_DIR/$name.conf"
+    printf '✅ %s is gone.\n' "$name"
+
+    if [ "$(sudo cat "$MARKER" 2>/dev/null || true)" = "$name" ]; then
+        printf '⚠️  It was the profile the distro starts with.\n'
+        printf '    Pick another with gmake vpn_server, or the boot hook will only say so in %s.\n' "$BOOT_LOG"
+    fi
+}
+
 cmd_auto() {
     local what wanted
     what=${1:-}
@@ -230,6 +298,14 @@ down)
     shift
     cmd_down "$@"
     ;;
+profile_add)
+    shift
+    cmd_profile_add "$@"
+    ;;
+profile_remove)
+    shift
+    cmd_profile_remove "$@"
+    ;;
 server)
     shift
     cmd_server "$@"
@@ -249,9 +325,12 @@ usage: vpn.sh <command>
   server [profile]    the server the distro starts with (and switch to it now)
   auto on [profile]   bring the tunnel up with the distro
   auto off            stop doing that
+  profile_add <name>  create a profile from the pack's sample, then edit it
+  profile_remove <name>  delete one (the caller asks first)
 
 Every command is a gmake target of the same name: gmake vpn_status, vpn_up,
-vpn_down, vpn_server, vpn_auto_on, vpn_auto_off.
+vpn_down, vpn_server, vpn_auto_on, vpn_auto_off, vpn_profile_add,
+vpn_profile_remove.
 USAGE
     exit 2
     ;;
