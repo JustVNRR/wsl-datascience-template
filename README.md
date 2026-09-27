@@ -2,7 +2,7 @@
 
 A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
-- optional tooling as packs — Python (`python`), Google Cloud (`gcp`), media and OCR (`vision`) — added with `.\wsl.ps1 add_pack`.
+- optional tooling as packs — Python (`python`), Google Cloud (`gcp`), media and OCR (`vision`), a browser (`web`) — added with `.\wsl.ps1 add_pack`.
 
 ## Features
 
@@ -12,6 +12,7 @@ A reproducible WSL2 workstation for data science: one PowerShell command builds 
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
 - **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
+- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its six `vpn_*` targets connect the instance to Proton VPN, choose the server, and bring it up with the distro.
 
 ---
 
@@ -106,6 +107,7 @@ it grows, and a pack leaves with its folder:
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
 | `scaffold` | [Project scaffolding, the pack](packs/scaffold/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
+| `web` | [Web browser and tunnel](packs/web/docs/web.md) | `fox`, `vpn_*` |
 
 The pack table is a pack's extremes: `devops` brings targets and no tool, `vision`
 brings a tool and no target — it installs ffmpeg, ImageMagick and Tesseract, and
@@ -139,6 +141,7 @@ leaves with `remove_pack`.
 | Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Python | [Python](packs/python/docs/python.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Vision & OCR | [Vision & OCR](packs/vision/docs/vision.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Firefox & VPN | [Web browser and tunnel](packs/web/docs/web.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 
 ### Python & Data Science
 
@@ -223,12 +226,22 @@ the repository at runtime.
 │   │   ├── cheatsheets/     # its fcheat sheets: the scaffolding commands
 │   │   ├── zsh/             # its shell files: uv's PATH, the fnew picker
 │   │   └── docs/            # the pack's pages, one per module
-│   └── vision/              # ffmpeg, ImageMagick, Tesseract: media and OCR tools
+│   ├── vision/              # ffmpeg, ImageMagick, Tesseract: media and OCR tools
+│   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
+│   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
+│   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   ├── cheatsheets/     # their commands, in the fcheat picker
+│   │   └── docs/            # the pack's page
+│   └── web/                 # Firefox (Mozilla's repository) and the WireGuard tunnel
 │       ├── pack.conf        # what it installs, and the line `add_pack` shows
 │       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │       ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
-│       ├── cheatsheets/     # their commands, in the fcheat picker
-│       └── docs/            # the pack's page
+│       ├── vpn.conf.sample  # a profile's shape: addresses, DNS, MTU, kill switch
+│       ├── bin/             # the tunnel's script, and what the boot hook runs
+│       ├── make/            # its gmake module: the six vpn_* targets
+│       ├── zsh/             # its shell files: the `fox` function
+│       ├── cheatsheets/     # its fcheat sheets: the browser and the tunnel
+│       └── docs/            # the pack's pages, one per module
 ├── scripts/                 # Instance administration, one file per command
 │   ├── instance.ps1         # What they share: the marker, the look, Docker Desktop
 │   ├── message.ps1          #   and the colour a message takes, read from the
