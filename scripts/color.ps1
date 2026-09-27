@@ -261,14 +261,13 @@ if (-not $Changed) {
     exit 0
 }
 
-# Ask Terminal to look again - on both ways in. It started life inside the block
-# below, which only the command run on its own reaches: through the menu, the
-# change was written and Terminal was never told, so nothing appeared until every
-# window was closed. Reported exactly that way: "it works when I run the command,
-# not through the menu".
-Update-TerminalSettings
-
+# Ask Terminal to look again, and only when this command was run on its own: the
+# visit is over, the prompt is back, and the pane is idle - the one moment a
+# reload lands. Behind the theme menu this is not done here at all: the menu is
+# still running, and it asks when IT is over (see theme.ps1). Reported that way
+# too: "it works when I run the command, not through the menu".
 if (-not $HandedOver) {
+    Update-TerminalSettings
     Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: the tab you" -ForegroundColor DarkGray
     Write-Host "are in is already in those colours. If it is not, open a new one." -ForegroundColor DarkGray
     Write-Host ""

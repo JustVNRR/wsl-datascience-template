@@ -77,6 +77,13 @@ if (-not $Visited) {
     exit 0
 }
 
+# The visit is over, and this is the moment Terminal can be asked to look again:
+# the menu is answered for good, and the pane is about to be idle at its prompt.
+# Asked any earlier - inside the menu, right after a change - nothing happens: a
+# reload cannot land on a pane that is running a menu. That is measured, and it
+# is why the change shows when you leave, not while you are still in there.
+Update-TerminalSettings
+
 Write-Host "'$DistroName' is done, and Windows Terminal has re-read its settings: the colours are" -ForegroundColor DarkGray
 Write-Host "there already, and a new tab shows the rest." -ForegroundColor DarkGray
 Write-Host ""

@@ -512,11 +512,12 @@ The icon is a **file**, not a setting: `terminal-icon.png` in the instance's own
 folder, the one its Terminal profile points at. Nothing else is written, and
 nothing has to be stopped.
 
-Each command ends by asking Windows Terminal to re-read what is written for it:
+The theme menu asks Windows Terminal to look again when the visit is over:
 Terminal watches its own settings file, and a change to it makes it read the
-profiles again — the fragments included. The colours change on the spot, in the
-tab you are in. The font and the icon belong to a tab as it is opened, so those
-want a new one.
+profiles again, the fragments included. A reload cannot land on a pane that is
+running a menu, so **nothing appears while you are still in there** — the change
+shows the moment you leave. The colours change on the spot then; the font and the
+icon belong to a tab as it is opened, so those want a new one.
 
 Changing one part keeps the other. The recipe of the last drawing — its letters,
 its three colours — is noted in the instance's own `instance.json`, the same file

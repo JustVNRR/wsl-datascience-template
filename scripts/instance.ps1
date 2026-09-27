@@ -218,57 +218,34 @@ function Set-InstanceLook {
 }
 
 # Ask Windows Terminal to re-read what is written for its profiles, without
-# closing anything.
+# closing anything - the command that was wanted ("activer ou redémarrer le thème
+# d'une distro"), and one wt.exe does not have.
 #
-# Two files can be what Terminal is watching, and this touches both:
-#   - its own settings file, because a change to it makes Terminal re-read the
-#     whole of its settings, the fragments included - which is what makes a
-#     colour change appear in a tab already open, measured by hand;
-#   - and the fragments we wrote, in case the folder is watched on its own.
-# Neither file is written INTO: only their date is set to now, which is all a
-# watcher looks at.
+# Its own settings file is what it watches. A change to that file makes Terminal
+# re-read the whole of its settings, the fragments this repository writes
+# included, and a tab already open changes colour on the spot. Nothing is written
+# INTO the file: only its date is set to now, which is all a watcher looks at.
 #
-# Twice, a moment apart, on the settings file: the first lands right after the
-# fragment is written and can be swallowed as part of the same notification.
+# WHEN this is called is the whole of the difficulty, and it was found by the
+# person using it, after three wrong attempts from here:
 #
-# This is the command that was asked for - "activer ou redémarrer le thème d'une
-# distro" - and it is why the three commands no longer tell anybody to close
-# their windows.
+#   - touched from inside a command, nothing happens, and nothing happens later
+#     either - even a second later, even twice;
+#   - the same touch, once the command has returned to the prompt, works at once.
+#
+# The reload has to land while the pane is idle at its prompt, not while a menu
+# is running in it. That is why the theme menu calls this when the visit is over,
+# and why the commands below it call it only when they are run on their own: a
+# change made inside the menu cannot be shown while the menu is still there.
 function Update-TerminalSettings {
-    $Paths = @(
+    foreach ($Path in @(
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
         "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
-    )
-
-    # Our own fragments too: one file per instance, and the one that was just
-    # written is in there.
-    $Ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
-    foreach ($File in @(Get-ChildItem $Ours -Filter *.json -ErrorAction SilentlyContinue)) { $Paths += $File.FullName }
-
-    foreach ($Path in $Paths) {
+    )) {
         if (-not (Test-Path $Path)) { continue }
         try { (Get-Item $Path).LastWriteTime = Get-Date } catch { }
     }
-
-    # And again, from a small process left behind, two seconds later.
-    #
-    # This is the part that matters, and it took three wrong guesses and two of
-    # the user's own tests to find: touching the file from inside the command
-    # does nothing - even a second later, even twice - while the very same touch
-    # typed at the prompt once the command has returned changes an open tab on
-    # the spot. The reload has to land when the pane is sitting idle at its
-    # prompt, not while a command is running in it.
-    $Script = @"
-Start-Sleep -Seconds 2
-foreach (`$Path in @(
-$(($Paths | ForEach-Object { "    '" + $_ + "'" }) -join ",`n")
-)) { if (Test-Path `$Path) { (Get-Item `$Path).LastWriteTime = Get-Date } }
-"@
-    $Encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Script))
-    try {
-        Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile", "-EncodedCommand", $Encoded -WindowStyle Hidden
-    } catch { }
 }
 
 # The profile Windows Terminal knows an instance by: the guid WSL wrote in its
