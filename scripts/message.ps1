@@ -10,11 +10,10 @@
 # Write-DangerBanner.
 #
 # The colour is not chosen here either. It is read from the colour scheme of the
-# Windows Terminal profile this command is running in. A scheme keeps two
-# versions of each colour - a normal one and a bright one - and which of the two
-# is read on its background is the scheme's business, not ours: a light scheme
-# is written in the colours of a light scheme, and nobody had to look at
-# anybody's background to get there.
+# Windows Terminal profile this command is running in: a scheme keeps two
+# versions of each colour, a normal one and a bright one, and the one that is
+# read on its background is the one used. A light scheme comes out in the
+# colours of a light scheme, and nothing here has to know it is light.
 #
 # Where a scheme offers nothing readable for a kind - a light scheme whose white
 # is its own background - that kind is written in the colour the scheme writes

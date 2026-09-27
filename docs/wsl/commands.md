@@ -588,9 +588,9 @@ Colours of 'ubuntu-ml-dev'
 
 The list is every scheme this machine can be told to use: the ones Windows
 Terminal ships — read from the file inside its own package — and the ones you
-added or wrote over, your version of a name winning over the shipped one. Each is
-shown in its own colours, with three of them beside it, and the one in use is
-marked.
+added or wrote over, your version of a name winning over the shipped one. Each
+row is drawn in the colours of its own scheme — its background and its text — and
+the one in use is marked `(current)`.
 
 That file is JSON with comments in it, which PowerShell's own reader refuses. The
 command reads it all the same, without touching it: it is Terminal's file, and
