@@ -22,6 +22,12 @@ fox --version                                  # Which version is installed
 MOZ_ENABLE_WAYLAND=0 fox                       # Force X11, when the mouse misbehaves
 ls ~/.mozilla/firefox                          # The profiles: bookmarks, passwords, history
 
-# --- 3. FILES ON THIS MACHINE ---
+# --- 3. THE SOUND ---
+pactl get-sink-volume @DEFAULT_SINK@           # The level the instance plays at (its own, not Windows')
+pactl set-sink-volume @DEFAULT_SINK@ 50%       # Set it - +10% / -10% moves by a step
+pactl set-sink-mute @DEFAULT_SINK@ toggle      # Cut the sound, and bring it back
+pactl list sinks short                         # What WSLg offers as an output (one: its own)
+
+# --- 4. FILES ON THIS MACHINE ---
 fox "$(wslpath 'C:\Users')"                    # Open a Windows folder through /mnt/c
 xdg-open report.pdf                            # Open any file with the default application

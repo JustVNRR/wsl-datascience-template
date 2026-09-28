@@ -67,8 +67,14 @@ fi
 #    without it the module survives only until the next 'wsl --shutdown', see
 #    docs/vpn.md), the routing tools wg-quick calls, and the firewall the kill
 #    switch is written in.
+#
+#    libavcodec60 comes with them and is named nowhere else: it is the system
+#    decoder Firefox loads at runtime for H.264 and AAC, which is what YouTube
+#    sends for its live streams (ordinary videos arrive in VP9/AV1, decoded by
+#    the browser itself). A library, so it cannot go in PACK_PACKAGES - see the
+#    comment there, and docs/packs.md.
 apt-get update
-apt-get install -y --no-install-recommends $packages
+apt-get install -y --no-install-recommends $packages libavcodec60
 
 # 3. The resolver itself, from Debian's archive.
 cd /tmp

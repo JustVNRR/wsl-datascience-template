@@ -174,6 +174,16 @@ Two things a `remove.sh` never does:
   when a library goes (measured, and it says so before doing it). A pack names
   programs.
 
+A library a program loads **at runtime** is a third case, and the one the two
+rules above do not cover: apt cannot see the need (the program asks for it by
+name when it starts, so nothing declares it), which is exactly why a pack cannot
+name it either — removing it would take a neighbour's program along. The pack
+installs it in its `install.sh`, beside the program that wants it, and never in
+`PACK_PACKAGES`; its `remove.sh` marks it automatic on the way out
+(`apt-mark auto`), which makes it an orphan the moment the pack is gone, and the
+cleanup `remove_pack` runs afterwards takes it back. `web` is the case that
+exists: Firefox loads `libavcodec60` for H.264, and nothing declares it.
+
 What this buys: no pack has to be cut to avoid an overlap, and no one has to
 arbitrate who owns what. A pack that needs a package installs it, whether or
 not a neighbour already did.

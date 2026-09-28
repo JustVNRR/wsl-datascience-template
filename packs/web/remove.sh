@@ -56,6 +56,14 @@ for package in $declared; do
     sudo apt-get remove -y "$package"
 done
 
+# The decoder installed beside the browser (libavcodec60, see install.sh) is a
+# library: no pack removes one, because apt takes the programs that depend on it
+# along. Marked automatic, it becomes an orphan the moment this pack is gone,
+# and the cleanup remove_pack runs next - apt for what apt installed, ldd for
+# what lives outside its graph - takes it back with the others.
+echo "➖ Leaving the browser's decoder to the cleanup that follows..."
+sudo apt-mark auto libavcodec60 2>/dev/null || true
+
 echo "➖ Removing Mozilla's repository..."
 sudo rm -f /etc/apt/sources.list.d/mozilla.list \
            /etc/apt/preferences.d/mozilla \

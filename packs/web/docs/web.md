@@ -52,12 +52,32 @@ mouse misbehaves under Wayland, `MOZ_ENABLE_WAYLAND=0 fox` forces X11 — the pa
 does not set it, because on most machines it is not needed.
 
 **Its sound goes through PulseAudio**, which is how WSLg carries the audio of a
-Linux window to the Windows output device — and Mozilla's package only pulls the
-ALSA library, so the pack installs `libpulse0` too. Without it the browser opens,
-plays, and stays mute. Which device it comes out of is not decided here: WSLg
-plays on the **Windows default output**, so the choice is in Windows (Settings →
-System → Sound), made before the distro starts — a headset connected afterwards
-is usually not followed until WSL restarts (`wsl.exe --shutdown`).
+Linux window to Windows — and Mozilla's package only pulls the ALSA library, so
+the pack installs `pulseaudio-utils` (and, with it, the client library the
+browser loads at runtime). Without it the browser opens, plays, and stays mute.
+
+**The sound has its own level**, and it is not the one Windows shows: WSLg plays
+it as its own stream, so turning the Windows volume down does not turn this one
+down. The volume is set from inside the instance:
+
+| Command | What it does |
+| :--- | :--- |
+| `pactl get-sink-volume @DEFAULT_SINK@` | The level it is playing at |
+| `pactl set-sink-volume @DEFAULT_SINK@ 50%` | Set it — `+10%` / `-10%` for a step |
+| `pactl set-sink-mute @DEFAULT_SINK@ toggle` | Cut it, and bring it back |
+| `pactl list sinks short` | The output WSLg offers (one: its own) |
+
+**Which device it comes out of is decided in Windows**, not here: WSLg plays on
+the Windows default output, so the choice is in Settings → System → Sound,
+*made before the distro starts* — a headset connected afterwards is usually not
+followed until WSL restarts (`wsl.exe --shutdown`).
+
+**Videos play, live streams do not?** YouTube sends H.264 and AAC for its live
+streams, where ordinary videos arrive in VP9/AV1 — and the browser decodes those
+two itself but asks the system for H.264. The pack installs that decoder
+(`libavcodec60`) with the browser; a hand-built instance can be missing it, and
+then a live stream answers *"your browser can't play this video"* while
+everything else plays.
 
 Your profile (`~/.mozilla`: bookmarks, passwords, history) is yours: removing
 the pack does not delete it.
