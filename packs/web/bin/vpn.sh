@@ -527,6 +527,16 @@ cmd_edit_profiles() {
     fi
     check_ids || return 1
     printf '✅ %s: %s\n' "$SERVERS" "$(ids | paste -sd' ' -)"
+
+    # And now the server to use, straight away: the menu is the list the file
+    # holds, so a name that no longer exists cannot stay in VPN_PROFILE, and what
+    # the file contains is what the user is asked to choose from.
+    #
+    # Only with a terminal: a test or a script runs this with EDITOR=true, and a
+    # menu has nothing to ask with there - the edit stands on its own.
+    if [ -t 0 ] && [ -t 1 ]; then
+        cmd_server
+    fi
 }
 
 # The automatic start: one line under [boot] in /etc/wsl.conf, which is WSL's own
