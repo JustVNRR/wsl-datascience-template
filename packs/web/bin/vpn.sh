@@ -354,18 +354,14 @@ compose() {
     } | as_root tee "$CONF" > /dev/null
 }
 
-# The base resolver, for the instance that never got one: a distro built from the
-# image has no /etc/resolv.conf (the image carries none, and the install runs
-# inside Docker, where that path is Docker's own mounted file - see install.sh).
-# openresolv hands back, when the tunnel goes down, whatever it found before
-# taking over, so this is written once, before the first mount, and only when
-# there is nothing: a file that exists is the user's, or WSL's.
-ensure_base_resolver() {
-    if [ -s /etc/resolv.conf ] && [ ! -L /etc/resolv.conf ]; then
-        return 0
-    fi
+# The base resolver, written the way vpn.md's recipe writes it by hand, before
+# every mount: openresolv hands back what it found before it took the file over,
+# so what it found is what the instance resolves with once the tunnel is down.
+# Done here as well as at install because an instance built from the image never
+# ran that install on a real filesystem - see install.sh.
+write_base_resolver() {
+    as_root rm -f /etc/resolv.conf
     printf 'nameserver %s\n' "$DNS_BASE" | as_root tee /etc/resolv.conf > /dev/null
-    printf '📝 /etc/resolv.conf was missing: %s is in it, and comes back when the tunnel goes down.\n' "$DNS_BASE"
 }
 
 # Raising the tunnel, with the server named: the profile is rebuilt first, so
@@ -387,7 +383,7 @@ cmd_up() {
         run_quiet as_root wg-quick down "$IFACE" ||
             die "the tunnel was up and would not come down - the lines above are wg-quick's own."
     fi
-    ensure_base_resolver
+    write_base_resolver
     compose "$wanted"
     run_quiet as_root wg-quick up "$IFACE" ||
         die "the tunnel did not come up - the lines above are wg-quick's own."

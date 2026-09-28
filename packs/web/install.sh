@@ -94,25 +94,18 @@ if grep -q '^[[:space:]]*generateResolvConf' /etc/wsl.conf 2>/dev/null; then
 else
     printf '\n[network]\ngenerateResolvConf = false\n' >> /etc/wsl.conf
 fi
-# openresolv needs a real file to take over, and this is the one it hands back
-# when the tunnel goes down - so it has to exist before the first mount.
+# The resolver, exactly as vpn.md's recipe writes it by hand: the setting above,
+# then this file removed and written again with 1.1.1.1. Unconditional, like the
+# recipe - openresolv needs a real file to take over, and this is the one it
+# hands back when the tunnel goes down.
 #
-# The first version of this step only wrote it where it found a symlink, a guess
-# about the base image that is wrong twice over: measured, the image carries no
-# /etc/resolv.conf at all, and during a build that path is Docker's own file,
-# bind-mounted and absent from the image afterwards. So a distro built from the
-# image started with no resolver, and nothing had deleted it.
-#
-# 1.1.1.1 is not a value invented here: it is the line the pack's page tells you
-# to write by hand, and the one a hand-made instance already has.
-#
-# What is tested is whether there is anything to resolve with, not whether the
-# file is there: an empty file is just as useless, and that is what a fresh
-# container, or a WSL instance, can have.
-if [ ! -s /etc/resolv.conf ] || [ -L /etc/resolv.conf ]; then
-    rm -f /etc/resolv.conf
-    printf 'nameserver 1.1.1.1\n' > /etc/resolv.conf
-fi
+# An earlier version tested for a symlink first. That was not the recipe, it was
+# a guess about the base image, and it never came true: the image carries no
+# /etc/resolv.conf at all, and during a build that path is Docker's own file. An
+# instance built from the image therefore started with no resolver, and nothing
+# had deleted it.
+rm -f /etc/resolv.conf
+printf 'nameserver 1.1.1.1\n' > /etc/resolv.conf
 
 # --- the browser ------------------------------------------------------------
 
