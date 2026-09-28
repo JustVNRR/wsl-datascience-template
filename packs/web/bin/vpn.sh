@@ -360,8 +360,8 @@ compose() {
 # Done here as well as at install because an instance built from the image never
 # ran that install on a real filesystem - see install.sh.
 write_base_resolver() {
-    as_root rm -f /etc/resolv.conf
-    printf 'nameserver %s\n' "$DNS_BASE" | as_root tee /etc/resolv.conf > /dev/null
+    as_root ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf 2>/dev/null || true
+    printf 'nameserver %s\n' "$DNS_BASE" | as_root resolvconf -a wsl.base
 }
 
 # Raising the tunnel, with the server named: the profile is rebuilt first, so
@@ -369,6 +369,11 @@ write_base_resolver() {
 # already up goes down first - it is the same interface, and wg-quick needs the
 # file it came up with to undo its own addresses and routes.
 cmd_up() {
+
+    if ip link show dev "$IFACE" >/dev/null 2>&1 && [ ! -f "$CONF" ]; then
+        as_root ip link delete dev "$IFACE" 2>/dev/null || true
+    fi
+
     local wanted=${1:-}
 
     if [ -z "$wanted" ]; then
@@ -406,9 +411,24 @@ cmd_up_from_list() {
 cmd_down() {
     if ! is_up; then
         printf 'ℹ️  no tunnel is up.\n'
+        if [ ! -e /etc/resolv.conf ]; then
+            write_base_resolver
+        fi
         cmd_status
         return 0
     fi
+
+    if [ ! -f "$CONF" ]; then
+        printf '⚠️  %s missing, tearing down kernel interface and flush kill switch directly.\n' "$CONF"
+        as_root ip link delete dev "$IFACE" 2>/dev/null || true
+        as_root iptables -F OUTPUT 2>/dev/null || true
+        as_root ip6tables -F OUTPUT 2>/dev/null || true
+        as_root resolvconf -d "$IFACE" 2>/dev/null || true
+        write_base_resolver
+        cmd_status
+        return 0
+    fi
+
     run_quiet as_root wg-quick down "$IFACE" ||
         die "the tunnel did not come down - the lines above are wg-quick's own."
     cmd_status
@@ -495,7 +515,7 @@ cmd_edit_profiles() {
     # The editor is yours: $EDITOR when it is set (one command, no arguments),
     # nano otherwise - nano is in the image, and it is what the cheatsheets use.
     editor=${EDITOR:-nano}
-    "$editor" "$SERVERS"
+    eval "$editor \"\$SERVERS\""
 
     # What the editor left behind. jq says where and why when it does not parse;
     # the ids are checked too, since they are what a menu shows and what
