@@ -119,14 +119,48 @@ Two things this needs, both done by the install: `generateResolvConf = false` in
 from Debian's package, and removes `systemd-resolved` first, because the two
 claim the same `resolvconf` command.
 
-That setting is what tells WSL to leave the file alone, and **it does not always
-hold**: WSL is known to take the file back at a start and leave it missing
-([microsoft/WSL#9070](https://github.com/microsoft/WSL/issues/9070)), which is
-what happened on an instance while this pack was being written. Nothing breaks —
-the next `vpn_up` writes it again (measured: openresolv creates it whether or
-not it was there), and `vpn_status` says it is missing instead of failing. The
-usual advice, making the file immutable with `chattr +i`, is not open to this
-pack: the tunnel has to write it at every mount.
+### WSL does not give that file up on its own
+
+`generateResolvConf = false` is what tells WSL to leave `/etc/resolv.conf`
+alone, and **it is not enough**. Measured on an instance:
+
+- WSL put its own symlink back — `/etc/resolv.conf → /mnt/wsl/resolv.conf` — at
+  every start, and `/mnt/wsl` is a memory filesystem **shared by every distro of
+  the machine**, so a fresh instance inherits whatever the last one wrote there;
+- WSL answers the instance's DNS itself (`dnsTunneling`, its default), so **any
+  nameserver resolves**: `10.2.0.1` with no tunnel, even an address nothing can
+  answer on;
+- and **deleting the file breaks name resolution completely** — glibc then falls
+  back to `127.0.0.1`, inside the distro, where nothing listens.
+
+Microsoft's own answer for that file being taken away is in
+[microsoft/WSL#9070](https://github.com/microsoft/WSL/issues/9070); the usual
+advice there, making it immutable with `chattr +i`, is not open to this pack —
+the tunnel has to write it at every mount.
+
+The lever is on the **Windows side**, in `%USERPROFILE%\.wslconfig`:
+
+```ini
+[wsl2]
+dnsTunneling=false
+```
+
+then `wsl.exe --shutdown`. WSL stops answering for the instance and stops
+touching the file: `/etc/resolv.conf` is the pack's, the base the install writes
+is what the instance resolves with while the tunnel is down, and Proton's
+`10.2.0.1` is what answers while it is up — checkable with `ip route get
+10.2.0.1`, which says `dev vpn` when the tunnel is mounted.
+
+The other instances are not disturbed: they keep resolving through the WSL
+gateway, the way they did before (`nameserver 172.x.x.1` in their own file).
+To go back: delete `%USERPROFILE%\.wslconfig` and run `wsl.exe --shutdown`
+again.
+
+That file is written at install, and again by `vpn_up` before every mount —
+`vpn_down` writes it too when it is missing and no tunnel is up. So an instance
+that came back from a `wsl --shutdown` without one gets name resolution again
+with `gmake vpn_down`, and `gmake vpn_auto_on` has the boot hook do it at every
+start.
 
 ## The kill switch
 
