@@ -59,6 +59,10 @@ GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 DNS_DEFAULT=10.2.0.1
 MTU_DEFAULT=1420
 
+# What the instance resolves with when no tunnel is up: the line the install
+# writes, and the one the page tells a hand-made instance to write.
+DNS_BASE=1.1.1.1
+
 # The kill switch: two iptables lines, in the generated profile, that reject
 # whatever would leave outside the tunnel. The mark is the one wg-quick puts on
 # its own packets, and LOCAL destinations (loopback, WSLg, the Docker socket) are
@@ -350,6 +354,20 @@ compose() {
     } | as_root tee "$CONF" > /dev/null
 }
 
+# The base resolver, for the instance that never got one: a distro built from the
+# image has no /etc/resolv.conf (the image carries none, and the install runs
+# inside Docker, where that path is Docker's own mounted file - see install.sh).
+# openresolv hands back, when the tunnel goes down, whatever it found before
+# taking over, so this is written once, before the first mount, and only when
+# there is nothing: a file that exists is the user's, or WSL's.
+ensure_base_resolver() {
+    if [ -s /etc/resolv.conf ] && [ ! -L /etc/resolv.conf ]; then
+        return 0
+    fi
+    printf 'nameserver %s\n' "$DNS_BASE" | as_root tee /etc/resolv.conf > /dev/null
+    printf '📝 /etc/resolv.conf was missing: %s is in it, and comes back when the tunnel goes down.\n' "$DNS_BASE"
+}
+
 # Raising the tunnel, with the server named: the profile is rebuilt first, so
 # what comes up is what the JSON and the variables say right now. A tunnel
 # already up goes down first - it is the same interface, and wg-quick needs the
@@ -369,6 +387,7 @@ cmd_up() {
         run_quiet as_root wg-quick down "$IFACE" ||
             die "the tunnel was up and would not come down - the lines above are wg-quick's own."
     fi
+    ensure_base_resolver
     compose "$wanted"
     run_quiet as_root wg-quick up "$IFACE" ||
         die "the tunnel did not come up - the lines above are wg-quick's own."
