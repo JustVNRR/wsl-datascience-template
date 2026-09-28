@@ -73,10 +73,5 @@ Write-Host ""
 Write-Host "==> '$DistroName' now carries: $(if ($Now.Count -gt 0) { $Now -join ', ' } else { 'no pack' })" -ForegroundColor (Get-MessageColour success)
 if ($Selection.ToAdd.Count -gt 0) {
     Write-Host "    Open a shell in it to use them:  .\wsl.ps1 shell" -ForegroundColor (Get-MessageColour muted)
-    # Only when one of them brought variables to merge: the target itself is the
-    # devops pack's, and a pack that ships no sample has nothing there to add.
-    if (@($Selection.ToAdd | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
-        Write-Host "    Then, in there:  gmake env_global_enable   (adds their variables)" -ForegroundColor (Get-MessageColour muted)
-    }
 }
 exit 0

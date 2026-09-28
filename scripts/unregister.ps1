@@ -102,6 +102,11 @@ if ($Distro) {
         }
     }
 
+    Write-Host "==> Stopping the distro processes..." -ForegroundColor (Get-MessageColour info)
+    wsl.exe --terminate $DistroName 2>$null
+
+    Start-Sleep -Seconds 1
+
     Write-Host "==> Unregistering the distro..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { wsl.exe --unregister $DistroName } "WSL unregister failed."
 }
