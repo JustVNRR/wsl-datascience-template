@@ -182,6 +182,19 @@ else
     fi
 fi
 
+# The pack's two variables, into the file the socle loads. `env_global_enable`
+# merges the sample of every installed pack and adds what is missing - it never
+# rewrites a value the user set, which is what makes it safe to run here, and why
+# it saves the step an install used to leave over: a variable nobody merged is a
+# target that answers "VPN_PROFILE is not set in .env.global".
+#
+# Best-effort on purpose: the merge loads every installed pack's module, and a
+# broken one elsewhere would make it fail - that must not fail an install that
+# worked, so the message says what to run by hand instead.
+if ! make -f "$HOME/.config/zsh/gmake/Makefile" env_global_enable; then
+    echo "ℹ️  The variables were not merged - run 'gmake env_global_enable' yourself."
+fi
+
 echo "✅ Firefox is installed, and 'fox' opens it - its commands are in the picker (fcheat)."
 echo "✅ WireGuard is installed: gmake vpn_status   (servers first, see docs/vpn.md)"
 if [ -L /etc/resolv.conf ] || grep -q 'generateResolvConf' /etc/wsl.conf 2>/dev/null; then
