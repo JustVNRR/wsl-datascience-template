@@ -22,7 +22,7 @@ fox --version                                  # Which version is installed
 MOZ_ENABLE_WAYLAND=0 fox                       # Force X11, when the mouse misbehaves
 ls ~/.mozilla/firefox                          # The profiles: bookmarks, passwords, history
 
-# --- 3. THE SOUND ---
+# --- 3. THE SOUND (the volume needs: sudo apt install pulseaudio-utils) ---
 pactl get-sink-volume @DEFAULT_SINK@           # The level the instance plays at (its own, not Windows')
 pactl set-sink-volume @DEFAULT_SINK@ 50%       # Set it - +10% / -10% moves by a step
 pactl set-sink-mute @DEFAULT_SINK@ toggle      # Cut the sound, and bring it back

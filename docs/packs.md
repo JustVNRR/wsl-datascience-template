@@ -182,7 +182,8 @@ installs it in its `install.sh`, beside the program that wants it, and never in
 `PACK_PACKAGES`; its `remove.sh` marks it automatic on the way out
 (`apt-mark auto`), which makes it an orphan the moment the pack is gone, and the
 cleanup `remove_pack` runs afterwards takes it back. `web` is the case that
-exists: Firefox loads `libavcodec60` for H.264, and nothing declares it.
+exists: Firefox loads `libavcodec60` for H.264 and `libpulse0` for the sound,
+and nothing declares either.
 
 What this buys: no pack has to be cut to avoid an overlap, and no one has to
 arbitrate who owns what. A pack that needs a package installs it, whether or

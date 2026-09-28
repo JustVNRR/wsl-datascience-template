@@ -68,13 +68,17 @@ fi
 #    docs/vpn.md), the routing tools wg-quick calls, and the firewall the kill
 #    switch is written in.
 #
-#    libavcodec60 comes with them and is named nowhere else: it is the system
-#    decoder Firefox loads at runtime for H.264 and AAC, which is what YouTube
-#    sends for its live streams (ordinary videos arrive in VP9/AV1, decoded by
-#    the browser itself). A library, so it cannot go in PACK_PACKAGES - see the
-#    comment there, and docs/packs.md.
+#    Two libraries come with them and are named nowhere else, both of them loaded
+#    by the browser at runtime and invisible to apt:
+#      - libavcodec60, the system decoder for H.264 and AAC, which is what
+#        YouTube sends for its live streams (ordinary videos arrive in VP9/AV1,
+#        decoded by the browser itself);
+#      - libpulse0, the PulseAudio client: the sound of a WSLg window goes
+#        through PulseAudio, and Mozilla's package only pulls ALSA.
+#    A library cannot go in PACK_PACKAGES - see the comment there, and
+#    docs/packs.md.
 apt-get update
-apt-get install -y --no-install-recommends $packages libavcodec60
+apt-get install -y --no-install-recommends $packages libavcodec60 libpulse0
 
 # 3. The resolver itself, from Debian's archive.
 cd /tmp
@@ -123,6 +127,29 @@ apt-get update
 # refuses the change with \"Packages were downgraded and -y was used without
 # --allow-downgrades\" on any machine where that stub was ever installed.
 apt-get install -y --no-install-recommends --allow-downgrades firefox"
+
+# The sound, once the browser is there. Its audio process is sandboxed, and on
+# WSLg that sandbox is what keeps it away from the socket the sound travels
+# through: with the client library installed the browser still plays in silence
+# until this default says otherwise (measured on an instance).
+#
+# A default, not an order: it goes where Mozilla's own package puts its default
+# preferences, so it applies to every profile - no name to guess, unlike a
+# user.js in ~/.mozilla - and a value set in about:config still wins. remove.sh
+# takes the file back.
+pref_file=/usr/lib/firefox/defaults/pref/wslg-audio.js
+if [ -d /usr/lib/firefox/defaults/pref ]; then
+    sudo tee "$pref_file" > /dev/null <<'PREF'
+// Set by the web pack: the sound of a WSLg window goes through PulseAudio, and
+// the audio sandbox keeps the browser away from the socket WSLg serves. This is
+// a default - a value set in about:config wins over it.
+pref("media.cubeb.sandbox", false);
+PREF
+    sudo chmod 0644 "$pref_file"
+    echo "🔊 The sound reaches WSLg (media.cubeb.sandbox off, as a default)."
+else
+    echo "ℹ️  No /usr/lib/firefox/defaults/pref: the sound was left alone."
+fi
 
 # The servers, in one JSON in ~/.config/vpn (mode 600: it carries the private
 # keys). Three cases, in this order:

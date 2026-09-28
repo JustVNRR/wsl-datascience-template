@@ -52,13 +52,26 @@ mouse misbehaves under Wayland, `MOZ_ENABLE_WAYLAND=0 fox` forces X11 — the pa
 does not set it, because on most machines it is not needed.
 
 **Its sound goes through PulseAudio**, which is how WSLg carries the audio of a
-Linux window to Windows — and Mozilla's package only pulls the ALSA library, so
-the pack installs `pulseaudio-utils` (and, with it, the client library the
-browser loads at runtime). Without it the browser opens, plays, and stays mute.
+Linux window to Windows — and Mozilla's package only pulls the ALSA library. Two
+things the pack puts in place for it:
 
-**The sound has its own level**, and it is not the one Windows shows: WSLg plays
-it as its own stream, so turning the Windows volume down does not turn this one
-down. The volume is set from inside the instance:
+- the client library the browser loads at runtime (`libpulse0`), without which
+  it opens, plays, and stays mute;
+- a default preference that lets it reach the socket WSLg serves, in
+  `/usr/lib/firefox/defaults/pref/wslg-audio.js`:
+
+  ```js
+  pref("media.cubeb.sandbox", false);
+  ```
+
+That file is a *default*, not an order: it applies to every profile — no name to
+guess — and a value set in `about:config` wins over it. Removing the pack takes
+it back.
+
+**The volume is its own**, and it is not the one Windows shows: WSLg plays the
+sound itself, so turning the Windows volume down does not turn this one down.
+Setting it needs a client tool, which the pack does not install —
+`sudo apt install pulseaudio-utils`, and then:
 
 | Command | What it does |
 | :--- | :--- |

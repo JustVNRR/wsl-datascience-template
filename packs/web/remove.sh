@@ -56,13 +56,19 @@ for package in $declared; do
     sudo apt-get remove -y "$package"
 done
 
-# The decoder installed beside the browser (libavcodec60, see install.sh) is a
-# library: no pack removes one, because apt takes the programs that depend on it
-# along. Marked automatic, it becomes an orphan the moment this pack is gone,
-# and the cleanup remove_pack runs next - apt for what apt installed, ldd for
-# what lives outside its graph - takes it back with the others.
-echo "➖ Leaving the browser's decoder to the cleanup that follows..."
-sudo apt-mark auto libavcodec60 2>/dev/null || true
+# The two libraries installed beside the browser (libavcodec60, the decoder, and
+# libpulse0, the sound client - see install.sh) are libraries: no pack removes
+# one, because apt takes the programs that depend on it along. Marked automatic,
+# they become orphans the moment this pack is gone, and the cleanup remove_pack
+# runs next - apt for what apt installed, ldd for what lives outside its graph -
+# takes them back with the others.
+echo "➖ Leaving the browser's decoder and its sound client to the cleanup that follows..."
+sudo apt-mark auto libavcodec60 libpulse0 2>/dev/null || true
+
+# The default preference install.sh wrote, and nothing else: /usr/lib/firefox is
+# the browser's own directory, and the pack touches it in one place.
+echo "➖ Removing the sound preference..."
+sudo rm -f /usr/lib/firefox/defaults/pref/wslg-audio.js
 
 echo "➖ Removing Mozilla's repository..."
 sudo rm -f /etc/apt/sources.list.d/mozilla.list \
