@@ -328,11 +328,12 @@ try {
     Invoke-External { docker export -o $TarPath $ContainerName } "Docker export failed."
 
     Write-Host "==> 4. Preparing installation folder: $InstallPath" -ForegroundColor (Get-MessageColour info)
-    # Same trap as the Docker probe above: 2>$null does not silence wsl.exe,
-    # which writes a mojibake UTF-16 error whenever the distro does not exist
-    # yet - i.e. on every first build. The exit code is ignored on purpose.
+    
     $PreviousEAP = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
+    $null = wsl.exe --terminate $DistroName *> $null
+    Start-Sleep -Seconds 1
+
     $null = wsl.exe --unregister $DistroName *> $null
     $ErrorActionPreference = $PreviousEAP
     if (Test-Path -Path $InstallPath) {
@@ -518,12 +519,6 @@ try {
                 $PackLine = ($Landed -join ", ")
                 $PackLineColour = "Green"
                 $PackReport = @("Packs: $($Landed -join ', ') installed.")
-                # Only when one of them brought variables to merge: the target
-                # itself is the devops pack's, and a pack that ships no sample has
-                # nothing there to add.
-                if (@($PackSelection.ToAdd | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
-                    $PackReport += "  In there:  gmake env_global_enable   (adds their variables)"
-                }
             }
         } catch {
             $PackLine = "not installed - $($_.Exception.Message)"
