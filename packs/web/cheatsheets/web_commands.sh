@@ -19,7 +19,7 @@ fox https://example.com/report.pdf             # A URL with a query string, quot
 # --- 2. WHEN SOMETHING IS WRONG ---
 fox --safe-mode                                # Start without extensions or hardware acceleration
 fox --version                                  # Which version is installed
-MOZ_ENABLE_WAYLAND=0 fox                       # Force X11, when the mouse misbehaves
+MOZ_ENABLE_WAYLAND=1 fox                       # Wayland for one call (the pack runs X11: it is what behaves under WSLg)
 ls ~/.mozilla/firefox                          # The profiles: bookmarks, passwords, history
 
 # --- 3. THE SOUND (the volume needs: sudo apt install pulseaudio-utils) ---

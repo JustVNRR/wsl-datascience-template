@@ -5,6 +5,16 @@
 # (~/.config/packs/web/zsh/web.zsh) and copies nothing anywhere - a pack that
 # goes takes its shell configuration with it.
 
+# Wayland or X11: Firefox picks Wayland when the machine announces it, and WSLg
+# announces it - which is the wrong half of the pair under WSL, where it is the
+# Wayland path that misbehaves (scrolling, menus that stop answering, frames
+# dropped). X11, which WSLg also serves through XWayland, behaves.
+#
+# Set here rather than in a profile of its own, so both ways in are covered:
+# `fox` and plain `firefox`. One call can ask for Wayland back:
+# `MOZ_ENABLE_WAYLAND=1 fox`.
+export MOZ_ENABLE_WAYLAND=0
+
 # Firefox asks for a session bus before it draws anything, and this image has
 # none: no dbus-daemon, no dbus-launch, and the report is the same everywhere -
 # the first window never opens, the second one does. dbus-x11 is part of the

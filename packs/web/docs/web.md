@@ -47,9 +47,15 @@ fox() {
 ```
 
 The first `fox` of a shell starts a bus and leaves the variable set; every call
-after that is the plain command, and `firefox` works on its own too. If the
-mouse misbehaves under Wayland, `MOZ_ENABLE_WAYLAND=0 fox` forces X11 — the pack
-does not set it, because on most machines it is not needed.
+after that is the plain command, and `firefox` works on its own too.
+
+**It runs on X11, and that is the pack's choice**: Firefox takes Wayland when
+the machine announces it, WSLg announces it, and under WSL the Wayland path is
+the one that misbehaves — scrolling, menus that stop answering, frames dropped.
+`web.zsh` exports `MOZ_ENABLE_WAYLAND=0`, so the two ways in (`fox` and plain
+`firefox`) behave the same; `MOZ_ENABLE_WAYLAND=1 fox` asks for Wayland back for
+one call, or a line in `~/.zshrc` makes it permanent. Which one is in use is in
+`about:support`, under *Window Protocol*.
 
 **Its sound goes through PulseAudio**, which is how WSLg carries the audio of a
 Linux window to Windows — and Mozilla's package only pulls the ALSA library. Two
