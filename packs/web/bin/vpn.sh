@@ -224,6 +224,42 @@ is_up() {
     [ "$(as_root wg show interfaces 2>/dev/null | head -n 1)" = "$IFACE" ]
 }
 
+# wg-quick tells what it does, line by line - `[#] ip link add vpn`, `[#] ip -4
+# route add ...` - and that is worth reading the day something goes wrong, and
+# noise the rest of the time. So it is captured, and given back only when it
+# fails: the one moment its words are the answer.
+run_quiet() {
+    local out
+    if ! out=$("$@" 2>&1); then
+        printf '%s\n' "$out" >&2
+        return 1
+    fi
+}
+
+# Which server is up? The interface is always `vpn`, so nothing at the interface
+# level remembers it - but the profile does: its second line names the server it
+# was generated for, and it is written right before every mount. Empty when no
+# tunnel is up, or when the file is not the pack's.
+server_in_use() {
+    is_up || return 0
+    as_root sed -n 's/^# Server: \([^ ]*\).*/\1/p' "$CONF" 2>/dev/null | head -n 1 || true
+}
+
+# The tunnel comes up before the server has answered anything: wg-quick sets the
+# interface and its routes, and the handshake happens afterwards. Asking the
+# exit IP in that instant answers "unreachable" about a tunnel that is perfectly
+# fine - so wait for the first handshake, a second at a time, and say so when it
+# never comes.
+wait_handshake() {
+    local stamp
+    for _ in $(seq 1 10); do
+        stamp=$(as_root wg show "$IFACE" latest-handshakes 2>/dev/null | awk 'NR == 1 { print $2 }')
+        [ -n "$stamp" ] && [ "$stamp" != 0 ] && return 0
+        sleep 1
+    done
+    return 1
+}
+
 # The menu. fzf, like the other pickers of this shell (fcheat, fnew), and the
 # whole list on screen: three servers do not need a scrolling window.
 # It needs a terminal, and says which way round that is: a menu cannot be
@@ -330,16 +366,19 @@ cmd_up() {
     fi
 
     if is_up; then
-        printf '⤵️  %s down (the profile is rebuilt before every mount)\n' "$IFACE"
-        as_root wg-quick down "$IFACE"
+        run_quiet as_root wg-quick down "$IFACE" ||
+            die "the tunnel was up and would not come down - the lines above are wg-quick's own."
     fi
     compose "$wanted"
-    as_root wg-quick up "$IFACE"
-    if ks_on; then
-        printf '✅ the tunnel is up - server %s, kill switch on\n' "$wanted"
-    else
-        printf '✅ the tunnel is up - server %s (gmake vpn_ks_on adds the kill switch)\n' "$wanted"
-    fi
+    run_quiet as_root wg-quick up "$IFACE" ||
+        die "the tunnel did not come up - the lines above are wg-quick's own."
+    wait_handshake ||
+        printf '⚠️  the server has not answered yet - the exit IP below may take a moment.\n' >&2
+
+    # What it did is one thing, where it stands is another, and the second is
+    # what is worth reading: up, with which server, with the kill switch, and
+    # through which exit IP.
+    cmd_status
 }
 
 # The same, with the server picked from the menu.
@@ -354,8 +393,9 @@ cmd_down() {
         printf 'ℹ️  no tunnel is up.\n'
         return 0
     fi
-    as_root wg-quick down "$IFACE"
-    printf '✅ the tunnel is down.\n'
+    run_quiet as_root wg-quick down "$IFACE" ||
+        die "the tunnel did not come down - the lines above are wg-quick's own."
+    cmd_status
 }
 
 # The default: the server the distro starts with. It is VPN_PROFILE, so this
@@ -509,7 +549,7 @@ cmd_auto() {
 }
 
 cmd_status() {
-    local id count ns exit_ip last
+    local id count in_use ns exit_ip last
 
     if is_up; then
         printf '🔒 Tunnel      : up (%s)\n' "$IFACE"
@@ -519,16 +559,25 @@ cmd_status() {
 
     id=$(server_var)
     count=$(ids | wc -l)
+    in_use=$(server_in_use)
     if [ ! -f "$SERVERS" ]; then
         printf '   Servers     : none (no %s - gmake vpn_edit_profiles creates it)\n' "$SERVERS"
     elif [ "$count" = 0 ]; then
         printf '   Servers     : none in %s - gmake vpn_edit_profiles opens it\n' "$SERVERS"
-    elif [ -n "$id" ]; then
-        printf '   Servers     : %s in %s\n' "$count" "$SERVERS"
-        printf '   Server      : %s (VPN_PROFILE)\n' "$id"
     else
         printf '   Servers     : %s in %s\n' "$count" "$SERVERS"
-        printf '   Server      : none named - gmake vpn_server picks one\n'
+        if [ -n "$in_use" ] && [ "$in_use" != "$id" ] && [ -n "$id" ]; then
+            # The two can differ: `gmake vpn_up VPN_PROFILE=ch` connects once
+            # without changing the default, and the next mount would use another
+            # server - so both are named, and which is which.
+            printf '   Server      : %s - up now; VPN_PROFILE names %s\n' "$in_use" "$id"
+        elif [ -n "$in_use" ]; then
+            printf '   Server      : %s - up now, and what the next mount uses\n' "$in_use"
+        elif [ -n "$id" ]; then
+            printf '   Server      : %s (VPN_PROFILE)\n' "$id"
+        else
+            printf '   Server      : none named - gmake vpn_server picks one\n'
+        fi
     fi
 
     printf '   Kill switch : %s\n' "$(ks_line)"

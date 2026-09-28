@@ -25,6 +25,12 @@ whole machine should be covered, that is a different arrangement (WSL's
 | `vpn_auto_on` / `vpn_auto_off` | Bring the tunnel up when the distro starts, or stop doing that |
 | `vpn_edit_profiles` | Open the JSON of servers in `$EDITOR` (nano when unset) |
 
+The three that move the tunnel — `vpn_up`, `vpn_up_from_list`, `vpn_down` — end
+by showing what `vpn_status` shows, and wait for the server's first handshake
+before asking the exit IP, so the answer is about a tunnel that is really
+connected. `wg-quick`'s own line-by-line trace is captured and printed **only
+when it fails**, which is the moment it is worth reading.
+
 ## The servers
 
 One file, yours: `~/.config/vpn/servers.json`, mode `600` (it carries your
