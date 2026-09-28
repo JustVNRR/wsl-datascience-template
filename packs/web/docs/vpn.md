@@ -119,6 +119,15 @@ Two things this needs, both done by the install: `generateResolvConf = false` in
 from Debian's package, and removes `systemd-resolved` first, because the two
 claim the same `resolvconf` command.
 
+That setting is what tells WSL to leave the file alone, and **it does not always
+hold**: WSL is known to take the file back at a start and leave it missing
+([microsoft/WSL#9070](https://github.com/microsoft/WSL/issues/9070)), which is
+what happened on an instance while this pack was being written. Nothing breaks —
+the next `vpn_up` writes it again (measured: openresolv creates it whether or
+not it was there), and `vpn_status` says it is missing instead of failing. The
+usual advice, making the file immutable with `chattr +i`, is not open to this
+pack: the tunnel has to write it at every mount.
+
 ## The kill switch
 
 `gmake vpn_ks_on` puts `VPN_KILL_SWITCH=true` in `.env.global`; the generated
