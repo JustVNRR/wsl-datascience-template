@@ -59,6 +59,10 @@ GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 DNS_DEFAULT=10.2.0.1
 MTU_DEFAULT=1420
 
+# The resolver the install writes, and the one vpn_down puts back when it finds
+# the file gone. Kept here so the two are the same value, said once.
+DNS_BASE=1.1.1.1
+
 # The kill switch: two iptables lines, in the generated profile, that reject
 # whatever would leave outside the tunnel. The mark is the one wg-quick puts on
 # its own packets, and LOCAL destinations (loopback, WSLg, the Docker socket) are
@@ -388,9 +392,25 @@ cmd_up_from_list() {
     cmd_up "$wanted"
 }
 
+# A tunnel takes its resolver with it, and openresolv puts back what was there
+# before it - unless the copy it saved went with the last restart (it lives in
+# /run, which is memory). What is left then is an instance where nothing
+# resolves a name: not a state to hand over, so the base the install wrote comes
+# back, and the line says it happened. Called before anything else in vpn_down,
+# because a tunnel already down is exactly when the file can be missing.
+restore_resolver() {
+    if [ -r /etc/resolv.conf ]; then
+        return 0
+    fi
+    printf 'nameserver %s\n' "$DNS_BASE" | as_root tee /etc/resolv.conf > /dev/null
+    printf '📝 /etc/resolv.conf was gone - %s is back in it.\n' "$DNS_BASE"
+}
+
 cmd_down() {
+    restore_resolver
     if ! is_up; then
         printf 'ℹ️  no tunnel is up.\n'
+        cmd_status
         return 0
     fi
     run_quiet as_root wg-quick down "$IFACE" ||
@@ -582,8 +602,17 @@ cmd_status() {
 
     printf '   Kill switch : %s\n' "$(ks_line)"
 
-    ns=$(sed -n 's/^nameserver[[:space:]]\+//p' /etc/resolv.conf | head -n 1)
-    printf '   DNS         : %s\n' "${ns:-none}"
+    # openresolv writes this file when the tunnel comes up and puts back what was
+    # there when it goes down (measured) - so a missing one is not a state this
+    # pack creates, and it is worth saying rather than falling over: without it,
+    # nothing on the instance resolves a name. The old version of this line let
+    # sed fail and took the whole target down with it.
+    if [ -r /etc/resolv.conf ]; then
+        ns=$(sed -n 's/^nameserver[[:space:]]\+//p' /etc/resolv.conf 2>/dev/null | head -n 1 || true)
+        printf '   DNS         : %s\n' "${ns:-none in /etc/resolv.conf}"
+    else
+        printf '   DNS         : no /etc/resolv.conf - nothing resolves a name\n'
+    fi
 
     exit_ip=$(curl -s --max-time 8 https://am.i.mullvad.net/ip 2>/dev/null || true)
     printf '   Exit IP     : %s\n' "${exit_ip:-unreachable}"
