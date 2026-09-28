@@ -156,6 +156,20 @@ gateway, the way they did before (`nameserver 172.x.x.1` in their own file).
 To go back: delete `%USERPROFILE%\.wslconfig` and run `wsl.exe --shutdown`
 again.
 
+One thing to know before applying it: that `wsl.exe --shutdown` restarts the
+whole WSL machine, Docker Desktop's engine included, and Docker Desktop can be
+left stuck on *Turning off the Docker Engine…* when its own distro is killed
+under it — seen on this machine, and quitting the application does not clear
+that state. Killing what is left of its processes does, from PowerShell:
+
+```powershell
+Get-Process | Where-Object { $_.Name -match 'docker' } | Stop-Process -Force
+```
+
+Nothing is lost — images, volumes and settings stay where they are. It was not
+`dnsTunneling` that caused it: the engine stayed stuck with the setting disabled
+too.
+
 That file is written at install, and again by `vpn_up` before every mount —
 `vpn_down` writes it too when it is missing and no tunnel is up. So an instance
 that came back from a `wsl --shutdown` without one gets name resolution again
