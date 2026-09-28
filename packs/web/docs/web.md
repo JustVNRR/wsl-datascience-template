@@ -51,6 +51,14 @@ after that is the plain command, and `firefox` works on its own too. If the
 mouse misbehaves under Wayland, `MOZ_ENABLE_WAYLAND=0 fox` forces X11 — the pack
 does not set it, because on most machines it is not needed.
 
+**Its sound goes through PulseAudio**, which is how WSLg carries the audio of a
+Linux window to the Windows output device — and Mozilla's package only pulls the
+ALSA library, so the pack installs `libpulse0` too. Without it the browser opens,
+plays, and stays mute. Which device it comes out of is not decided here: WSLg
+plays on the **Windows default output**, so the choice is in Windows (Settings →
+System → Sound), made before the distro starts — a headset connected afterwards
+is usually not followed until WSL restarts (`wsl.exe --shutdown`).
+
 Your profile (`~/.mozilla`: bookmarks, passwords, history) is yours: removing
 the pack does not delete it.
 
