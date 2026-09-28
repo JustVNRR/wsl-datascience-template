@@ -50,7 +50,7 @@ private keys). An entry per server:
 | `note` | Yours, for you |
 | `address` | What Proton gives the interface — keep the IPv4 and the IPv6 one, comma-separated |
 | `private_key` | Your key |
-| `peer.public_key`, `peer.endpoint`, `peer.allowed_ips` | The server's, from the same Proton file |
+| `peer.public_key`, `peer.endpoint`, `peer.allowed_ips` | The server's, from the same Proton file. The endpoint is an IPv4 address or an IPv6 one in brackets — `[2a00:7c80:0:3a1::10]:51820` — and both work, but only if this instance can reach them (see below) |
 | `dns`, `mtu`, `peer.persistent_keepalive` | Optional, per entry. Without them the pack applies `10.2.0.1`, `1420`, and no keepalive — the same for every server |
 
 The two keys and the address come from your Proton account: **Downloads**, then
@@ -89,6 +89,17 @@ edit or hand to `wg-quick` yourself:
 - **a hand correction is a correction to the generator** — `bin/vpn.sh` writes
   it, and the next `vpn_up` writes it again. If it is wrong, that is the bug to
   fix, and `vpn_status` shows what went into it.
+
+## When it does not connect
+
+`vpn_status` says the tunnel is up as soon as the interface is — which is not the
+same as reaching the server. Two commands tell the two apart:
+
+| What you see | What it means |
+| :--- | :--- |
+| `sudo wg show` shows no `latest handshake` line | The server never answered. The endpoint is the first suspect: Proton hands out an IPv4 address or an IPv6 one, and an instance with no IPv6 route can never reach an IPv6 endpoint. `ip -6 route show` says whether there is one — with none, take the IPv4 endpoint of the same server (`gmake vpn_edit_profiles`) |
+| `vpn_status` says the exit IP is unreachable, handshake present | The traffic leaves but something eats it: the MTU (drop it to 1380 in the entry's `mtu`) or the kill switch on a machine whose traffic should partly stay local |
+| no interface at all, `gmake vpn_up` failed | `wg-quick`'s own words are on screen, and `bin/vpn.sh up` prints them as they come |
 
 ## The DNS
 
