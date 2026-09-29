@@ -42,10 +42,10 @@ An `install.sh` ends with one of three answers, and the third is the user's:
 | `1` | the installation failed | its folder goes back out — the folder is what the menu reads, and a pack with no tool behind it is a menu that lies |
 | `2` | **the user was asked something and said no** | the same, but nothing failed: the run goes on, and no caller reports anything |
 
-The `claude` pack is the case that exists: it asks before adding a second copy of
-a program that is already installed on Windows and visible from the instance
-through `/mnt/c`. Declining is an answer, so nothing is asked again; the pack
-simply is not installed.
+The `claude` pack is the case that exists: it warns before adding a second copy
+of a program that is already installed on Windows and visible from the instance
+through `/mnt/c`. Yes is the default there, and the decline is an explicit `n` —
+which is an answer, so nothing is asked again; the pack simply is not installed.
 
 **A pack that asks must be able to be answered**, and that is the install
 script's business, not the socle's. A pack arrives because it was chosen — a box

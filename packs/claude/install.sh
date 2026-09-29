@@ -42,38 +42,35 @@ else
     # though - Windows paths, Windows files, the Windows copy of your settings -
     # where what this pack installs runs here, on this instance's own files.
     #
-    # So it is asked, and it is a real question: someone who works from Windows
-    # on purpose should not pay for a second copy by accident. A bare Enter
-    # declines - the answer that costs nothing is the one a bare Enter gives -
-    # and declining is an ANSWER, not a failure: exit code 2, which the socle
-    # reports as "not installed" rather than as a broken installation
-    # (docs/packs.md).
+    # So it is said, and one line is asked: a warning, not a gate. The default
+    # is yes, and only an explicit `n` refuses - the [y/N] this started as made
+    # the person prove their intent at every build, and a bare Enter should not
+    # make a chosen pack disappear (his call, 2026-09-29). Declining is still an
+    # ANSWER, not a failure: exit code 2, which the socle reports as "not
+    # installed" rather than as a broken installation (docs/packs.md).
     #
-    # Asked only when an answer can arrive, and that is not a detail: a pack
-    # arrives because it was CHOSEN - a box ticked in the checklist `build` asks
-    # before it builds, a row picked from the list `add_pack` shows - and a
-    # choice is an answer. Declining with nothing to read put the two halves of
-    # one screen against each other: this script threw the folder away while
-    # `build` still announced the pack as installed, because a tick was the only
-    # thing it had to go on. Measured on a fresh build, and fixed on both sides.
+    # The silent case agrees with the default: a pack arrives because it was
+    # CHOSEN - a box ticked in the checklist `build` asks before it builds, a row
+    # picked from the list `add_pack` shows - so when no line comes back at all,
+    # that choice is the answer, and it is yes. Refusing there put the two halves
+    # of one screen against each other once: this script threw the folder away
+    # while `build` still announced the pack as installed. Measured on a fresh
+    # build, and fixed on both sides.
     #
-    # What tells the two apart is whether a line comes back at all, not whether
-    # stdin is a terminal: a `y` or an `n` on a pipe is an answer too, and an
-    # empty line is a No like any other - the bare Enter a person pressed.
+    # What counts as the answer is whether a line comes back, not whether stdin
+    # is a terminal: `y`, `n`, or the empty line a bare Enter sends are all
+    # answers - and only the `n` is a no.
     foreign=$(command -v claude 2>/dev/null || true)
     if [ -n "$foreign" ]; then
         echo "Claude Code is already installed on Windows."
-        echo "Install a copy in this instance too? [y/N]"
+        echo "Install a copy in this instance too? [Y/n]"
         if read -r answer; then
             case "$answer" in
-                [yY]*) ;;
-                *)
+                [nN]*)
                     echo "Nothing was installed."
                     exit 2
                     ;;
             esac
-        else
-            echo "No terminal to ask with, and the pack was chosen - installing here as well."
         fi
     fi
 
