@@ -90,7 +90,14 @@ else
     # the installer finds no npm to migrate, and no other `claude` to argue with
     # either. Everything it needs - curl, bash, sha256sum, zstd - lives under
     # /usr, and none of it is a Windows program.
-    clean_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    #
+    # $HOME/.local/bin is in it - the instance's own directory, where the
+    # launcher lands - and that is deliberate: without it the installer sees its
+    # directory missing from the PATH and prints a setup note telling you to
+    # edit your shell file, which is false here (the socle exports that
+    # directory, zsh/exports.zsh) and advice this pack would never act on. With
+    # it there, the note does not appear.
+    clean_path=$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     #
     # No sudo, and the installer refuses it: everything lands under $HOME, and
     # under sudo that $HOME is root's, where the launcher would not be found by
@@ -102,14 +109,20 @@ else
     # exits 0, and the failure would surface one step later, on a missing
     # `claude`.
     #
-    # The installer ends by printing a note - "~/.local/bin is not in your PATH,
-    # run: echo ... >> your shell config file" - and nothing is done about it
-    # here on purpose: the socle already exports that directory
-    # (zsh/exports.zsh), so the note is already answered, and a pack that writes
-    # into your files has something to undo the day it leaves. There is no
-    # opt-out variable to set, unlike uv's installer, because there is nothing
-    # to opt out of.
-    PATH=$clean_path curl -fsSL https://claude.ai/install.sh | PATH=$clean_path bash
+    # The installer's own output is thinned to ASCII on its way through: it
+    # does not follow this file's rule - it prints ticks, a warning sign and an
+    # arrow - and those bytes reach a Windows console as garbage (measured, the
+    # same reason every line this script prints is ASCII). Only the bytes above
+    # 0x7F are dropped; the sentences stay.
+    #
+    # Nothing else is done about the installer's advice, and there is nothing
+    # left to do: its "~/.local/bin is not in your PATH" note no longer prints
+    # (the PATH above carries that directory), and this pack never edits your
+    # shell files anyway - a pack that writes into them has something to undo
+    # the day it leaves. There is no opt-out variable to set, unlike uv's
+    # installer, because there is nothing to opt out of.
+    PATH=$clean_path curl -fsSL https://claude.ai/install.sh | PATH=$clean_path bash 2>&1 |
+        LC_ALL=C tr -d '\200-\377'
 fi
 
 # The dictionary of providers, seeded once and never written again - the same

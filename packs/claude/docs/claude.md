@@ -173,9 +173,9 @@ script.
 | `~/.claude/projects/` | one folder per project this instance has worked in — what `claude_project` lists |
 | `~/.claude/settings.json` | the settings the CLI reads at every start |
 
-`~/.local/bin` is already on the PATH — the socle exports it — so the note the
-installer prints, asking you to add it to your shell's configuration file, needs
-nothing done about it.
+`~/.local/bin` is already on the PATH — the socle exports it — and the installer
+is run with it there, so its leave-me-in-your-PATH note never appears, and
+nothing needs doing about your shell's configuration file.
 
 ## The one on Windows is not this one
 
