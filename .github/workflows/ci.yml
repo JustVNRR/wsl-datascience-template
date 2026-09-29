@@ -171,7 +171,7 @@ jobs:
           fi
           # The project targets came out of the socle with the devops pack - they
           # build and push ONE project, and an instance whose folders are empty
-          # has none. Nothing of them may stay behind here. The two .env targets
+          # has none. Nothing of them may stay behind here. The .env targets
           # are not on this list any more: they went back to the socle, and the
           # loop below is what keeps them there.
           if grep -qE '^  (docker_build_local|docker_run_local|gh_pr_create|gh_pr_toreview|gh_pr_wip|gh_pr_ls)[[:space:]]' help-bare.txt; then
@@ -186,7 +186,7 @@ jobs:
             bad=1
           fi
           # And the socle loses nothing to an empty packs folder
-          for target in help packs_list env_global_enable env_project_enable; do
+          for target in help packs_list env_global_enable env_global_manage env_project_enable env_project_manage; do
             grep -q "^  ${target}[[:space:]]" help-bare.txt || {
               echo "::error::socle target '${target}' missing from the menu with no pack"
               bad=1
