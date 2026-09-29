@@ -34,6 +34,34 @@ no package to install — its folder carries modules, one sample and its pages,
 and its two scripts have nothing to do but say so. `scaffold` is both at once:
 one package to install (uv), targets, a sheet, a sample and its pages.
 
+An `install.sh` ends with one of three answers, and the third is the user's:
+
+| Code | What it says | What happens |
+| :--- | :--- | :--- |
+| `0` | what the pack carries is installed | its folder stays, and the pack is installed |
+| `1` | the installation failed | its folder goes back out — the folder is what the menu reads, and a pack with no tool behind it is a menu that lies |
+| `2` | **the user was asked something and said no** | the same, but nothing failed: the run goes on, and no caller reports anything |
+
+The `claude` pack is the case that exists: it warns before adding a second copy
+of a program that is already installed on Windows and visible from the instance
+through `/mnt/c`. Yes is the default there, and the decline is an explicit `n` —
+which is an answer, so nothing is asked again; the pack simply is not installed.
+
+**A pack that asks must be able to be answered**, and that is the install
+script's business, not the socle's. A pack arrives because it was chosen — a box
+ticked in the checklist `build` asks before it builds, a row picked from the list
+`add_pack` shows — so with no answer to read, an `install.sh` must not decline:
+it installs. A build once announced a pack as installed while its script had
+declined to nobody and thrown its own folder away, which is the shape of the
+mistake: a choice is an answer, and the welcome screen states what happened.
+
+The same holds at the other end: a `remove.sh` may ask too — the `claude` pack
+asks whether to keep the data the tool left behind — and with no answer to read,
+the default has to be the one that destroys nothing: a removal with nobody at the
+keyboard must not take away what cannot be fetched again. Removing an instance
+never goes through a `remove.sh` at all: the distro is unregistered whole, packs
+and data together.
+
 ## `pack.conf`
 
 | Declaration | What it says |

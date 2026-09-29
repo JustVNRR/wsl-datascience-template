@@ -484,6 +484,22 @@ function Invoke-PackApply {
         Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor (Get-MessageColour muted)
         Invoke-PackScript -DistroName $DistroName -Target $Target -Script "install.sh" -ExitCode ([ref]$Code)
 
+        # Exit code 2 is the pack's way of saying it asked a question and the
+        # answer was no - the claude pack asks before adding a second copy of a
+        # program that is already installed on Windows. Its folder goes back out,
+        # because the folder is what the menu reads and a pack with no tool
+        # behind it is a menu that lies; but nothing failed, and the run goes on:
+        # the packs after it still arrive, and the callers have no failure to
+        # report. The code is spelled out here rather than guessed from the
+        # output, because a pack that failed must not be mistaken for one that
+        # was declined, nor the other way round (docs/packs.md).
+        if ($Code -eq 2) {
+            $Declined = 0
+            Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Declined)
+            Write-Host "       Its files were removed: the pack is not installed." -ForegroundColor (Get-MessageColour hint)
+            continue
+        }
+
         # A half-installed pack is worse than none, exactly as in add_pack: the
         # folder is what the menu reads, so it goes back out, and what the
         # install had already written to the system stays.

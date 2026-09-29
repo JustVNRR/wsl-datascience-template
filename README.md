@@ -2,7 +2,7 @@
 
 A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
-- optional tooling as packs — Python (`python`), Google Cloud (`gcp`), media and OCR (`vision`), a browser (`web`) — added with `.\wsl.ps1 add_pack`.
+- optional tooling as packs — Python (`python`), Google Cloud (`gcp`), media and OCR (`vision`), a browser (`web`), Claude Code (`claude`) — added with `.\wsl.ps1 add_pack`.
 
 ## Features
 
@@ -102,6 +102,7 @@ it grows, and a pack leaves with its folder:
 
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
+| `claude` | [Claude Code](packs/claude/docs/claude.md) | `claude_status`, `claude_profile`, `claude_edit_profiles`, `claude_project` |
 | `devops` | [The devops pack](packs/devops/docs/devops.md) | `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
@@ -138,6 +139,7 @@ leaves with `remove_pack`.
 
 | Category | Tools |
 | :--- | :--- |
+| Claude Code | [Claude Code](packs/claude/docs/claude.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Python | [Python](packs/python/docs/python.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Vision & OCR | [Vision & OCR](packs/vision/docs/vision.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
@@ -193,6 +195,16 @@ the repository at runtime.
 │   ├── wsl/                 # Instance administration: the commands, their options, examples
 │   └── zsh/                 # Shell environment documentation (plugins, keys, aliases, tools)
 ├── packs/                   # Optional tooling, one folder per pack
+│   ├── claude/              # Claude Code, the agentic CLI, under ~/.local
+│   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
+│   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
+│   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   ├── profiles.sample  # the providers, in JSON, waiting for your tokens
+│   │   ├── env.global.sample   # CLAUDE_PROFILE, for .env.global
+│   │   ├── bin/             # the script behind its targets, and the status line
+│   │   ├── make/            # its gmake module: claude_status, claude_profile, claude_project
+│   │   ├── cheatsheets/     # its fcheat sheet: the CLI, the provider, the projects, the disk
+│   │   └── docs/            # the pack's page
 │   ├── devops/              # the project targets: Docker, GitHub PRs
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
@@ -300,7 +312,8 @@ deleting the distro deletes all of it.
 └── .venv/
 
 ~/.local/share/oh-my-zsh/    # Cloned at build time
-~/.local/bin/                # uv and its tools, once the python pack is installed
+~/.local/bin/                # the packs that install outside apt: uv and its
+                             # tools (python), the claude launcher (claude)
 ~/.local/share/uv/           # the Python builds it downloaded, and their environments
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
 /etc/wsl.conf                # Default user, systemd (first_boot.sh)

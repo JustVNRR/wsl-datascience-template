@@ -1,0 +1,16 @@
+{
+  "note": "One entry per provider, and an entry IS the environment Claude Code reads: the same names as in ~/.claude/settings.json, so a block you already have can be pasted here as it stands. \"id\" and \"note\" belong to this file - every other key is written into the settings when the entry is applied. An entry with nothing but an id is this instance's own login (your subscription), and choosing it takes back what another entry had put there. A base URL with no credential is refused: it would send your claude.ai login to that address. gmake claude_edit_profiles opens this file.",
+  "profiles": [
+    {
+      "id": "claude",
+      "note": "the instance's own login - no environment at all"
+    },
+    {
+      "id": "gateway",
+      "note": "an endpoint that speaks the Anthropic API - replace the values, and add whatever else that provider asks for",
+      "ANTHROPIC_BASE_URL": "https://your-gateway.example/api/anthropic",
+      "ANTHROPIC_AUTH_TOKEN": "PASTE-YOUR-TOKEN-HERE",
+      "ANTHROPIC_MODEL": "the-model-name"
+    }
+  ]
+}
