@@ -67,6 +67,43 @@ choose_one() {
     fi
 }
 
+# --- the one question a build asks: replacing a file that is already there ----
+#
+# An output that exists is not replaced in silence: it can be a version
+# someone annotated, or the fruit of a name chosen once and forgotten (his
+# find, 2026-09-30 - the build overwrote without a word). The answer can be a
+# name of its own, and the prompt shows the numbered form the question should
+# offer; but the empty line - a bare Enter - replaces, because replacing is
+# what a rebuild IS, and a default that never replaced would fill the folder
+# with copies at every rebuild.
+#
+# With no line to read (a script, a pipe, /dev/null) the build goes on - the
+# rule the claude pack's install states for its own question: a function that
+# builds is called to build, and a caller that wants another name says so in
+# PDF_OUT or DOCX_OUT.
+settle_overwrite() {
+    local file=$1 answer example
+    while [ -e "$file" ]; do
+        case "$file" in
+        *.*) example=${file%.*}_1.${file##*.} ;;
+        *) example=${file}_1 ;;
+        esac
+        printf '%s is already there (%s, %s).\n' \
+            "$file" "$(du -h "$file" | cut -f1)" "$(date -r "$file" '+%Y-%m-%d %H:%M')"
+        printf 'Replace it? [Y/n] or type another name (e.g. %s): ' "$example"
+        if read -r answer; then
+            case "$answer" in
+            [nN]*) printf 'Nothing written.\n'; exit 0 ;;
+            "") break ;;
+            *) file=$answer ;;
+            esac
+        else
+            break
+        fi
+    done
+    OUT=$file
+}
+
 MODE=${1:-build}
 SRC=""
 OUT=""
@@ -118,6 +155,8 @@ if [ "$MODE" = docx ]; then
         [ -f "$DOCX_REFERENCE" ] || die "DOCX_REFERENCE=$DOCX_REFERENCE: no such file in $(pwd)."
         REF_ARGS=(--reference-doc="$DOCX_REFERENCE")
     fi
+    settle_overwrite "$docx_out"
+    docx_out=$OUT
     echo "📄 Building $SRC -> $docx_out (Word)..."
     pandoc "$SRC" --citeproc "${REF_ARGS[@]}" -o "$docx_out"
     echo "✅ $docx_out ($(du -h "$docx_out" | cut -f1))"
@@ -204,6 +243,7 @@ fi
 # of the document itself. set -e is on: a build that fails stops here, before
 # the tick line - a success line over a failed build is the one lie this script
 # could tell.
+settle_overwrite "$OUT"
 echo "📄 Building $SRC -> $OUT (pandoc + xelatex)..."
 pandoc "$SRC" --citeproc "${TEMPLATE_ARGS[@]}" -o "$OUT" --pdf-engine=xelatex
 echo "✅ $OUT ($(du -h "$OUT" | cut -f1))"
