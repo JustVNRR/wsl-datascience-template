@@ -201,7 +201,7 @@ the repository at runtime.
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
 │   │   ├── profiles.sample  # the providers, in JSON, waiting for your tokens
 │   │   ├── env.global.sample   # CLAUDE_PROFILE, for .env.global
-│   │   ├── bin/             # the script behind its targets
+│   │   ├── bin/             # the script behind its targets, and the status line
 │   │   ├── make/            # its gmake module: claude_profile, claude_status
 │   │   ├── cheatsheets/     # its fcheat sheet: the CLI, the provider, the disk
 │   │   └── docs/            # the pack's page

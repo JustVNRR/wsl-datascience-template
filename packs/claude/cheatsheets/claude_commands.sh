@@ -24,6 +24,7 @@ jq -r '.profiles[].id' ~/.config/claude/profiles.json   # What it holds: the ids
 jq -S . ~/.config/claude/profiles.json                  # ... all of it, without the secrets
 jq -S '.env' ~/.claude/settings.json           # What the CLI reads: the applied profile
 grep CLAUDE_PROFILE ~/.config/zsh/gmake/.env.global      # The entry in force
+jq .statusLine ~/.claude/settings.json         # The status line the pack put there
 
 # --- 3. WHAT TAKES THE SPACE ---
 du -sh ~/.local/share/claude                   # Every version ever installed

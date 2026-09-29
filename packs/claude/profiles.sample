@@ -1,15 +1,16 @@
 {
-  "note": "One entry per provider. The id is what the menus show and what CLAUDE_PROFILE names. An entry with no env is this instance's own login (your subscription) - choosing it takes back whatever another profile had put in ~/.claude/settings.json. A profile that carries a base_url must carry a credential too: a base URL alone would send your claude.ai login to that address. What a profile writes is the ANTHROPIC_* keys, plus anything its own env holds. gmake claude_edit_profiles opens this file.",
+  "note": "One entry per provider, and an entry IS the environment Claude Code reads: the same names as in ~/.claude/settings.json, so a block you already have can be pasted here as it stands. \"id\" and \"note\" belong to this file - every other key is written into the settings when the entry is applied. An entry with nothing but an id is this instance's own login (your subscription), and choosing it takes back what another entry had put there. A base_url with no credential is refused: it would send your claude.ai login to that address. gmake claude_edit_profiles opens this file.",
   "profiles": [
     {
       "id": "claude",
-      "note": "the instance's own login - no env at all"
+      "note": "the instance's own login - no environment at all"
     },
     {
       "id": "gateway",
-      "note": "an endpoint that speaks the Anthropic API. Replace the base_url and paste your token; add \"model\" to pin one, and an \"env\" object for anything else that provider asks for.",
-      "base_url": "https://your-gateway.example/api/anthropic",
-      "token": "PASTE-YOUR-TOKEN-HERE"
+      "note": "an endpoint that speaks the Anthropic API - replace the values, and add whatever else that provider asks for",
+      "ANTHROPIC_BASE_URL": "https://your-gateway.example/api/anthropic",
+      "ANTHROPIC_AUTH_TOKEN": "PASTE-YOUR-TOKEN-HERE",
+      "ANTHROPIC_MODEL": "the-model-name"
     }
   ]
 }

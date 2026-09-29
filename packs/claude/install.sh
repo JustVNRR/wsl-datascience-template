@@ -131,5 +131,50 @@ else
     echo "A dictionary of providers is in place: $profiles (mode 600, waiting for your tokens)."
 fi
 
+# The file the pack's variable lives in - CLAUDE_PROFILE is written into it by
+# claude_profile. The socle builds it from the samples, and this runs that same
+# target once so that the first gmake claude_profile finds it instead of stopping
+# on it. Only when it is not there: an existing file is never touched, and the
+# target itself only ever adds what is missing. A failure here is said, not
+# fatal: the program this pack carries is installed, which is what it came for.
+global_env=$HOME/.config/zsh/gmake/.env.global
+makefile=$HOME/.config/zsh/gmake/Makefile
+if [ ! -f "$global_env" ] && [ -f "$makefile" ]; then
+    echo "Building $global_env from the samples..."
+    if ! make -f "$makefile" env_global_enable; then
+        echo "$global_env could not be built - 'gmake env_global_enable' will do it from a shell."
+    fi
+fi
+
+# The status line the instance's sessions draw: the pack's script, written into
+# the settings file the CLI reads. Set once, and never over one that is already
+# there - a status line of your own is yours. remove.sh takes back exactly the
+# one this writes, and only while it is still the one.
+settings=$HOME/.claude/settings.json
+status_command="bash ~/.config/packs/claude/bin/statusline.sh"
+if [ -f "$settings" ] && ! jq -e . "$settings" > /dev/null 2>&1; then
+    echo "$settings does not parse - the status line was not set."
+elif [ -f "$settings" ] && [ -n "$(jq -r '.statusLine.command // empty' "$settings" 2>/dev/null || true)" ]; then
+    echo "$settings already has a status line - left as it is."
+else
+    install -d -m 0700 "$(dirname "$settings")"
+    tmp=$(mktemp)
+    if [ -f "$settings" ]; then
+        ok=1
+        jq --arg cmd "$status_command" '.statusLine = {"type": "command", "command": $cmd}' "$settings" > "$tmp" 2>/dev/null || ok=0
+    else
+        ok=1
+        jq -n --arg cmd "$status_command" '{statusLine: {"type": "command", "command": $cmd}}' > "$tmp" || ok=0
+    fi
+    if [ "$ok" = "0" ]; then
+        rm -f "$tmp"
+        echo "$settings could not be written - the status line was not set."
+    else
+        chmod 600 "$tmp"
+        mv "$tmp" "$settings"
+        echo "A status line was added to $settings - the pack's, on two rows."
+    fi
+fi
+
 echo "Claude Code is ready."
 echo "   Next: gmake claude_status. gmake claude_profile picks a provider."

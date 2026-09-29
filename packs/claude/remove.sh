@@ -63,7 +63,7 @@ if [ -f "$settings" ]; then
         {
             printf 'ANTHROPIC_BASE_URL\nANTHROPIC_AUTH_TOKEN\nANTHROPIC_API_KEY\nANTHROPIC_MODEL\n'
             if [ -f "$profiles" ]; then
-                jq -r '(.profiles // [])[] | (.env // {}) | keys[]' "$profiles" 2>/dev/null || true
+                jq -r '(.profiles // [])[] | del(.id, .note) | keys[]' "$profiles" 2>/dev/null || true
             fi
         } | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))'
     )
@@ -79,6 +79,21 @@ if [ -f "$settings" ]; then
     else
         rm -f "$tmp"
         echo "$settings could not be read - the provider keys in it were left as they are."
+    fi
+fi
+
+# And the status line, only while it is still the pack's: one of your own is
+# yours, and this never takes it away.
+if [ -f "$settings" ]; then
+    if jq -r '.statusLine.command // empty' "$settings" 2>/dev/null | grep -q 'packs/claude/bin/statusline.sh'; then
+        tmp=$(mktemp)
+        if jq 'del(.statusLine)' "$settings" > "$tmp" 2>/dev/null; then
+            chmod 600 "$tmp"
+            mv "$tmp" "$settings"
+            echo "The pack's status line was taken back out of $settings."
+        else
+            rm -f "$tmp"
+        fi
     fi
 fi
 

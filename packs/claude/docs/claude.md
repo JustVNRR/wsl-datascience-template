@@ -66,21 +66,36 @@ keeps them in one file of yours:
 
 | | |
 | :--- | :--- |
-| `~/.config/claude/profiles.json` | one entry per provider — an id, a base URL, a token, and a model if you want one |
+| `~/.config/claude/profiles.json` | one entry per provider — an id, then the environment that provider needs |
 | `gmake claude_edit_profiles` | opens it in the editor (nano, or `$EDITOR`) |
 | `gmake claude_profile` | picks one from a menu, and applies it |
 | `gmake claude_profile CLAUDE_PROFILE=glm` | applies that one, without the menu |
 | `CLAUDE_PROFILE` in `.env.global` | the entry in use |
 
-An entry with no `env` at all is this instance's own login — the subscription
-route. Choosing it takes back whatever another entry had written.
+An entry is the environment Claude Code reads — the same names as in
+`settings.json`, so a block you already have goes in as it stands:
+
+```json
+{ "id": "deepseek",
+  "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+  "ANTHROPIC_AUTH_TOKEN": "…",
+  "ANTHROPIC_MODEL": "deepseek-chat" }
+```
+
+`id` and `note` belong to the file; every other key is the provider's. An entry
+with only an `id` is this instance's own login — the subscription route — and
+choosing it takes back what another entry had written.
 
 **Where it lands**: the `env` block of `~/.claude/settings.json`, the file the
-CLI reads for itself — so the choice holds for a `claude` typed by hand, for a
-`-p` run in a pipe, and for whatever the CLI starts on its own. The pack writes
-the `ANTHROPIC_*` keys and the ones your entries declare, and nothing else: your
-`statusLine`, your permissions and your own variables are not touched.
-Removing the pack takes those keys back out.
+CLI reads for itself — so the choice holds however you start Claude Code: from
+the prompt, in a pipe, or from what the CLI starts itself.
+
+**What the pack owns there**: every key any of your entries names, plus
+`ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_API_KEY` and
+`ANTHROPIC_MODEL`. Loading an entry writes its keys; switching to one that does
+not carry a key takes it out. Everything else is untouched — your `statusLine`,
+your permissions, and any variable no entry names. Removing the pack takes those
+keys back out.
 
 **A base URL always comes with a token.** The CLI sends whatever credential it
 has to the address you name, and the one it always has is your claude.ai login —
@@ -97,6 +112,30 @@ GLM, DeepSeek or Kimi are that mechanism pointed elsewhere. Some of what Claude
 Code does depends on Anthropic's own API and stops behind a gateway: the tool
 search, Remote Control, the dictation, and prompt caching unless the endpoint
 forwards `cache_control`.
+
+## The status line
+
+Installing the pack gives the instance a status line for its sessions, on two
+rows:
+
+```text
+ Opus 5.5 |  max |  ctx 86k/200k (43%)
+ glm |  py: .venv |  main |  #12 pending |  ~/projects/demo
+```
+
+Row 1 is what is running: the model, the effort, how full the context is. Row 2
+is where: which provider the pack has in force, the python environment, the
+branch, the pull request when the branch has one, and the folder last — the one
+value whose length nobody controls, so being cut is the right job for it.
+
+The script is the pack's, `bin/statusline.sh`, declared in
+`~/.claude/settings.json` as the `statusLine` — **only when you have none**: a
+status line of your own is yours, and the pack leaves it alone. Removing the pack
+takes back the one it wrote, and only while it is still that one.
+
+The icons are Nerd Font glyphs, which the font this template asks for carries; a
+font that does not shows a box, and each icon is one line at the top of the
+script.
 
 ## Where things live
 

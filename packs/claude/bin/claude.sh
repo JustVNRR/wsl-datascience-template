@@ -27,8 +27,8 @@
 #
 # Why settings.json at all: a variable exported by a shell only reaches what that
 # shell starts, and the CLI reads its own settings file whatever launches it. A
-# profile written there is the one a `claude` typed by hand obeys - the whole
-# point of the exercise.
+# profile written there is the one every session obeys, however it is started -
+# the whole point of the exercise.
 
 set -euo pipefail
 
@@ -101,30 +101,29 @@ valid_id() {
     printf '%s' "$1" | grep -qE "$VALID_ID"
 }
 
-# What a profile means, as the env block the CLI reads: the four shorthand keys,
-# then whatever the entry's own "env" holds. One place knows this, so the menu,
-# the check and the status cannot disagree about what a profile is.
+# What a profile means: the entry itself, minus the two keys that are this
+# file's own. Flat on purpose - the keys are the ones the CLI reads, so a block
+# copied out of a settings file goes in as it stands, and the pack has no
+# vocabulary of its own to translate. An entry with nothing but an id is the
+# login route, and gives {} - which is what takes another provider's keys back
+# out.
 profile_env() {
-    jq -c --arg id "$1" '
-        (.profiles // [])[] | select(.id == $id) |
-        (.env // {})
-        + (if .base_url then { "ANTHROPIC_BASE_URL": .base_url } else {} end)
-        + (if .token    then { "ANTHROPIC_AUTH_TOKEN": .token } else {} end)
-        + (if .api_key  then { "ANTHROPIC_API_KEY": .api_key } else {} end)
-        + (if .model    then { "ANTHROPIC_MODEL": .model } else {} end)
-    ' "$PROFILES" 2>/dev/null
+    jq -c --arg id "$1" '(.profiles // [])[] | select(.id == $id) | del(.id, .note)' "$PROFILES" 2>/dev/null
 }
 
-# Every key the pack may have written in the settings file: the four above, plus
-# every key any entry of the dictionary declares. That list is what applying
-# takes back before it writes - so a key one provider set cannot survive a switch
-# to another, and no state is kept anywhere to remember it. It is also what the
-# pack's removal uses.
+# Every key the pack may have written in the settings file: everything the
+# dictionary declares, plus the four the pack knows by name whatever the file
+# says. Those four are pinned because an entry can be DELETED from the
+# dictionary, and what it had written would otherwise stop being taken back - a
+# base URL left behind with no credential is the one mistake this pack refuses
+# to make. That list is what applying takes back before it writes, so a key one
+# provider set cannot survive a switch to another, and nothing is kept anywhere
+# to remember it. It is also what the pack's removal uses.
 owned_keys() {
     {
         printf 'ANTHROPIC_BASE_URL\nANTHROPIC_AUTH_TOKEN\nANTHROPIC_API_KEY\nANTHROPIC_MODEL\n'
         if [ -f "$PROFILES" ]; then
-            jq -r '(.profiles // [])[] | (.env // {}) | keys[]' "$PROFILES" 2>/dev/null || true
+            jq -r '(.profiles // [])[] | del(.id, .note) | keys[]' "$PROFILES" 2>/dev/null || true
         fi
     } | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))'
 }
@@ -249,7 +248,7 @@ cmd_profile() {
     has_url=$(printf '%s' "$want" | jq -r 'has("ANTHROPIC_BASE_URL")')
     has_key=$(printf '%s' "$want" | jq -r 'has("ANTHROPIC_AUTH_TOKEN") or has("ANTHROPIC_API_KEY")')
     if [ "$has_url" = "true" ] && [ "$has_key" != "true" ]; then
-        die "the provider '$wanted' carries a base_url and no credential: it would send your claude.ai login to that address. Give it a \"token\" (or an \"api_key\") - gmake claude_edit_profiles opens the file."
+        die "the provider '$wanted' carries a base URL and no credential: it would send your claude.ai login to that address. Add an ANTHROPIC_AUTH_TOKEN to it (or an ANTHROPIC_API_KEY) - gmake claude_edit_profiles opens the file."
     fi
 
     write_env CLAUDE_PROFILE "$wanted"
@@ -258,7 +257,7 @@ cmd_profile() {
     if [ "$want" = "{}" ]; then
         printf 'ℹ️  Nothing is written for it: the settings and the login decide. That is the subscription route.\n'
     else
-        printf 'ℹ️  It applies now, and to every session, including a claude typed by hand.\n'
+        printf 'ℹ️  It applies now, and to every session, however you start one.\n'
     fi
 }
 
@@ -274,9 +273,10 @@ cmd_edit_profiles() {
         die "$PROFILES does not parse, and this will not open a broken file: $(jq . "$PROFILES" 2>&1 | head -n 1)"
     fi
 
-    printf 'ℹ️  One entry per provider: the id, and either nothing at all (this\n'
-    printf "   instance's own login) or an endpoint, a token and, if you want, a model.\n"
-    printf '   A profile with a base_url and no token is refused when it is applied.\n'
+    printf 'ℹ️  One entry per provider: the id, then the environment Claude Code\n'
+    printf '   reads - the same names as in settings.json, so a block you already\n'
+    printf "   have can be pasted as it stands. An entry with only an id is this\n"
+    printf "   instance's own login. A base URL with no credential is refused.\n"
 
     # The editor is yours: $EDITOR when it is set (one command, no arguments),
     # nano otherwise - nano is in the image, and it is what the cheatsheets use.
