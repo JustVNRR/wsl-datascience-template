@@ -33,8 +33,10 @@
 #     and its sample menu. It found five drifted rows the day it was written
 #
 # The second job, on windows-latest, is the one that RUNS the code instead of
-# reading it, because that is where PowerShell and wsl.exe are. Eight suites,
-# none of which needs an instance, a console or Docker Desktop:
+# reading it, because that is where PowerShell and wsl.exe are. It opens with a
+# read of its own: every .ps1 must parse, under 5.1 - the ASCII rule checks the
+# bytes, not the shape, and a half-closed brace would ship in silence. Then
+# eight suites, none of which needs an instance, a console or Docker Desktop:
 #   - tests/menu-test.ps1        the arrow menu, driven by a scripted keyboard:
 #                                wrapping, Escape, digits, the cursor read back
 #                                after the block is drawn (the bug that made
@@ -378,6 +380,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: PowerShell files parse, under 5.1
+        shell: powershell
+        run: |
+          # [Parser]::ParseFile is the reader PowerShell itself uses before it
+          # runs a file. Under `shell: powershell` that is 5.1 - the engine
+          # these files must satisfy, and the one the suites below run under.
+          # A file that does not parse here would otherwise surface the day a
+          # command runs - build.ps1's, one rebuild too late.
+          $files = Get-ChildItem -Recurse -Filter *.ps1
+          $bad = 0
+          foreach ($f in $files) {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              Write-Host "::error file=$($f.FullName)::$($errors.Count) parse error(s)"
+              foreach ($e in $errors) { Write-Host ("  line {0}: {1}" -f $e.Extent.StartLineNumber, $e.Message) }
+              $bad = 1
+            }
+          }
+          Write-Host "$($files.Count) .ps1 file(s) read, $bad failure(s)."
+          exit $bad
 
       # The answers come from the .answers file beside each suite, not from a
       # copy spelled out here: the numbered prompt reads them when there is no
