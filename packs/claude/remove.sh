@@ -40,9 +40,9 @@ claimed_elsewhere() {
 }
 
 if claimed_elsewhere claude; then
-    echo "⏭️  claude: another installed pack claims it — left in place, with the versions it keeps."
+    echo "claude: another installed pack claims it - left in place, with the versions it keeps."
 else
-    echo "➖ Removing Claude Code and the versions it keeps..."
+    echo "Removing Claude Code and the versions it keeps..."
     # Every path is spelled from $HOME, so none can be empty when `rm` reads it,
     # and `rm -f` never fails on one that is already gone. The launcher may be a
     # symlink (the ordinary case) or a launcher file the CLI wrote for itself;
@@ -51,5 +51,9 @@ else
     rm -rf "$HOME/.local/share/claude"
 fi
 
-echo "✅ Claude Code is gone."
-echo "   ~/.claude was left alone — its settings, its history and its login are yours."
+echo "Claude Code is gone."
+echo "   ~/.claude was left alone: its settings, its history and its login are yours."
+
+# Everything printed above is plain ASCII, like install.sh and for the same
+# reason: this text travels through wsl.exe to the Windows console, which reads
+# it in its own code page.

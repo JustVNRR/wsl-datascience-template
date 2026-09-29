@@ -51,24 +51,13 @@ status() {
     # asks the machine before it downloads anything.
     if [ -z "$claude_bin" ]; then
         echo "  ❌ Claude Code is not installed in this instance."
-        echo ""
         if [ -n "$foreign_bin" ]; then
             # The case a WSL instance hits as soon as Windows has one: typing
-            # `claude` works, and it is not this one. Said before the way back,
-            # because it is the surprise, not the detail.
-            echo "     Your PATH does find one — $foreign_bin — but that one"
-            echo "     runs on Windows, not here, and this pack did not put it there."
-            echo ""
-            echo "     The pack's own is missing: taken away by hand, or an"
-            echo "     installation that stopped half way. Put it back with the"
-            echo "     script that installed it the first time:"
-        else
-            echo "     The pack is there, the program is not - taken away by hand, or"
-            echo "     an installation that stopped half way. Put it back with the"
-            echo "     script that installed it the first time:"
+            # `claude` works, and it is not this one. One line, because it is
+            # the surprise that needs saying, not the story behind it.
+            echo "     Your PATH finds $foreign_bin instead - that one runs on Windows."
         fi
-        echo ""
-        echo "         bash ~/.config/packs/claude/install.sh"
+        echo "     Put the pack's own back:  bash ~/.config/packs/claude/install.sh"
         echo ""
         return 1
     fi
