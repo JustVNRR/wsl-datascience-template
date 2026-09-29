@@ -48,11 +48,11 @@ kinds, and a key needs no login at all.
 approve it once.) Either one outranks a stored login, so a key is the whole
 configuration.
 
-The login is a web page, so the CLI opens a browser and waits for it to come
-back. An instance carries no browser: open the URL it prints on Windows, and
-paste back the code the page gives you — the browser on Windows cannot call into
-the instance on its own. If the paste does not take, `claude auth login` reads
-the code from your input instead.
+The login is a web page: the CLI opens a browser and waits for the page to hand
+the code back. An instance carries no browser, so the CLI prints the URL — open
+it in your own browser on Windows, and paste back the code the page shows you.
+If the paste does not take, `claude auth login` reads the code from your input
+instead.
 
 ## Where things live
 
