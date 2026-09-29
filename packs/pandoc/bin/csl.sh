@@ -5,11 +5,11 @@
 # A .csl (Citation Style Language) is the file that tells pandoc how citations
 # are written and how the bibliography is ordered: numbers or author-year,
 # superscript or not, the punctuation, the order. The document names its own
-# in its YAML header (`csl: vancouver-superscript.csl`) and the file travels
-# beside it. A style belongs to the document, not to the tool - which is why
-# the pack ships none - and this target fetches one from the official catalog
-# (the Citation Style Language project, the ten thousand styles Zotero
-# offers) into the project.
+# in its YAML header (`csl: csl/vancouver-superscript.csl`) and the file
+# travels beside it, in the project's csl/ folder. A style belongs to the
+# document, not to the tool - which is why the pack ships none - and this
+# target fetches one from the official catalog (the Citation Style Language
+# project, the ten thousand styles Zotero offers) into that folder.
 #
 # Which one: STYLE names it - `gmake csl_from_catalog STYLE=ieee` - and the file comes
 # straight from the catalog's raw storage: no list, nothing to choose, and the
@@ -58,16 +58,21 @@ if [ -z "$STYLE" ]; then
     fi
 fi
 
-# The style, beside the document that names it. One that is already there is
-# left alone: it may be a version someone edited, and this target fetches.
-out=$STYLE.csl
+# The style, in csl/ beside the document that names it: the folder keeps the
+# document's root down to the files that change - the markdown, the .bib, the
+# template, the images - and the YAML line carries the path (his call,
+# 2026-09-30: the styles in one place, the root readable). One that is already
+# there is left alone: it may be a version someone edited, and this target
+# fetches.
+out=csl/$STYLE.csl
 if [ -f "$out" ]; then
     echo "$out is already here - left as it is."
     exit 0
 fi
+mkdir -p csl
 
 curl -fsSL -o "$out" "$raw/$STYLE.csl" ||
     die "$STYLE: not in the catalog - the name is the one zotero.org/styles shows (vancouver, ieee, apa...), or there is no network."
 
 echo "✅ $out"
-echo "   The document names it in its YAML header:  csl: $STYLE.csl"
+echo "   The document names it in its YAML header:  csl: $out"

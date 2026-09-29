@@ -92,8 +92,9 @@ The menus are `fzf`, and `fzf` needs a terminal: called from a script or a pipe,
 A `.csl` is the file that tells pandoc how citations are written and how the
 bibliography is ordered — numbers or author-year, superscript or not. A style
 belongs to the document, which is why the pack ships none: `gmake
-csl_from_catalog` fetches one from the official catalog and drops it beside
-the document, and the YAML header names it.
+csl_from_catalog` fetches one from the official catalog and drops it in the
+project's `csl/` folder, and the YAML header names it with that path
+(`csl: csl/<name>.csl`).
 
 `font_from_windows` copies a font family out of the Windows installation the
 instance runs beside, into `~/.local/share/fonts/<family>/` — the same move
@@ -120,13 +121,15 @@ reads the rest from the YAML header.
 ```yaml
 ---
 bibliography: bibliographie.bib
-csl: vancouver-superscript.csl
+csl: csl/vancouver-superscript.csl
 citeproc: true
 ---
 ```
 
-`csl:` names a file beside the document — a style is not fetched from anywhere,
-it travels with the source.
+`csl:` names a file — the path is written out, so the styles live in a `csl/`
+folder beside the document and the root keeps its markdown, `.bib`, template
+and images. A style is not fetched from anywhere at build time: it travels
+with the source.
 
 ## The commands behind the targets
 

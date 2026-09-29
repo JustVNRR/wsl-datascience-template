@@ -25,7 +25,7 @@ gmake font_from_windows FONT=times            # ... or named; Times New Roman's 
 # --- 3. WHAT THE DOCUMENT CARRIES (its YAML header) ---
 # ---
 # bibliography: bibliographie.bib             # the .bib beside the document
-# csl: vancouver-superscript.csl              # the style beside it too
+# csl: csl/vancouver-superscript.csl          # the style, in the project's csl/ folder
 # citeproc: true                              # render the citations
 # ---
 
