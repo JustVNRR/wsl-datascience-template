@@ -37,13 +37,21 @@ From the root of a project under `~/projects`:
 gmake pdf                                    # the folder's markdown -> the PDF beside it
 gmake pdf PDF_SRC=rapport.md                 # a document of several, named
 gmake pdf PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf
+gmake pdf_open                               # open the PDF that gmake pdf built
 ```
+
+`pdf_open` installs nothing: it takes the first viewer the instance has —
+`evince`, `zathura`, `xpdf`, `okular`, `mupdf` — or `PDF_VIEWER` when one is
+named, and falls back to the Windows default application through
+`explorer.exe` when the instance can reach it. Removing a viewer from the
+machine, or adding one, changes what it does without anything to configure.
 
 | Variable | Default | What it is |
 | :--- | :--- | :--- |
 | `PDF_SRC` | the folder decides | the markdown to build: the only `.md` of the project, or the one the menu offers when there are several. Named — in the command or in the `.env` — it skips the menu, and that is the form a script calls |
 | `PDF_OUT` | `PDF_SRC` with `.pdf` | what to write |
 | `PDF_TEMPLATE` | `template.tex` when it is there, pandoc's own template otherwise | the template that gives the document its look |
+| `PDF_VIEWER` | the first viewer installed | what `pdf_open` runs — `evince`, `zathura`, `xpdf`… `sudo apt install evince` is one command away |
 
 The menu is `fzf`, and `fzf` needs a terminal: called from a script or a pipe, name the file instead.
 

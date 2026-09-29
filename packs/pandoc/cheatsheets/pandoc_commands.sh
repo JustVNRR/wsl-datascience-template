@@ -8,10 +8,11 @@
 # Offered only while pandoc is installed - the header above is what hides the
 # sheet when it was removed by hand.
 
-# --- 1. THE PROJECT TARGET (from the root of a project) ---
+# --- 1. THE PROJECT TARGETS (from the root of a project) ---
 gmake pdf                                     # The folder's markdown: the only .md, or the one the menu offers
 gmake pdf PDF_SRC=rapport.md                  # Name it directly - no menu, the form scripts use
 gmake pdf PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf   # Write it under another name
+gmake pdf_open                                # Open the built PDF: the first viewer installed, or Windows
 
 # --- 2. WHAT THE DOCUMENT CARRIES (its YAML header) ---
 # ---

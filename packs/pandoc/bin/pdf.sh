@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE PANDOC PACK - THE `pdf` TARGET'S SCRIPT
+# THE PANDOC PACK - THE SCRIPTS BEHIND `pdf` AND `pdf_open`
 # ==============================================================================
-# `gmake pdf` calls this, and the recipe is one line: where the questions are
-# asked and the command is run lives here - the arrangement the claude and web
-# packs follow, and for the same reason: a recipe that opened a menu itself is
-# a recipe nobody can read.
+# The targets call this, one line each: where the questions are asked and the
+# work happens lives here - the arrangement the claude and web packs follow, and
+# for the same reason: a recipe that opened a menu itself is a recipe nobody
+# can read.
 #
-# The document to build, in the order the answers are tried:
+# Two modes: `pdf.sh` builds (the `pdf` target), `pdf.sh open` opens what that
+# build writes (the `pdf_open` target). Both resolve the document the same way,
+# in the order the answers are tried:
 #   - PDF_SRC, when the project's .env or the command line sets it: that one,
 #     no question. It is also the only path that works without a terminal,
 #     which is what a script - or a test - calls;
@@ -24,16 +26,17 @@ set -euo pipefail
 
 # The pack's variables are read from the environment: the socle's Makefile
 # exports everything it loaded (the bare `export` above the includes), so
-# PDF_SRC, PDF_OUT and PDF_TEMPLATE arrive here already carrying what the .env,
-# the command line and the defaults decided - nothing is parsed a second time.
+# PDF_SRC, PDF_OUT, PDF_TEMPLATE and PDF_VIEWER arrive here already carrying
+# what the .env, the command line and the defaults decided - nothing is parsed
+# a second time.
 die() {
     printf '%s\n' "$1" >&2
     exit 1
 }
 
+MODE=${1:-build}
 SRC=""
 OUT=""
-TEMPLATE_ARGS=()
 
 # --- which document -----------------------------------------------------------
 
@@ -74,24 +77,59 @@ else
     esac
 fi
 
-# --- built where, with what ---------------------------------------------------
+# --- built where --------------------------------------------------------------
 
-# PDF_OUT, or the source's name with .pdf. PDF_TEMPLATE, or template.tex when
-# the project has one - pandoc's own template otherwise, and the line says so.
+# PDF_OUT, or the source's name with .pdf.
 OUT=${PDF_OUT:-}
 [ -n "$OUT" ] || OUT=${SRC%.md}.pdf
 
-# An array, not a string: an empty variable between two other arguments would
-# vanish into the word split - and shellcheck is right to refuse the unquoted
-# one that kept the flag whole (measured by the CI's own shellcheck).
+# --- pdf_open: hand it to something that displays it ---------------------------
+#
+# The pack installs no viewer, and that is deliberate: each is a matter of
+# taste and none is required to build, so a pack that forced one would make
+# every machine pay for it (measured on the three, 2026-09-29: xpdf 31 MB,
+# zathura 170 MB, evince 265 MB). This asks the instance instead, in this
+# order:
+#   - PDF_VIEWER, when the project's .env or the command line names one - for
+#     the person who wants xpdf here and evince there;
+#   - the viewers people install by hand, the convivial one first;
+#   - Windows, through explorer.exe, when the instance can reach it - the
+#     default application for a PDF, and the path travels as Windows knows it
+#     (wslpath). With interop off, this door is shut and the line below says
+#     what to do instead.
+if [ "$MODE" = open ]; then
+    [ -f "$OUT" ] || die "$OUT is not built yet - gmake pdf builds it."
+    if [ -n "${PDF_VIEWER:-}" ]; then
+        command -v "$PDF_VIEWER" >/dev/null 2>&1 ||
+            die "PDF_VIEWER=$PDF_VIEWER: not installed in this instance. Install it, or drop the setting - the viewers are tried in turn without it."
+        exec "$PDF_VIEWER" "$OUT"
+    fi
+    for viewer in evince zathura xpdf okular mupdf; do
+        if command -v "$viewer" >/dev/null 2>&1; then
+            exec "$viewer" "$OUT"
+        fi
+    done
+    if command -v explorer.exe >/dev/null 2>&1; then
+        exec explorer.exe "$(wslpath -w "$OUT")"
+    fi
+    die "No PDF viewer in this instance, and no way through to Windows.
+One command installs one: sudo apt install evince
+Or copy it out and open it there: cp $OUT /mnt/d/"
+fi
+
+# --- pdf: build it -------------------------------------------------------------
+
+# PDF_TEMPLATE, or template.tex when the project has one - pandoc's own
+# template otherwise, and the line says so. An array, not a string: an empty
+# variable between two other arguments would vanish into the word split - which
+# the linter is right to refuse, the day it is an unquoted flag.
 tpl=${PDF_TEMPLATE:-template.tex}
 if [ -f "$tpl" ]; then
     TEMPLATE_ARGS=(--template="$tpl")
 else
+    TEMPLATE_ARGS=()
     printf '   no %s in this project: pandoc own template will be used.\n' "$tpl"
 fi
-
-# --- the build ----------------------------------------------------------------
 
 # The command a document's own folder carries:
 #   pandoc <src>.md --citeproc [--template=...] -o <out>.pdf --pdf-engine=xelatex

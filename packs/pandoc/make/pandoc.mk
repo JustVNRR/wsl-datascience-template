@@ -1,12 +1,14 @@
 # ==============================================================================
 # THE PDF (PANDOC + XELATEX)
 # ==============================================================================
-# The one target this pack adds: `gmake pdf` builds the project's markdown into
-# a PDF. It is an ordinary project target - the location gate holds it to the
-# root of a project under ~/projects, which is where the documents live.
+# The two targets this pack adds: `gmake pdf` builds the project's markdown
+# into a PDF, `gmake pdf_open` opens what that build wrote. They are ordinary
+# project targets - the location gate holds them to the root of a project under
+# ~/projects, which is where the documents live.
 #
-# One line, and the questions live in bin/pdf.sh, where the menu and the
-# command are: a recipe that opened a menu itself is a recipe nobody can read.
+# One line each, and the questions live in bin/pdf.sh, where the menu, the
+# build and the choice of a viewer are: a recipe that opened a menu itself is a
+# recipe nobody can read.
 #
 # Three variables, each with a default that covers the ordinary case. They are
 # not named on the recipe line: the socle's Makefile exports everything it
@@ -33,3 +35,12 @@ PDF := $(dir $(lastword $(MAKEFILE_LIST)))../bin/pdf.sh
 
 pdf: ## Build the project's markdown into a PDF (pandoc + XeLaTeX)
 	@$(PDF)
+
+# The PDF this opens is the one `pdf` would build - the same source resolution,
+# the same default output. The pack installs no viewer on purpose (each is a
+# matter of taste, and none is needed to build): the script takes the first one
+# the instance has - evince, zathura, xpdf, okular, mupdf - PDF_VIEWER when the
+# project names one, and the Windows default application when the instance can
+# reach it.
+pdf_open: ## Open the built PDF (the first viewer installed, or the Windows default app)
+	@$(PDF) open
