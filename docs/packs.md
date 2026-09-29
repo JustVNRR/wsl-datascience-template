@@ -47,6 +47,14 @@ a program that is already installed on Windows and visible from the instance
 through `/mnt/c`. Declining is an answer, so nothing is asked again; the pack
 simply is not installed.
 
+**A pack that asks must be able to be answered**, and that is the install
+script's business, not the socle's. A pack arrives because it was chosen — a box
+ticked in the checklist `build` asks before it builds, a row picked from the list
+`add_pack` shows — so with no answer to read, an `install.sh` must not decline:
+it installs. A build once announced a pack as installed while its script had
+declined to nobody and thrown its own folder away, which is the shape of the
+mistake: a choice is an answer, and the welcome screen states what happened.
+
 ## `pack.conf`
 
 | Declaration | What it says |

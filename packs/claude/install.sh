@@ -47,20 +47,34 @@ else
     # declines - the answer that costs nothing is the one a bare Enter gives -
     # and declining is an ANSWER, not a failure: exit code 2, which the socle
     # reports as "not installed" rather than as a broken installation
-    # (docs/packs.md). A run with nobody at the keyboard declines too: nothing
-    # is downloaded on a guess.
+    # (docs/packs.md).
+    #
+    # Asked only when an answer can arrive, and that is not a detail: a pack
+    # arrives because it was CHOSEN - a box ticked in the checklist `build` asks
+    # before it builds, a row picked from the list `add_pack` shows - and a
+    # choice is an answer. Declining with nothing to read put the two halves of
+    # one screen against each other: this script threw the folder away while
+    # `build` still announced the pack as installed, because a tick was the only
+    # thing it had to go on. Measured on a fresh build, and fixed on both sides.
+    #
+    # What tells the two apart is whether a line comes back at all, not whether
+    # stdin is a terminal: a `y` or an `n` on a pipe is an answer too, and an
+    # empty line is a No like any other - the bare Enter a person pressed.
     foreign=$(command -v claude 2>/dev/null || true)
     if [ -n "$foreign" ]; then
         echo "Claude Code is already installed on Windows."
         echo "Install a copy in this instance too? [y/N]"
-        read -r answer || answer=""
-        case "$answer" in
-            [yY]*) ;;
-            *)
-                echo "Nothing was installed."
-                exit 2
-                ;;
-        esac
+        if read -r answer; then
+            case "$answer" in
+                [yY]*) ;;
+                *)
+                    echo "Nothing was installed."
+                    exit 2
+                    ;;
+            esac
+        else
+            echo "No terminal to ask with, and the pack was chosen - installing here as well."
+        fi
     fi
 
     echo "Installing Claude Code from Anthropic's own script (a few minutes)..."

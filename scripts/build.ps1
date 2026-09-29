@@ -514,11 +514,23 @@ try {
                 )
                 $PackReportColour = "Red"
             } else {
+                # What is there now, and nothing else. The line used to fall back
+                # on the names that were asked for when the list came back empty,
+                # which is how a fresh build ended up announcing "Packs: claude
+                # installed." over an instance that had none - the pack had been
+                # asked for, its install declined (an install.sh that answered 2),
+                # and its folder taken back out. A welcome screen states what
+                # happened, not what was intended.
                 $Landed = $PacksNow
-                if ($Landed.Count -eq 0) { $Landed = @($PackSelection.ToAdd | ForEach-Object { $_.Name }) }
-                $PackLine = ($Landed -join ", ")
-                $PackLineColour = "Green"
-                $PackReport = @("Packs: $($Landed -join ', ') installed.")
+                if ($Landed.Count -eq 0) {
+                    $PackLine = "none"
+                    $PackLineColour = "Yellow"
+                    $PackReport = @("Packs: none installed.")
+                } else {
+                    $PackLine = ($Landed -join ", ")
+                    $PackLineColour = "Green"
+                    $PackReport = @("Packs: $($Landed -join ', ') installed.")
+                }
             }
         } catch {
             $PackLine = "not installed - $($_.Exception.Message)"
