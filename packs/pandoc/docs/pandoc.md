@@ -52,11 +52,15 @@ YAML header carries the bibliography and the citation style, and a LaTeX
 template shapes the PDF. Pandoc reads other formats (docx, html, LaTeX), and
 the day one of them is wanted, it is another target, named for it.
 
-`pdf_open` installs nothing: it takes the first viewer the instance has —
-`evince`, `zathura`, `xpdf`, `okular`, `mupdf` — or `PDF_VIEWER` when one is
-named, and falls back to the Windows default application through
-`explorer.exe` when the instance can reach it. Removing a viewer from the
-machine, or adding one, changes what it does without anything to configure.
+`pdf_open` opens a **built PDF**, and asks which one from the PDFs themselves:
+`PDF_OUT` when the project names it, the PDF of `PDF_SRC` when the source is
+named, and otherwise the folder's own `.pdf` files — one of them, or a menu
+when there are several, and a line saying there is none. It installs no
+viewer, deliberately: it takes the first one the instance has — `evince`,
+`zathura`, `xpdf`, `okular`, `mupdf` — or `PDF_VIEWER` when one is named, and
+falls back to the Windows default application through `explorer.exe` when the
+instance can reach it. Removing a viewer from the machine, or adding one,
+changes what it does without anything to configure.
 
 The Word file needs no Word — a `.docx` is an archive of XML, and pandoc
 writes it itself. Its look does not come from the LaTeX template (that one
@@ -67,7 +71,7 @@ own styles.
 | Variable | Default | What it is |
 | :--- | :--- | :--- |
 | `PDF_SRC` | the folder decides | the markdown to build: the only `.md` of the project, or the one the menu offers when there are several. Named — in the command or in the `.env` — it skips the menu, and that is the form a script calls |
-| `PDF_OUT` | `PDF_SRC` with `.pdf` | what to write |
+| `PDF_OUT` | `PDF_SRC` with `.pdf` | what to write — and, when it is set, the PDF `pdf_open` opens |
 | `PDF_TEMPLATE` | `template.tex` when it is there, pandoc's own template otherwise | the template that gives the PDF its look |
 | `PDF_VIEWER` | the first viewer installed | what `pdf_open` runs — `evince`, `zathura`, `xpdf`… `sudo apt install evince` is one command away |
 | `DOCX_OUT` | `PDF_OUT` with `.docx` | where the Word file lands |

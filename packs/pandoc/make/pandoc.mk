@@ -66,7 +66,7 @@ FONT_FROM_WINDOWS := $(dir $(lastword $(MAKEFILE_LIST)))../bin/font.sh
 pdf_from_md: ## Build the project's markdown into a PDF (pandoc + XeLaTeX)
 	@$(DOCUMENT)
 
-pdf_open: ## Open the built PDF (the first viewer installed, or the Windows default app)
+pdf_open: ## Open a built PDF (PDF_OUT's, PDF_SRC's, or the folder's own - the menu lists those)
 	@$(DOCUMENT) open
 
 docx_from_md: ## Build the project's markdown in Word format (.docx) - Word is not needed

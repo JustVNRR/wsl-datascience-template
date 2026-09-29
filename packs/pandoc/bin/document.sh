@@ -9,12 +9,13 @@
 #
 # Three modes:
 #   document.sh          builds the PDF (the `pdf_from_md` target);
-#   document.sh open     opens what that build wrote (the `pdf_open` target);
+#   document.sh open     opens a built PDF (the `pdf_open` target);
 #   document.sh docx     writes the same document in Word format (the
 #                        `docx_from_md` target - pandoc writes .docx itself:
 #                        no Word, no Office, nothing to install).
-# The three resolve the document the same way, in the order the answers are
-# tried:
+#
+# The three answer different questions, and the answers come from different
+# files. The two builds ask WHICH MARKDOWN, in the order the answers are tried:
 #   - PDF_SRC, when the project's .env or the command line sets it: that one,
 #     no question. It is also the only path that works without a terminal,
 #     which is what a script - or a test - calls;
@@ -22,6 +23,12 @@
 #   - several: fzf asks which, from the folder's own list - and Escape is a
 #     decision, not an error (the claude pack's menus, same terms);
 #   - none: one line, and out.
+# `pdf_open` asks WHICH PDF, because that is what it opens: PDF_OUT when the
+# project names it, else the PDF of PDF_SRC, else the folder's own .pdf files -
+# one of them, or fzf's menu when there are several. It listed the markdown
+# files once, and that was wrong twice over: it showed sources for a target
+# that opens results, and it demanded a choice the build had already made
+# (his find, 2026-09-30).
 #
 # What this prints travels to the terminal the target was run from, inside the
 # instance: the ASCII rule of install.sh and remove.sh is about wsl.exe and the
@@ -39,56 +46,64 @@ die() {
     exit 1
 }
 
+# One menu, one shape: fzf, like every other picker of this shell (fnew,
+# fcheat, the packs' menus), the choice in CHOICE. A menu needs a terminal -
+# answered from a pipe or a script it cannot be, and the caller's message says
+# what to name instead. Escape (fzf's 130) is a decision, not a failure: it
+# prints one line and exits 0, so make must not write "Error" over it.
+CHOICE=""
+choose_one() {
+    local prompt=$1 status
+    shift
+    if CHOICE=$(printf '%s\n' "$@" | fzf --prompt="$prompt > " --info=inline --layout=reverse); then
+        [ -n "$CHOICE" ] || die "Nothing chosen."
+    else
+        status=$?
+        if [ "$status" -eq 130 ]; then
+            printf 'Nothing chosen.\n'
+            exit 0
+        fi
+        die "No choice made - a menu needs a terminal."
+    fi
+}
+
 MODE=${1:-build}
 SRC=""
 OUT=""
 
-# --- which document -----------------------------------------------------------
+# --- the builds: which markdown ------------------------------------------------
 
-if [ -n "${PDF_SRC:-}" ]; then
-    SRC=$PDF_SRC
-    [ -f "$SRC" ] || die "PDF_SRC=$SRC: no such file in $(pwd)."
-else
-    # nullglob, so a folder with no .md at all hands the array nothing rather
-    # than the pattern itself.
-    shopt -s nullglob
-    files=(*.md)
-    shopt -u nullglob
-    case ${#files[@]} in
-    0)
-        die "No markdown files found in the current folder."
-        ;;
-    1)
-        SRC=${files[0]}
-        ;;
-    *)
-        # fzf, like every other picker of this shell (fnew, fcheat, the packs'
-        # menus). A menu needs a terminal - answered from a pipe or a script it
-        # cannot be, and the file is named instead.
-        if choice=$(printf '%s\n' "${files[@]}" | fzf --prompt="document > " --info=inline --layout=reverse); then
-            [ -n "$choice" ] || die "Nothing chosen."
-            SRC=$choice
-        else
-            status=$?
-            # fzf exits 130 on Escape or Ctrl-C: the person said no, which is a
-            # decision, not a failure - and make must not print "Error" over it.
-            if [ "$status" -eq 130 ]; then
-                printf 'Nothing chosen.\n'
-                exit 0
-            fi
-            die "No document chosen - a menu needs a terminal. Name one instead: gmake pdf_from_md PDF_SRC=<file>"
-        fi
-        ;;
-    esac
+if [ "$MODE" != open ]; then
+    if [ -n "${PDF_SRC:-}" ]; then
+        SRC=$PDF_SRC
+        [ -f "$SRC" ] || die "PDF_SRC=$SRC: no such file in $(pwd)."
+    else
+        # nullglob, so a folder with no .md at all hands the array nothing
+        # rather than the pattern itself.
+        shopt -s nullglob
+        files=(*.md)
+        shopt -u nullglob
+        case ${#files[@]} in
+        0)
+            die "No markdown files found in the current folder."
+            ;;
+        1)
+            SRC=${files[0]}
+            ;;
+        *)
+            choose_one "document" "${files[@]}"
+            SRC=$CHOICE
+            ;;
+        esac
+    fi
+
+    # --- built where -----------------------------------------------------------
+    # PDF_OUT, or the source's name with .pdf.
+    OUT=${PDF_OUT:-}
+    [ -n "$OUT" ] || OUT=${SRC%.md}.pdf
 fi
 
-# --- built where --------------------------------------------------------------
-
-# PDF_OUT, or the source's name with .pdf.
-OUT=${PDF_OUT:-}
-[ -n "$OUT" ] || OUT=${SRC%.md}.pdf
-
-# --- docx: the same document, in Word -----------------------------------------
+# --- docx: the same document, in Word ------------------------------------------
 #
 # A .docx is the Office format - an archive of XML - and pandoc writes it
 # itself: no Word, no Office, nothing installed. What the Word file LOOKS like
@@ -109,7 +124,7 @@ if [ "$MODE" = docx ]; then
     exit 0
 fi
 
-# --- pdf_open: hand it to something that displays it ---------------------------
+# --- pdf_open: which PDF, and hand it to something that displays it ------------
 #
 # The pack installs no viewer, and that is deliberate: each is a matter of
 # taste and none is required to build, so a pack that forced one would make
@@ -124,6 +139,32 @@ fi
 #     (wslpath). With interop off, this door is shut and the line below says
 #     what to do instead.
 if [ "$MODE" = open ]; then
+    if [ -n "${PDF_OUT:-}" ]; then
+        # Named outright: the PDF the project writes, wherever the build put it.
+        OUT=$PDF_OUT
+    elif [ -n "${PDF_SRC:-}" ]; then
+        # The source is named, so the PDF is the one the build derives from it
+        # - and PDF_SRC named a file that is not built yet is said, not built
+        # in silence: naming a source is a choice, and this target opens.
+        OUT=${PDF_SRC%.md}.pdf
+    else
+        shopt -s nullglob
+        pdfs=(*.pdf)
+        shopt -u nullglob
+        case ${#pdfs[@]} in
+        0)
+            die "No PDF in this folder - gmake pdf_from_md builds one."
+            ;;
+        1)
+            OUT=${pdfs[0]}
+            ;;
+        *)
+            choose_one "pdf" "${pdfs[@]}"
+            OUT=$CHOICE
+            ;;
+        esac
+    fi
+
     [ -f "$OUT" ] || die "$OUT is not built yet - gmake pdf_from_md builds it."
     if [ -n "${PDF_VIEWER:-}" ]; then
         command -v "$PDF_VIEWER" >/dev/null 2>&1 ||
@@ -143,7 +184,7 @@ One command installs one: sudo apt install evince
 Or copy it out and open it there: cp $OUT /mnt/d/"
 fi
 
-# --- pdf: build it -------------------------------------------------------------
+# --- pdf_from_md: build it -----------------------------------------------------
 
 # PDF_TEMPLATE, or template.tex when the project has one - pandoc's own
 # template otherwise, and the line says so. An array, not a string: an empty

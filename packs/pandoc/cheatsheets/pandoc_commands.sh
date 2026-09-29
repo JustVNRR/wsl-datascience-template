@@ -12,7 +12,7 @@
 gmake pdf_from_md                             # The folder's markdown: the only .md, or the one the menu offers
 gmake pdf_from_md PDF_SRC=rapport.md          # Name it directly - no menu, the form scripts use
 gmake pdf_from_md PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf   # Write it under another name
-gmake pdf_open                                # Open the built PDF: the first viewer installed, or Windows
+gmake pdf_open                                # Open a built PDF (PDF_OUT's, PDF_SRC's, or the folder's - menu)
 gmake docx_from_md                            # The same markdown in Word - Word is not needed
 
 # --- 2. BRINGING WHAT A DOCUMENT NEEDS ---
