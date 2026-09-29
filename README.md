@@ -16,7 +16,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
 - **Command memory** — cheatsheets stored as plain files, injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
-- **MLOps** — `gmake` exposes modular targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#mlops-makefile-gmake), [optional tooling](#optional-tooling)).
+- **Modular targets** — `gmake` exposes its targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
 - **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to Proton VPN — the servers live in one JSON, the server in use and the kill switch are two lines of `.env.global` — and bring it up with the distro.
 
 ---
@@ -71,7 +71,7 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
 ---
 
-## MLOps Makefile (`gmake`)
+## Makefile (`gmake`)
 
 - **Cascading configuration:**
 
@@ -179,7 +179,7 @@ the repository at runtime.
 │   ├── cheatsheets/         # Auto-scanned data files: CTRL+H command lists (fcheat)
 │   │   └── *_commands.sh    # The commands an instance always has: bash, git, the gmake menu
 │   ├── completion.zsh       # gmake's targets on Tab, read from the Makefile itself
-│   ├── gmake/               # MLOps Makefile ecosystem (the gmake command)
+│   ├── gmake/               # Makefile ecosystem (the gmake command)
 │   │   ├── Makefile         # Entrypoint: loads the modules, builds the menu, gates where targets run
 │   │   └── make/            # The socle's modules (pages in docs/make/)
 │   │       ├── env.mk       # the .env files, and the commands that build them

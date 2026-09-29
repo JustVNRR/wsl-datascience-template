@@ -1,6 +1,6 @@
 # The devops pack
 
-[← Back to the README](../../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../../README.md#makefile-gmake)
 
 The project targets: what a project is built, pushed and configured with. They
 used to sit in the socle, where an instance that had no project yet was offered

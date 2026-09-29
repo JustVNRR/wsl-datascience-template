@@ -78,4 +78,4 @@ uv tool install --force ruff
 echo "✅ Python 3, uv and ruff are installed."
 echo "   The commands are in the cheatsheet picker (fcheat)."
 echo "   Next: fnew makes a project (it comes with the scaffold pack);"
-echo "   add the gcp pack for the MLOps targets."
+echo "   add the gcp pack for the GCP targets."
