@@ -2,7 +2,12 @@
 
 A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
-- optional tooling as packs — Python (`python`), Google Cloud (`gcp`), media and OCR (`vision`), a browser (`web`), Claude Code (`claude`) — added with `.\wsl.ps1 add_pack`.
+- optional tooling as packs, added with `.\wsl.ps1 add_pack`:
+  - `python`: Python 3, `uv`, ruff and the compilation tools
+  - `gcp`: the Google Cloud CLI
+  - `vision`: ffmpeg, ImageMagick and Tesseract OCR
+  - `web`: Firefox, and a WireGuard tunnel to Proton VPN
+  - `claude`: Claude Code, the agentic CLI
 
 ## Features
 
