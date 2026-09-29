@@ -55,6 +55,13 @@ it installs. A build once announced a pack as installed while its script had
 declined to nobody and thrown its own folder away, which is the shape of the
 mistake: a choice is an answer, and the welcome screen states what happened.
 
+The same holds at the other end: a `remove.sh` may ask too — the `claude` pack
+asks whether to keep the data the tool left behind — and with no answer to read,
+the default has to be the one that destroys nothing: a removal with nobody at the
+keyboard must not take away what cannot be fetched again. Removing an instance
+never goes through a `remove.sh` at all: the distro is unregistered whole, packs
+and data together.
+
 ## `pack.conf`
 
 | Declaration | What it says |

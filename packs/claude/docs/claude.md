@@ -24,10 +24,14 @@ the Windows folders on the PATH — and the install says so before adding a seco
 copy here. It goes ahead unless you answer `n`: a bare Enter, or no one to ask,
 both mean yes, and only an explicit no installs nothing.
 
-Removing the pack takes the program, the versions it keeps, and the provider keys
-it wrote in the settings. `~/.claude` — settings, credentials, history, sessions —
-and your dictionary stay where they are: they are yours, like `~/.mozilla` when
-the `web` pack goes. A filled `.env.global` keeps its line too.
+Removing the pack takes the program, the versions it keeps, the provider keys it
+wrote in the settings, and the little desktop entry — `claude-code-url-handler`,
+in `~/.local/share/applications/` — that the CLI drops for its `claude-cli://`
+links. Your data stays: `~/.claude` — settings, credentials, history, sessions —
+and your dictionary, like `~/.mozilla` when the `web` pack goes. Before it
+finishes, the removal asks once: keeping everything is the default, and only `n`
+takes it all — dictionary, sessions, and the pack's block in `.env.global`
+included.
 
 ## What it costs
 
