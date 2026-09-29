@@ -386,10 +386,11 @@ cmd_edit_profiles() {
         die "$PROFILES does not parse, and this will not open a broken file: $(jq . "$PROFILES" 2>&1 | head -n 1)"
     fi
 
-    printf 'ℹ️  One entry per provider: the id, then the environment Claude Code\n'
-    printf '   reads - the same names as in settings.json, so a block you already\n'
-    printf "   have can be pasted as it stands. An entry with only an id is this\n"
-    printf "   instance's own login. A base URL with no credential is refused.\n"
+    # Short on purpose: the file carries the rest in its "note" fields, where a
+    # person reads while editing - JSON has no comments, and a paragraph before
+    # nano opens is a paragraph nobody reads (his call, 2026-09-29).
+    printf 'ℹ️  Fill in profiles.json.\n'
+    printf '\n'
 
     # The editor is yours: $EDITOR when it is set (one command, no arguments),
     # nano otherwise - nano is in the image, and it is what the cheatsheets use.
