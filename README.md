@@ -1,6 +1,6 @@
 # WSL Stack
 
-A reproducible WSL2 stack for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
+A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
 - optional tooling as packs — Python (`python`), Google Cloud (`gcp`), media and OCR (`vision`), a browser (`web`), Claude Code (`claude`) — added with `.\wsl.ps1 add_pack`.
 
