@@ -9,17 +9,17 @@
 # sheet when it was removed by hand.
 
 # --- 1. THE PROJECT TARGETS (from the root of a project) ---
-gmake pdf                                     # The folder's markdown: the only .md, or the one the menu offers
-gmake pdf PDF_SRC=rapport.md                  # Name it directly - no menu, the form scripts use
-gmake pdf PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf   # Write it under another name
+gmake pdf_from_md                             # The folder's markdown: the only .md, or the one the menu offers
+gmake pdf_from_md PDF_SRC=rapport.md          # Name it directly - no menu, the form scripts use
+gmake pdf_from_md PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf   # Write it under another name
 gmake pdf_open                                # Open the built PDF: the first viewer installed, or Windows
-gmake docx                                    # The same document in Word - Word is not needed
+gmake docx_from_md                            # The same markdown in Word - Word is not needed
 
 # --- 2. BRINGING WHAT A DOCUMENT NEEDS ---
-gmake csl_get                                 # A citation style: menu over the official catalog (~10 000 styles)
-gmake csl_get STYLE=ieee                      # ... or named, no menu - the name zotero.org/styles shows
-gmake font_get                                # A font family: menu over the Windows side
-gmake font_get FONT=times                     # ... or named; Times New Roman's template asks for it by that name
+gmake csl_from_catalog                        # A citation style: menu over the official catalog (~10 000 styles)
+gmake csl_from_catalog STYLE=ieee             # ... or named, no menu - the name zotero.org/styles shows
+gmake font_from_windows                       # A font family: menu over the Windows side
+gmake font_from_windows FONT=times            # ... or named; Times New Roman's template asks for it by that name
 
 # --- 3. WHAT THE DOCUMENT CARRIES (its YAML header) ---
 # ---

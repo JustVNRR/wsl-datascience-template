@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE PANDOC PACK - `csl_get`: A CITATION STYLE, FROM THE OFFICIAL CATALOG
+# THE PANDOC PACK - `csl_from_catalog`: A CITATION STYLE, FROM THE OFFICIAL CATALOG
 # ==============================================================================
 # A .csl (Citation Style Language) is the file that tells pandoc how citations
 # are written and how the bibliography is ordered: numbers or author-year,
@@ -11,7 +11,7 @@
 # (the Citation Style Language project, the ten thousand styles Zotero
 # offers) into the project.
 #
-# Which one: STYLE names it - `gmake csl_get STYLE=ieee` - and the file comes
+# Which one: STYLE names it - `gmake csl_from_catalog STYLE=ieee` - and the file comes
 # straight from the catalog's raw storage: no list, nothing to choose, and the
 # only path that works without a terminal. Unnamed, a menu asks: the list is
 # one call to GitHub's API, fzf filters it (a few letters), and the chosen
@@ -36,11 +36,11 @@ if [ -z "$STYLE" ]; then
     # they carry no rules of their own, and the target is about rules. What
     # comes back is every independent style, one name per line.
     json=$(curl -fsSL 'https://api.github.com/repos/citation-style-language/styles/git/trees/master?recursive=1') ||
-        die "the catalog could not be read - is there a network? Name a style instead: gmake csl_get STYLE=<name>"
+        die "the catalog could not be read - is there a network? Name a style instead: gmake csl_from_catalog STYLE=<name>"
     catalog=$(printf '%s\n' "$json" |
         sed -n 's/.*"path": *"\([^"]*\)\.csl".*/\1/p' |
         grep -v / | sort -u || true)
-    [ -n "$catalog" ] || die "the catalog came back empty - name a style instead: gmake csl_get STYLE=<name>"
+    [ -n "$catalog" ] || die "the catalog came back empty - name a style instead: gmake csl_from_catalog STYLE=<name>"
 
     # fzf, like every other picker of this shell. A menu needs a terminal;
     # STYLE is what a script calls.
@@ -54,7 +54,7 @@ if [ -z "$STYLE" ]; then
             printf 'Nothing chosen.\n'
             exit 0
         fi
-        die "No style chosen - a menu needs a terminal. Name one instead: gmake csl_get STYLE=<name>"
+        die "No style chosen - a menu needs a terminal. Name one instead: gmake csl_from_catalog STYLE=<name>"
     fi
 fi
 

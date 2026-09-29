@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE PANDOC PACK - THE SCRIPTS BEHIND `pdf`, `pdf_open` AND `docx`
+# THE PANDOC PACK - THE SCRIPTS BEHIND `pdf_from_md`, `pdf_open` AND `docx_from_md`
 # ==============================================================================
 # The targets call this, one line each: where the questions are asked and the
 # work happens lives here - the arrangement the claude and web packs follow,
@@ -8,11 +8,11 @@
 # nobody can read.
 #
 # Three modes:
-#   document.sh          builds the PDF (the `pdf` target);
+#   document.sh          builds the PDF (the `pdf_from_md` target);
 #   document.sh open     opens what that build wrote (the `pdf_open` target);
-#   document.sh docx     writes the same document in Word format (the `docx`
-#                        target - pandoc writes .docx itself: no Word, no
-#                        Office, nothing to install).
+#   document.sh docx     writes the same document in Word format (the
+#                        `docx_from_md` target - pandoc writes .docx itself:
+#                        no Word, no Office, nothing to install).
 # The three resolve the document the same way, in the order the answers are
 # tried:
 #   - PDF_SRC, when the project's .env or the command line sets it: that one,
@@ -76,7 +76,7 @@ else
                 printf 'Nothing chosen.\n'
                 exit 0
             fi
-            die "No document chosen - a menu needs a terminal. Name one instead: gmake pdf PDF_SRC=<file>"
+            die "No document chosen - a menu needs a terminal. Name one instead: gmake pdf_from_md PDF_SRC=<file>"
         fi
         ;;
     esac
@@ -124,7 +124,7 @@ fi
 #     (wslpath). With interop off, this door is shut and the line below says
 #     what to do instead.
 if [ "$MODE" = open ]; then
-    [ -f "$OUT" ] || die "$OUT is not built yet - gmake pdf builds it."
+    [ -f "$OUT" ] || die "$OUT is not built yet - gmake pdf_from_md builds it."
     if [ -n "${PDF_VIEWER:-}" ]; then
         command -v "$PDF_VIEWER" >/dev/null 2>&1 ||
             die "PDF_VIEWER=$PDF_VIEWER: not installed in this instance. Install it, or drop the setting - the viewers are tried in turn without it."

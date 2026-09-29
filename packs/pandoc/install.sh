@@ -77,5 +77,5 @@ else
 fi
 
 echo "Pandoc and XeLaTeX are ready."
-echo "   gmake pdf builds a project's markdown into a PDF - the cheatsheet (fcheat)"
+echo "   gmake pdf_from_md builds a project's markdown into a PDF - the cheatsheet (fcheat)"
 echo "   has the commands, and the pack's page (packs/pandoc/docs/pandoc.md) the rest."

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE PANDOC PACK - `font_get`: A FONT FAMILY, FROM THE WINDOWS SIDE
+# THE PANDOC PACK - `font_from_windows`: A FONT FAMILY, FROM THE WINDOWS SIDE
 # ==============================================================================
 # The pack copies Arial at install, because the template asks for it, and
 # brings no other font. A document that asks for Times New Roman, Cambria, or
@@ -15,7 +15,7 @@
 # XeLaTeX still stops on "The font Arial cannot be found"), so the file itself
 # is what has to arrive, and that is what this copies.
 #
-# FONT names a family, and a part of one is enough - `gmake font_get
+# FONT names a family, and a part of one is enough - `gmake font_from_windows
 # FONT=times` takes Times New Roman. Unnamed, a menu asks: the families are
 # read out of the Windows files themselves (fc-scan, about two seconds for
 # the whole directory), so the menu offers family names, the names a template
@@ -63,7 +63,7 @@ else
             printf 'Nothing chosen.\n'
             exit 0
         fi
-        die "No family chosen - a menu needs a terminal. Name one instead: gmake font_get FONT=<name>"
+        die "No family chosen - a menu needs a terminal. Name one instead: gmake font_from_windows FONT=<name>"
     fi
     # Chosen from the list: the family exactly, not a part of it - "Cambria"
     # must not drag "Cambria Math" along.

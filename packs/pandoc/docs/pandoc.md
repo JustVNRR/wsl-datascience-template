@@ -3,10 +3,11 @@
 [← Back to the README](../../../README.md#optional-tooling)
 
 Pandoc and a LaTeX engine, installed by the `pandoc` pack and removed with it,
-plus the five targets that drive them: `gmake pdf` builds a project's markdown
-into a PDF, bibliography included; `gmake docx` writes the same document in
-Word; `gmake pdf_open` displays the result; `gmake csl_get` and `gmake
-font_get` bring a citation style or a font family a document asks for.
+plus the five targets that drive them: `gmake pdf_from_md` builds a project's
+markdown into a PDF, bibliography included; `gmake docx_from_md` writes the
+same document in Word; `gmake pdf_open` displays the result; `gmake
+csl_from_catalog` and `gmake font_from_windows` bring a citation style or a
+font family a document asks for.
 
 ## What it brings
 
@@ -32,19 +33,24 @@ that copy back.
 .\wsl.ps1 remove_pack   # the reverse
 ```
 
-## `gmake pdf`
+## The targets
 
 From the root of a project under `~/projects`:
 
 ```bash
-gmake pdf                                    # the folder's markdown -> the PDF beside it
-gmake pdf PDF_SRC=rapport.md                 # a document of several, named
-gmake pdf PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf
-gmake pdf_open                               # open the PDF that gmake pdf built
-gmake docx                                   # the same document, in Word
-gmake csl_get                                # fetch a citation style from the catalog (menu, or STYLE=name)
-gmake font_get                               # copy a font family from the Windows side (menu, or FONT=name)
+gmake pdf_from_md                            # the folder's markdown -> the PDF beside it
+gmake pdf_from_md PDF_SRC=rapport.md         # a document of several, named
+gmake pdf_from_md PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf
+gmake pdf_open                               # open the PDF that pdf_from_md built
+gmake docx_from_md                           # the same markdown, in Word
+gmake csl_from_catalog                       # fetch a citation style from the catalog (menu, or STYLE=name)
+gmake font_from_windows                      # copy a font family from the Windows side (menu, or FONT=name)
 ```
+
+The names say where they start: these targets are good at **markdown** — its
+YAML header carries the bibliography and the citation style, and a LaTeX
+template shapes the PDF. Pandoc reads other formats (docx, html, LaTeX), and
+the day one of them is wanted, it is another target, named for it.
 
 `pdf_open` installs nothing: it takes the first viewer the instance has —
 `evince`, `zathura`, `xpdf`, `okular`, `mupdf` — or `PDF_VIEWER` when one is
@@ -66,8 +72,8 @@ own styles.
 | `PDF_VIEWER` | the first viewer installed | what `pdf_open` runs — `evince`, `zathura`, `xpdf`… `sudo apt install evince` is one command away |
 | `DOCX_OUT` | `PDF_OUT` with `.docx` | where the Word file lands |
 | `DOCX_REFERENCE` | pandoc's own styles | the `.docx` whose styles the Word file inherits |
-| `STYLE` | a menu over the catalog | what `csl_get` fetches — the name zotero.org/styles shows (`ieee`, `vancouver`…) |
-| `FONT` | a menu over the Windows side | the family `font_get` copies; a part of the name is enough |
+| `STYLE` | a menu over the catalog | what `csl_from_catalog` fetches — the name zotero.org/styles shows (`ieee`, `vancouver`…) |
+| `FONT` | a menu over the Windows side | the family `font_from_windows` copies; a part of the name is enough |
 
 The menus are `fzf`, and `fzf` needs a terminal: called from a script or a pipe, name the file instead.
 
@@ -75,15 +81,21 @@ The menus are `fzf`, and `fzf` needs a terminal: called from a script or a pipe,
 
 A `.csl` is the file that tells pandoc how citations are written and how the
 bibliography is ordered — numbers or author-year, superscript or not. A style
-belongs to the document, which is why the pack ships none: `gmake csl_get`
-fetches one from the official catalog and drops it beside the document, and
-the YAML header names it.
+belongs to the document, which is why the pack ships none: `gmake
+csl_from_catalog` fetches one from the official catalog and drops it beside
+the document, and the YAML header names it.
 
-`font_get` copies a font family out of the Windows installation the instance
-runs beside, into `~/.local/share/fonts/<family>/` — the same move the
-installer makes for Arial, on demand. A font cannot be aliased into place
+`font_from_windows` copies a font family out of the Windows installation the
+instance runs beside, into `~/.local/share/fonts/<family>/` — the same move
+the installer makes for Arial, on demand. A font cannot be aliased into place
 (XeLaTeX ignores fontconfig substitutions), so the files themselves are what
 arrive. They are yours: removing the pack leaves them where they are.
+
+Windows is not the only source of fonts: Ubuntu carries free families as
+packages — `fonts-noto-core`, `fonts-ebgaramond`, `fonts-urw-base35` (the
+PostScript classics: Nimbus Roman for Times, Nimbus Sans for Helvetica…) —
+and any `.ttf` dropped into `~/.local/share/fonts/` is one `fc-cache -f`
+away. A template that asks for one of those needs no copy at all.
 
 A project fixes its own once, in its `.env`: `gmake env_project_enable` appends
 the pack's sample (the lines are commented out — uncomment what the project
