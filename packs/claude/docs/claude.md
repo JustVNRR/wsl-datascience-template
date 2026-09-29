@@ -38,10 +38,11 @@ settings, credentials, history, sessions — stays where it is: it is yours, lik
 `claude` asks you to log in once, and **needs a paid plan** — Pro, Max, Team,
 Enterprise or Console. The free claude.ai plan does not include Claude Code.
 
-The login opens a browser; in an instance there is none, so the page opens on
-Windows and the CLI asks you to paste the code it prints. With the `web` pack
-installed, `BROWSER=firefox claude` keeps the whole round trip inside the
-instance, where the callback has somewhere to land.
+The login is a web page, so the CLI opens a browser and waits for it to come
+back. An instance carries no browser: open the URL the CLI prints on Windows,
+and paste back the code the page gives you — the browser on Windows cannot call
+into the instance on its own. If the paste does not take, `claude auth login`
+reads the code from your input instead.
 
 ## Where things live
 
