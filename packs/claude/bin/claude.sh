@@ -366,7 +366,7 @@ cmd_profile() {
     # are unreadable and tell nobody anything (his call, 2026-09-29). What the
     # line carries is the answer to the only question the command was asked.
     if [ "$want" = "{}" ]; then
-        printf '✅ %s applied - nothing written, the login decides.\n' "$wanted"
+        printf '✅ %s applied - no keys, your login is used.\n' "$wanted"
     else
         printf '✅ %s applied.\n' "$wanted"
     fi
