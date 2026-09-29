@@ -66,3 +66,11 @@ instead.
 `~/.local/bin` is already on the PATH — the socle exports it — so the note the
 installer prints, asking you to add it to your shell's configuration file, needs
 nothing done about it.
+
+## The one on Windows is not this one
+
+WSL puts the Windows folders on the instance's PATH, so a Claude Code installed
+on Windows answers from inside the instance: `claude` works, and it is running on
+the other side of the wall — Windows paths, Windows files, and not the program
+this pack installed. `gmake claude_status` reads the pack's own launcher, at
+`~/.local/bin/claude`, and names the foreign one when it is all there is.

@@ -18,9 +18,23 @@ set -euo pipefail
 # installed; it does not ask the caller's shell.
 export PATH="$HOME/.local/bin:$PATH"
 
-# The program. `command -v` is also what the sheet's `# requires: claude` header
-# asks, so the two agree on what "installed" means.
-claude_bin=$(command -v claude 2>/dev/null || true)
+# The pack's program, at the path this pack installs it to - and not whatever
+# `claude` the PATH resolves to, which is a different question with a different
+# answer. WSL appends the Windows directories to the PATH, so a Claude Code
+# installed on Windows is found from inside the instance: reported as this
+# instance's own, `gmake claude_status` would describe a program that runs on
+# the other side of the wall, and the "not installed" branch would never be
+# reached. Measured on a real instance, and the reason install.sh tests the same
+# path.
+launcher=$HOME/.local/bin/claude
+claude_bin=""
+[ -x "$launcher" ] && claude_bin=$launcher
+
+# What the PATH finds instead, when it finds something else. Named only, never
+# used: the person will type `claude` and see it answer, and the message that
+# says the pack's own is missing has to say why.
+foreign_bin=$(command -v claude 2>/dev/null || true)
+[ "$foreign_bin" = "$launcher" ] && foreign_bin=""
 
 versions_dir=$HOME/.local/share/claude/versions
 config_dir=$HOME/.claude
@@ -36,18 +50,30 @@ status() {
     # finish. Either way the way back is the pack's own install script, which
     # asks the machine before it downloads anything.
     if [ -z "$claude_bin" ]; then
-        echo "  ❌ No 'claude' in this instance."
+        echo "  ❌ Claude Code is not installed in this instance."
         echo ""
-        echo "     The pack is there, the program is not - taken away by hand, or"
-        echo "     an installation that stopped half way. Put it back with the"
-        echo "     script that installed it the first time:"
+        if [ -n "$foreign_bin" ]; then
+            # The case a WSL instance hits as soon as Windows has one: typing
+            # `claude` works, and it is not this one. Said before the way back,
+            # because it is the surprise, not the detail.
+            echo "     Your PATH does find one — $foreign_bin — but that one"
+            echo "     runs on Windows, not here, and this pack did not put it there."
+            echo ""
+            echo "     The pack's own is missing: taken away by hand, or an"
+            echo "     installation that stopped half way. Put it back with the"
+            echo "     script that installed it the first time:"
+        else
+            echo "     The pack is there, the program is not - taken away by hand, or"
+            echo "     an installation that stopped half way. Put it back with the"
+            echo "     script that installed it the first time:"
+        fi
         echo ""
         echo "         bash ~/.config/packs/claude/install.sh"
         echo ""
         return 1
     fi
 
-    echo "  program    $(claude --version)"
+    echo "  program    $("$claude_bin" --version)"
 
     # The launcher is a symlink into the versions the CLI keeps; the target is
     # worth showing, because that is where the disk goes.
@@ -123,7 +149,7 @@ access() {
     # `loggedIn: false` - which is what a fresh instance, logged in nowhere,
     # reports.
     local auth answer
-    auth=$(claude auth status 2>/dev/null || true)
+    auth=$("$claude_bin" auth status 2>/dev/null || true)
     answer=$(printf '%s' "$auth" |
         jq -r 'if .loggedIn == true then (.authMethod // "a login") elif .loggedIn == false then "none" else "unknown" end' 2>/dev/null || true)
     case "$answer" in

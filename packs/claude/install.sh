@@ -17,9 +17,24 @@ set -euo pipefail
 # is not on its PATH: the check below needs it there.
 export PATH="$HOME/.local/bin:$PATH"
 
-if command -v claude >/dev/null 2>&1; then
-    echo "✅ Claude Code is already installed ($(claude --version)) — nothing to do."
+# The pack's own launcher, at the path this pack installs it to - never whatever
+# `claude` the PATH happens to resolve to. WSL appends the Windows directories
+# to the PATH, so a Claude Code installed on Windows (npm, or its own installer)
+# is found from inside the instance: asking the PATH would answer "already
+# installed" about a program that runs on the other side of the wall, and this
+# script would install nothing at all. Measured, on a real instance.
+launcher=$HOME/.local/bin/claude
+
+if [ -x "$launcher" ]; then
+    echo "✅ Claude Code is already installed ($("$launcher" --version)) — nothing to do."
 else
+    # Named, not removed: the person will type `claude` and see it work, and the
+    # one line here is what explains why this pack installs its own anyway.
+    foreign=$(command -v claude 2>/dev/null || true)
+    if [ -n "$foreign" ]; then
+        echo "ℹ️  A 'claude' from outside this instance is on the PATH ($foreign)."
+        echo "    It runs on Windows, not here; this pack installs its own."
+    fi
     echo "➕ Installing Claude Code from Anthropic's own script (about 230 MB, a few minutes)..."
     # No sudo, and the installer refuses it: everything lands under $HOME, and
     # under sudo that $HOME is root's, where the launcher would not be found by
