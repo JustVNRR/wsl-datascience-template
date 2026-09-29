@@ -115,7 +115,8 @@ fi
 # the program really left (a pack claiming claude means the tool stays, and its
 # data stays with it) and only when there is something to keep. With no answer
 # to read, the default is the answer, like everywhere a pack asks
-# (docs/packs.md).
+# (docs/packs.md). Framed, like the install question and for the same reason:
+# this text lands in a Windows console, where a bare sentence gets lost.
 wiped=0
 has_data=0
 if [ -e "$HOME/.claude" ] || [ -e "$HOME/.claude.json" ] || [ -e "$HOME/.config/claude" ]; then
@@ -123,11 +124,15 @@ if [ -e "$HOME/.claude" ] || [ -e "$HOME/.claude.json" ] || [ -e "$HOME/.config/
 fi
 
 if [ "$claimed" -eq 0 ] && [ "$has_data" -eq 1 ]; then
-    echo "Your data stays where it is:"
-    echo "   ~/.claude and ~/.claude.json - settings, login, history, sessions, plugins"
-    echo "   the caches under ~/.cache and ~/.local/state"
-    echo "   ~/.config/claude/profiles.json - your providers, and the tokens in them"
-    echo "Keep it all? [Y/n]"
+    echo ""
+    echo "=============================================================================="
+    echo "  Your data stays where it is:"
+    echo "     ~/.claude and ~/.claude.json - settings, login, history, sessions"
+    echo "     the caches under ~/.cache and ~/.local/state"
+    echo "     ~/.config/claude/profiles.json - your providers, and their tokens"
+    echo "  Keep it all? [Y/n]"
+    echo "=============================================================================="
+    echo ""
     if read -r answer; then
         case "$answer" in
         [nN]*)

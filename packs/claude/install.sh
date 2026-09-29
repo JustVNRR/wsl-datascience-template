@@ -49,6 +49,12 @@ else
     # ANSWER, not a failure: exit code 2, which the socle reports as "not
     # installed" rather than as a broken installation (docs/packs.md).
     #
+    # And the question is FRAMED, because it travels to a Windows console in a
+    # stream of other lines, where a bare sentence reads as one more log line
+    # and gets answered without being seen (his return, 2026-09-29: "ca se voit
+    # pas assez"). The fences are plain ASCII, like everything printed here,
+    # and they stand out anywhere.
+    #
     # The silent case agrees with the default: a pack arrives because it was
     # CHOSEN - a box ticked in the checklist `build` asks before it builds, a row
     # picked from the list `add_pack` shows - so when no line comes back at all,
@@ -62,8 +68,12 @@ else
     # answers - and only the `n` is a no.
     foreign=$(command -v claude 2>/dev/null || true)
     if [ -n "$foreign" ]; then
-        echo "Claude Code is already installed on Windows."
-        echo "Install a copy in this instance too? [Y/n]"
+        echo ""
+        echo "=============================================================================="
+        echo "  Claude Code is already installed on Windows."
+        echo "  Install a copy in this instance too? [Y/n]"
+        echo "=============================================================================="
+        echo ""
         if read -r answer; then
             case "$answer" in
                 [nN]*)
