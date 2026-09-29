@@ -34,16 +34,18 @@ that copy back.
 From the root of a project under `~/projects`:
 
 ```bash
-gmake pdf                                    # the project's only .md -> the PDF beside it
-gmake pdf PDF_SRC=rapport.md                 # when the project holds several .md
+gmake pdf                                    # the folder's markdown -> the PDF beside it
+gmake pdf PDF_SRC=rapport.md                 # a document of several, named
 gmake pdf PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf
 ```
 
 | Variable | Default | What it is |
 | :--- | :--- | :--- |
-| `PDF_SRC` | the only `.md` of the project | the markdown to build. With several and none named, the target refuses and lists them |
+| `PDF_SRC` | the folder decides | the markdown to build: the only `.md` of the project, or the one the menu offers when there are several. Named — in the command or in the `.env` — it skips the menu, and that is the form a script calls |
 | `PDF_OUT` | `PDF_SRC` with `.pdf` | what to write |
 | `PDF_TEMPLATE` | `template.tex` when it is there, pandoc's own template otherwise | the template that gives the document its look |
+
+The menu is `fzf`, and `fzf` needs a terminal: called from a script or a pipe, name the file instead.
 
 A project fixes its own once, in its `.env`: `gmake env_project_enable` appends
 the pack's sample (the lines are commented out — uncomment what the project
@@ -79,6 +81,7 @@ Any of pandoc's other outputs is one flag away, with no LaTeX involved:
 
 | Message | What it means |
 | :--- | :--- |
+| `No markdown files found in the current folder.` | there is nothing to build here — run it from the folder that holds the `.md` |
 | `File <name>.csl not found in resource path` | the CSL style named in the YAML is not beside the document |
 | `Unable to load picture or PDF file '<name>'` | an image the document calls is missing |
 | `The font Arial cannot be found` | the Arial copy is absent — `.\wsl.ps1 add_pack` again, and see `/mnt/c/Windows/Fonts` |

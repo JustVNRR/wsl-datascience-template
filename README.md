@@ -234,6 +234,7 @@ the repository at runtime.
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
 │   │   ├── env.project.sample # the pack's project variables (PDF_SRC, PDF_OUT, PDF_TEMPLATE)
+│   │   ├── bin/             # the script behind the target: the menu, the command
 │   │   ├── make/            # its gmake module: the pdf target
 │   │   ├── cheatsheets/     # its fcheat sheet: the target, and the command behind it
 │   │   └── docs/            # the pack's page

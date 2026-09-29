@@ -9,8 +9,8 @@
 # sheet when it was removed by hand.
 
 # --- 1. THE PROJECT TARGET (from the root of a project) ---
-gmake pdf                                     # Build the project's markdown: the only .md there
-gmake pdf PDF_SRC=rapport.md                  # Several .md in the project: name the one to build
+gmake pdf                                     # The folder's markdown: the only .md, or the one the menu offers
+gmake pdf PDF_SRC=rapport.md                  # Name it directly - no menu, the form scripts use
 gmake pdf PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf   # Write it under another name
 
 # --- 2. WHAT THE DOCUMENT CARRIES (its YAML header) ---
