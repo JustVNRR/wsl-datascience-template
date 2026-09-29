@@ -111,7 +111,7 @@ it grows, and a pack leaves with its folder:
 | `claude` | [Claude Code](packs/claude/docs/claude.md) | `claude_status`, `claude_profile`, `claude_edit_profiles`, `claude_project` |
 | `devops` | [The devops pack](packs/devops/docs/devops.md) | `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
-| `pandoc` | [Pandoc & PDF](packs/pandoc/docs/pandoc.md) | `pdf`, `pdf_open` |
+| `pandoc` | [Pandoc & PDF](packs/pandoc/docs/pandoc.md) | `pdf`, `pdf_open`, `docx`, `csl_get`, `font_get` |
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
 | `scaffold` | [Project scaffolding, the pack](packs/scaffold/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
@@ -233,10 +233,10 @@ the repository at runtime.
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
-│   │   ├── env.project.sample # the pack's project variables (PDF_SRC, PDF_OUT, PDF_TEMPLATE)
-│   │   ├── bin/             # the script behind the targets: the menu, the build, the viewer
-│   │   ├── make/            # its gmake module: the pdf and pdf_open targets
-│   │   ├── cheatsheets/     # its fcheat sheet: the target, and the command behind it
+│   │   ├── env.project.sample # the pack's project variables (PDF_SRC, DOCX_REFERENCE...)
+│   │   ├── bin/             # the scripts behind the targets: the build, the viewer, the styles, the fonts
+│   │   ├── make/            # its gmake module: pdf, pdf_open, docx, csl_get, font_get
+│   │   ├── cheatsheets/     # its fcheat sheet: the targets, the commands, the PDF tools
 │   │   └── docs/            # the pack's page
 │   ├── python/              # Python 3, uv, ruff, the compiler a wheel is built with
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows

@@ -3,8 +3,10 @@
 [← Back to the README](../../../README.md#optional-tooling)
 
 Pandoc and a LaTeX engine, installed by the `pandoc` pack and removed with it,
-plus the one target that drives them: `gmake pdf` builds a project's markdown
-into a PDF, bibliography included.
+plus the five targets that drive them: `gmake pdf` builds a project's markdown
+into a PDF, bibliography included; `gmake docx` writes the same document in
+Word; `gmake pdf_open` displays the result; `gmake csl_get` and `gmake
+font_get` bring a citation style or a font family a document asks for.
 
 ## What it brings
 
@@ -12,9 +14,10 @@ into a PDF, bibliography included.
 | :--- | :--- | :--- |
 | Pandoc | converting markdown; `--citeproc` handles the bibliography | `pandoc` |
 | XeLaTeX | the PDF engine a template with its own fonts asks for | `xelatex` |
+| PDF tools | checking and assembling the results | `pdftotext`, `pdfinfo`, `pdftoppm`, `pdfunite` |
 | Arial | the font the templates ask for, copied from Windows | — |
 
-Pandoc and the engine arrive as Debian packages — 88 packages, about 780 MB
+Pandoc and the engine arrive as Debian packages — 115 packages, about 800 MB
 installed, a LaTeX distribution being most of it. Arial is not a package: Linux
 has no Arial, and **fontconfig aliases do not work with XeTeX** (measured: with
 an alias in place, `fc-match` resolves Arial while XeLaTeX still stops on
@@ -38,6 +41,9 @@ gmake pdf                                    # the folder's markdown -> the PDF 
 gmake pdf PDF_SRC=rapport.md                 # a document of several, named
 gmake pdf PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf
 gmake pdf_open                               # open the PDF that gmake pdf built
+gmake docx                                   # the same document, in Word
+gmake csl_get                                # fetch a citation style from the catalog (menu, or STYLE=name)
+gmake font_get                               # copy a font family from the Windows side (menu, or FONT=name)
 ```
 
 `pdf_open` installs nothing: it takes the first viewer the instance has —
@@ -46,14 +52,38 @@ named, and falls back to the Windows default application through
 `explorer.exe` when the instance can reach it. Removing a viewer from the
 machine, or adding one, changes what it does without anything to configure.
 
+The Word file needs no Word — a `.docx` is an archive of XML, and pandoc
+writes it itself. Its look does not come from the LaTeX template (that one
+shapes the PDF): it comes from a **reference document**, a `.docx` of your own
+whose styles pandoc copies — `DOCX_REFERENCE` names it. Without one, pandoc's
+own styles.
+
 | Variable | Default | What it is |
 | :--- | :--- | :--- |
 | `PDF_SRC` | the folder decides | the markdown to build: the only `.md` of the project, or the one the menu offers when there are several. Named — in the command or in the `.env` — it skips the menu, and that is the form a script calls |
 | `PDF_OUT` | `PDF_SRC` with `.pdf` | what to write |
-| `PDF_TEMPLATE` | `template.tex` when it is there, pandoc's own template otherwise | the template that gives the document its look |
+| `PDF_TEMPLATE` | `template.tex` when it is there, pandoc's own template otherwise | the template that gives the PDF its look |
 | `PDF_VIEWER` | the first viewer installed | what `pdf_open` runs — `evince`, `zathura`, `xpdf`… `sudo apt install evince` is one command away |
+| `DOCX_OUT` | `PDF_OUT` with `.docx` | where the Word file lands |
+| `DOCX_REFERENCE` | pandoc's own styles | the `.docx` whose styles the Word file inherits |
+| `STYLE` | a menu over the catalog | what `csl_get` fetches — the name zotero.org/styles shows (`ieee`, `vancouver`…) |
+| `FONT` | a menu over the Windows side | the family `font_get` copies; a part of the name is enough |
 
-The menu is `fzf`, and `fzf` needs a terminal: called from a script or a pipe, name the file instead.
+The menus are `fzf`, and `fzf` needs a terminal: called from a script or a pipe, name the file instead.
+
+## Bringing a style or a font
+
+A `.csl` is the file that tells pandoc how citations are written and how the
+bibliography is ordered — numbers or author-year, superscript or not. A style
+belongs to the document, which is why the pack ships none: `gmake csl_get`
+fetches one from the official catalog and drops it beside the document, and
+the YAML header names it.
+
+`font_get` copies a font family out of the Windows installation the instance
+runs beside, into `~/.local/share/fonts/<family>/` — the same move the
+installer makes for Arial, on demand. A font cannot be aliased into place
+(XeLaTeX ignores fontconfig substitutions), so the files themselves are what
+arrive. They are yours: removing the pack leaves them where they are.
 
 A project fixes its own once, in its `.env`: `gmake env_project_enable` appends
 the pack's sample (the lines are commented out — uncomment what the project
@@ -76,14 +106,15 @@ citeproc: true
 `csl:` names a file beside the document — a style is not fetched from anywhere,
 it travels with the source.
 
-## The command behind the target
+## The commands behind the targets
 
 ```bash
 pandoc rapport.md --citeproc --template=template.tex -o rapport.pdf --pdf-engine=xelatex
+pandoc rapport.md --citeproc -o rapport.docx
 ```
 
 Any of pandoc's other outputs is one flag away, with no LaTeX involved:
-`-o rapport.docx`, `-o rapport.html`.
+`-o rapport.html`, `-o rapport.epub`.
 
 ## When the build stops
 

@@ -36,7 +36,7 @@ if [ -z "$packages" ]; then
     exit 1
 fi
 
-echo "Installing Pandoc and the LaTeX engine (about 780 MB - your password will be asked)..."
+echo "Installing Pandoc and the LaTeX engine (about 800 MB - your password will be asked)..."
 # DEBIAN_FRONTEND, so that a package reconfigured on the way never stops the
 # install to ask something.
 sudo bash -c "set -eo pipefail

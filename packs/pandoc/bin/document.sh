@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE PANDOC PACK - THE SCRIPTS BEHIND `pdf` AND `pdf_open`
+# THE PANDOC PACK - THE SCRIPTS BEHIND `pdf`, `pdf_open` AND `docx`
 # ==============================================================================
 # The targets call this, one line each: where the questions are asked and the
-# work happens lives here - the arrangement the claude and web packs follow, and
-# for the same reason: a recipe that opened a menu itself is a recipe nobody
-# can read.
+# work happens lives here - the arrangement the claude and web packs follow,
+# and for the same reason: a recipe that opened a menu itself is a recipe
+# nobody can read.
 #
-# Two modes: `pdf.sh` builds (the `pdf` target), `pdf.sh open` opens what that
-# build writes (the `pdf_open` target). Both resolve the document the same way,
-# in the order the answers are tried:
+# Three modes:
+#   document.sh          builds the PDF (the `pdf` target);
+#   document.sh open     opens what that build wrote (the `pdf_open` target);
+#   document.sh docx     writes the same document in Word format (the `docx`
+#                        target - pandoc writes .docx itself: no Word, no
+#                        Office, nothing to install).
+# The three resolve the document the same way, in the order the answers are
+# tried:
 #   - PDF_SRC, when the project's .env or the command line sets it: that one,
 #     no question. It is also the only path that works without a terminal,
 #     which is what a script - or a test - calls;
@@ -26,9 +31,9 @@ set -euo pipefail
 
 # The pack's variables are read from the environment: the socle's Makefile
 # exports everything it loaded (the bare `export` above the includes), so
-# PDF_SRC, PDF_OUT, PDF_TEMPLATE and PDF_VIEWER arrive here already carrying
-# what the .env, the command line and the defaults decided - nothing is parsed
-# a second time.
+# PDF_SRC, PDF_OUT, PDF_TEMPLATE, PDF_VIEWER, DOCX_OUT and DOCX_REFERENCE
+# arrive here already carrying what the .env, the command line and the
+# defaults decided - nothing is parsed a second time.
 die() {
     printf '%s\n' "$1" >&2
     exit 1
@@ -82,6 +87,27 @@ fi
 # PDF_OUT, or the source's name with .pdf.
 OUT=${PDF_OUT:-}
 [ -n "$OUT" ] || OUT=${SRC%.md}.pdf
+
+# --- docx: the same document, in Word -----------------------------------------
+#
+# A .docx is the Office format - an archive of XML - and pandoc writes it
+# itself: no Word, no Office, nothing installed. What the Word file LOOKS like
+# is not the LaTeX template's business (that one shapes the PDF): it comes
+# from a reference document - a .docx of your own whose styles pandoc copies -
+# and DOCX_REFERENCE names it. Without one, pandoc's default styles.
+if [ "$MODE" = docx ]; then
+    docx_out=${DOCX_OUT:-}
+    [ -n "$docx_out" ] || docx_out=${OUT%.pdf}.docx
+    REF_ARGS=()
+    if [ -n "${DOCX_REFERENCE:-}" ]; then
+        [ -f "$DOCX_REFERENCE" ] || die "DOCX_REFERENCE=$DOCX_REFERENCE: no such file in $(pwd)."
+        REF_ARGS=(--reference-doc="$DOCX_REFERENCE")
+    fi
+    echo "📄 Building $SRC -> $docx_out (Word)..."
+    pandoc "$SRC" --citeproc "${REF_ARGS[@]}" -o "$docx_out"
+    echo "✅ $docx_out ($(du -h "$docx_out" | cut -f1))"
+    exit 0
+fi
 
 # --- pdf_open: hand it to something that displays it ---------------------------
 #

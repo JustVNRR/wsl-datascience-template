@@ -2,9 +2,9 @@
 # PANDOC / PDF CHEATSHEET
 # requires: pandoc
 # ==========================================
-# Pandoc, the LaTeX engine and the Arial copy the `pandoc` pack installs
-# (`.\wsl.ps1 add_pack`), and the one target it adds. The pack is removed the
-# same way; its page is packs/pandoc/docs/pandoc.md.
+# Pandoc, the LaTeX engine, the Windows Arial copy and the PDF tools the
+# `pandoc` pack installs (`.\wsl.ps1 add_pack`), and the five targets it adds.
+# The pack is removed the same way; its page is packs/pandoc/docs/pandoc.md.
 # Offered only while pandoc is installed - the header above is what hides the
 # sheet when it was removed by hand.
 
@@ -13,20 +13,34 @@ gmake pdf                                     # The folder's markdown: the only 
 gmake pdf PDF_SRC=rapport.md                  # Name it directly - no menu, the form scripts use
 gmake pdf PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf   # Write it under another name
 gmake pdf_open                                # Open the built PDF: the first viewer installed, or Windows
+gmake docx                                    # The same document in Word - Word is not needed
 
-# --- 2. WHAT THE DOCUMENT CARRIES (its YAML header) ---
+# --- 2. BRINGING WHAT A DOCUMENT NEEDS ---
+gmake csl_get                                 # A citation style: menu over the official catalog (~10 000 styles)
+gmake csl_get STYLE=ieee                      # ... or named, no menu - the name zotero.org/styles shows
+gmake font_get                                # A font family: menu over the Windows side
+gmake font_get FONT=times                     # ... or named; Times New Roman's template asks for it by that name
+
+# --- 3. WHAT THE DOCUMENT CARRIES (its YAML header) ---
 # ---
 # bibliography: bibliographie.bib             # the .bib beside the document
 # csl: vancouver-superscript.csl              # the style beside it too
 # citeproc: true                              # render the citations
 # ---
 
-# --- 3. THE COMMAND BEHIND THE TARGET ---
+# --- 4. THE COMMAND BEHIND THE TARGET ---
 pandoc rapport.md --citeproc --template=template.tex -o rapport.pdf --pdf-engine=xelatex
-pandoc rapport.md -o rapport.docx             # The same source, Word output
+pandoc rapport.md --citeproc -o rapport.docx  # Word output, no LaTeX involved
 pandoc --version                              # Which version is installed
 
-# --- 4. WHEN THE BUILD STOPS ---
+# --- 5. THE PDF TOOLS (poppler) ---
+pdfinfo rapport.pdf                           # Pages, size, engine - the facts
+pdftotext -layout rapport.pdf - | less        # The text, to check or to grep
+pdftotext -layout rapport.pdf - | grep -n "rétention"   # Find a passage and its page context
+pdftoppm -png -f 1 -l 1 rapport.pdf page      # Page 1 as page-1.png
+pdfunite rapport.pdf annexes.pdf envoi.pdf    # Merge PDFs: the document and its annexes, one file
+
+# --- 6. WHEN THE BUILD STOPS ---
 ls *.md *.bib *.csl                           # What the command needs, beside the document
 pandoc -D latex | less                        # The template pandoc ships (for the CSLReferences block)
 fc-list Arial                                 # The Windows Arial copy: four faces, or nothing
