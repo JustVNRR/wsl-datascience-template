@@ -170,11 +170,6 @@ apply_env() {
 
     chmod 600 "$tmp"
     mv "$tmp" "$SETTINGS"
-    if [ "$want" = "{}" ]; then
-        printf '📝 %s: the keys this pack owns were taken back out\n' "$SETTINGS"
-    else
-        printf '📝 %s: %s\n' "$SETTINGS" "$(printf '%s' "$want" | jq -r 'keys | join(", ")')"
-    fi
 }
 
 # --- the variables ------------------------------------------------------------
@@ -195,7 +190,8 @@ profile_var() {
 # and nothing else: the line is replaced where it is, or appended when the
 # variable is not there yet (which is what a machine that never ran
 # env_global_enable looks like). The value is an id, checked by valid_id before
-# this is called: no byte of it needs escaping.
+# this is called: no byte of it needs escaping. Silent: what it did is the one
+# line the caller prints at the end.
 write_env() {
     local name=$1 value=$2
     [ -f "$GLOBAL_ENV" ] || die "no $GLOBAL_ENV yet - 'gmake env_global_enable' builds it from the samples."
@@ -204,7 +200,6 @@ write_env() {
     else
         printf '\n%s=%s\n' "$name" "$value" >> "$GLOBAL_ENV"
     fi
-    printf '📝 %s=%s (%s)\n' "$name" "$value" "$GLOBAL_ENV"
 }
 
 # --- the menu -----------------------------------------------------------------
@@ -367,10 +362,13 @@ cmd_profile() {
     write_env CLAUDE_PROFILE "$wanted"
     apply_env "$want"
 
+    # One line, and the key list stays out of it: eleven variable names in a row
+    # are unreadable and tell nobody anything (his call, 2026-09-29). What the
+    # line carries is the answer to the only question the command was asked.
     if [ "$want" = "{}" ]; then
-        printf 'ℹ️  Nothing is written for it: the settings and the login decide. That is the subscription route.\n'
+        printf '✅ %s applied - nothing written, the login decides.\n' "$wanted"
     else
-        printf 'ℹ️  It applies now, and to every session, however you start one.\n'
+        printf '✅ %s applied.\n' "$wanted"
     fi
 }
 
