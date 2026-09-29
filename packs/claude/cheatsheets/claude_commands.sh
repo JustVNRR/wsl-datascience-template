@@ -26,12 +26,17 @@ jq -S '.env' ~/.claude/settings.json           # What the CLI reads: the applied
 grep CLAUDE_PROFILE ~/.config/zsh/gmake/.env.global      # The entry in force
 jq .statusLine ~/.claude/settings.json         # The status line the pack put there
 
-# --- 3. WHAT TAKES THE SPACE ---
+# --- 3. YOUR PROJECTS ---
+gmake claude_project                           # Pick a project, and reopen its last session
+claude --continue                              # ... the same, from the folder you are already in
+claude --resume                                # ... or choose among that folder's sessions
+
+# --- 4. WHAT TAKES THE SPACE ---
 du -sh ~/.local/share/claude                   # Every version ever installed
 ls -l ~/.local/share/claude/versions/          # ... one file per version
 claude project purge --dry-run                 # What one project's history takes
 
-# --- 4. THE FIRST RUN, AND WHEN SOMETHING IS STUCK ---
+# --- 5. THE FIRST RUN, AND WHEN SOMETHING IS STUCK ---
 claude                                         # Open a session here (it asks you to log in once)
 claude auth logout                             # Forget the login of this instance
 claude update                                  # Update now (it also updates itself at startup)

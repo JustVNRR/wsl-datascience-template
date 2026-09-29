@@ -29,6 +29,11 @@
 # shell starts, and the CLI reads its own settings file whatever launches it. A
 # profile written there is the one every session obeys, however it is started -
 # the whole point of the exercise.
+#
+# One file the pack only READS: ~/.claude/projects, the CLI's own store of the
+# folders a session has run in - one directory per folder, a file per session.
+# `claude_project` lists them from there and opens the one chosen; nothing here
+# ever writes in it.
 
 set -euo pipefail
 
@@ -38,6 +43,7 @@ SAMPLE=$here/../profiles.sample
 PROFILES=$HOME/.config/claude/profiles.json
 SETTINGS=$HOME/.claude/settings.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
+PROJECTS_STORE=$HOME/.claude/projects
 
 # Where the pack put the program, named before anything looks for it - called by
 # make the PATH is zsh's, which has ~/.local/bin, but called by hand from a shell
@@ -217,6 +223,67 @@ pick() {
     printf '%s\n' "$choice"
 }
 
+# --- the projects -------------------------------------------------------------
+
+# $HOME spelled ~, and nothing else: a menu column - and the substitution
+# reverses exactly, so the display never hides the value.
+short_path() {
+    case "$1" in
+    "$HOME") printf '~' ;;
+    "$HOME"/*) printf '~%s' "${1#"$HOME"}" ;;
+    *) printf '%s' "$1" ;;
+    esac
+}
+
+# One line per project of this instance, most recently used first, shaped for
+# fzf:  <path> TAB <last session>  <short path>
+#
+# The path is the first field and the only one that matters; fzf shows what is
+# left of the tab (--with-nth) and prints the chosen line back whole, so
+# `cut -f1` reads the path again.
+#
+# From where: ~/.claude/projects, one directory per folder a session has run in.
+# The directory's NAME is an encoding of the path that cannot be decoded back (a
+# dash is a dash in a folder's name too), so the path is read INSIDE the files:
+# every session entry carries its cwd. A folder that is gone from the disk is
+# not offered - there would be nothing to open - and neither is a directory
+# whose files never name a cwd.
+project_lines() {
+    local dir newest cwd epoch when
+    [ -d "$PROJECTS_STORE" ] || return 0
+
+    for dir in "$PROJECTS_STORE"/*/; do
+        [ -d "$dir" ] || continue
+        # The newest session of that folder: when the project was last used, and
+        # any of its files answers the same cwd. `find` and not `ls` - shellcheck
+        # is right that a name says nothing about a filename, even here where
+        # the names come from the CLI - and the whole read is guarded because
+        # set -e is on: `head` closes a long pipe early (SIGPIPE), and no match
+        # at all is not an error worth stopping for.
+        newest=$(find "${dir%/}" -maxdepth 1 -type f -name '*.jsonl' -printf '%T@ %p\n' 2>/dev/null |
+            sort -rn | head -n 1 | cut -d' ' -f2- || true)
+        [ -n "$newest" ] || continue
+        cwd=$(jq -r 'select(.cwd) | .cwd' "$newest" 2>/dev/null | head -n 1 || true)
+        [ -n "$cwd" ] || continue
+        [ -d "$cwd" ] || continue
+        epoch=$(date -r "$newest" +%s 2>/dev/null || echo 0)
+        when=$(date -r "$newest" '+%Y-%m-%d %H:%M' 2>/dev/null || true)
+        printf '%s\t%s\t%s  %s\n' "$epoch" "$cwd" "$when" "$(short_path "$cwd")"
+    done | sort -rn -k1,1 | cut -f2-
+}
+
+# fzf, the same picker as the provider menu, and the same demand: a menu needs a
+# terminal. There is no name to fall back on here - the list IS the interface -
+# so a refusal is just a refusal.
+pick_project() {
+    local choice
+    if ! choice=$(printf '%s\n' "$1" | fzf --prompt='The project to open > ' --info=inline --layout=reverse --with-nth=2..); then
+        die "no project chosen."
+    fi
+    [ -n "$choice" ] || die "no project chosen."
+    printf '%s\n' "$choice" | cut -f1
+}
+
 # --- the targets --------------------------------------------------------------
 
 # Choosing a provider: the id into .env.global, and what it means into the
@@ -313,6 +380,28 @@ cmd_edit_profiles() {
     if [ -t 0 ] && [ -t 1 ]; then
         cmd_profile
     fi
+}
+
+# Opening one: the launcher, in that folder, on the last conversation of that
+# folder. Every project in the list is there because a session has run in it, so
+# there is always one to continue - the list answers "resume if there is one" by
+# itself. `exec`: the session replaces this script, and make waits on the
+# session, not on a wrapper.
+cmd_project() {
+    local list cwd
+
+    [ -n "$claude_bin" ] || die "Claude Code is not installed in this instance - bash ~/.config/packs/claude/install.sh puts it back."
+
+    list=$(project_lines)
+    if [ -z "$list" ]; then
+        printf 'This instance has no project yet: one appears here once a session has run in its folder.\n'
+        return 0
+    fi
+
+    cwd=$(pick_project "$list")
+    [ -d "$cwd" ] || die "$cwd is gone - it was removed after the list was read."
+    cd "$cwd" || die "cannot enter $cwd."
+    exec "$claude_bin" --continue
 }
 
 # --- the status ---------------------------------------------------------------
@@ -481,8 +570,11 @@ case "${1:-}" in
     edit_profiles)
         cmd_edit_profiles
         ;;
+    project)
+        cmd_project
+        ;;
     *)
-        echo "Usage: $(basename "$0") <status|profile|edit_profiles>" >&2
+        echo "Usage: $(basename "$0") <status|profile|edit_profiles|project>" >&2
         exit 2
         ;;
 esac

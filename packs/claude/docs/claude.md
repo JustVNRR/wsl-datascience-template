@@ -9,6 +9,7 @@ window, nothing on the Windows desktop — and it installs itself under your own
 | Piece | For | Commands |
 | :--- | :--- | :--- |
 | the program | a session, in a project or anywhere | `claude` |
+| your projects | pick up work where it stopped | `gmake claude_project` |
 | what this instance has | version, versions kept, the login | `gmake claude_status` |
 
 ## Installing and removing it
@@ -113,6 +114,26 @@ Code does depends on Anthropic's own API and stops behind a gateway: the tool
 search, Remote Control, the dictation, and prompt caching unless the endpoint
 forwards `cache_control`.
 
+## Your projects
+
+Claude Code keeps one history per folder it has run in. `gmake claude_project`
+turns that into a menu: this instance's projects, the most recently used first,
+each with the date of its last session.
+
+```text
+  2026-09-28 18:04  ~/projects/demo
+  2026-09-12 09:21  ~/projects/pricing
+```
+
+Pick one and a session opens in that folder, continuing the conversation that
+was left there — nothing to `cd` into, nothing to remember.
+
+A folder that has been deleted is not offered, and a folder no session has run
+in is not in the list either: there would be nothing to continue. On an instance
+that has never run a session, the target says so and stops.
+
+From inside a folder, the same thing is the CLI's own `claude --continue`.
+
 ## The status line
 
 Installing the pack gives the instance a status line for its sessions, on two
@@ -144,6 +165,7 @@ script.
 | `~/.local/bin/claude` | the launcher — a symlink into the versions below |
 | `~/.local/share/claude/versions/` | every version installed, one file each |
 | `~/.claude/` | settings, credentials, prompt history, sessions |
+| `~/.claude/projects/` | one folder per project this instance has worked in — what `claude_project` lists |
 | `~/.claude/settings.json` | the settings the CLI reads at every start |
 
 `~/.local/bin` is already on the PATH — the socle exports it — so the note the

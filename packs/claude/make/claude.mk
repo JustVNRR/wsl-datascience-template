@@ -11,12 +11,12 @@
 # be here, beside the targets it names, and why the socle names no target of a
 # pack in either list.
 #
-# Exempt, all three, because which provider an instance talks to is not a
-# project's business: the questions are asked from wherever you stand, and the
-# gate would otherwise refuse them from ~/projects - the same declaration
-# vpn_status makes in its own module.
+# Exempt, all four, because which provider an instance talks to - and which of
+# its projects to open - is not a project's business: the questions are asked
+# from wherever you stand, and the gate would otherwise refuse them from
+# ~/projects - the same declaration vpn_status makes in its own module.
 
-GATE_EXEMPT_GOALS += claude_status claude_profile claude_edit_profiles
+GATE_EXEMPT_GOALS += claude_status claude_profile claude_edit_profiles claude_project
 
 # The script, resolved from this module's own path: make/ and bin/ are neighbours
 # inside the pack folder, and the pack moves as one folder.
@@ -37,3 +37,6 @@ claude_profile: ## Choose the provider this instance talks to, and apply it
 
 claude_edit_profiles: ## Open the dictionary of providers in the editor (nano, or $EDITOR)
 	@$(CLAUDE) edit_profiles
+
+claude_project: ## Pick a project of this instance, and reopen its last session
+	@$(CLAUDE) project
