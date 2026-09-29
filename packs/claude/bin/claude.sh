@@ -45,6 +45,13 @@ SETTINGS=$HOME/.claude/settings.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 PROJECTS_STORE=$HOME/.claude/projects
 
+# What a menu put back: the chosen line, or the chosen provider id. A variable
+# and not the return value of `$( )`, on purpose: the Escape path has to exit
+# the SCRIPT, and an exit inside a command substitution only leaves its
+# subshell - the caller then reads the "Nothing chosen." message as the choice
+# and launches something (measured, 2026-09-29; the suite has the case).
+PICKED=""
+
 # Where the pack put the program, named before anything looks for it - called by
 # make the PATH is zsh's, which has ~/.local/bin, but called by hand from a shell
 # that has not read the zsh configuration it is not, and the answer would be "not
@@ -208,14 +215,24 @@ write_env() {
 # It needs a terminal, and says which way round that is: a menu cannot be
 # answered from a pipe or a script, and a provider can be named instead.
 pick() {
-    local list choice
+    local list choice status
     list=$(ids)
     [ -n "$list" ] || die "no provider in $PROFILES - gmake claude_edit_profiles opens it."
-    if ! choice=$(printf '%s\n' "$list" | fzf --prompt="$1 > " --info=inline --layout=reverse); then
+    if choice=$(printf '%s\n' "$list" | fzf --prompt="$1 > " --info=inline --layout=reverse); then
+        [ -n "$choice" ] || die "no provider chosen."
+        PICKED=$choice
+    else
+        status=$?
+        # fzf exits 130 on Escape or Ctrl-C: the person said no, which is a
+        # decision and not a failure - make must not print "Error" over it (his
+        # return, 2026-09-29). The exit lands here, in the script's own shell,
+        # not in a subshell - see PICKED.
+        if [ "$status" -eq 130 ]; then
+            printf 'Nothing chosen.\n'
+            exit 0
+        fi
         die "no provider chosen - a menu needs a terminal. Name one instead: gmake claude_profile CLAUDE_PROFILE=<id>"
     fi
-    [ -n "$choice" ] || die "no provider chosen."
-    printf '%s\n' "$choice"
 }
 
 # --- the projects -------------------------------------------------------------
@@ -269,16 +286,22 @@ project_lines() {
 
 # fzf, the same picker as the provider menu, and the same demand: a menu needs a
 # terminal. $1 is the prompt, $2 the field the display starts at, $3 the list;
-# the chosen line comes back whole and the caller reads its fields. There is no
-# name to fall back on here - the list IS the interface - so a refusal is just a
-# refusal.
+# the chosen line lands in PICKED, whole, and the caller reads its fields. There
+# is no name to fall back on here - the list IS the interface - so a refusal is
+# just a refusal; Escape is handled like pick() handles it.
 pick_line() {
-    local choice
-    if ! choice=$(printf '%s\n' "$3" | fzf --prompt="$1 > " --info=inline --layout=reverse --with-nth="$2.."); then
-        die "nothing chosen."
+    local choice status
+    if choice=$(printf '%s\n' "$3" | fzf --prompt="$1 > " --info=inline --layout=reverse --with-nth="$2.."); then
+        [ -n "$choice" ] || die "nothing chosen."
+        PICKED=$choice
+    else
+        status=$?
+        if [ "$status" -eq 130 ]; then
+            printf 'Nothing chosen.\n'
+            exit 0
+        fi
+        die "nothing chosen - a menu needs a terminal."
     fi
-    [ -n "$choice" ] || die "nothing chosen."
-    printf '%s\n' "$choice"
 }
 
 # The first words a person typed in a session: one user message, flattened to a
@@ -334,7 +357,8 @@ cmd_profile() {
     local wanted=${1:-} want has_url has_key
 
     if [ -z "$wanted" ]; then
-        wanted=$(pick "The provider to use")
+        pick "The provider to use"
+        wanted=$PICKED
     fi
     valid_id "$wanted" || die "'$wanted' cannot be a provider id: letters, digits, dot, dash and underscore only."
     if ! json_ok; then
@@ -443,13 +467,15 @@ cmd_project() {
         return 0
     fi
 
-    line=$(pick_line "The project to open" 3 "$list")
+    pick_line "The project to open" 3 "$list"
+    line=$PICKED
     dir=$(printf '%s\n' "$line" | cut -f1)
     cwd=$(printf '%s\n' "$line" | cut -f2)
     [ -d "$cwd" ] || die "$cwd is gone - it was removed after the list was read."
 
     sessions=$(session_lines "$dir")
-    line=$(pick_line "The session to open" 2 "$sessions")
+    pick_line "The session to open" 2 "$sessions"
+    line=$PICKED
     session=$(printf '%s\n' "$line" | cut -f1)
 
     cd "$cwd" || die "cannot enter $cwd."
