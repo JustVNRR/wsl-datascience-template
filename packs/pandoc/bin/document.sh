@@ -71,31 +71,37 @@ choose_one() {
 #
 # An output that exists is not replaced in silence: it can be a version
 # someone annotated, or the fruit of a name chosen once and forgotten (his
-# find, 2026-09-30 - the build overwrote without a word). The answer can be a
-# name of its own, and the prompt shows the numbered form the question should
-# offer; but the empty line - a bare Enter - replaces, because replacing is
-# what a rebuild IS, and a default that never replaced would fill the folder
-# with copies at every rebuild.
+# find, 2026-09-30 - the build overwrote without a word).
 #
-# With no line to read (a script, a pipe, /dev/null) the build goes on - the
-# rule the claude pack's install states for its own question: a function that
-# builds is called to build, and a caller that wants another name says so in
-# PDF_OUT or DOCX_OUT.
+# The line comes PRE-FILLED with the first free numbered name - rapport_1.pdf,
+# rapport_2.pdf when _1 is taken - and readline leaves it editable, so a new
+# name is one keystroke and never a retyping (his design, 2026-09-30). A bare
+# Enter writes there; `y` replaces the file that is there; `n` writes nothing.
+#
+# With no line to read at all (a script, a pipe, /dev/null) the build REPLACES
+# - the rule the claude pack's install states for its own question: a function
+# that builds is called to build, and a caller that wants another name says so
+# in PDF_OUT or DOCX_OUT. readline is not in play there either, so an empty
+# line is read as the suggestion - the default stands.
 settle_overwrite() {
-    local file=$1 answer example
+    local file=$1 answer base ext suggestion n
     while [ -e "$file" ]; do
         case "$file" in
-        *.*) example=${file%.*}_1.${file##*.} ;;
-        *) example=${file}_1 ;;
+        *.*) base=${file%.*} ext=.${file##*.} ;;
+        *)   base=$file      ext="" ;;
         esac
+        n=1
+        while [ -e "${base}_${n}${ext}" ]; do n=$((n + 1)); done
+        suggestion=${base}_${n}${ext}
         printf '%s is already there (%s, %s).\n' \
             "$file" "$(du -h "$file" | cut -f1)" "$(date -r "$file" '+%Y-%m-%d %H:%M')"
-        printf 'Replace it? [Y/n] or type another name (e.g. %s): ' "$example"
-        if read -r answer; then
+        printf 'Enter writes to %s (edit the name), y replaces it, n writes nothing: ' "$suggestion"
+        if read -r -e -i "$suggestion" answer; then
             case "$answer" in
-            [nN]*) printf 'Nothing written.\n'; exit 0 ;;
-            "") break ;;
-            *) file=$answer ;;
+            [yY]) OUT=$file; return 0 ;;
+            [nN]) printf 'Nothing written.\n'; exit 0 ;;
+            "")   file=$suggestion ;;
+            *)    file=$answer ;;
             esac
         else
             break

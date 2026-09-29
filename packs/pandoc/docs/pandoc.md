@@ -52,11 +52,12 @@ YAML header carries the bibliography and the citation style, and a LaTeX
 template shapes the PDF. Pandoc reads other formats (docx, html, LaTeX), and
 the day one of them is wanted, it is another target, named for it.
 
-A build that would **replace** an existing PDF or Word file asks first: a bare
-Enter replaces (that is what a rebuild is), `n` writes nothing, and anything
-else is taken as the name to write instead — the prompt shows the numbered
-form (`rapport_1.pdf`). With no terminal to ask on — a script, a pipe — the
-build goes on; `PDF_OUT` and `DOCX_OUT` are how a caller says where.
+A build that would **replace** an existing PDF or Word file asks first, and its
+line is pre-filled with the first free numbered name — `rapport_1.pdf`, or
+`_2` when `_1` is taken. A bare Enter writes there (the name is editable);
+`y` replaces the file that is there; `n` writes nothing. With no terminal to
+ask on — a script, a pipe — the build **replaces**, and `PDF_OUT` or
+`DOCX_OUT` is how a caller says where to write instead.
 
 `pdf_open` opens a **built PDF**, and asks which one from the PDFs themselves:
 `PDF_OUT` when the project names it, the PDF of `PDF_SRC` when the source is
