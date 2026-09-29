@@ -160,16 +160,21 @@ Write-Output "--- Invoke-PackApply: the order, and where a failure stops ---"
 # therefore also a check on where the output went.
 $script:Calls = @()
 $script:FailCommand = ""
+$script:FailCode = 1
 function Invoke-InInstance {
     param([string]$DistroName, [string[]]$Command, [string]$WorkingDirectory, [ref]$ExitCode, [switch]$Quiet)
     $Line = ($Command -join " ")
     $Where = if ($WorkingDirectory) { $WorkingDirectory } else { "~" }
     $script:Calls += "$Where :: $Line"
     if (-not $Quiet) { Write-Output "INSTANCE-SAYS: $Line" }
-    if ($script:FailCommand -and $Line -like "$($script:FailCommand)*") { $ExitCode.Value = 1 }
+    if ($script:FailCommand -and $Line -like "$($script:FailCommand)*") { $ExitCode.Value = $script:FailCode }
     else { $ExitCode.Value = 0 }
 }
-function Reset { $script:Calls = @(); $script:FailCommand = "" }
+# What the forced failure answers: 1 for a broken install, 2 for a pack that
+# asked the user something and was told no. The two must not be confused - the
+# first takes the pack back out as a failure, the second as an answer - so the
+# stand-in has to be able to say both.
+function Reset { $script:Calls = @(); $script:FailCommand = ""; $script:FailCode = 1 }
 function Commands { return @($script:Calls | ForEach-Object { ($_ -split " :: ", 2)[1] }) }
 
 $Add = @([PSCustomObject]@{ Name = "fake-a"; Path = "X:\packs\fake-a"; Description = "d" })
@@ -213,6 +218,20 @@ $Result = Invoke-PackApply -DistroName "test" -PacksDirectory $Directory -ToAdd 
 Check "a failed install takes the folder back out" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
 Check "  ... and the answer is one object, not that plus the output" (@($Result).Count) "1"
 Check "  ... after the failure, not before" `
+    ($script:Calls.IndexOf("~ :: rm -rf $Directory/fake-a") -gt
+     $script:Calls.IndexOf("$Directory/fake-a :: bash install.sh")) "True"
+
+# A pack that asked a question and was told no is not a failure. Exit code 2 is
+# that answer, and the pack's folder goes back out for the same reason as above -
+# the folder is what the menu reads - but the run carries on and the caller has
+# nothing to report: no object naming a pack, no failure to explain, and the
+# removals and the other installs are untouched by it.
+Reset
+$script:FailCommand = "bash install.sh"
+$script:FailCode = 2
+$Result = Invoke-PackApply -DistroName "test" -PacksDirectory $Directory -ToAdd $Add
+Check "a declined install is not a failure" ($null -eq $Result) "True"
+Check "  ... its folder goes back out" `
     ($script:Calls.IndexOf("~ :: rm -rf $Directory/fake-a") -gt
      $script:Calls.IndexOf("$Directory/fake-a :: bash install.sh")) "True"
 

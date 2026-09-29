@@ -34,6 +34,19 @@ no package to install — its folder carries modules, one sample and its pages,
 and its two scripts have nothing to do but say so. `scaffold` is both at once:
 one package to install (uv), targets, a sheet, a sample and its pages.
 
+An `install.sh` ends with one of three answers, and the third is the user's:
+
+| Code | What it says | What happens |
+| :--- | :--- | :--- |
+| `0` | what the pack carries is installed | its folder stays, and the pack is installed |
+| `1` | the installation failed | its folder goes back out — the folder is what the menu reads, and a pack with no tool behind it is a menu that lies |
+| `2` | **the user was asked something and said no** | the same, but nothing failed: the run goes on, and no caller reports anything |
+
+The `claude` pack is the case that exists: it asks before adding a second copy of
+a program that is already installed on Windows and visible from the instance
+through `/mnt/c`. Declining is an answer, so nothing is asked again; the pack
+simply is not installed.
+
 ## `pack.conf`
 
 | Declaration | What it says |

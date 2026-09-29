@@ -18,6 +18,10 @@ window, nothing on the Windows desktop — and it installs itself under your own
 .\wsl.ps1 remove_pack   # the reverse
 ```
 
+If Claude Code is already installed on Windows, the instance sees it — WSL puts
+the Windows folders on the PATH — and the install asks before adding a second
+copy here. A bare Enter declines, and the pack is not installed.
+
 Removing the pack takes the program and the versions it keeps. `~/.claude` —
 settings, credentials, history, sessions — stays where it is: it is yours, like
 `~/.mozilla` when the `web` pack goes.

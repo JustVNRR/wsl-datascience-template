@@ -115,6 +115,17 @@ foreach ($Entry in $ToInstall) {
     Invoke-PackScript -DistroName $DistroName -Target $Target -Script "install.sh" -ExitCode ([ref]$Code)
     $InstallCode = $Code
 
+    # Exit code 2: the pack asked a question and the answer was no - the claude
+    # pack asks before adding a second copy of a program that is already
+    # installed on Windows. Its folder goes back out here for the same reason as
+    # below, and this command ends on that: nothing is broken, there is nothing
+    # to run again, and exit 0 is how the run was meant to end.
+    if ($InstallCode -eq 2) {
+        Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
+        Write-Host "       The pack's files were removed: it is not installed in '$DistroName'." -ForegroundColor (Get-MessageColour hint)
+        exit 0
+    }
+
     # A half-installed pack is worse than none: the Makefile loads whatever
     # folder is there, so the menu would offer commands whose tool was never
     # installed. The folder goes back out, and only it - what the install

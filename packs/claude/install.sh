@@ -28,12 +28,40 @@ launcher=$HOME/.local/bin/claude
 if [ -x "$launcher" ]; then
     echo "✅ Claude Code is already installed ($("$launcher" --version)) — nothing to do."
 else
-    # Named, not removed: the person will type `claude` and see it work, and the
-    # one line here is what explains why this pack installs its own anyway.
+    # A Claude Code installed on Windows is visible from here: WSL appends the
+    # Windows directories to the PATH, and this instance reaches it through
+    # /mnt/c. It is a real installation - typing `claude` works - but it runs on
+    # the other side of the wall: Windows paths, Windows files, and the Windows
+    # copy of your settings. What this pack installs runs here, on this
+    # instance's own files, for about 230 MB.
+    #
+    # So it is asked, and it is a real question: someone who works from Windows
+    # on purpose should not pay for a second copy by accident. A bare Enter
+    # declines - the answer that costs nothing is the one a bare Enter gives -
+    # and declining is an ANSWER, not a failure: exit code 2, which the socle
+    # reports as "not installed" rather than as a broken installation. A run
+    # with no one at the keyboard declines too, which is the same care taken
+    # twice: 230 MB is not downloaded on a guess.
     foreign=$(command -v claude 2>/dev/null || true)
     if [ -n "$foreign" ]; then
-        echo "ℹ️  A 'claude' from outside this instance is on the PATH ($foreign)."
-        echo "    It runs on Windows, not here; this pack installs its own."
+        echo "⚠️  Claude Code is already installed on Windows, and this instance sees it:"
+        echo "      $foreign"
+        echo ""
+        echo "    That one runs on Windows: Windows paths, Windows files, and the"
+        echo "    Windows copy of your settings. Installing this pack's own would add"
+        echo "    a second copy, about 230 MB of it, running here instead."
+        echo ""
+        printf "    Install it in this instance anyway? [y/N] "
+        read -r answer || answer=""
+        case "$answer" in
+            [yY]*) ;;
+            *)
+                echo ""
+                echo "⏭️  Nothing was installed — the Windows installation is left as it is."
+                exit 2
+                ;;
+        esac
+        echo ""
     fi
     echo "➕ Installing Claude Code from Anthropic's own script (about 230 MB, a few minutes)..."
     # No sudo, and the installer refuses it: everything lands under $HOME, and
