@@ -67,44 +67,57 @@ choose_one() {
     fi
 }
 
-# --- the one question a build asks: replacing a file that is already there ----
+# --- the one question a build asks: replacing a file that already exists ------
 #
 # An output that exists is not replaced in silence: it can be a version
 # someone annotated, or the fruit of a name chosen once and forgotten (his
-# find, 2026-09-30 - the build overwrote without a word).
+# find, 2026-09-30). The answer is a menu, the way every other choice in this
+# shell is asked - fzf, three lines, arrows or the mouse: overwrite, cancel,
+# save as... - and "save as..." asks for the name, plainly, with nothing
+# pre-filled (his shape, 2026-09-30; my pre-filled line was a contraption).
 #
-# The line comes PRE-FILLED with the first free numbered name - rapport_1.pdf,
-# rapport_2.pdf when _1 is taken - and readline leaves it editable, so a new
-# name is one keystroke and never a retyping (his design, 2026-09-30). A bare
-# Enter writes there; `y` replaces the file that is there; `n` writes nothing.
-#
-# With no line to read at all (a script, a pipe, /dev/null) the build REPLACES
-# - the rule the claude pack's install states for its own question: a function
-# that builds is called to build, and a caller that wants another name says so
-# in PDF_OUT or DOCX_OUT. readline is not in play there either, so an empty
-# line is read as the suggestion - the default stands.
+# Escape and cancel are decisions, not failures: one line and exit 0. And when
+# the menu cannot be drawn - no terminal, a script, a pipe - the build goes
+# on, replacing: that is what a build is for, and a caller that wants another
+# name says so in PDF_OUT or DOCX_OUT.
 settle_overwrite() {
-    local file=$1 answer base ext suggestion n
+    local file=$1 answer choice status
     while [ -e "$file" ]; do
-        case "$file" in
-        *.*) base=${file%.*} ext=.${file##*.} ;;
-        *)   base=$file      ext="" ;;
-        esac
-        n=1
-        while [ -e "${base}_${n}${ext}" ]; do n=$((n + 1)); done
-        suggestion=${base}_${n}${ext}
-        printf '%s is already there (%s, %s).\n' \
+        printf '%s already exists (%s, %s).\n' \
             "$file" "$(du -h "$file" | cut -f1)" "$(date -r "$file" '+%Y-%m-%d %H:%M')"
-        printf 'Enter writes to %s (edit the name), y replaces it, n writes nothing: ' "$suggestion"
-        if read -r -e -i "$suggestion" answer; then
-            case "$answer" in
-            [yY]) OUT=$file; return 0 ;;
-            [nN]) printf 'Nothing written.\n'; exit 0 ;;
-            "")   file=$suggestion ;;
-            *)    file=$answer ;;
+        if choice=$(printf '%s\n' overwrite cancel 'save as...' |
+            fzf --prompt="action > " --info=inline --layout=reverse); then
+            case "$choice" in
+            overwrite)
+                OUT=$file
+                return 0
+                ;;
+            cancel)
+                printf 'Nothing written.\n'
+                exit 0
+                ;;
+            'save as...')
+                printf 'New name: '
+                if read -r answer && [ -n "$answer" ]; then
+                    # A name of its own; the loop asks again if THAT one
+                    # exists too - nothing is replaced in silence, twice over.
+                    file=$answer
+                    continue
+                fi
+                printf 'Nothing written.\n'
+                exit 0
+                ;;
             esac
         else
-            break
+            status=$?
+            # fzf exits 130 on Escape or Ctrl-C: a decision. Any other failure
+            # is the menu that could not be drawn, and the build goes on.
+            if [ "$status" -eq 130 ]; then
+                printf 'Nothing written.\n'
+                exit 0
+            fi
+            OUT=$file
+            return 0
         fi
     done
     OUT=$file

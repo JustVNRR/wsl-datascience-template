@@ -14,7 +14,7 @@ gmake pdf_from_md PDF_SRC=rapport.md          # Name it directly - no menu, the 
 gmake pdf_from_md PDF_SRC=rapport.md PDF_OUT=rapport-rv.pdf   # Write it under another name
 gmake pdf_open                                # Open a built PDF (PDF_OUT's, PDF_SRC's, or the folder's - menu)
 gmake docx_from_md                            # The same markdown in Word - Word is not needed
-# An existing PDF or Word is never replaced in silence: Enter writes the numbered name offered, y replaces, n stops
+# An existing PDF or Word is never replaced in silence: a menu asks - overwrite, cancel, save as...
 
 # --- 2. BRINGING WHAT A DOCUMENT NEEDS ---
 gmake csl_from_catalog                        # A citation style: menu over the official catalog (~10 000 styles)
