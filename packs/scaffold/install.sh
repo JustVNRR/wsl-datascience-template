@@ -14,9 +14,19 @@
 
 set -euo pipefail
 
-# This runs from a shell that has not read the zsh configuration, so ~/.local/bin
-# is not on its PATH: the check below and uv's own installer both need it there.
-export PATH="$HOME/.local/bin:$PATH"
+# The PATH is built here, not inherited - the same clean_path the claude and
+# python packs use. The shell this script runs from carries WSL's Windows
+# directories (WSL appends them), and a name resolved through them can be a
+# Windows program: `command -v uv` could be answered by one installed on
+# Windows, this script would then conclude "already installed" and put nothing
+# here, and the uvx targets would run through the wall from then on (the shape
+# the claude pack paid for, measured 2026-09-29). Nothing here needs Windows:
+# curl, sh, env and uv all live under /usr or in ~/.local/bin.
+#
+# ~/.local/bin is in it for this script's own reason: the check below and uv's
+# own installer both need that directory on the PATH.
+clean_path=$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH=$clean_path
 
 if command -v uv >/dev/null 2>&1; then
     echo "✅ uv is already installed ($(uv --version)) — nothing to do."
