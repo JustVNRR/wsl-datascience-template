@@ -56,23 +56,32 @@ claimed_elsewhere() {
     return 1
 }
 
+# The claimed ones leave the list first, then ONE sudo for the lot: each
+# `sudo` call asks again wherever the credential cache does not hold (a
+# session per command, a cache turned off), and seven questions for seven
+# packages is the kind of friction that makes a removal unpleasant (his ask,
+# 2026-09-30: a grouped shot). The name is not printed per package any more -
+# apt lists what it takes back.
+to_remove=()
 echo "Removing Pandoc and the LaTeX engine..."
 for package in $packages; do
     if claimed_elsewhere "$package"; then
         echo "$package: another installed pack claims it - left in place."
         continue
     fi
-    # A failure here is not the end of the removal: what apt cannot take back,
-    # it says so about, and the script goes on to the fonts below. Measured on
-    # the python pack: with no package lists, `apt-get remove` answers "Unable
-    # to locate package" even for a package that is installed, and a `set -e`
-    # script would stop there and leave the rest behind.
-    if ! sudo apt-get remove -y "$package"; then
-        echo "$package: apt could not remove it - left where it is."
-        echo "(apt needs its package lists: run 'sudo apt-get update' inside the"
-        echo "instance, then remove the pack again.)"
-    fi
+    to_remove+=("$package")
 done
+
+# A failure here is not the end of the removal: what apt cannot take back, it
+# says so about, and the script goes on to the fonts below. Measured on the
+# python pack: with no package lists, `apt-get remove` answers "Unable to
+# locate package" even for a package that is installed, and a `set -e` script
+# would stop there and leave the rest behind.
+if [ ${#to_remove[@]} -gt 0 ] && ! sudo apt-get remove -y "${to_remove[@]}"; then
+    echo "apt could not remove: ${to_remove[*]} - left where they are."
+    echo "(apt needs its package lists: run 'sudo apt-get update' inside the"
+    echo "instance, then remove the pack again.)"
+fi
 
 echo "Removing the Arial files copied from Windows..."
 fonts_dir=$HOME/.local/share/fonts/ms-arial
