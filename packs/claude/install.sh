@@ -60,6 +60,23 @@ else
     fi
 
     echo "Installing Claude Code from Anthropic's own script (a few minutes)..."
+    # Everything below runs with a PATH that has no Windows in it, and that is
+    # the fix for a bug that cost something real (measured, 2026-09-29).
+    #
+    # WSL appends the Windows directories to the PATH, so inside an instance
+    # `npm` IS the Windows npm - /mnt/c/Program Files/nodejs/npm - and WSL will
+    # happily run it. The installer's own migration step, which moves an older
+    # npm installation to the native build, followed that: it ran `npm uninstall
+    # --global @anthropic-ai/claude-code` THROUGH THE WALL and uninstalled Claude
+    # Code from Windows, while the native build it installed landed here. The
+    # trace is npm's own log, and its working directory was this very folder.
+    #
+    # With no /mnt/c on the PATH, no Windows program of any name can be reached:
+    # the installer finds no npm to migrate, and no other `claude` to argue with
+    # either. Everything it needs - curl, bash, sha256sum, zstd - lives under
+    # /usr, and none of it is a Windows program.
+    clean_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    #
     # No sudo, and the installer refuses it: everything lands under $HOME, and
     # under sudo that $HOME is root's, where the launcher would not be found by
     # anyone. Nothing here needs root, which is the other half of why this pack
@@ -77,7 +94,7 @@ else
     # into your files has something to undo the day it leaves. There is no
     # opt-out variable to set, unlike uv's installer, because there is nothing
     # to opt out of.
-    curl -fsSL https://claude.ai/install.sh | bash
+    PATH=$clean_path curl -fsSL https://claude.ai/install.sh | PATH=$clean_path bash
 fi
 
 echo "Claude Code is ready."
