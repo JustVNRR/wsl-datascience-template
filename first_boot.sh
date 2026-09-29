@@ -3,7 +3,7 @@ set -e
 
 clear
 echo "============================================================"
-echo "      Welcome to your Data Science WSL Environment"
+echo "            Welcome to your WSL Stack environment"
 echo "============================================================"
 echo ""
 

@@ -98,7 +98,7 @@ $TerminalSettings = @(
 
 # And the ones this repository writes for its instances: one per instance, by
 # name, layered over the profile WSL made for it.
-$OurFragments = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+$OurFragments = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
 
 # ---------------------------------------------------------------------------
 # WHERE A SCHEME KEEPS THE SIXTEEN NAMES

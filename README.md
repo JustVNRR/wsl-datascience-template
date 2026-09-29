@@ -1,6 +1,6 @@
-# WSL DataScience Template
+# WSL Stack
 
-A reproducible WSL2 workstation for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
+A reproducible WSL2 stack for data science: one PowerShell command builds a fresh Ubuntu 24.04 distro with:
 - the shell,
 - optional tooling as packs — Python (`python`), Google Cloud (`gcp`), media and OCR (`vision`), a browser (`web`), Claude Code (`claude`) — added with `.\wsl.ps1 add_pack`.
 
@@ -38,8 +38,8 @@ Make sure Docker Desktop is running before you start.
 
 1. **Clone the repository:**
    ```powershell
-   git clone https://github.com/JustVNRR/wsl-datascience-template.git
-   cd wsl-datascience-template
+   git clone https://github.com/JustVNRR/wsl-stack.git
+   cd wsl-stack
    ```
 
 2. **Build and register the instance:**

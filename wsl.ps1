@@ -70,7 +70,7 @@ if ($args.Count -eq 0) {
     Write-Host ""
     Write-Host "  (a command can also be typed:  .\wsl.ps1 <command> [options])" -ForegroundColor (Get-MessageColour muted)
 
-    $Chosen = Select-FromList -Title "WSL DataScience template" -Items $Commands -Label {
+    $Chosen = Select-FromList -Title "WSL Stack" -Items $Commands -Label {
         param($Command)
         "{0,-12} {1}" -f $Command.Name, $Command.What
     }

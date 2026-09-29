@@ -31,4 +31,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build the rootfs image
-        run: docker build --tag wsl-datascience-template:ci .
+        run: docker build --tag wsl-stack:ci .

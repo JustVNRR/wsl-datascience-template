@@ -57,7 +57,7 @@ done < <(grep -ohE '\\wsl\.ps1 [a-z_]+' README.md docs/wsl/commands.md | awk '{p
 # same way at the same indent - and their rows are not commands of wsl.ps1.
 # The title is the anchor. A moved title leaves the block empty, so empty is
 # reported rather than passed: a check that reads nothing says nothing.
-SampleMenu=$(awk '/^WSL DataScience template$/,/^  up\/down to move/' docs/wsl/commands.md | grep -oE '^ {4}[a-z_]+ ' | tr -d ' ' | sort -u)
+SampleMenu=$(awk '/^WSL Stack$/,/^  up\/down to move/' docs/wsl/commands.md | grep -oE '^ {4}[a-z_]+ ' | tr -d ' ' | sort -u)
 if [ -z "$SampleMenu" ]; then
     echo "  EXTRA: no sample menu found on the commands page - this check read nothing"
     drift=1

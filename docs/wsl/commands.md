@@ -10,7 +10,7 @@ commands themselves live in `scripts\`.
 ```text
   (a command can also be typed:  .\wsl.ps1 <command> [options])
 
-WSL DataScience template
+WSL Stack
   > list         list our instances and the archives
     build        build an instance from the image
     start        start a stopped instance
@@ -71,7 +71,7 @@ console has always had are used.
 ## Which WSL instances are ours
 
 Every instance created by `build`, `restore` or `duplicate` carries a
-**marker**, named `.wsl-datascience-template`, in its own folder next to its
+**marker**, named `.wsl-stack`, in its own folder next to its
 virtual disk:
 
 ```text
@@ -79,7 +79,7 @@ D:\WSL\ubuntu-template\
 ├── ext4.vhdx
 ├── terminal-icon.png        drawn from the name, and kept here
 ├── instance.json            its look: the font, the colours, the icon's recipe
-└── .wsl-datascience-template
+└── .wsl-stack
 ```
 
 ## Where things live
@@ -102,7 +102,7 @@ D:\WSL\
 
 ## `list`
 
-Lists all WSL instances carrying the `.wsl-datascience-template` marker.
+Lists all WSL instances carrying the `.wsl-stack` marker.
 
 ```powershell
 .\wsl.ps1 list

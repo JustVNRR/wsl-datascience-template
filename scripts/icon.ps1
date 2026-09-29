@@ -60,7 +60,7 @@ Clear-MenuScreen
 # was drawn there last, are both said inside it. This one is said because it is
 # what would make all of it invisible: an icon is only ever read through the
 # fragment this repository writes.
-$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$DistroName.json"
+$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$DistroName.json"
 if (-not (Test-Path $OurFragment)) {
     Write-Host ""
     Write-Host "[WARNING] This instance has no Terminal profile of ours - the icon would not show." -ForegroundColor (Get-MessageColour warning)
