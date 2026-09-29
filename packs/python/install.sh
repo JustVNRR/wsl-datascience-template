@@ -19,6 +19,20 @@
 
 set -euo pipefail
 
+# The PATH is built here, not inherited. The shell this script runs from carries
+# WSL's Windows directories (WSL appends them), and a name resolved through them
+# can be a Windows program: the claude pack's installer uninstalled the Windows
+# copy of Claude Code exactly that way, through the npm it found under /mnt
+# (measured, 2026-09-29). Nothing here needs Windows - sed, sudo, apt-get, curl,
+# sh and uv all live under /usr or in ~/.local/bin. The list is the claude pack's
+# clean_path, kept identical so the two packs read alike.
+#
+# ~/.local/bin is in it for this script's own two reasons: uv warns on every
+# tool it installs when that directory is missing from the PATH, and the `uv`
+# lines below must find the binary the line above just installed.
+clean_path=$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH=$clean_path
+
 here=$(cd "$(dirname "$0")" && pwd)
 packages=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
 
@@ -26,11 +40,6 @@ if [ -z "$packages" ]; then
     echo "❌ No PACK_PACKAGES found in $here/pack.conf" >&2
     exit 1
 fi
-
-# This runs from a shell that has not read the zsh configuration, so
-# ~/.local/bin is not on its PATH: uv would warn on every tool it installs, and
-# the `uv` lines below would not find the binary the line above just installed.
-export PATH="$HOME/.local/bin:$PATH"
 
 echo "➕ Installing the compilation tools (your password will be asked)..."
 # DEBIAN_FRONTEND, so that a package reconfigured on the way (tzdata and its
