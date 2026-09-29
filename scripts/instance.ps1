@@ -9,7 +9,7 @@
 # So every instance we create carries a marker, in its own folder, next to
 # ext4.vhdx:
 #
-#   <install folder>\.wsl-datascience-template
+#   <install folder>\.wsl-stack
 #
 # It is written by the three commands that create an instance - build, restore,
 # duplicate - and looked for by every command that lists instances. There is no
@@ -60,7 +60,7 @@ if (-not (Test-Path $MessageLib)) {
 # The marker's name, kept here so that one file knows it and the others ask.
 # It is the repository's own name, like the Windows Terminal fragments folder,
 # so there is one string to remember in the whole project.
-$MarkerName = ".wsl-datascience-template"
+$MarkerName = ".wsl-stack"
 
 # Is this folder an instance of ours? A folder name proves nothing - it is the
 # marker file, and only it, that answers.
@@ -82,7 +82,7 @@ function New-InstanceMarker {
     # [ordered]: a hashtable would print its keys in a different order on every
     # run, and a file whose lines move is a file nobody diffs twice.
     $Marker = [ordered]@{
-        template = "wsl-datascience-template"
+        template = "wsl-stack"
         created  = (Get-Date).ToString("yyyy-MM-dd")
         by       = $By
     }
@@ -307,7 +307,7 @@ function Get-WslProfileGuid {
 function Set-InstanceFragment {
     param([string]$Name, [string]$Guid, [string]$Font, [string]$ColorScheme, [string]$IconPath)
 
-    $FragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+    $FragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
     New-Item -ItemType Directory -Force $FragmentDir | Out-Null
     $IconJson = if ($IconPath -and (Test-Path $IconPath)) {
         '            "icon": "' + ($IconPath -replace '\\', '\\') + '",'
@@ -347,7 +347,7 @@ function Get-InstanceAppearance {
         IconFrom    = $null
     }
 
-    $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$Name.json"
+    $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$Name.json"
     if (Test-Path $OurFragment) {
         try {
             $Parsed = (Get-Content $OurFragment -Raw | ConvertFrom-Json).profiles[0]

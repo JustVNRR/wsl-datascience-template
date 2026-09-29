@@ -177,7 +177,7 @@ if ($GhostsPruned -gt 0) {
 }
 
 # Our appearance fragment files (one per distro, named <DistroName>.json)
-$OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+$OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
 $FragmentsRemoved = 0
 if (Test-Path $OurFragmentDir) {
     $OwnFile = Join-Path $OurFragmentDir "$DistroName.json"
@@ -234,7 +234,7 @@ if (Test-Path $DockerSettings) {
 # ==============================================================================
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
-Write-Host "          WSL Data Science Instance Removed!" -ForegroundColor (Get-MessageColour success)
+Write-Host "                WSL Stack Instance Removed!" -ForegroundColor (Get-MessageColour success)
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
 Write-Host "  * Distro          : " -NoNewline; Write-Host "$DistroName" -ForegroundColor (Get-MessageColour info)

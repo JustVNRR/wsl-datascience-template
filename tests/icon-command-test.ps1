@@ -81,7 +81,7 @@ function Invoke-Theme {
 }
 
 New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-datascience-template") -Force | Out-Null
+New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
 
 try {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue

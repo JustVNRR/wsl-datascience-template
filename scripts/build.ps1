@@ -105,7 +105,7 @@ function Install-NerdFont {
 $RepoRoot = Split-Path -Path $PSScriptRoot -Parent
 Set-Location -Path $RepoRoot
 
-$ImageTag = "wsl-datascience-template:latest"
+$ImageTag = "wsl-stack:latest"
 $ContainerName = "wsl-temp-export-$([guid]::NewGuid().ToString().Substring(0, 8))"
 
 # 0. Preflight: Docker must answer BEFORE the destructive confirmation below,
@@ -409,7 +409,7 @@ try {
         }
     }
 
-    $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+    $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
 
     # Prune ghost profiles: every rebuild orphans the previous profile into the
     # user's settings.json (Terminal persists it when its source disappears).
@@ -542,7 +542,7 @@ try {
 
     Clear-Host
     Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
-    Write-Host "       WSL Data Science Instance Successfully Deployed!     " -ForegroundColor (Get-MessageColour success)
+    Write-Host "         WSL Stack Instance Successfully Deployed!          " -ForegroundColor (Get-MessageColour success)
     Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
     Write-Host ""
     Write-Host "  * Distribution Name : " -NoNewline; Write-Host "$DistroName" -ForegroundColor (Get-MessageColour info)

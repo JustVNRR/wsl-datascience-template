@@ -1,6 +1,6 @@
 # Environment Files
 
-[← Back to the README](../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../README.md#makefile-gmake)
 
 The two files every gmake target reads, and the commands that build them from
 the samples — and open them in the editor.

@@ -1,6 +1,6 @@
 # What a Target Says Before It Runs
 
-[← Back to the README](../../README.md#mlops-makefile-gmake)
+[← Back to the README](../../README.md#makefile-gmake)
 
 Two macros of the socle, used by every module that writes a target — the
 socle's own and the packs' alike. They are how a target is written, the way

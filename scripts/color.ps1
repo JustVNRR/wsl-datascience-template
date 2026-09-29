@@ -69,7 +69,7 @@ function Get-ColorSchemes {
     # And the schemes our instances already wear, when nothing above named them:
     # a name with no colours behind it is still a choice a profile takes, and
     # leaving it out would hide the scheme the instance is using right now.
-    $Ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template"
+    $Ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
     foreach ($File in @(Get-ChildItem $Ours -Filter *.json -ErrorAction SilentlyContinue)) {
         $Parsed = Read-TerminalJson -Path $File.FullName
         $Named = @($Parsed.profiles)[0].colorScheme
@@ -98,7 +98,7 @@ $IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
 
 Clear-MenuScreen
 
-$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$DistroName.json"
+$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$DistroName.json"
 if (-not (Test-Path $OurFragment)) {
     Write-Host ""
     Write-Host "[WARNING] This instance has no Terminal profile of ours - the colours would not show." -ForegroundColor (Get-MessageColour warning)

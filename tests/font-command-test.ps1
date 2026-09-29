@@ -37,7 +37,7 @@ $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{2f9f0a4e-58b1-4a3c
 # The profile Windows Terminal knows an instance by: a fragment WSL writes, and
 # the one thing this repository layers its own fragment over.
 $WslFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL\{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}.json"
-$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$FakeName.json"
+$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$FakeName.json"
 $OurFragmentExisted = Test-Path $OurFragment
 
 $Failures = 0
@@ -88,7 +88,7 @@ function Get-ListedFonts {
 }
 
 New-Item -ItemType Directory -Path $FakeFolder -Force | Out-Null
-New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-datascience-template") -Force | Out-Null
+New-Item -ItemType File -Path (Join-Path $FakeFolder ".wsl-stack") -Force | Out-Null
 
 try {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue

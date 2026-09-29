@@ -1,5 +1,5 @@
 # ==============================================================================
-# THE GMAKE MAKEFILE & MLOPS WORKFLOW TARGETS
+# THE GMAKE MAKEFILE & ITS TARGETS
 # ==============================================================================
 
 # Dynamic path resolution: resolves the directory where THIS Makefile lives

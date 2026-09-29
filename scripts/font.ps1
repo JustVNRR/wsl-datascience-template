@@ -58,7 +58,7 @@ $IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
 # - come off the screen: this command asks its own question.
 Clear-MenuScreen
 
-$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-datascience-template\$DistroName.json"
+$OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$DistroName.json"
 if (-not (Test-Path $OurFragment)) {
     Write-Host ""
     Write-Host "[WARNING] This instance has no Terminal profile of ours - the font would not show." -ForegroundColor (Get-MessageColour warning)

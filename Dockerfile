@@ -54,7 +54,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     strace \
     lsof \
-    # gmake is the whole MLOps interface of this image, and make used to arrive
+    # gmake is the whole command surface of this image, and make used to arrive
     # as a dependency of build-essential - which is the python pack's now. It is
     # named here in plain sight: without this line the image would carry no make
     # at all, and every gmake target would be gone with it.

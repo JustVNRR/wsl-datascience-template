@@ -1,6 +1,6 @@
 # What a Pack Is
 
-[← Back to the README](../README.md#mlops-makefile-gmake)
+[← Back to the README](../README.md#makefile-gmake)
 
 A pack is optional tooling — a CLI the image does not ship, the gmake targets
 that drive it, the shell commands, the variables it reads — and the two scripts
