@@ -178,6 +178,13 @@ jobs:
             echo "::error::a devops pack target is in the menu without the pack's folder"
             bad=1
           fi
+          # The claude pack's target, for the same reason: what an instance has
+          # installed is its own folder's business, and a folder that is not
+          # there puts no line in the menu.
+          if grep -qE '^  claude_[a-z_]+[[:space:]]' help-bare.txt; then
+            echo "::error::a claude pack target is in the menu without the pack's folder"
+            bad=1
+          fi
           # And the socle loses nothing to an empty packs folder
           for target in help packs_list env_global_enable env_project_enable; do
             grep -q "^  ${target}[[:space:]]" help-bare.txt || {
