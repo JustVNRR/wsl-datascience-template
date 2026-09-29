@@ -108,6 +108,14 @@ PostScript classics: Nimbus Roman for Times, Nimbus Sans for Helvetica…) —
 and any `.ttf` dropped into `~/.local/share/fonts/` is one `fc-cache -f`
 away. A template that asks for one of those needs no copy at all.
 
+A font can also live **inside the project**: fontspec takes a file and its
+folder — `\setmainfont{arial.ttf}[Path=fonts/]` (measured: it builds, the
+face embedded) — but then the template names files instead of families, and
+it only builds where those files travel. The pack keeps the templates as
+they are (`\setmainfont{Arial}`) and installs the family once, for the whole
+machine, which is what a font is: a resource the machine owns, like a
+compiler.
+
 A project fixes its own once, in its `.env`: `gmake env_project_enable` appends
 the pack's sample (the lines are commented out — uncomment what the project
 needs).
