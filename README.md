@@ -102,7 +102,7 @@ it grows, and a pack leaves with its folder:
 
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
-| `claude` | [Claude Code](packs/claude/docs/claude.md) | `claude_status` |
+| `claude` | [Claude Code](packs/claude/docs/claude.md) | `claude_status`, `claude_profile`, `claude_edit_profiles` |
 | `devops` | [The devops pack](packs/devops/docs/devops.md) | `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
@@ -199,9 +199,11 @@ the repository at runtime.
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   ├── profiles.sample  # the providers, in JSON, waiting for your tokens
+│   │   ├── env.global.sample   # CLAUDE_PROFILE, for .env.global
 │   │   ├── bin/             # the script behind its targets
-│   │   ├── make/            # its gmake module: claude_status
-│   │   ├── cheatsheets/     # its fcheat sheet: the CLI, and what takes the space
+│   │   ├── make/            # its gmake module: claude_profile, claude_status
+│   │   ├── cheatsheets/     # its fcheat sheet: the CLI, the provider, the disk
 │   │   └── docs/            # the pack's page
 │   ├── devops/              # the project targets: Docker, GitHub PRs
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows

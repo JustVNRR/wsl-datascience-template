@@ -51,8 +51,40 @@ else
     rm -rf "$HOME/.local/share/claude"
 fi
 
+# And the provider keys it wrote in the settings - the four shorthand ones, plus
+# every key the dictionary declared. They are meaningless without the file that
+# named them, and a token left behind by a removed pack is a token nobody looks
+# after. Everything else in that file - the statusLine, the permissions, your own
+# variables - is not looked at, here no more than when they are written.
+settings=$HOME/.claude/settings.json
+if [ -f "$settings" ]; then
+    profiles=$HOME/.config/claude/profiles.json
+    owned=$(
+        {
+            printf 'ANTHROPIC_BASE_URL\nANTHROPIC_AUTH_TOKEN\nANTHROPIC_API_KEY\nANTHROPIC_MODEL\n'
+            if [ -f "$profiles" ]; then
+                jq -r '(.profiles // [])[] | (.env // {}) | keys[]' "$profiles" 2>/dev/null || true
+            fi
+        } | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))'
+    )
+    tmp=$(mktemp)
+    if jq --argjson owned "$owned" '
+            (.env // {}) as $env
+            | .env = ($env | with_entries(select(.key as $k | ($owned | index($k)) == null)))
+            | if .env == {} then del(.env) else . end
+        ' "$settings" > "$tmp" 2>/dev/null; then
+        chmod 600 "$tmp"
+        mv "$tmp" "$settings"
+        echo "The provider keys this pack wrote were taken back out of $settings."
+    else
+        rm -f "$tmp"
+        echo "$settings could not be read - the provider keys in it were left as they are."
+    fi
+fi
+
 echo "Claude Code is gone."
-echo "   ~/.claude was left alone: its settings, its history and its login are yours."
+echo "   Left where they are: your providers, ~/.config/claude/profiles.json - they"
+echo "   carry your tokens - and ~/.claude, with its settings, its history and its login."
 
 # Everything printed above is plain ASCII, like install.sh and for the same
 # reason: this text travels through wsl.exe to the Windows console, which reads

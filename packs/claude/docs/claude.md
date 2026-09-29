@@ -22,9 +22,10 @@ If Claude Code is already installed on Windows, the instance sees it — WSL put
 the Windows folders on the PATH — and the install asks before adding a second
 copy here. A bare Enter declines, and the pack is not installed.
 
-Removing the pack takes the program and the versions it keeps. `~/.claude` —
-settings, credentials, history, sessions — stays where it is: it is yours, like
-`~/.mozilla` when the `web` pack goes.
+Removing the pack takes the program, the versions it keeps, and the provider keys
+it wrote in the settings. `~/.claude` — settings, credentials, history, sessions —
+and your dictionary stay where they are: they are yours, like `~/.mozilla` when
+the `web` pack goes. A filled `.env.global` keeps its line too.
 
 ## What it costs
 
@@ -44,7 +45,7 @@ kinds, and a key needs no login at all.
 
 | Route | What it is | What you do |
 | :--- | :--- | :--- |
-| a key | an API key — from the Console, a gateway, or a provider that speaks the same API | put it in the `env` block of `~/.claude/settings.json` as `ANTHROPIC_AUTH_TOKEN` |
+| a key | an API key — from the Console, a gateway, or a provider that speaks the same API | keep it in the dictionary, and apply it — [which provider](#which-provider) |
 | a login | a Pro, Max, Team, Enterprise or Console subscription — there is no key to copy | let `claude` open the authorisation page once |
 
 `ANTHROPIC_AUTH_TOKEN` is used as it stands, with nothing to approve.
@@ -57,6 +58,45 @@ the code back. An instance carries no browser, so the CLI prints the URL — ope
 it in your own browser on Windows, and paste back the code the page shows you.
 If the paste does not take, `claude auth login` reads the code from your input
 instead.
+
+## Which provider
+
+A key needs somewhere to live, and several providers is several keys. The pack
+keeps them in one file of yours:
+
+| | |
+| :--- | :--- |
+| `~/.config/claude/profiles.json` | one entry per provider — an id, a base URL, a token, and a model if you want one |
+| `gmake claude_edit_profiles` | opens it in the editor (nano, or `$EDITOR`) |
+| `gmake claude_profile` | picks one from a menu, and applies it |
+| `gmake claude_profile CLAUDE_PROFILE=glm` | applies that one, without the menu |
+| `CLAUDE_PROFILE` in `.env.global` | the entry in use |
+
+An entry with no `env` at all is this instance's own login — the subscription
+route. Choosing it takes back whatever another entry had written.
+
+**Where it lands**: the `env` block of `~/.claude/settings.json`, the file the
+CLI reads for itself — so the choice holds for a `claude` typed by hand, for a
+`-p` run in a pipe, and for whatever the CLI starts on its own. The pack writes
+the `ANTHROPIC_*` keys and the ones your entries declare, and nothing else: your
+`statusLine`, your permissions and your own variables are not touched.
+Removing the pack takes those keys back out.
+
+**A base URL always comes with a token.** The CLI sends whatever credential it
+has to the address you name, and the one it always has is your claude.ai login —
+the header leaves with the OAuth in it. A profile carrying a URL and no token is
+refused rather than applied.
+
+`gmake claude_status` says which entry is in force and whether what the settings
+hold is what that entry says — which is how a token rotated in the file and not
+applied gets noticed.
+
+Third-party endpoints are named nowhere in Anthropic's documentation: what is
+documented is the *gateway* mechanism — "a proxy your organization runs" — and
+GLM, DeepSeek or Kimi are that mechanism pointed elsewhere. Some of what Claude
+Code does depends on Anthropic's own API and stops behind a gateway: the tool
+search, Remote Control, the dictation, and prompt caching unless the endpoint
+forwards `cache_control`.
 
 ## Where things live
 

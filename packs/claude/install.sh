@@ -18,6 +18,10 @@
 
 set -euo pipefail
 
+# The pack's own folder: the sample of providers is read from beside this file,
+# so the two travel together wherever the folder lands.
+here=$(cd "$(dirname "$0")" && pwd)
+
 # This runs from a shell that has not read the zsh configuration, so ~/.local/bin
 # is not on its PATH: the check below needs it there.
 export PATH="$HOME/.local/bin:$PATH"
@@ -97,5 +101,21 @@ else
     PATH=$clean_path curl -fsSL https://claude.ai/install.sh | PATH=$clean_path bash
 fi
 
+# The dictionary of providers, seeded once and never written again - the same
+# move the web pack makes with its servers. Mode 600: this is where the tokens
+# go, and what the pack writes in your settings comes out of it.
+profiles=$HOME/.config/claude/profiles.json
+if [ -f "$profiles" ]; then
+    echo "$profiles is already there - left as it is."
+else
+    # The pack's own sample, checked before it is copied: a broken one would be
+    # copied over and discovered much later, at the first profile switch.
+    jq -e . "$here/profiles.sample" > /dev/null ||
+        { echo "$profiles: the pack's own sample of providers does not parse - nothing was written." >&2; exit 1; }
+    install -d -m 0700 "$(dirname "$profiles")"
+    install -m 600 "$here/profiles.sample" "$profiles"
+    echo "A dictionary of providers is in place: $profiles (mode 600, waiting for your tokens)."
+fi
+
 echo "Claude Code is ready."
-echo "   Next: gmake claude_status, and the first 'claude' asks you to log in."
+echo "   Next: gmake claude_status. gmake claude_profile picks a provider."
