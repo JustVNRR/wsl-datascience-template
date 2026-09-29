@@ -615,9 +615,9 @@ status() {
         echo "  launcher   $claude_bin"
     fi
 
-    # The versions kept on disk: one file each, and the whole weight of the
-    # pack. The CLI keeps every version it installs, so this line is the one
-    # that grows by about 230 MB at each update.
+    # The versions on disk: one file each, and the whole weight of the pack.
+    # The line counts what is there, and says nothing about what an update does
+    # with older ones - that was never measured (2026-09-29).
     if [ -d "$HOME/.local/share/claude/versions" ]; then
         local count size
         count=$(find "$HOME/.local/share/claude/versions" -maxdepth 1 -type f 2>/dev/null | wc -l)

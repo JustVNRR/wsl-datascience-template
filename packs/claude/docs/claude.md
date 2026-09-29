@@ -10,7 +10,7 @@ window, nothing on the Windows desktop — and it installs itself under your own
 | :--- | :--- | :--- |
 | the program | a session, in a project or anywhere | `claude` |
 | your projects | pick up work where it stopped | `gmake claude_project` |
-| what this instance has | version, versions kept, the login | `gmake claude_status` |
+| what this instance has | version, versions on disk, the login | `gmake claude_status` |
 
 ## Installing and removing it
 
@@ -39,7 +39,6 @@ included.
 | :--- | :--- |
 | the download | about 230 MB, a few minutes on a slow link |
 | one version on disk | **232 MiB** (measured: one 243 MB binary) |
-| the versions kept | the CLI keeps every version it installs, so each update adds about as much again |
 
 `gmake claude_status` shows what is on the disk; the last lines of the
 [cheatsheet](../cheatsheets/claude_commands.sh) show how to reclaim it.

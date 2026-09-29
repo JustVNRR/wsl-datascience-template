@@ -29,7 +29,7 @@ CLAUDE := $(dir $(lastword $(MAKEFILE_LIST)))../bin/claude.sh
 # call is for.
 NAMED_PROFILE := $(if $(filter command line,$(origin CLAUDE_PROFILE)),$(CLAUDE_PROFILE))
 
-claude_status: ## Show Claude Code here: version, versions kept, the provider in force
+claude_status: ## Show Claude Code here: version, the versions on disk, the provider in force
 	@$(CLAUDE) status
 
 claude_profile: ## Choose the provider this instance talks to, and apply it

@@ -11,7 +11,7 @@
 # sheet when it was removed by hand.
 
 # --- 1. WHAT THIS INSTANCE HAS ---
-gmake claude_status                            # Version, versions kept, the login
+gmake claude_status                            # Version, versions on disk, the login
 claude --version                               # The version alone
 claude auth status                             # loggedIn, authMethod, apiProvider (JSON)
 claude doctor                                  # The CLI's own check-up
@@ -32,7 +32,7 @@ claude --continue                              # ... the same, from the folder y
 claude --resume                                # ... or choose among that folder's sessions
 
 # --- 4. WHAT TAKES THE SPACE ---
-du -sh ~/.local/share/claude                   # Every version ever installed
+du -sh ~/.local/share/claude                   # The versions on disk, and their weight
 ls -l ~/.local/share/claude/versions/          # ... one file per version
 claude project purge --dry-run                 # What one project's history takes
 
