@@ -122,22 +122,26 @@ forwards `cache_control`.
 ## Your projects
 
 Claude Code keeps one history per folder it has run in. `gmake claude_project`
-turns that into a menu: this instance's projects, the most recently used first,
-each with the date of its last session.
+turns that into two menus: this instance's projects, the most recently used
+first, each with the date of its last session — then, for the project chosen,
+its sessions.
 
 ```text
-  2026-09-28 18:04  ~/projects/demo
-  2026-09-12 09:21  ~/projects/pricing
+> 2026-09-28 18:04  fix the parser bug
+  2026-09-12 09:21  explain the deploy
+  start a new session
 ```
 
-Pick one and a session opens in that folder, continuing the conversation that
-was left there — nothing to `cd` into, nothing to remember.
+Each session line carries the first words you typed in it, and the menu starts
+on the most recent — Enter there reopens it. The last line starts a fresh
+session, in the same folder: nothing to `cd` into, nothing to remember.
 
 A folder that has been deleted is not offered, and a folder no session has run
 in is not in the list either: there would be nothing to continue. On an instance
 that has never run a session, the target says so and stops.
 
-From inside a folder, the same thing is the CLI's own `claude --continue`.
+From inside a folder, the same thing is the CLI's own `claude --continue` (the
+most recent session) or `claude --resume` (one of the others).
 
 ## The status line
 

@@ -27,7 +27,7 @@ grep CLAUDE_PROFILE ~/.config/zsh/gmake/.env.global      # The entry in force
 jq .statusLine ~/.claude/settings.json         # The status line the pack put there
 
 # --- 3. YOUR PROJECTS ---
-gmake claude_project                           # Pick a project, and reopen its last session
+gmake claude_project                           # Pick a project, then a session - or a new one
 claude --continue                              # ... the same, from the folder you are already in
 claude --resume                                # ... or choose among that folder's sessions
 

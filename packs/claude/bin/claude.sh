@@ -236,11 +236,11 @@ short_path() {
 }
 
 # One line per project of this instance, most recently used first, shaped for
-# fzf:  <path> TAB <last session>  <short path>
+# fzf:  <store dir> TAB <path> TAB <last session>  <short path>
 #
-# The path is the first field and the only one that matters; fzf shows what is
-# left of the tab (--with-nth) and prints the chosen line back whole, so
-# `cut -f1` reads the path again.
+# The first two fields are what a choice needs - the store directory, where the
+# project's sessions live, and the path to open - and fzf hides them both: it
+# prints the chosen line back whole, so `cut -f1` and `cut -f2` read them again.
 #
 # From where: ~/.claude/projects, one directory per folder a session has run in.
 # The directory's NAME is an encoding of the path that cannot be decoded back (a
@@ -268,20 +268,66 @@ project_lines() {
         [ -d "$cwd" ] || continue
         epoch=$(date -r "$newest" +%s 2>/dev/null || echo 0)
         when=$(date -r "$newest" '+%Y-%m-%d %H:%M' 2>/dev/null || true)
-        printf '%s\t%s\t%s  %s\n' "$epoch" "$cwd" "$when" "$(short_path "$cwd")"
+        printf '%s\t%s\t%s\t%s  %s\n' "$epoch" "${dir%/}" "$cwd" "$when" "$(short_path "$cwd")"
     done | sort -rn -k1,1 | cut -f2-
 }
 
 # fzf, the same picker as the provider menu, and the same demand: a menu needs a
-# terminal. There is no name to fall back on here - the list IS the interface -
-# so a refusal is just a refusal.
-pick_project() {
+# terminal. $1 is the prompt, $2 the field the display starts at, $3 the list;
+# the chosen line comes back whole and the caller reads its fields. There is no
+# name to fall back on here - the list IS the interface - so a refusal is just a
+# refusal.
+pick_line() {
     local choice
-    if ! choice=$(printf '%s\n' "$1" | fzf --prompt='The project to open > ' --info=inline --layout=reverse --with-nth=2..); then
-        die "no project chosen."
+    if ! choice=$(printf '%s\n' "$3" | fzf --prompt="$1 > " --info=inline --layout=reverse --with-nth="$2.."); then
+        die "nothing chosen."
     fi
-    [ -n "$choice" ] || die "no project chosen."
-    printf '%s\n' "$choice" | cut -f1
+    [ -n "$choice" ] || die "nothing chosen."
+    printf '%s\n' "$choice"
+}
+
+# The first words a person typed in a session: one user message, flattened to a
+# single line and cut short - what the CLI's own picker shows, from the same
+# files. Tool results travel as user messages and are skipped, which is why the
+# extraction can come out empty for an entry and the search moves on; jq's
+# first() stops at the first one that has something.
+session_preview() {
+    jq -r '
+        first(
+            select(.type == "user")
+            | .message.content
+            | if type == "string" then .
+              elif type == "array" then (map(select(.type == "text") | .text) | join(" "))
+              else empty end
+            | gsub("\\s+"; " ")
+            | select(. != "")
+        ) // empty
+    ' "$1" 2>/dev/null | cut -c1-70 || true
+}
+
+# One line per session of a project, most recent first, shaped for fzf:
+#   <session id> TAB <last used>  <first words>
+# followed by the door to a new one. The id is the session file's own name -
+# what `claude --resume` takes - and it is the first field, hidden like the
+# others. Most recent first, so the line the menu starts on is the one a plain
+# --continue would have taken: the default and the old behaviour agree.
+session_lines() {
+    local dir=$1 file id when preview body
+    find "$dir" -maxdepth 1 -type f -name '*.jsonl' -printf '%T@\t%p\n' 2>/dev/null |
+        sort -rn | cut -f2- |
+        while read -r file; do
+            [ -n "$file" ] || continue
+            id=$(basename "$file" .jsonl)
+            when=$(date -r "$file" '+%Y-%m-%d %H:%M' 2>/dev/null || true)
+            preview=$(session_preview "$file")
+            if [ -n "$preview" ]; then
+                body="$when  $preview"
+            else
+                body="$when"
+            fi
+            printf '%s\t%s\n' "$id" "$body"
+        done || true
+    printf 'new\tstart a new session\n'
 }
 
 # --- the targets --------------------------------------------------------------
@@ -382,13 +428,13 @@ cmd_edit_profiles() {
     fi
 }
 
-# Opening one: the launcher, in that folder, on the last conversation of that
-# folder. Every project in the list is there because a session has run in it, so
-# there is always one to continue - the list answers "resume if there is one" by
-# itself. `exec`: the session replaces this script, and make waits on the
-# session, not on a wrapper.
+# Opening one: two menus - the project, then its sessions, the most recent
+# first and preselected, a new session as the last line. An existing one opens
+# by id (`--resume`), a new one opens plain; both run in the project's folder,
+# and `exec` makes the session replace this script - make waits on the session,
+# not on a wrapper.
 cmd_project() {
-    local list cwd
+    local list line dir cwd sessions session
 
     [ -n "$claude_bin" ] || die "Claude Code is not installed in this instance - bash ~/.config/packs/claude/install.sh puts it back."
 
@@ -398,10 +444,20 @@ cmd_project() {
         return 0
     fi
 
-    cwd=$(pick_project "$list")
+    line=$(pick_line "The project to open" 3 "$list")
+    dir=$(printf '%s\n' "$line" | cut -f1)
+    cwd=$(printf '%s\n' "$line" | cut -f2)
     [ -d "$cwd" ] || die "$cwd is gone - it was removed after the list was read."
+
+    sessions=$(session_lines "$dir")
+    line=$(pick_line "The session to open" 2 "$sessions")
+    session=$(printf '%s\n' "$line" | cut -f1)
+
     cd "$cwd" || die "cannot enter $cwd."
-    exec "$claude_bin" --continue
+    if [ "$session" = "new" ]; then
+        exec "$claude_bin"
+    fi
+    exec "$claude_bin" --resume "$session"
 }
 
 # --- the status ---------------------------------------------------------------
