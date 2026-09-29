@@ -77,26 +77,79 @@ status() {
         echo "  config     none yet — the first session writes it"
     fi
 
-    # The login, from the CLI's own answer (a JSON object, and jq is in the
-    # image). `|| true`: the command exits non-zero when there is no login, and
-    # that is an answer, not a failure - a `status` that stopped there would
-    # hide everything above it.
+    access
+    endpoint
+
+    echo ""
+}
+
+# What a session will present, and where it will go. Two sources, read in the
+# order the CLI reads them: the env block of its own settings file comes first -
+# a settings file beats the shell, that is documented - and the environment
+# after it. The `has` form rather than a truth test, so a variable that is set
+# to something odd still counts as set.
+#
+# Only the NAME of the variable is ever printed, never its value: a status that
+# showed a key would be a leak with a friendly face.
+access() {
+    local settings=$HOME/.claude/settings.json
+    local name="" where=""
+
+    if [ -f "$settings" ]; then
+        name=$(jq -r '(.env // {}) | if has("ANTHROPIC_AUTH_TOKEN") then "ANTHROPIC_AUTH_TOKEN" elif has("ANTHROPIC_API_KEY") then "ANTHROPIC_API_KEY" else empty end' "$settings" 2>/dev/null || true)
+        [ -n "$name" ] && where="in $settings"
+    fi
+    if [ -z "$name" ] && [ -n "${ANTHROPIC_AUTH_TOKEN:-}" ]; then
+        name=ANTHROPIC_AUTH_TOKEN
+        where="in the environment"
+    fi
+    if [ -z "$name" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+        name=ANTHROPIC_API_KEY
+        where="in the environment"
+    fi
+
+    if [ -n "$name" ]; then
+        echo "  access     a key $where ($name) — nothing to log in to"
+        return
+    fi
+
+    # No key anywhere, so the stored login is what is left, and the CLI is the
+    # one that knows it. `|| true`: no login at all exits non-zero, and that is
+    # an answer, not a failure.
     #
-    # Three answers are spelled out rather than one with a fallback, because the
-    # obvious short form is wrong: in jq, `//` treats false as absent, so
-    # `.loggedIn // "unknown"` answers "unknown" for a `loggedIn: false` - which
-    # is exactly what a fresh instance, logged in nowhere, reports.
+    # The three answers are spelled out rather than written with a fallback,
+    # because the obvious short form is wrong: in jq, `//` treats false as
+    # absent, so `.loggedIn // "unknown"` answers "unknown" for a
+    # `loggedIn: false` - which is what a fresh instance, logged in nowhere,
+    # reports.
     local auth answer
     auth=$(claude auth status 2>/dev/null || true)
     answer=$(printf '%s' "$auth" |
-        jq -r 'if .loggedIn == true then "yes" elif .loggedIn == false then "no" else "unknown" end' 2>/dev/null || true)
+        jq -r 'if .loggedIn == true then (.authMethod // "a login") elif .loggedIn == false then "none" else "unknown" end' 2>/dev/null || true)
     case "$answer" in
-        yes) echo "  login      yes" ;;
-        no)  echo "  login      no — the first session asks you to log in" ;;
-        *)   echo "  login      unknown — 'claude auth status' had nothing to say" ;;
+        none)    echo "  access     nothing yet — a key in the settings, or a login" ;;
+        unknown) echo "  access     unknown — 'claude auth status' had nothing to say" ;;
+        *)       echo "  access     a login ($answer)" ;;
     esac
+}
 
-    echo ""
+# Where the requests go, from the same two places as the key above. A key with
+# no base URL talks to the Anthropic API; a base URL is what points a session at
+# a gateway or a provider that speaks the same API.
+endpoint() {
+    local settings=$HOME/.claude/settings.json
+    local url=""
+
+    if [ -f "$settings" ]; then
+        url=$(jq -r '(.env // {}).ANTHROPIC_BASE_URL // empty' "$settings" 2>/dev/null || true)
+    fi
+    [ -z "$url" ] && url=${ANTHROPIC_BASE_URL:-}
+
+    if [ -n "$url" ]; then
+        echo "  endpoint   $url"
+    else
+        echo "  endpoint   the Anthropic API — no ANTHROPIC_BASE_URL set"
+    fi
 }
 
 case "${1:-}" in

@@ -33,16 +33,26 @@ settings, credentials, history, sessions — stays where it is: it is yours, lik
 `gmake claude_status` shows what is on the disk; the last lines of the
 [cheatsheet](../cheatsheets/claude_commands.sh) show how to reclaim it.
 
-## The first run
+## Getting in
 
-`claude` asks you to log in once, and **needs a paid plan** — Pro, Max, Team,
-Enterprise or Console. The free claude.ai plan does not include Claude Code.
+Claude Code needs one thing to talk to a model: a credential. There are two
+kinds, and a key needs no login at all.
+
+| Route | What it is | What you do |
+| :--- | :--- | :--- |
+| a key | an API key — from the Console, a gateway, or a provider that speaks the same API | put it in the `env` block of `~/.claude/settings.json` as `ANTHROPIC_AUTH_TOKEN` |
+| a login | a Pro, Max, Team, Enterprise or Console subscription — there is no key to copy | let `claude` open the authorisation page once |
+
+`ANTHROPIC_AUTH_TOKEN` is used as it stands, with nothing to approve.
+(`ANTHROPIC_API_KEY` works too, but the first interactive session asks you to
+approve it once.) Either one outranks a stored login, so a key is the whole
+configuration.
 
 The login is a web page, so the CLI opens a browser and waits for it to come
-back. An instance carries no browser: open the URL the CLI prints on Windows,
-and paste back the code the page gives you — the browser on Windows cannot call
-into the instance on its own. If the paste does not take, `claude auth login`
-reads the code from your input instead.
+back. An instance carries no browser: open the URL it prints on Windows, and
+paste back the code the page gives you — the browser on Windows cannot call into
+the instance on its own. If the paste does not take, `claude auth login` reads
+the code from your input instead.
 
 ## Where things live
 
