@@ -172,9 +172,14 @@ function Resolve-PackRemoval {
     return @($Gone)
 }
 
-# Which packs an instance already has. The folder IS the state: the gmake
-# Makefile reads ~/.config/packs/*/ to decide what to load, so a folder that is
-# there is an installed pack, and one that is not is not.
+# Which packs an instance already has. A pack is its folder WITH ITS pack.conf:
+# that is what the gmake side counts (packs_list prints one line per pack.conf,
+# and the module loading looks beside it), and the two sides must answer the
+# same thing. They did not, once: a copy that failed left its empty folder
+# behind, this function read `ls`, and the pack was "installed" here while
+# packs_list called it absent - so add_pack stopped offering a pack that was
+# not in. The empty folder is taken back at the end of a failed copy now, and
+# this definition makes any older one harmless too.
 #
 # Wrap the call in @(): PowerShell unrolls a one-element list into its element,
 # and the caller then holds a string - where [0] is its first LETTER, not the
@@ -182,7 +187,8 @@ function Resolve-PackRemoval {
 # deletion aimed at a folder of that name.
 function Get-InstalledPacks {
     param([string]$DistroName, [string]$PacksDirectory)
-    return Get-InInstanceOutput -DistroName $DistroName -Command @("ls", "-1", $PacksDirectory)
+    $Found = Get-InInstanceOutput -DistroName $DistroName -Command @("find", $PacksDirectory, "-mindepth", "2", "-maxdepth", "2", "-name", "pack.conf")
+    return @($Found | ForEach-Object { ($_ -replace "/pack.conf$", "").Split("/")[-1] } | Sort-Object)
 }
 
 # Where a pack's folder is, once it is in the instance. One place, so that the
@@ -251,6 +257,15 @@ function Copy-PackIntoInstance {
 
     if ($Copied) {
         Invoke-InInstance -DistroName $DistroName -Command @("find", $Target, "-name", "*.sh", "-exec", "chmod", "+x", "{}", "+") -ExitCode $ExitCode -Quiet
+    } else {
+        # A copy that failed leaves nothing behind. The folder was created
+        # before the copy, and a folder is what "installed" means on this side:
+        # left there, an empty one made add_pack call the pack present while
+        # the gmake side, which asks for its pack.conf, called it absent. The
+        # copy's own exit code is what the caller reports, so it is kept.
+        $CopyCode = $ExitCode.Value
+        Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode $ExitCode
+        $ExitCode.Value = $CopyCode
     }
     return $Copied
 }
