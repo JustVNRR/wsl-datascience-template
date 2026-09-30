@@ -8,6 +8,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
   - `vision`: ffmpeg, ImageMagick and Tesseract OCR
   - `web`: Firefox, and a WireGuard tunnel to Proton VPN
   - `claude`: Claude Code, the agentic CLI
+  - `pandoc`: Pandoc and XeLaTeX, to build a markdown document into a PDF
 
 ## Features
 
@@ -16,7 +17,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
 - **Command memory** — cheatsheets stored as plain files, injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
-- **Modular targets** — `gmake` exposes its targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`. They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
+- **Modular targets** — `gmake` exposes its targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`, the PDF build with `pandoc`. They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
 - **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to Proton VPN — the servers live in one JSON, the server in use and the kill switch are two lines of `.env.global` — and bring it up with the distro.
 
 ---
@@ -110,6 +111,7 @@ it grows, and a pack leaves with its folder:
 | `claude` | [Claude Code](packs/claude/docs/claude.md) | `claude_status`, `claude_profile`, `claude_edit_profiles`, `claude_project` |
 | `devops` | [The devops pack](packs/devops/docs/devops.md) | `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
+| `pandoc` | [Pandoc & PDF](packs/pandoc/docs/pandoc.md) | `pdf_from_md`, `pdf_open`, `docx_from_md`, `csl_from_catalog`, `font_from_*` |
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
 | `scaffold` | [Project scaffolding, the pack](packs/scaffold/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
@@ -146,6 +148,7 @@ leaves with `remove_pack`.
 | :--- | :--- |
 | Claude Code | [Claude Code](packs/claude/docs/claude.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Google Cloud CLI | [GCP onboarding guide](packs/gcp/docs/onboarding.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
+| Pandoc & PDF | [Pandoc & PDF](packs/pandoc/docs/pandoc.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Python | [Python](packs/python/docs/python.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Vision & OCR | [Vision & OCR](packs/vision/docs/vision.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
 | Firefox & VPN | [Web browser and tunnel](packs/web/docs/web.md), [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) |
@@ -226,6 +229,15 @@ the repository at runtime.
 │   │   ├── make/            # the pack's modules, loaded as soon as the folder is there
 │   │   ├── cheatsheets/     # the pack's fcheat sheets, each with its `# requires:` header
 │   │   └── docs/            # the pack's pages, onboarding walkthrough included
+│   ├── pandoc/              # Pandoc and XeLaTeX: Markdown to PDF, bibliography included
+│   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
+│   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
+│   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
+│   │   ├── env.project.sample # the pack's project variables (PDF_SRC, DOCX_REFERENCE...)
+│   │   ├── bin/             # the scripts behind the targets: the build, the viewer, the styles, the fonts
+│   │   ├── make/            # its gmake module: the document targets, the styles, the fonts
+│   │   ├── cheatsheets/     # its fcheat sheet: the targets, the commands, the PDF tools
+│   │   └── docs/            # the pack's page
 │   ├── python/              # Python 3, uv, ruff, the compiler a wheel is built with
 │   │   ├── pack.conf        # what it installs, and the line `add_pack` shows
 │   │   ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
