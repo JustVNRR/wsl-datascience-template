@@ -51,7 +51,7 @@ pack never writes in it.
 | `address`, `private_key` | From the WireGuard configuration your provider hands you. Keep the IPv4 and the IPv6 address |
 | `peer.*` | The server's key, its address, what goes through the tunnel |
 | `note` | Yours |
-| `dns`, `mtu`, `peer.persistent_keepalive` | Optional. Without them: `10.2.0.1`, `1420`, none |
+| `dns`, `mtu`, `peer.persistent_keepalive` | Optional. Without them: `VPN_DNS`, `VPN_MTU`, none |
 
 Adding a server is one more entry in that file — there is no import command.
 
@@ -61,9 +61,11 @@ Adding a server is one more entry in that file — there is no import command.
 | :--- | :--- |
 | `VPN_PROFILE` | The `id` of the server in use, and the one the distro starts with |
 | `VPN_KILL_SWITCH` | `true`: the tunnel rejects what would leave outside it |
+| `VPN_DNS`, `VPN_MTU` | What the tunnel resolves with and its MTU, for every server whose entry says nothing |
 
 They live in `~/.config/zsh/gmake/.env.global`; `gmake vpn_server` and the kill
-switch targets write them.
+switch targets write the first two, the last two are yours to fill — an entry
+of `servers.json` saying its own wins over them.
 
 ## The generated profile
 
@@ -81,8 +83,8 @@ is gone at the next mount. If it is wrong, what writes it is wrong.
 
 ## The DNS
 
-`openresolv` owns `/etc/resolv.conf`: the profile's `DNS = 10.2.0.1` while the
-tunnel is up, the base below it while it is down.
+`openresolv` owns `/etc/resolv.conf`: the profile's `DNS` — `VPN_DNS`, `1.1.1.1`
+by default — while the tunnel is up, the base below it while it is down.
 
 **WSL fights for that file.** It puts its own back at every start, even with
 `generateResolvConf = false`, and it answers the instance's DNS itself — so any

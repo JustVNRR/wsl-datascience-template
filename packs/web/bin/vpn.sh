@@ -50,13 +50,16 @@ SAMPLE=$here/../vpn.servers.sample
 SERVERS=$HOME/.config/vpn/servers.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 
-# The DNS and the MTU are constants of the generator, not variables: they are the
-# same for every server, and duplicating them in each entry would be four
-# lines to keep in step. An entry may carry "dns" or "mtu" of its own - a server
-# that needs another value wins - and then it is written here. The peer's
-# "persistent_keepalive" is the same arrangement: nothing by default, and a
-# number in an entry when that server needs one.
-DNS_DEFAULT=10.2.0.1
+# What the tunnel resolves with and its MTU: the variables VPN_DNS and VPN_MTU
+# of .env.global come first, and the pair below is the last resort - an
+# .env.global older than the variables, or one that never had them. An entry of
+# servers.json may carry "dns" or "mtu" of its own, and that wins over both; the
+# peer's "persistent_keepalive" is the same arrangement - nothing by default,
+# and a number in an entry when that server needs one.
+#
+# 1.1.1.1 is a public resolver, and no provider's own: while the tunnel is up
+# the query goes through it. 1420 is WireGuard's default MTU.
+DNS_DEFAULT=1.1.1.1
 MTU_DEFAULT=1420
 
 # What the instance resolves with when no tunnel is up: the line the install
@@ -310,6 +313,8 @@ compose() {
     dns=$(field "$id" dns)
     mtu=$(field "$id" mtu)
     keepalive=$(peer_field "$id" persistent_keepalive)
+    [ -n "$dns" ] || dns=$(env_var VPN_DNS)
+    [ -n "$mtu" ] || mtu=$(env_var VPN_MTU)
     dns=${dns:-$DNS_DEFAULT}
     mtu=${mtu:-$MTU_DEFAULT}
 

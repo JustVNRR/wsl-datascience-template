@@ -30,7 +30,7 @@ jq . ~/.config/vpn/servers.json                # What it holds, when you want to
 jq -r '.servers[].id' ~/.config/vpn/servers.json   # Just the ids, one per line
 
 # --- 3. THE TWO VARIABLES ---
-grep VPN_ ~/.config/zsh/gmake/.env.global      # VPN_PROFILE and VPN_KILL_SWITCH
+grep VPN_ ~/.config/zsh/gmake/.env.global      # the pack's variables
 gmake env_global_enable                        # Adds what the samples carry and the file lacks
 
 # --- 4. WHAT IS REALLY HAPPENING ---
