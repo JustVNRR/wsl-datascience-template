@@ -245,8 +245,10 @@ automount_down: ## Stop mounting the Windows drives (no more /mnt/c)
 # what is mounted, what runs, what is in the PATH. They change nothing, take no
 # password, and one line comes out either way - the folders under /mnt are
 # empty when automount is off, so the mount table is what is asked, not `ls`.
+# And the filesystem's own name is not asked: it was drvfs once and is 9p now,
+# and a drive is a drive either way - a single letter under /mnt is the sign.
 automount_check: ## Say whether the Windows drives are mounted under /mnt
-	@drives=$$(mount | grep -oE ' on /mnt/[a-z] type drvfs' | sed -e 's| on /mnt/||' -e 's| type drvfs||' | paste -sd, -); \
+	@drives=$$(mount | sed -n 's|.* on /mnt/\([a-z]\) .*|\1|p' | sort -u | paste -sd, -); \
 	if [ -n "$$drives" ]; then \
 		echo "automount: mounted - the Windows drives ($$drives) are under /mnt."; \
 	else \
