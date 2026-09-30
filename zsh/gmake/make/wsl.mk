@@ -48,8 +48,7 @@ wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, inter
 # way is generateResolvConf = false in /etc/wsl.conf, which wsl_config opens.
 dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance resolves names with
 	@if [ -L /etc/resolv.conf ]; then \
-		echo "ℹ️  WSL owns this file — a symlink to $$(readlink /etc/resolv.conf), written again at every start of the instance."; \
-		printf '\033[33mEnsure generateResolvConf = false in /etc/wsl.conf if you want your change to survive a restart.\033[0m\n'; \
+		printf '\033[33mEnsure \033[32mgenerateResolvConf = false\033[33m in /etc/wsl.conf if you want your change to survive a restart.\033[0m\n'; \
 	elif [ ! -e /etc/resolv.conf ]; then \
 		echo "ℹ️  There is no /etc/resolv.conf — nothing resolves until one exists; WSL will write its own at the next start."; \
 	fi
@@ -150,26 +149,38 @@ endef
 # anyway (WSL runs the distribution's /sbin/init, which `systemd-sysv` poses).
 # What it brings when it is on: the standard way to run a service - start it
 # with the instance, restart it when it falls, log to journalctl, schedule
-# timers. What it costs: about 21 MB of packages, and PID 1 changes at the next
+# timers. What it costs: about 22 MB of packages, and PID 1 changes at the next
 # start.
 #
-# --no-install-recommends, like every apt line of the image: what systemd merely
-# recommends includes systemd-resolved, and that one is a rival of the resolver
-# the web pack installs (openresolv) - turning systemd on must not drag it in
-# by surprise. One sudo, and the file is only written if the installation
-# worked: a half-enabled instance is not a state to leave behind.
+# Three packages, named, with --no-install-recommends like every apt line of the
+# image: systemd-sysv poses /sbin/init, and libpam-systemd and dbus-user-session
+# are what a user session needs - without them WSL says "Failed to start the
+# systemd user session" at every start (measured on an instance, 2026-09-30).
+# Naming them is also what keeps systemd-resolved out, a rival of the resolver
+# the web pack installs (openresolv): it is only ever a recommendation.
+#
+# One sudo, and the file is only written once the packages are there: a
+# half-enabled instance is not a state to leave behind. When the three are
+# already installed, nothing is asked and nothing is downloaded.
 systemd_up: ## Install systemd and turn it on for this instance (a restart boots it)
-	@echo ""
-	@echo "Installing systemd (systemd + systemd-sysv, about 21 MB) and turning it on."
-	@echo "Your password will be asked, once."
 	@$(call wsl_conf_set,boot,systemd,true); \
-	tmp=$$(mktemp); printf '%s\n' "$$new" > "$$tmp"; \
-	sudo sh -c 'export DEBIAN_FRONTEND=noninteractive; apt-get update -qq && apt-get install -y --no-install-recommends systemd-sysv && cat > /etc/wsl.conf' < "$$tmp"; \
-	rc=$$?; rm -f "$$tmp"; \
-	[ $$rc -eq 0 ] || { echo ""; echo "❌ The installation failed — /etc/wsl.conf was left untouched."; exit 1; }
-	@echo ""
-	@echo "✅ systemd is installed and on."
-	@$(call apply_hint)
+	if dpkg -s systemd-sysv libpam-systemd dbus-user-session >/dev/null 2>&1; then \
+		if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+			echo "systemd is already installed and on."; \
+			exit 0; \
+		fi; \
+		printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	else \
+		echo ""; \
+		echo "Installing systemd, please wait..."; \
+		tmp=$$(mktemp); printf '%s\n' "$$new" > "$$tmp"; \
+		sudo sh -c 'export DEBIAN_FRONTEND=noninteractive; apt-get update -qq && apt-get install -y --no-install-recommends systemd-sysv libpam-systemd dbus-user-session && cat > /etc/wsl.conf' < "$$tmp"; \
+		rc=$$?; rm -f "$$tmp"; \
+		[ $$rc -eq 0 ] || { echo ""; echo "❌ The installation failed — /etc/wsl.conf was left untouched."; exit 1; }; \
+	fi; \
+	echo ""; \
+	echo "✅ systemd is installed and on."; \
+	$(call apply_hint)
 
 systemd_down: ## Stop booting systemd for this instance (the packages stay installed)
 	@$(call wsl_conf_set,boot,systemd,false); \

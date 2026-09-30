@@ -84,10 +84,16 @@ block of `wsl_status` — with interop off, Windows is not reachable. The
 The image ships none, and that is deliberate: nothing it starts is a service,
 and the `systemd` package alone never boots anything — WSL runs the
 distribution's `/sbin/init`, which comes from `systemd-sysv`. `systemd_up`
-installs both (about 21 MB; with `--no-install-recommends`, because what systemd
-merely recommends includes `systemd-resolved`, a rival of the resolver the
-[web pack](../../packs/web/docs/vpn.md) installs) and writes the line;
-`systemd_down` puts the line back to `false` and leaves the packages.
+installs three packages — `systemd-sysv`; `libpam-systemd` and
+`dbus-user-session`, which are what WSL's user session needs — about 22 MB
+together, and writes the line; `systemd_down` puts the line back to `false` and
+leaves the packages. When the three are already installed, nothing is
+downloaded and nothing is asked.
+
+It installs with `--no-install-recommends`, like every apt line of the image,
+and names what it needs: that is also what keeps `systemd-resolved` out — a
+rival of the resolver the [web pack](../../packs/web/docs/vpn.md) installs, and
+only ever a recommendation.
 
 What it brings when it is on: the standard way to run a service — it starts with
 the instance, restarts when it falls, logs to `journalctl`, schedules timers. On
