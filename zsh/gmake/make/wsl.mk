@@ -1,12 +1,11 @@
 # ==============================================================================
-# THE INSTANCE ITSELF: THE FILES WSL READS, AND WHAT IT RUNS ON
+# THE INSTANCE ITSELF: ITS FILES, ITS STATE, AND ITS SWITCHES
 # ==============================================================================
-# Two files WSL reads and no project owns: /etc/wsl.conf - which account the
-# instance opens as, what WSL runs at that moment, how the Windows side is
-# reached, written whole by first_boot.sh at the first boot - and
-# /etc/resolv.conf, which answers the instance's DNS questions. The third
-# target changes neither: wsl_status reads the instance and prints what it
-# found.
+# Everything here is the machine's and not a project's: the two files WSL reads
+# - /etc/wsl.conf, written whole by first_boot.sh at the first boot, and
+# /etc/resolv.conf, which answers the DNS - the status that reports what the
+# instance runs on, and the six switches that turn WSL's own features on and off
+# (systemd, automount, interop).
 #
 # The two files belong to root: the editors run under sudo, and nano is named
 # rather than $EDITOR - the instance's $EDITOR is `code --wait` whenever VS
@@ -14,24 +13,25 @@
 # It saves as the Windows user, who cannot write a file that belongs to root.
 # A terminal editor under sudo can.
 #
-# The three run from anywhere: what they read is the machine's, not a
-# project's, and "how does this instance start?", "what answers its DNS?" and
-# "what does it run on?" are asked from wherever you stand. They say so here
-# rather than in the Makefile, like the env_global_* two.
+# All nine run from anywhere: what they touch is the machine's, not a project's,
+# and "how does this instance start?" is asked from wherever you stand. They say
+# so here rather than in the Makefile, like the env_global_* two.
 GATE_EXEMPT_GOALS += wsl_config dns_resolve wsl_status
+GATE_EXEMPT_GOALS += systemd_up systemd_down automount_up automount_down interop_up interop_down
 
-# Commands, not files: one of these names landing in the working directory
-# must not turn its target into a no-op.
+# Commands, not files: one of these names landing in the working directory must
+# not turn its target into a no-op.
 .PHONY: wsl_config dns_resolve wsl_status
+.PHONY: systemd_up systemd_down automount_up automount_down interop_up interop_down
 
-wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, boot, interop
+wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, interop
 	@sudo nano /etc/wsl.conf
 	@echo ""
 	@echo "ℹ️  WSL reads /etc/wsl.conf when the instance starts — restart it for a change to apply:"
 	@echo "   .\wsl.ps1 restart   (from Windows)"
 
-# The resolver file, for the same two reasons and one of its own: it belongs
-# to root, and WSL may be the one writing it. As long as it is a symlink - to
+# The resolver file, for the same two reasons and one of its own: it belongs to
+# root, and WSL may be the one writing it. As long as it is a symlink - to
 # /mnt/wsl/resolv.conf, WSL's own - WSL writes it again at every start of the
 # instance, and an edit goes with the next one. The notice says so before the
 # editor opens, rather than let a change disappear without a word. The lasting
@@ -49,9 +49,9 @@ dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance res
 # command has to survive. A state that cannot be read is said plainly - a hole
 # or an error halfway down the page would be worse than the answer.
 #
-# The image ships no systemd (see make/systemd.mk): the systemd line is empty
-# until `gmake systemd_enable` installs the packages, and reads `offline` from
-# there until the instance restarts into it. The line reports what it finds.
+# The image ships no systemd; systemd_up, below, installs it. The line says
+# what it finds: nothing when it is not installed, `offline` once the packages
+# are there and before the restart that boots it.
 wsl_status: ## Show what this instance runs on: kernel, init, WSL's files, memory
 	@echo ""
 	@echo "=== The distribution and the kernel ==="
@@ -61,7 +61,7 @@ wsl_status: ## Show what this instance runs on: kernel, init, WSL's files, memor
 	@echo "=== Init and systemd ==="
 	@printf "PID 1      : "; ps -p 1 -o comm= || true
 	@printf "systemd    : "; state=$$(systemctl is-system-running 2>/dev/null || true); \
-		if [ -n "$$state" ]; then echo "$$state"; else echo "not installed - gmake systemd_enable adds it"; fi
+		if [ -n "$$state" ]; then echo "$$state"; else echo "not installed - gmake systemd_up adds it"; fi
 	@echo ""
 	@echo "=== The local file (/etc/wsl.conf) ==="
 	@if [ -f /etc/wsl.conf ]; then cat /etc/wsl.conf; else echo "No such file - WSL starts with its defaults."; fi
@@ -91,3 +91,119 @@ wsl_status: ## Show what this instance runs on: kernel, init, WSL's files, memor
 		printf "Services   : %s up under init.d (systemd is not running)\n" "$$(service --status-all 2>/dev/null | grep -c '\[ + \]')"; \
 	fi
 	@echo ""
+
+# ==============================================================================
+# THE SIX SWITCHES - WSL'S OWN FEATURES, TURNED ON AND OFF
+# ==============================================================================
+# Each pair edits one line of /etc/wsl.conf and nothing else in it, and each
+# takes effect at the next start - WSL reads the file when the instance boots.
+# The pairs are named up and down like the web pack's vpn_up and vpn_down.
+#
+# The edit the six share: read /etc/wsl.conf into $new, with `$(2)` set to
+# `$(3)` inside the `[$(1)]` section - the line replaced where it exists in that
+# section, inserted under its header where it does not, and the section appended
+# when the file has none. Nothing else moves: the other sections and the
+# comments come back untouched.
+#
+# Section-aware on purpose: `enabled` lives in [automount] and in [interop], and
+# a replacement matching on the key alone would hit both. And two passes,
+# because one pass cannot know whether to insert under the header - it would
+# insert AND replace, and the file would grow a line per run (measured).
+#
+# The awk programs stay on one line on purpose: inside single quotes, sh keeps
+# a backslash, and a multi-line program would need one per line to cross the
+# recipe.
+#   $(1) the section   $(2) the key   $(3) the value
+define wsl_conf_set
+	if [ -f /etc/wsl.conf ]; then \
+		has=$$(awk -v sec="$(1)" -v key="$(2)" 'BEGIN { ins = 0 } /^\[/ { ins = ($$0 ~ "^\\[[[:space:]]*" sec "[[:space:]]*\\]") } ins && $$0 ~ ("^[[:space:]]*" key "[[:space:]]*=") { c++ } END { print c + 0 }' /etc/wsl.conf); \
+		new=$$(awk -v sec="$(1)" -v key="$(2)" -v val="$(3)" -v has="$$has" '/^\[/ { if ($$0 ~ "^\\[[[:space:]]*" sec "[[:space:]]*\\]") { print; if (!has) { print key "=" val; seen = 1 }; ins = 1; next } ins = 0; print; next } ins && $$0 ~ ("^[[:space:]]*" key "[[:space:]]*=") { print key "=" val; seen = 1; next } { print } END { if (!seen) { print ""; print "[" sec "]"; print key "=" val } }' /etc/wsl.conf); \
+	else \
+		new=$$(printf '[$(1)]\n$(2)=$(3)'); \
+	fi
+endef
+
+# systemd, on demand: the image ships none, and that is deliberate - nothing it
+# starts is a service, and the `systemd` package alone never boots anything
+# anyway (WSL runs the distribution's /sbin/init, which `systemd-sysv` poses).
+# What it brings when it is on: the standard way to run a service - start it
+# with the instance, restart it when it falls, log to journalctl, schedule
+# timers. What it costs: about 21 MB of packages, and PID 1 changes at the next
+# start.
+#
+# --no-install-recommends, like every apt line of the image: what systemd merely
+# recommends includes systemd-resolved, and that one is a rival of the resolver
+# the web pack installs (openresolv) - turning systemd on must not drag it in
+# by surprise. One sudo, and the file is only written if the installation
+# worked: a half-enabled instance is not a state to leave behind.
+systemd_up: ## Install systemd and turn it on for this instance (a restart boots it)
+	@echo ""
+	@echo "Installing systemd (systemd + systemd-sysv, about 21 MB) and turning it on."
+	@echo "Your password will be asked, once."
+	@$(call wsl_conf_set,boot,systemd,true); \
+	tmp=$$(mktemp); printf '%s\n' "$$new" > "$$tmp"; \
+	sudo sh -c 'export DEBIAN_FRONTEND=noninteractive; apt-get update -qq && apt-get install -y --no-install-recommends systemd-sysv && cat > /etc/wsl.conf' < "$$tmp"; \
+	rc=$$?; rm -f "$$tmp"; \
+	[ $$rc -eq 0 ] || { echo ""; echo "❌ The installation failed — /etc/wsl.conf was left untouched."; exit 1; }
+	@echo ""
+	@echo "✅ systemd will start with the instance — restart it for that:  .\wsl.ps1 restart"
+	@echo "   gmake wsl_status says whether it is up."
+
+systemd_down: ## Stop booting systemd for this instance (the packages stay installed)
+	@$(call wsl_conf_set,boot,systemd,false); \
+	if ! grep -q '^[[:space:]]*systemd[[:space:]]*=' /etc/wsl.conf 2>/dev/null; then \
+		echo "systemd is not declared in /etc/wsl.conf - it is already off."; \
+		exit 0; \
+	fi; \
+	if [ "$$new" = "$$(cat /etc/wsl.conf)" ]; then \
+		echo "systemd is already off for this instance."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ systemd will stop booting with the instance — restart it for that:  .\wsl.ps1 restart"; \
+	echo "   The packages stay installed; they do nothing while it is off."
+
+automount_up: ## Mount the Windows drives under /mnt at every start (the default)
+	@$(call wsl_conf_set,automount,enabled,true); \
+	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+		echo "automount is already on for this instance."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ automount will be on with the instance — the Windows drives under /mnt."; \
+	echo "   Restart it for that:  .\wsl.ps1 restart"
+
+automount_down: ## Stop mounting the Windows drives (no more /mnt/c)
+	@$(call wsl_conf_set,automount,enabled,false); \
+	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+		echo "automount is already off for this instance."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ automount will be off with the instance — the Windows drives leave /mnt."; \
+	echo "   Restart it for that:  .\wsl.ps1 restart"
+
+interop_up: ## Let the instance run Windows programs (the default)
+	@$(call wsl_conf_set,interop,enabled,true); \
+	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+		echo "interop is already on for this instance."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ interop will be on with the instance — Windows programs reachable (code, powershell.exe)."; \
+	echo "   Restart it for that:  .\wsl.ps1 restart"
+
+interop_down: ## Stop running Windows programs from the instance
+	@$(call wsl_conf_set,interop,enabled,false); \
+	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+		echo "interop is already off for this instance."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ interop will be off with the instance — no more Windows programs from here."; \
+	echo "   Restart it for that:  .\wsl.ps1 restart"

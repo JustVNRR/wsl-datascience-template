@@ -62,7 +62,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # No systemd here, and that is deliberate: nothing this image starts is a
     # service, and the `systemd` package alone never boots anything anyway - WSL
     # runs the distribution's /sbin/init, which comes from `systemd-sysv`. An
-    # instance that wants services installs both with `gmake systemd_enable`.
+    # instance that wants services installs both with `gmake systemd_up`.
     # Pager and network probe the shell expects: git pages through `less` (a
     # Recommends that --no-install-recommends drops), and the bash cheatsheet
     # documents them both

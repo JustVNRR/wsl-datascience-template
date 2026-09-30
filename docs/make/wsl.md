@@ -1,9 +1,10 @@
-# WSL Configuration
+# The Instance's Own Settings
 
 [← Back to the README](../../README.md#makefile-gmake)
 
-The instance's own settings outside `~/.config`: the two files WSL reads, and
-the command that reports what the instance runs on.
+What is the machine's and not a project's: the two files WSL reads, the six
+switches that turn its features on and off, and the command that reports what
+the instance runs on.
 
 ## Targets
 
@@ -12,16 +13,24 @@ the command that reports what the instance runs on.
 | `wsl_config` | Open `/etc/wsl.conf` in nano, under sudo | — |
 | `dns_resolve` | Open `/etc/resolv.conf` in nano, under sudo | — |
 | `wsl_status` | Report what the instance runs on | — |
+| `systemd_up` | Install systemd and turn it on | — |
+| `systemd_down` | Stop booting systemd (the packages stay installed) | — |
+| `automount_up` | Mount the Windows drives under `/mnt` at every start | — |
+| `automount_down` | Stop mounting the Windows drives | — |
+| `interop_up` | Let the instance run Windows programs | — |
+| `interop_down` | Stop running Windows programs from the instance | — |
 
 ## The WSL file
 
 `first_boot.sh` writes `/etc/wsl.conf` whole at the first boot; the values in it
-are the ones chosen there. It holds three sections:
+are the ones chosen there. It holds these sections — the switches below add
+`[boot]` or edit the others, and a pack may add its own:
 
 | Section | Sets |
 | :--- | :--- |
-| `[boot]` | what WSL starts with the instance — a `command=` run as root, and `systemd=true` once systemd is installed ([systemd](systemd.md)) |
+| `[boot]` | what WSL starts with the instance — a `command=` run as root, and `systemd=true` once `systemd_up` has run |
 | `[user]` | `default=` — the account a new session opens as |
+| `[automount]` | `enabled`, `mountFsTab` — whether the Windows drives appear under `/mnt` |
 | `[interop]` | `enabled`, `appendWindowsPath` — whether Windows programs, and the Windows `PATH`, are visible from here |
 
 ## The resolver file
@@ -40,6 +49,36 @@ reports before opening it:
 while the file is a symlink, an edit through it is a change the neighbours see
 too.
 
+## The six switches
+
+`_up` turns a feature on, `_down` turns it off, and both take effect at the next
+start.
+
+| Pair | Writes | Feature |
+| :--- | :--- | :--- |
+| `systemd_up` / `systemd_down` | `[boot] systemd=` | systemd becomes PID 1, or stops being it |
+| `automount_up` / `automount_down` | `[automount] enabled=` | the Windows drives under `/mnt` |
+| `interop_up` / `interop_down` | `[interop] enabled=` | Windows programs runnable from the instance (`code`, `powershell.exe`) |
+
+Each edits the line and nothing else in the file: the other sections and the
+comments stay, the section is created only when the file has none, and running
+the same one twice changes nothing. `interop_down` also silences the Windows
+block of `wsl_status` — with interop off, Windows is not reachable.
+
+### What systemd brings
+
+The image ships none, and that is deliberate: nothing it starts is a service,
+and the `systemd` package alone never boots anything — WSL runs the
+distribution's `/sbin/init`, which comes from `systemd-sysv`. `systemd_up`
+installs both (about 21 MB; with `--no-install-recommends`, because what systemd
+merely recommends includes `systemd-resolved`, a rival of the resolver the
+[web pack](../../packs/web/docs/vpn.md) installs) and writes the line;
+`systemd_down` puts the line back to `false` and leaves the packages.
+
+What it brings when it is on: the standard way to run a service — it starts with
+the instance, restarts when it falls, logs to `journalctl`, schedules timers. On
+a server that is the rule; here it is an option.
+
 ## The status command
 
 `wsl_status` changes nothing: it reads the instance and prints five blocks.
@@ -47,15 +86,16 @@ too.
 | Block | Shows |
 | :--- | :--- |
 | The distribution and the kernel | `uname -r`, and `PRETTY_NAME` from `/etc/os-release` |
-| Init and systemd | what PID 1 is, and what `systemctl is-system-running` answers — not installed by default, then `offline` until the restart that boots it ([systemd](systemd.md)) |
+| Init and systemd | what PID 1 is, and what `systemctl is-system-running` answers — not installed by default, then `offline` until the restart that boots it |
 | The local file | `/etc/wsl.conf`, or that it is absent |
 | The Windows-wide file | `%USERPROFILE%\.wslconfig`, read through interop — the path it looked at is printed either way |
 | Memory and services | `free -h`; systemd's services when it runs, the init.d ones otherwise |
 
 ## The editors
 
-Both open their file in nano, under sudo: they belong to root, and an editor
-without sudo would show them and then refuse to save them.
+`wsl_config` and `dns_resolve` open their file in nano, under sudo: they belong
+to root, and an editor without sudo would show them and then refuse to save
+them.
 
 nano, and not `$EDITOR`: the instance's `$EDITOR` is `code --wait` whenever
 VS Code is installed, and that `code` is the Windows one — it saves as the
