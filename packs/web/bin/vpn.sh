@@ -50,19 +50,6 @@ SAMPLE=$here/../vpn.servers.sample
 SERVERS=$HOME/.config/vpn/servers.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 
-# The DNS belongs to the server, and its entry carries it - required, because a
-# provider's configuration names its resolver and nothing here can guess it.
-# The MTU belongs to the link: an entry only says one when something eats the
-# packets, and VPN_MTU of .env.global is what every other entry gets, with 1420
-# - WireGuard's own default - as the last resort. The peer's
-# "persistent_keepalive" is the same arrangement: nothing by default, and a
-# number in an entry when that server needs one.
-MTU_DEFAULT=1420
-
-# What the instance resolves with when no tunnel is up: BASE_DNS of
-# .env.global, and 1.1.1.1 - a public resolver - without it. It is the line the
-# install writes, and the one the page tells a hand-made instance to write.
-BASE_DNS_DEFAULT=1.1.1.1
 
 # The kill switch: two iptables lines, in the generated profile, that reject
 # whatever would leave outside the tunnel. The mark is the one wg-quick puts on
@@ -312,8 +299,7 @@ compose() {
     mtu=$(field "$id" mtu)
     keepalive=$(peer_field "$id" persistent_keepalive)
     [ -n "$mtu" ] || mtu=$(env_var VPN_MTU)
-    mtu=${mtu:-$MTU_DEFAULT}
-
+    [ -n "$mtu" ] || die "VPN_MTU is not set in $GLOBAL_ENV - gmake env_global_enable writes it from the sample."
     # What a profile cannot do without - and the sample's placeholders are not
     # values. A half-filled entry would fail with wg-quick's own words ("Key is
     # not the correct length"), which say nothing about this file: so it is said
@@ -363,7 +349,7 @@ compose() {
 write_base_resolver() {
     local base
     base=$(env_var BASE_DNS)
-    base=${base:-$BASE_DNS_DEFAULT}
+    [ -n "$base" ] || die "BASE_DNS is not set in $GLOBAL_ENV - gmake env_global_enable writes it from the sample."
     as_root ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf 2>/dev/null || true
     printf 'nameserver %s\n' "$base" | as_root resolvconf -a wsl.base
 }
