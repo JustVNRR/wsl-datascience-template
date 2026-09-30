@@ -166,6 +166,12 @@ endef
 # installing says nothing once it is done, and "already enabled" is not read
 # from the file - PID 1 is asked. A running systemd answers alone; a flag in a
 # file answers nothing.
+#
+# Two units are masked along the way - kmod-static-nodes (WSL owns /dev) and
+# systemd-binfmt (no binfmt_misc here). They can never succeed, and left alone
+# they make `systemctl is-system-running` answer `degraded` instead of
+# `running`. reset-failed clears them from the running boot, so the word turns
+# clean without waiting for a restart.
 systemd_up: ## Install systemd and turn it on for this instance (a restart boots it)
 	@$(call wsl_conf_set,boot,systemd,true); \
 	installed=0; \
@@ -178,6 +184,11 @@ systemd_up: ## Install systemd and turn it on for this instance (a restart boots
 		sudo sh -c 'export DEBIAN_FRONTEND=noninteractive; apt-get update -qq && apt-get install -y --no-install-recommends systemd-sysv libpam-systemd dbus-user-session && cat > /etc/wsl.conf' < "$$tmp"; \
 		rc=$$?; rm -f "$$tmp"; \
 		[ $$rc -eq 0 ] || { echo ""; echo "❌ The installation failed — /etc/wsl.conf was left untouched."; exit 1; }; \
+	fi; \
+	if [ "$$(systemctl is-enabled kmod-static-nodes 2>/dev/null)" != "masked" ] || [ "$$(systemctl is-enabled systemd-binfmt 2>/dev/null)" != "masked" ]; then \
+		echo ""; \
+		echo "Masking the two units WSL cannot use: kmod-static-nodes, systemd-binfmt."; \
+		sudo sh -c 'systemctl mask kmod-static-nodes systemd-binfmt >/dev/null; systemctl reset-failed kmod-static-nodes systemd-binfmt 2>/dev/null || true'; \
 	fi; \
 	if [ "$$(ps -p 1 -o comm= 2>/dev/null)" = "systemd" ]; then \
 		echo "systemd is already enabled."; \

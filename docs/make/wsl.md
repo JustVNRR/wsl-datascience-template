@@ -87,9 +87,13 @@ distribution's `/sbin/init`, which comes from `systemd-sysv`. `systemd_up`
 installs three packages — `systemd-sysv`; `libpam-systemd` and
 `dbus-user-session`, which are what WSL's user session needs — about 22 MB
 together, and writes the line; `systemd_down` puts the line back to `false` and
-leaves the packages. What it says follows the state, not the packages: nothing
-about the installation once it is done, and `systemd is already enabled` only
-when PID 1 really is systemd — the file's flag is not what answers.
+leaves the packages. It also masks the two units WSL cannot use —
+`kmod-static-nodes` (WSL owns `/dev`) and `systemd-binfmt` (no `binfmt_misc`
+here) — and clears their failure, so `systemctl is-system-running` says
+`running` instead of `degraded`. What it says follows the state, not the
+packages: nothing about the installation once it is done, and
+`systemd is already enabled` only when PID 1 really is systemd — the file's
+flag is not what answers.
 
 It installs with `--no-install-recommends`, like every apt line of the image,
 and names what it needs: that is also what keeps `systemd-resolved` out — a
