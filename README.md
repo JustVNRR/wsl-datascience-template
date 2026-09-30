@@ -98,7 +98,7 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Any | [Environment files](docs/make/env.md) | `env_global_enable`, `env_global_manage`, `env_project_enable`, `env_project_manage` |
 | Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
-| Any | [The instance's own settings](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `wsl_status`, `systemd_*`, `automount_*`, `interop_*` |
+| Any | [The instance's own settings](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `wsl_status`, `systemd_*`, `automount_*`, `interop_*`, `windows_path_*` |
 
 Everything else a project needs — its image, its pull requests — is a pack's.
 The socle's own menu stops at what an instance with no project can still do:

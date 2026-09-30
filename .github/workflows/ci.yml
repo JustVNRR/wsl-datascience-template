@@ -190,7 +190,8 @@ jobs:
           # And the socle loses nothing to an empty packs folder
           for target in help packs_list env_global_enable env_global_manage env_project_enable env_project_manage \
                          wsl_config dns_resolve wsl_status \
-                         systemd_up systemd_down automount_up automount_down interop_up interop_down; do
+                         systemd_up systemd_down automount_up automount_down interop_up interop_down \
+                         windows_path_up windows_path_down; do
             grep -q "^  ${target}[[:space:]]" help-bare.txt || {
               echo "::error::socle target '${target}' missing from the menu with no pack"
               bad=1

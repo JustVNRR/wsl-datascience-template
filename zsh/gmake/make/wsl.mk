@@ -4,8 +4,8 @@
 # Everything here is the machine's and not a project's: the two files WSL reads
 # - /etc/wsl.conf, written whole by first_boot.sh at the first boot, and
 # /etc/resolv.conf, which answers the DNS - the status that reports what the
-# instance runs on, and the six switches that turn WSL's own features on and off
-# (systemd, automount, interop).
+# instance runs on, and the eight switches that turn WSL's own features on and
+# off (systemd, automount, interop, the Windows PATH).
 #
 # The two files belong to root: the editors run under sudo, and nano is named
 # rather than $EDITOR - the instance's $EDITOR is `code --wait` whenever VS
@@ -13,22 +13,31 @@
 # It saves as the Windows user, who cannot write a file that belongs to root.
 # A terminal editor under sudo can.
 #
-# All nine run from anywhere: what they touch is the machine's, not a project's,
-# and "how does this instance start?" is asked from wherever you stand. They say
-# so here rather than in the Makefile, like the env_global_* two.
+# All eleven run from anywhere: what they touch is the machine's, not a
+# project's, and "how does this instance start?" is asked from wherever you
+# stand. They say so here rather than in the Makefile, like the env_global_*
+# two.
 GATE_EXEMPT_GOALS += wsl_config dns_resolve wsl_status
 GATE_EXEMPT_GOALS += systemd_up systemd_down automount_up automount_down interop_up interop_down
+GATE_EXEMPT_GOALS += windows_path_up windows_path_down
 
 # Commands, not files: one of these names landing in the working directory must
 # not turn its target into a no-op.
 .PHONY: wsl_config dns_resolve wsl_status
 .PHONY: systemd_up systemd_down automount_up automount_down interop_up interop_down
+.PHONY: windows_path_up windows_path_down
+
+# The closing line the switches print once the change is written: the command
+# that applies it, in green inside a yellow sentence - the colour `gmake help`
+# gives a target name is cyan, and green reads as "this is what you type".
+# One line, on purpose: it expands inside a recipe's joined command.
+define apply_hint
+	printf '\033[33mRun \033[32m.\\wsl.ps1 restart\033[33m from Windows to apply.\033[0m\n'
+endef
 
 wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, interop
 	@sudo nano /etc/wsl.conf
-	@echo ""
-	@echo "ℹ️  WSL reads /etc/wsl.conf when the instance starts — restart it for a change to apply:"
-	@echo "   .\wsl.ps1 restart   (from Windows)"
+	@printf '\n\033[33mRun \033[32m.\\wsl.ps1 restart\033[33m from Windows to apply any change.\033[0m\n'
 
 # The resolver file, for the same two reasons and one of its own: it belongs to
 # root, and WSL may be the one writing it. As long as it is a symlink - to
@@ -39,7 +48,7 @@ wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, inter
 dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance resolves names with
 	@if [ -L /etc/resolv.conf ]; then \
 		echo "ℹ️  WSL owns this file — a symlink to $$(readlink /etc/resolv.conf), written again at every start of the instance."; \
-		echo "   A change that must survive a restart: generateResolvConf = false in /etc/wsl.conf (gmake wsl_config)."; \
+		printf '\033[33mEnsure generateResolvConf = false in /etc/wsl.conf if you want your change to survive a restart.\033[0m\n'; \
 	elif [ ! -e /etc/resolv.conf ]; then \
 		echo "ℹ️  There is no /etc/resolv.conf — nothing resolves until one exists; WSL will write its own at the next start."; \
 	fi
@@ -52,21 +61,20 @@ dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance res
 # The image ships no systemd; systemd_up, below, installs it. The line says
 # what it finds: nothing when it is not installed, `offline` once the packages
 # are there and before the restart that boots it.
-wsl_status: ## Show what this instance runs on: kernel, init, WSL's files, memory
-	@echo ""
-	@echo "=== The distribution and the kernel ==="
+#
+# The block titles are cyan - the colour gmake help gives a target name - so the
+# five reads stand apart from the values under them.
+wsl_status: ## Show what this instance runs on: base image, init, WSL's files, memory
+	@printf '\n\033[36m=== Base Image and the kernel ===\033[0m\n'
 	@printf "Kernel     : "; uname -r
-	@printf "Distro     : "; grep PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"'
-	@echo ""
-	@echo "=== Init and systemd ==="
+	@printf "Base Image : "; grep PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"'
+	@printf '\n\033[36m=== Service Manager ===\033[0m\n'
 	@printf "PID 1      : "; ps -p 1 -o comm= || true
 	@printf "systemd    : "; state=$$(systemctl is-system-running 2>/dev/null || true); \
 		if [ -n "$$state" ]; then echo "$$state"; else echo "not installed - gmake systemd_up adds it"; fi
-	@echo ""
-	@echo "=== The local file (/etc/wsl.conf) ==="
+	@printf '\n\033[36m=== /etc/wsl.conf (local) ===\033[0m\n'
 	@if [ -f /etc/wsl.conf ]; then cat /etc/wsl.conf; else echo "No such file - WSL starts with its defaults."; fi
-	@echo ""
-	@echo "=== The Windows-wide file (%USERPROFILE%\.wslconfig) ==="
+	@printf '\n\033[36m=== %%USERPROFILE%%\\.wslconfig (windows) ===\033[0m\n'
 	@if ! powershell.exe -NoProfile -Command 'exit 0' >/dev/null 2>&1; then \
 		echo "Windows is not reachable from here - interop is off, or there is no Windows."; \
 	else \
@@ -82,24 +90,23 @@ wsl_status: ## Show what this instance runs on: kernel, init, WSL's files, memor
 			echo "No $$wslconfig - WSL runs with its own defaults."; \
 		fi; \
 	fi
-	@echo ""
-	@echo "=== Memory and services ==="
+	@printf '\n\033[36m=== Memory and services ===\033[0m\n'
 	@printf "Memory     : "; free -h | awk '/^Mem:/ {print $$3 "/" $$2 " in use"}'
 	@if systemctl is-system-running >/dev/null 2>&1; then \
 		printf "Services   : %s running, %s failed\n" "$$(systemctl list-units --type=service --state=running --no-legend | wc -l)" "$$(systemctl --failed --no-legend | wc -l)"; \
 	else \
 		printf "Services   : %s up under init.d (systemd is not running)\n" "$$(service --status-all 2>/dev/null | grep -c '\[ + \]')"; \
 	fi
-	@echo ""
+	@printf '\n'
 
 # ==============================================================================
-# THE SIX SWITCHES - WSL'S OWN FEATURES, TURNED ON AND OFF
+# THE EIGHT SWITCHES - WSL'S OWN FEATURES, TURNED ON AND OFF
 # ==============================================================================
 # Each pair edits one line of /etc/wsl.conf and nothing else in it, and each
 # takes effect at the next start - WSL reads the file when the instance boots.
 # The pairs are named up and down like the web pack's vpn_up and vpn_down.
 #
-# The edit the six share: read /etc/wsl.conf into $new, with `$(2)` set to
+# The edit the eight share: read /etc/wsl.conf into $new, with `$(2)` set to
 # `$(3)` inside the `[$(1)]` section - the line replaced where it exists in that
 # section, inserted under its header where it does not, and the section appended
 # when the file has none. Nothing else moves: the other sections and the
@@ -146,8 +153,8 @@ systemd_up: ## Install systemd and turn it on for this instance (a restart boots
 	rc=$$?; rm -f "$$tmp"; \
 	[ $$rc -eq 0 ] || { echo ""; echo "❌ The installation failed — /etc/wsl.conf was left untouched."; exit 1; }
 	@echo ""
-	@echo "✅ systemd will start with the instance — restart it for that:  .\wsl.ps1 restart"
-	@echo "   gmake wsl_status says whether it is up."
+	@echo "✅ systemd is installed and on."
+	@$(call apply_hint)
 
 systemd_down: ## Stop booting systemd for this instance (the packages stay installed)
 	@$(call wsl_conf_set,boot,systemd,false); \
@@ -161,8 +168,8 @@ systemd_down: ## Stop booting systemd for this instance (the packages stay insta
 	fi; \
 	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
 	echo ""; \
-	echo "✅ systemd will stop booting with the instance — restart it for that:  .\wsl.ps1 restart"; \
-	echo "   The packages stay installed; they do nothing while it is off."
+	echo "✅ systemd is off. The packages stay installed."; \
+	$(call apply_hint)
 
 automount_up: ## Mount the Windows drives under /mnt at every start (the default)
 	@$(call wsl_conf_set,automount,enabled,true); \
@@ -172,8 +179,8 @@ automount_up: ## Mount the Windows drives under /mnt at every start (the default
 	fi; \
 	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
 	echo ""; \
-	echo "✅ automount will be on with the instance — the Windows drives under /mnt."; \
-	echo "   Restart it for that:  .\wsl.ps1 restart"
+	echo "✅ automount is on."; \
+	$(call apply_hint)
 
 automount_down: ## Stop mounting the Windows drives (no more /mnt/c)
 	@$(call wsl_conf_set,automount,enabled,false); \
@@ -183,8 +190,8 @@ automount_down: ## Stop mounting the Windows drives (no more /mnt/c)
 	fi; \
 	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
 	echo ""; \
-	echo "✅ automount will be off with the instance — the Windows drives leave /mnt."; \
-	echo "   Restart it for that:  .\wsl.ps1 restart"
+	echo "✅ automount is off."; \
+	$(call apply_hint)
 
 interop_up: ## Let the instance run Windows programs (the default)
 	@$(call wsl_conf_set,interop,enabled,true); \
@@ -194,8 +201,8 @@ interop_up: ## Let the instance run Windows programs (the default)
 	fi; \
 	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
 	echo ""; \
-	echo "✅ interop will be on with the instance — Windows programs reachable (code, powershell.exe)."; \
-	echo "   Restart it for that:  .\wsl.ps1 restart"
+	echo "✅ interop is on."; \
+	$(call apply_hint)
 
 interop_down: ## Stop running Windows programs from the instance
 	@$(call wsl_conf_set,interop,enabled,false); \
@@ -205,5 +212,27 @@ interop_down: ## Stop running Windows programs from the instance
 	fi; \
 	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
 	echo ""; \
-	echo "✅ interop will be off with the instance — no more Windows programs from here."; \
-	echo "   Restart it for that:  .\wsl.ps1 restart"
+	echo "✅ interop is off."; \
+	$(call apply_hint)
+
+windows_path_up: ## Add the Windows PATH to this instance's PATH (the default)
+	@$(call wsl_conf_set,interop,appendWindowsPath,true); \
+	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+		echo "the Windows PATH is already appended here."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ the Windows PATH is appended."; \
+	$(call apply_hint)
+
+windows_path_down: ## Keep the Windows PATH out of this instance's PATH (interop stays on)
+	@$(call wsl_conf_set,interop,appendWindowsPath,false); \
+	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+		echo "the Windows PATH is already out here."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ the Windows PATH is out."; \
+	$(call apply_hint)

@@ -2,7 +2,7 @@
 
 [← Back to the README](../../README.md#makefile-gmake)
 
-What is the machine's and not a project's: the two files WSL reads, the six
+What is the machine's and not a project's: the two files WSL reads, the eight
 switches that turn its features on and off, and the command that reports what
 the instance runs on.
 
@@ -19,6 +19,8 @@ the instance runs on.
 | `automount_down` | Stop mounting the Windows drives | — |
 | `interop_up` | Let the instance run Windows programs | — |
 | `interop_down` | Stop running Windows programs from the instance | — |
+| `windows_path_up` | Add the Windows `PATH` to this instance's `PATH` | — |
+| `windows_path_down` | Keep the Windows `PATH` out of this instance's `PATH` | — |
 
 ## The WSL file
 
@@ -30,8 +32,8 @@ are the ones chosen there. It holds these sections — the switches below add
 | :--- | :--- |
 | `[boot]` | what WSL starts with the instance — a `command=` run as root, and `systemd=true` once `systemd_up` has run |
 | `[user]` | `default=` — the account a new session opens as |
-| `[automount]` | `enabled`, `mountFsTab` — whether the Windows drives appear under `/mnt` |
-| `[interop]` | `enabled`, `appendWindowsPath` — whether Windows programs, and the Windows `PATH`, are visible from here |
+| `[automount]` | `enabled` — whether the Windows drives appear under `/mnt`; `mountFsTab` — whether the entries of `/etc/fstab` are mounted at start (a setting of its own, the switches leave it alone) |
+| `[interop]` | `enabled` — whether Windows programs can be run from here; `appendWindowsPath` — whether the Windows `PATH` is appended to this instance's `PATH` |
 
 ## The resolver file
 
@@ -49,7 +51,7 @@ reports before opening it:
 while the file is a symlink, an edit through it is a change the neighbours see
 too.
 
-## The six switches
+## The eight switches
 
 `_up` turns a feature on, `_down` turns it off, and both take effect at the next
 start.
@@ -59,11 +61,13 @@ start.
 | `systemd_up` / `systemd_down` | `[boot] systemd=` | systemd becomes PID 1, or stops being it |
 | `automount_up` / `automount_down` | `[automount] enabled=` | the Windows drives under `/mnt` |
 | `interop_up` / `interop_down` | `[interop] enabled=` | Windows programs runnable from the instance (`code`, `powershell.exe`) |
+| `windows_path_up` / `windows_path_down` | `[interop] appendWindowsPath=` | the Windows `PATH` appended to this instance's `PATH` |
 
 Each edits the line and nothing else in the file: the other sections and the
 comments stay, the section is created only when the file has none, and running
 the same one twice changes nothing. `interop_down` also silences the Windows
-block of `wsl_status` — with interop off, Windows is not reachable.
+block of `wsl_status` — with interop off, Windows is not reachable. The
+`windows_path` pair only matters while `interop` is on.
 
 ### What systemd brings
 
