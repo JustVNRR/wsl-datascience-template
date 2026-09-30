@@ -13,12 +13,12 @@ does not cover Windows, your other distros, or Docker Desktop.
 
 | Target | What it does |
 | :--- | :--- |
-| `vpn_status` | Up or down, the server, the kill switch, the DNS, the exit IP, what the distro starts with |
+| `vpn_status` | Up or down, the server, the kill switch and where its rules are, the DNS, the exit IP, what the distro starts with |
 | `vpn_up [id]` | Connect. Naming a server — `gmake vpn_up VPN_PROFILE=NL72` — uses it for this call only |
 | `vpn_up_from_list` | Connect, picking the server in a menu |
 | `vpn_down` | Disconnect |
 | `vpn_server [id]` | The server the distro starts with, and switch to it now if a tunnel is up |
-| `vpn_ks_on` / `vpn_ks_off` | Put the kill switch in the tunnel, or take it out, and remount |
+| `vpn_ks_on` / `vpn_ks_off` | Put the kill switch in the tunnel, or take it out — the rules with it, from any instance — and remount |
 | `vpn_auto_on` / `vpn_auto_off` | Bring the tunnel up when the distro starts, or stop doing that |
 | `vpn_edit_profiles` | Open the JSON of servers in `$EDITOR` (nano when unset), then pick the server |
 
@@ -105,12 +105,22 @@ everything back.
 
 ## The kill switch
 
-`gmake vpn_ks_on` writes `VPN_KILL_SWITCH=true` and puts two `iptables` lines in
-the profile; `vpn_ks_off` takes them out. To see them:
+`gmake vpn_ks_on` writes `VPN_KILL_SWITCH=true` and puts two `iptables` rules in
+the profile; `vpn_ks_off` takes them out. They reject what would leave outside
+the tunnel — **for this instance only**. All of a WSL box's distros share one
+kernel and one firewall, so each rule names this instance's own place in it
+(its cgroup), and a neighbour's traffic never meets them. To see them:
 
 ```bash
-sudo iptables -S OUTPUT | head -3     # two REJECT lines, one per address family
+sudo iptables -S OUTPUT | grep -c 'wsl-stack kill switch'   # 2, one per family
 ```
+
+Both rules carry that label so they can be found from anywhere: `gmake
+vpn_ks_off` sweeps whatever the label finds — tunnel or no tunnel, this
+instance or another — and `vpn_up` sweeps before raising, so a rule left
+behind by a mount that died cannot reject the tunnel that follows. `vpn_status`
+says what the kernel really holds (here, another instance, or nothing), which
+is not always what the variable was set to.
 
 While a tunnel is up, services running on Windows and reached through the WSL
 gateway are rejected too.

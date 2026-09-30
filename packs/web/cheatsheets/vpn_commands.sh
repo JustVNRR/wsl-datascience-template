@@ -19,8 +19,8 @@ gmake vpn_up_from_list                         # Connect, picking the server fro
 gmake vpn_down                                 # Disconnect
 gmake vpn_server                               # Choose the server the distro starts with (menu)
 gmake vpn_server VPN_PROFILE=ch                # ... or name it, and skip the menu
-gmake vpn_ks_on                                # Put the kill switch in, and remount the tunnel
-gmake vpn_ks_off                               # Take it out, and remount
+gmake vpn_ks_on                                # Put the kill switch in (this instance only), and remount
+gmake vpn_ks_off                               # Take it out - sweeps the rules, tunnel or not
 gmake vpn_auto_on                              # Bring the tunnel up when the distro starts
 gmake vpn_auto_off                             # Stop bringing it up with the distro
 

@@ -28,8 +28,9 @@
 # cannot be stale at the moment it is used: it is rebuilt at every start too.
 #
 # The recipe is the user's own, written up in the pack's page: WireGuard profiles
-# over openresolv for the DNS, the kill switch as two iptables lines, and WSL's
-# own boot hook for the automatic start (not a systemd unit - see vpn-boot.sh).
+# over openresolv for the DNS, the kill switch as two iptables lines (scoped to
+# this instance), and WSL's own boot hook for the automatic start (not a systemd
+# unit - see vpn-boot.sh).
 
 set -euo pipefail
 
@@ -57,10 +58,45 @@ GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 # spared - without that last part, the terminal this was typed in would go quiet
 # first. The $( ) below belongs to wg-quick: it is expanded when the tunnel comes
 # up, not here.
-# shellcheck disable=SC2016
-KS_UP='iptables -I OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT && ip6tables -I OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT'
-# shellcheck disable=SC2016
-KS_DOWN='iptables -D OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT && ip6tables -D OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT'
+#
+# And the lines name this instance, not the machine. Every distro of a WSL box
+# shares one kernel and one firewall, so a plain rule blocks every neighbour's
+# traffic too - and only the instance that wrote a rule can take it back out.
+# WSL gives each distro its own place in the shared cgroup tree
+# (/wsl-user/distro-NNNN, measured), iptables can match on that place, and a
+# comment makes the rules findable from anywhere: that is what -m cgroup
+# --path and -m comment --comment are doing below, and what the sweep in
+# vpn_ks_off, vpn_down and vpn_up reads.
+KS_COMMENT='wsl-stack kill switch'
+
+# This instance's place in the cgroup tree. A session opened from Windows is
+# already in it; the boot hook is not (a child of the distro's init sits at
+# the cgroup root), so it borrows the place of any session that is open - and
+# the distro was started by one. Empty when WSL says nothing usable: the kill
+# switch then stays out of the kernel and says so, because a rule without a
+# place is exactly the machine-wide rule all of this exists to remove.
+# CGROUP_ROOT is what the tests point at a stand-in tree.
+CGROUP_ROOT=${CGROUP_ROOT:-/proc}
+cgroup_distro_path() {
+    local p=
+    p=$(sed -n 's/^[0-9]*::\(\/wsl-user\/distro-[^[:space:]]*\)$/\1/p' "$CGROUP_ROOT/self/cgroup" 2>/dev/null | head -n 1 || true)
+    if [ -z "$p" ]; then
+        p=$(sed -n 's/^[0-9]*::\(\/wsl-user\/distro-[^[:space:]]*\)$/\1/p' "$CGROUP_ROOT"/[0-9]*/cgroup 2>/dev/null | head -n 1 || true)
+    fi
+    printf '%s\n' "$p"
+}
+
+# One hook line, both address families, for one verb: what wg-quick runs to
+# lay the rules (PostUp) and to take them back out (PreDown). Both are built
+# from the same words here, because a -D that differs from its -I by one match
+# deletes nothing - and says nothing. The tail is where the verbs differ by
+# nature: raising the tunnel fails loudly if a rule cannot be laid, while
+# tearing it down only tries - what it misses, the sweep finds by label.
+ks_rule() { # $1: -I or -D, $2: this instance's cgroup path, $3: the verb's tail
+    # shellcheck disable=SC2016
+    printf 'iptables %s OUTPUT ! -o %%i -m cgroup --path "%s" -m mark ! --mark $(wg show %%i fwmark) -m addrtype ! --dst-type LOCAL -m comment --comment "%s" -j REJECT%s; ip6tables %s OUTPUT ! -o %%i -m cgroup --path "%s" -m mark ! --mark $(wg show %%i fwmark) -m addrtype ! --dst-type LOCAL -m comment --comment "%s" -j REJECT%s' \
+        "$1" "$2" "$KS_COMMENT" "$3" "$1" "$2" "$KS_COMMENT" "$3"
+}
 
 die() {
     printf '%s\n' "$*" >&2
@@ -76,6 +112,35 @@ as_root() {
     else
         sudo "$@"
     fi
+}
+
+# Every kill-switch rule still in the kernel goes - whichever instance wrote
+# it, whatever its cgroup path says - and nothing else does. The label is what
+# makes this possible from anywhere: the rules are found by reading the chains
+# (list with numbers, cut the first line carrying the comment, repeat), never
+# by rebuilding a spec - the fwmark in it is gone with the interface - and
+# never by flushing the chain, where Docker's own rules live. Answers how many
+# went.
+ks_sweep() {
+    local fam='' num='' removed=0
+    for fam in iptables ip6tables; do
+        while :; do
+            num=$(as_root "$fam" -L OUTPUT --line-numbers -n 2>/dev/null | grep -m 1 -F -- "$KS_COMMENT" | awk '{print $1}')
+            [ -n "$num" ] || break
+            as_root "$fam" -D OUTPUT "$num" 2>/dev/null || break
+            removed=$((removed + 1))
+        done
+    done
+    printf '%s' "$removed"
+}
+
+# One word for the sweep's answer, said the same way wherever it lands.
+ks_swept_message() {
+    local word=rules
+    if [ "$1" -eq 1 ]; then
+        word=rule
+    fi
+    printf 'Removed %s kill-switch %s still in the kernel.\n' "$1" "$word"
 }
 
 # The files below are the user's, and $HOME is what says which user. Started as
@@ -179,15 +244,46 @@ ks_on() {
     esac
 }
 
-# What the kill switch reads as, in one line, for vpn_status and for the message
-# a mount ends with.
+# What the kill switch is, in one line, for vpn_status and for the message a
+# mount ends with: the variable says what was asked, the kernel says what is -
+# and the two can disagree (a tunnel mounted elsewhere carries the rules, a
+# crash left them behind, this mount has none yet). The rules carry the label,
+# so the kernel's answer is countable, and this instance's place separates
+# "here" from "a neighbour".
 ks_line() {
+    local state rules total here path word
     if [ ! -r "$GLOBAL_ENV" ]; then
         printf 'off (no %s yet - gmake env_global_enable builds it)\n' "$GLOBAL_ENV"
-    elif ks_on; then
-        printf 'on\n'
+        return 0
+    fi
+    if ks_on; then
+        state=on
     else
-        printf 'off (%s)\n' "$(env_var VPN_KILL_SWITCH)"
+        state="off ($(env_var VPN_KILL_SWITCH))"
+    fi
+
+    rules=$(as_root sh -c 'iptables -S OUTPUT 2>/dev/null; ip6tables -S OUTPUT 2>/dev/null' | grep -F -- "$KS_COMMENT" || true)
+    total=$(printf '%s\n' "$rules" | grep -c . || true)
+    path=$(cgroup_distro_path)
+    here=0
+    if [ -n "$path" ]; then
+        here=$(printf '%s\n' "$rules" | grep -c -F -- "--path \"$path\"" || true)
+    fi
+
+    if [ "$total" -eq 0 ]; then
+        printf '%s - no rule in the kernel\n' "$state"
+    elif [ "$here" -gt 0 ]; then
+        word=rules
+        if [ "$here" -eq 1 ]; then
+            word=rule
+        fi
+        printf '%s - %s %s in the kernel, this instance\n' "$state" "$here" "$word"
+    else
+        word=rules
+        if [ "$total" -eq 1 ]; then
+            word=rule
+        fi
+        printf '%s - %s %s in the kernel, another instance\n' "$state" "$total" "$word"
     fi
 }
 
@@ -274,7 +370,7 @@ pick() {
 # this file by hand is a correction to *this* function, and the next mount would
 # take it away again.
 compose() {
-    local id=$1 private address pub endpoint allowed dns mtu keepalive pair name value
+    local id=$1 private address pub endpoint allowed dns mtu keepalive pair name value ks_path
 
     [ -n "$id" ] || die "no server named: gmake vpn_server picks the default, gmake vpn_up_from_list shows the menu."
     if ! valid_id "$id"; then
@@ -328,8 +424,13 @@ compose() {
         printf 'DNS        = %s\n' "$dns"
         printf 'MTU        = %s\n' "$mtu"
         if ks_on; then
-            printf 'PostUp     = %s\n' "$KS_UP"
-            printf 'PreDown    = %s\n' "$KS_DOWN"
+            ks_path=$(cgroup_distro_path)
+            if [ -n "$ks_path" ]; then
+                printf 'PostUp     = %s\n' "$(ks_rule -I "$ks_path" '')"
+                printf 'PreDown    = %s\n' "$(ks_rule -D "$ks_path" ' || true')"
+            else
+                printf 'the kill switch is on, but this instance has no /wsl-user/distro-* place of its own: no rule was added - a machine-wide rule is exactly what this must never lay.\n' >&2
+            fi
         fi
         printf '\n[Peer]\n'
         printf 'PublicKey  = %s\n' "$pub"
@@ -359,6 +460,7 @@ write_base_resolver() {
 # already up goes down first - it is the same interface, and wg-quick needs the
 # file it came up with to undo its own addresses and routes.
 cmd_up() {
+    local swept
 
     if ip link show dev "$IFACE" >/dev/null 2>&1 && [ ! -f "$CONF" ]; then
         as_root ip link delete dev "$IFACE" 2>/dev/null || true
@@ -377,6 +479,14 @@ cmd_up() {
     if is_up; then
         run_quiet as_root wg-quick down "$IFACE" ||
             die "the tunnel was up and would not come down - the lines above are wg-quick's own."
+    fi
+    # Before anything is raised: a leftover from a mount that died carries the
+    # label and an older fwmark, and it would reject the very tunnel about to
+    # come up. The sweep is what makes "up" mean "the rules in place are the
+    # ones this mount wrote".
+    swept=$(ks_sweep)
+    if [ "$swept" -gt 0 ]; then
+        ks_swept_message "$swept"
     fi
     write_base_resolver
     compose "$wanted"
@@ -399,8 +509,13 @@ cmd_up_from_list() {
 }
 
 cmd_down() {
+    local swept
     if ! is_up; then
         printf 'no tunnel is up.\n'
+        swept=$(ks_sweep)
+        if [ "$swept" -gt 0 ]; then
+            ks_swept_message "$swept"
+        fi
         if [ ! -e /etc/resolv.conf ]; then
             write_base_resolver
         fi
@@ -409,10 +524,12 @@ cmd_down() {
     fi
 
     if [ ! -f "$CONF" ]; then
-        printf '%s missing, tearing down kernel interface and flush kill switch directly.\n' "$CONF"
+        printf '%s missing, tearing down kernel interface and removing the kill-switch rules directly.\n' "$CONF"
         as_root ip link delete dev "$IFACE" 2>/dev/null || true
-        as_root iptables -F OUTPUT 2>/dev/null || true
-        as_root ip6tables -F OUTPUT 2>/dev/null || true
+        swept=$(ks_sweep)
+        if [ "$swept" -gt 0 ]; then
+            ks_swept_message "$swept"
+        fi
         as_root resolvconf -d "$IFACE" 2>/dev/null || true
         write_base_resolver
         cmd_status
@@ -421,6 +538,13 @@ cmd_down() {
 
     run_quiet as_root wg-quick down "$IFACE" ||
         die "the tunnel did not come down - the lines above are wg-quick's own."
+    # The PreDown took this mount's rules with it; a rule from anywhere else -
+    # another instance, a mount that died before it tore down - carries the
+    # same label, and "down" is when a user means all of them.
+    swept=$(ks_sweep)
+    if [ "$swept" -gt 0 ]; then
+        ks_swept_message "$swept"
+    fi
     cmd_status
 }
 
@@ -459,7 +583,7 @@ cmd_server() {
 # The kill switch, on or off: one line of .env.global, and a remount when a
 # tunnel is up, so that the answer is true now and not at the next start.
 cmd_kill_switch() {
-    local what=${1:-} value wanted
+    local what=${1:-} value wanted swept
 
     case "$what" in
     on) value=true ;;
@@ -470,7 +594,10 @@ cmd_kill_switch() {
     # A remount needs a server the JSON still holds, and that is asked *before*
     # the variable is written: a failure here would otherwise leave the variable
     # changed and the tunnel as it was, which reads as "half done" from outside.
-    if is_up; then
+    # Only a tunnel this instance can remount - interface up, profile here - is
+    # remounted at all: an interface a neighbour raised comes with no profile
+    # of ours to read, and tearing it down would take their tunnel with it.
+    if is_up && [ -f "$CONF" ]; then
         wanted=$(server_var)
         [ "$(entries "$wanted")" = 1 ] ||
             die "the tunnel is up, and VPN_PROFILE names '$wanted', which $SERVERS does not hold any more. gmake vpn_server picks one, then try this again."
@@ -478,7 +605,22 @@ cmd_kill_switch() {
 
     write_env VPN_KILL_SWITCH "$value"
 
-    if is_up; then
+    if [ "$value" = false ]; then
+        # Off means off, wherever the rules are: the remount takes back this
+        # mount's (its PreDown), and the sweep takes back everything else the
+        # label finds - a leftover from an instance that stopped mid-flight, a
+        # rule from before a rebuild - from here, no tunnel required.
+        if is_up && [ -f "$CONF" ]; then
+            printf 'Remounting the tunnel on %s, so this is true now.\n' "$wanted"
+            cmd_up "$wanted"
+        fi
+        swept=$(ks_sweep)
+        if [ "$swept" -gt 0 ]; then
+            ks_swept_message "$swept"
+        elif ! is_up || [ ! -f "$CONF" ]; then
+            printf 'It applies to the next mount.\n'
+        fi
+    elif is_up && [ -f "$CONF" ]; then
         printf 'Remounting the tunnel on %s, so this is true now.\n' "$wanted"
         cmd_up "$wanted"
     else
@@ -684,7 +826,8 @@ usage: vpn.sh <command>
   down                  disconnect
   server [id]           the server the distro starts with - the menu picks one
                         when no id is named (gmake vpn_server VPN_PROFILE=<id>)
-  kill_switch on|off    the kill switch in the tunnel, and a remount
+  kill_switch on|off    the kill switch in the tunnel (this instance only),
+                        and a remount - off also sweeps rules left behind
   auto on|off           bring the tunnel up with the distro
   edit_profiles         open ~/.config/vpn/servers.json in the editor
 
