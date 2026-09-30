@@ -2,9 +2,9 @@
 
 [← Back to the README](../../README.md#makefile-gmake)
 
-What is the machine's and not a project's: the two files WSL reads, the eight
-switches that turn its features on and off, and the command that reports what
-the instance runs on.
+What is the machine's and not a project's: the three files the instance keeps,
+the ten switches that turn WSL's features on and off, and the command that
+reports what the instance runs on.
 
 ## Targets
 
@@ -12,6 +12,7 @@ the instance runs on.
 | :--- | :--- | :--- |
 | `wsl_config` | Open `/etc/wsl.conf` in nano, under sudo | — |
 | `dns_resolve` | Open `/etc/resolv.conf` in nano, under sudo | — |
+| `fstab_config` | Open `/etc/fstab` in nano, under sudo | — |
 | `wsl_status` | Report what the instance runs on | — |
 | `systemd_up` | Install systemd and turn it on | — |
 | `systemd_down` | Stop booting systemd (the packages stay installed) | — |
@@ -32,7 +33,7 @@ are the ones chosen there. It holds these sections — the switches below add
 | :--- | :--- |
 | `[boot]` | what WSL starts with the instance — a `command=` run as root, and `systemd=true` once `systemd_up` has run |
 | `[user]` | `default=` — the account a new session opens as |
-| `[automount]` | `enabled` — whether the Windows drives appear under `/mnt`; `mountFsTab` — whether the entries of `/etc/fstab` are mounted at start (a setting of its own, the switches leave it alone) |
+| `[automount]` | `enabled` — whether the Windows drives appear under `/mnt`; `mountFsTab` — whether `/etc/fstab` is applied at start (false by default, `fstab_up` turns it on) |
 | `[interop]` | `enabled` — whether Windows programs can be run from here; `appendWindowsPath` — whether the Windows `PATH` is appended to this instance's `PATH` |
 
 ## The resolver file
@@ -51,7 +52,15 @@ reports before opening it:
 while the file is a symlink, an edit through it is a change the neighbours see
 too.
 
-## The eight switches
+## The fstab file
+
+`/etc/fstab` is the list of what to mount at start, and where — a disk image, a
+network share, anything its format can name. The instances carry it empty, and
+`mountFsTab = false` in `/etc/wsl.conf` keeps it out of the way: `fstab_up` is
+what applies it at start. `fstab_config` opens it, and `sudo mount -a` applies
+an edit right away, without waiting for a restart.
+
+## The ten switches
 
 `_up` turns a feature on, `_down` turns it off, and both take effect at the next
 start.
@@ -62,6 +71,7 @@ start.
 | `automount_up` / `automount_down` | `[automount] enabled=` | the Windows drives under `/mnt` |
 | `interop_up` / `interop_down` | `[interop] enabled=` | Windows programs runnable from the instance (`code`, `powershell.exe`) |
 | `windows_path_up` / `windows_path_down` | `[interop] appendWindowsPath=` | the Windows `PATH` appended to this instance's `PATH` |
+| `fstab_up` / `fstab_down` | `[automount] mountFsTab=` | whether `/etc/fstab` is applied at start |
 
 Each edits the line and nothing else in the file: the other sections and the
 comments stay, the section is created only when the file has none, and running
@@ -97,9 +107,9 @@ a server that is the rule; here it is an option.
 
 ## The editors
 
-`wsl_config` and `dns_resolve` open their file in nano, under sudo: they belong
-to root, and an editor without sudo would show them and then refuse to save
-them.
+`wsl_config`, `dns_resolve` and `fstab_config` open their file in nano, under
+sudo: they belong to root, and an editor without sudo would show them and then
+refuse to save them.
 
 nano, and not `$EDITOR`: the instance's `$EDITOR` is `code --wait` whenever
 VS Code is installed, and that `code` is the Windows one — it saves as the

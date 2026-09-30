@@ -1,31 +1,32 @@
 # ==============================================================================
 # THE INSTANCE ITSELF: ITS FILES, ITS STATE, AND ITS SWITCHES
 # ==============================================================================
-# Everything here is the machine's and not a project's: the two files WSL reads
-# - /etc/wsl.conf, written whole by first_boot.sh at the first boot, and
-# /etc/resolv.conf, which answers the DNS - the status that reports what the
-# instance runs on, and the eight switches that turn WSL's own features on and
-# off (systemd, automount, interop, the Windows PATH).
+# Everything here is the machine's and not a project's: the three files the
+# instance keeps outside ~/.config - /etc/wsl.conf, written whole by
+# first_boot.sh at the first boot; /etc/resolv.conf, which answers the DNS; and
+# /etc/fstab, the mounts to apply at start - the status that reports what it
+# runs on, and the ten switches that turn WSL's own features on and off
+# (systemd, automount, interop, the Windows PATH, fstab).
 #
-# The two files belong to root: the editors run under sudo, and nano is named
+# The three files belong to root: the editors run under sudo, and nano is named
 # rather than $EDITOR - the instance's $EDITOR is `code --wait` whenever VS
 # Code is installed, and that `code` is the Windows one seen through /mnt/c.
 # It saves as the Windows user, who cannot write a file that belongs to root.
 # A terminal editor under sudo can.
 #
-# All eleven run from anywhere: what they touch is the machine's, not a
+# All fourteen run from anywhere: what they touch is the machine's, not a
 # project's, and "how does this instance start?" is asked from wherever you
 # stand. They say so here rather than in the Makefile, like the env_global_*
 # two.
-GATE_EXEMPT_GOALS += wsl_config dns_resolve wsl_status
+GATE_EXEMPT_GOALS += wsl_config dns_resolve wsl_status fstab_config
 GATE_EXEMPT_GOALS += systemd_up systemd_down automount_up automount_down interop_up interop_down
-GATE_EXEMPT_GOALS += windows_path_up windows_path_down
+GATE_EXEMPT_GOALS += windows_path_up windows_path_down fstab_up fstab_down
 
 # Commands, not files: one of these names landing in the working directory must
 # not turn its target into a no-op.
-.PHONY: wsl_config dns_resolve wsl_status
+.PHONY: wsl_config dns_resolve wsl_status fstab_config
 .PHONY: systemd_up systemd_down automount_up automount_down interop_up interop_down
-.PHONY: windows_path_up windows_path_down
+.PHONY: windows_path_up windows_path_down fstab_up fstab_down
 
 # The closing line the switches print once the change is written: the command
 # that applies it, in green inside a yellow sentence - the colour `gmake help`
@@ -53,6 +54,20 @@ dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance res
 		echo "ℹ️  There is no /etc/resolv.conf — nothing resolves until one exists; WSL will write its own at the next start."; \
 	fi
 	@sudo nano /etc/resolv.conf
+
+# The mount list, the third file of the same family: root's, read at start only
+# when mountFsTab says so. first_boot.sh leaves that setting at false - the
+# instance carries no lines in /etc/fstab - so the closing line names the
+# switch that turns it on, rather than invite a restart that would mount
+# nothing. `sudo mount -a` applies an edit right now, without a restart; the
+# page says so.
+fstab_config: ## Open /etc/fstab in nano (sudo) - the mounts to apply at start
+	@sudo nano /etc/fstab
+	@if grep -q '^[[:space:]]*mountFsTab[[:space:]]*=[[:space:]]*true' /etc/wsl.conf 2>/dev/null; then \
+		printf '\n\033[33mRun \033[32m.\\wsl.ps1 restart\033[33m from Windows to apply.\033[0m\n'; \
+	else \
+		printf '\n\033[33mNothing here is mounted at start: set mountFsTab = true first - gmake fstab_up.\033[0m\n'; \
+	fi
 
 # The reporter: it reads, it changes nothing, and every probe is one a status
 # command has to survive. A state that cannot be read is said plainly - a hole
@@ -100,13 +115,13 @@ wsl_status: ## Show what this instance runs on: base image, init, WSL's files, m
 	@printf '\n'
 
 # ==============================================================================
-# THE EIGHT SWITCHES - WSL'S OWN FEATURES, TURNED ON AND OFF
+# THE TEN SWITCHES - WSL'S OWN FEATURES, TURNED ON AND OFF
 # ==============================================================================
 # Each pair edits one line of /etc/wsl.conf and nothing else in it, and each
 # takes effect at the next start - WSL reads the file when the instance boots.
 # The pairs are named up and down like the web pack's vpn_up and vpn_down.
 #
-# The edit the eight share: read /etc/wsl.conf into $new, with `$(2)` set to
+# The edit the ten share: read /etc/wsl.conf into $new, with `$(2)` set to
 # `$(3)` inside the `[$(1)]` section - the line replaced where it exists in that
 # section, inserted under its header where it does not, and the section appended
 # when the file has none. Nothing else moves: the other sections and the
@@ -235,4 +250,26 @@ windows_path_down: ## Keep the Windows PATH out of this instance's PATH (interop
 	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
 	echo ""; \
 	echo "✅ the Windows PATH is out."; \
+	$(call apply_hint)
+
+fstab_up: ## Apply /etc/fstab at every start (off until you say so)
+	@$(call wsl_conf_set,automount,mountFsTab,true); \
+	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+		echo "the fstab entries are already applied at start."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ the fstab entries are applied at start."; \
+	$(call apply_hint)
+
+fstab_down: ## Leave /etc/fstab alone at start (the default)
+	@$(call wsl_conf_set,automount,mountFsTab,false); \
+	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
+		echo "the fstab entries are already left alone at start."; \
+		exit 0; \
+	fi; \
+	printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	echo ""; \
+	echo "✅ the fstab entries are left alone at start."; \
 	$(call apply_hint)

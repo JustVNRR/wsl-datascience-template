@@ -1,7 +1,7 @@
 # ==========================================
 # MAKEFILE CHEATSHEET (the gmake targets)
 # ==========================================
-# The socle's gmake targets: the ones that need no pack, which today is sixteen. A
+# The socle's gmake targets: the ones that need no pack, which today is nineteen. A
 # pack brings its targets and its sheet together, in its own folder: the project
 # targets (Docker, GitHub) are in the devops pack's sheet, the lint and test
 # lanes in the python pack's, the Google Cloud ones in gcp_commands.sh, offered
@@ -19,6 +19,7 @@ gmake env_project_manage                     # Create or complete it, then open 
 # --- 3. WSL CONFIGURATION AND STATUS (/etc/wsl.conf, /etc/resolv.conf) ---
 gmake wsl_config                             # Open /etc/wsl.conf in nano (sudo): default user, automount, interop
 gmake dns_resolve                            # Open /etc/resolv.conf in nano (sudo): the file the instance resolves names with
+gmake fstab_config                           # Open /etc/fstab in nano (sudo): the mounts to apply at start
 gmake wsl_status                             # Show what this instance runs on (base image, init, WSL's files, memory)
 
 # --- 4. THE SWITCHES (they take effect at the next start) ---
@@ -30,3 +31,5 @@ gmake interop_up                             # Let the instance run Windows prog
 gmake interop_down                           # Stop running Windows programs from the instance
 gmake windows_path_up                        # Add the Windows PATH to this instance's PATH (the default)
 gmake windows_path_down                      # Keep the Windows PATH out of this instance's PATH (interop stays on)
+gmake fstab_up                               # Apply /etc/fstab at every start (off until you say so)
+gmake fstab_down                             # Leave /etc/fstab alone at start (the default)

@@ -98,7 +98,7 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Any | [Environment files](docs/make/env.md) | `env_global_enable`, `env_global_manage`, `env_project_enable`, `env_project_manage` |
 | Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
-| Any | [The instance's own settings](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `wsl_status`, `systemd_*`, `automount_*`, `interop_*`, `windows_path_*` |
+| Any | [The instance's own settings](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `fstab_config`, `wsl_status`, `systemd_*`, `automount_*`, `interop_*`, `windows_path_*`, `fstab_up`, `fstab_down` |
 
 Everything else a project needs — its image, its pull requests — is a pack's.
 The socle's own menu stops at what an instance with no project can still do:
@@ -339,6 +339,7 @@ deleting the distro deletes all of it.
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
 /etc/wsl.conf                # Default user, automount, interop (first_boot.sh; reopened by gmake wsl_config)
 /etc/resolv.conf             # Name servers (WSL's, or yours; reopened by gmake dns_resolve)
+/etc/fstab                   # Mounts to apply at start (reopened by gmake fstab_config)
 ```
 
 ---
