@@ -1,7 +1,7 @@
 # ==========================================
 # MAKEFILE CHEATSHEET (the gmake targets)
 # ==========================================
-# The socle's gmake targets: the ones that need no pack, which today is eight. A
+# The socle's gmake targets: the ones that need no pack, which today is ten. A
 # pack brings its targets and its sheet together, in its own folder: the project
 # targets (Docker, GitHub) are in the devops pack's sheet, the lint and test
 # lanes in the python pack's, the Google Cloud ones in gcp_commands.sh, offered
@@ -20,3 +20,7 @@ gmake env_project_manage                     # Create or complete it, then open 
 gmake wsl_config                             # Open /etc/wsl.conf in nano (sudo): default user, boot, interop
 gmake dns_resolve                            # Open /etc/resolv.conf in nano (sudo): the file the instance resolves names with
 gmake wsl_status                             # Show what this instance runs on (kernel, init, WSL's files, memory)
+
+# --- 4. SYSTEMD (not installed by default) ---
+gmake systemd_enable                         # Install systemd and turn it on for this instance (a restart boots it)
+gmake systemd_disable                        # Stop booting systemd (the packages stay installed)

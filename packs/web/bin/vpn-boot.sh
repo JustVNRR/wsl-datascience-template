@@ -2,12 +2,11 @@
 # ==============================================================================
 # THE TUNNEL AT DISTRO START - WHAT WSL'S [boot] HOOK RUNS
 # ==============================================================================
-# The pack's page says why this is not a systemd unit: this image declares
-# systemd=true in /etc/wsl.conf, but WSL boots systemd by running /sbin/init,
-# and the systemd package alone does not provide it (that is systemd-sysv). So
-# `systemctl enable` answers "System has not been booted with systemd" here,
-# and the hook WSL does offer - `command=` under `[boot]` - is the one that
-# works, with no unit, no timer and no journal.
+# The pack's page says why this is not a systemd unit: systemd is not there by
+# default - the image ships none, and `gmake systemd_enable` adds it to the
+# instance that wants it - so a unit would leave every other instance with a
+# tunnel that never comes up. The hook WSL offers - `command=` under `[boot]` -
+# is the one that works either way, with no unit, no timer and no journal.
 #
 # It is copied to /usr/local/sbin by `gmake vpn_auto_on`, runs as root, and
 # must never hold the distro back:

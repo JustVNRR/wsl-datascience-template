@@ -99,11 +99,13 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
 | Any | [WSL configuration](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `wsl_status` |
+| Any | [systemd](docs/make/systemd.md) | `systemd_enable`, `systemd_disable` |
 
 Everything else a project needs — its image, its pull requests — is a pack's.
 The socle's own menu stops at what an instance with no project can still do:
 carry packs, write the `.env` files it reads before it reads a single pack,
-report what it runs on, and open `/etc/wsl.conf` and `/etc/resolv.conf`.
+report what it runs on, open `/etc/wsl.conf` and `/etc/resolv.conf`, and add
+systemd to the instance that wants services.
 
 Then the packs. Each one is listed once — the README does not follow a pack as
 it grows, and a pack leaves with its folder:
@@ -190,7 +192,8 @@ the repository at runtime.
 │   │       ├── env.mk       # the .env files, and the commands that build them
 │   │       ├── macros.mk    # what a target calls before it runs (check_vars, confirm_action)
 │   │       ├── packs.mk     # what this instance carries (gmake packs_list)
-│   │       └── wsl.mk       # the instance's own WSL settings (gmake wsl_config)
+│   │       ├── systemd.mk   # systemd, on demand (gmake systemd_enable / systemd_disable)
+│   │       └── wsl.mk       # the instance's own files, and its status (gmake wsl_*)
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing, persistence, and what is kept out of it
@@ -336,7 +339,7 @@ deleting the distro deletes all of it.
                              # tools (python), the claude launcher (claude)
 ~/.local/share/uv/           # the Python builds it downloaded, and their environments
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
-/etc/wsl.conf                # Default user, systemd (first_boot.sh; reopened by gmake wsl_config)
+/etc/wsl.conf                # Default user (first_boot.sh; reopened by gmake wsl_config)
 /etc/resolv.conf             # Name servers (WSL's, or yours; reopened by gmake dns_resolve)
 ```
 

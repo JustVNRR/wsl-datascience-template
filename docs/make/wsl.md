@@ -20,7 +20,7 @@ are the ones chosen there. It holds three sections:
 
 | Section | Sets |
 | :--- | :--- |
-| `[boot]` | what WSL starts with the instance — `systemd=true`, and a `command=` run as root |
+| `[boot]` | what WSL starts with the instance — a `command=` run as root, and `systemd=true` once systemd is installed ([systemd](systemd.md)) |
 | `[user]` | `default=` — the account a new session opens as |
 | `[interop]` | `enabled`, `appendWindowsPath` — whether Windows programs, and the Windows `PATH`, are visible from here |
 
@@ -47,7 +47,7 @@ too.
 | Block | Shows |
 | :--- | :--- |
 | The distribution and the kernel | `uname -r`, and `PRETTY_NAME` from `/etc/os-release` |
-| Init and systemd | what PID 1 is, and what `systemctl is-system-running` answers — `offline` in an instance built from this image, which ships the `systemd` package but not `/sbin/init` |
+| Init and systemd | what PID 1 is, and what `systemctl is-system-running` answers — not installed by default, then `offline` until the restart that boots it ([systemd](systemd.md)) |
 | The local file | `/etc/wsl.conf`, or that it is absent |
 | The Windows-wide file | `%USERPROFILE%\.wslconfig`, read through interop — the path it looked at is printed either way |
 | Memory and services | `free -h`; systemd's services when it runs, the init.d ones otherwise |

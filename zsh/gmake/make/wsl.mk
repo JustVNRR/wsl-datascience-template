@@ -49,10 +49,9 @@ dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance res
 # command has to survive. A state that cannot be read is said plainly - a hole
 # or an error halfway down the page would be worse than the answer.
 #
-# `systemctl is-system-running` answers `offline` in an instance built from
-# this image: the image ships the systemd package, but not /sbin/init, so WSL
-# never boots it. That is the measured state, and this command exists to show
-# it rather than to fix it.
+# The image ships no systemd (see make/systemd.mk): the systemd line is empty
+# until `gmake systemd_enable` installs the packages, and reads `offline` from
+# there until the instance restarts into it. The line reports what it finds.
 wsl_status: ## Show what this instance runs on: kernel, init, WSL's files, memory
 	@echo ""
 	@echo "=== The distribution and the kernel ==="
@@ -62,7 +61,7 @@ wsl_status: ## Show what this instance runs on: kernel, init, WSL's files, memor
 	@echo "=== Init and systemd ==="
 	@printf "PID 1      : "; ps -p 1 -o comm= || true
 	@printf "systemd    : "; state=$$(systemctl is-system-running 2>/dev/null || true); \
-		if [ -n "$$state" ]; then echo "$$state"; else echo "systemctl is not available"; fi
+		if [ -n "$$state" ]; then echo "$$state"; else echo "not installed - gmake systemd_enable adds it"; fi
 	@echo ""
 	@echo "=== The local file (/etc/wsl.conf) ==="
 	@if [ -f /etc/wsl.conf ]; then cat /etc/wsl.conf; else echo "No such file - WSL starts with its defaults."; fi
