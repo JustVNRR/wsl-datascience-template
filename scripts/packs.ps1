@@ -256,7 +256,20 @@ function Copy-PackIntoInstance {
     }
 
     if ($Copied) {
-        Invoke-InInstance -DistroName $DistroName -Command @("find", $Target, "-name", "*.sh", "-exec", "chmod", "+x", "{}", "+") -ExitCode $ExitCode -Quiet
+        # The scripts are made executable, and the globs travel single-quoted
+        # inside a `sh -c`: passed as bare arguments they are at the mercy of
+        # how wsl.exe hands the command over, and one of the ways globs them -
+        # where nothing matches, the shell stops, and the pack arrives with
+        # every script unexecutable without a word. That is how the web pack
+        # landed on his instance.
+        Invoke-InInstance -DistroName $DistroName -Command @("sh", "-c", "find '$Target' -name '*.sh' -exec chmod +x {} +") -ExitCode $ExitCode -Quiet
+        # And it is checked rather than trusted: a script that cannot run is a
+        # pack that fails on its first target, far from where it went wrong.
+        $Still = @(Get-InInstanceOutput -DistroName $DistroName -Command @("sh", "-c", "find '$Target' -name '*.sh' ! -perm -u+x"))
+        if ($Still.Count -gt 0) {
+            Write-Host "  * pack copy  : some scripts arrived without their executable bit - one command fixes them:" -ForegroundColor (Get-MessageColour warning)
+            Write-Host "                 find ~/.config/packs -name '*.sh' -exec chmod +x {} +" -ForegroundColor (Get-MessageColour hint)
+        }
     } else {
         # A copy that failed leaves nothing behind. The folder was created
         # before the copy, and a folder is what "installed" means on this side:
