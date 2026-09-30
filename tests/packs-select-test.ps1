@@ -197,7 +197,7 @@ Check "  ... and the instance's own words are not in the answer" ("$Result".Cont
 Reset
 $Result = Invoke-PackApply -DistroName "test" -PacksDirectory $Directory -ToAdd $Add
 Check "nothing to remove -> no removal, and no cleanup" `
-    ((Commands) -join " | ") "mkdir -p $Directory/fake-a | cp -r . $Directory/fake-a/ | bash install.sh"
+    ((Commands) -join " | ") "mkdir -p $Directory/fake-a | test -d /mnt/x/packs/fake-a | cp -r . $Directory/fake-a/ | sh -c find '$Directory/fake-a' -name '*.sh' -exec chmod +x {} + | bash install.sh"
 
 Reset
 $script:FailCommand = "test -f"
@@ -210,7 +210,7 @@ Reset
 $script:FailCommand = "cp -r ."
 $Result = Invoke-PackApply -DistroName "test" -PacksDirectory $Directory -ToAdd $Add -ToRemove @("fake-b")
 Check "a failed copy names the pack that stopped it" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
-Check "  ... and nothing else was touched" (@($script:Calls).Count) "2"
+Check "  ... and nothing else was touched" (@($script:Calls).Count) "4"
 
 Reset
 $script:FailCommand = "bash install.sh"
