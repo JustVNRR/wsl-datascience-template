@@ -1,15 +1,16 @@
 {
-  "note": "One entry per server. The id is what the menus show and what VPN_PROFILE names. The DNS (VPN_DNS) and the MTU (VPN_MTU) of .env.global are applied to every server without being written here; an entry may carry \"dns\", \"mtu\", or a peer \"persistent_keepalive\" of its own when a server needs one. Both keys and the address come from the WireGuard configuration your provider gives you. gmake vpn_edit_profiles opens this file.",
+  "note": "One entry per server.",
   "servers": [
     {
       "id": "server-1",
       "note": "a name you pick; the menus show it",
-      "address": "10.2.0.2/32, 2001:db8::2/128",
+      "address": "PASTE-SERVER-ADDRESS-HERE",
       "private_key": "PASTE-YOUR-PRIVATE-KEY-HERE",
+      "DNS": "PASTE-DNS-HERE",
       "peer": {
         "public_key": "PASTE-THE-SERVER-PUBLIC-KEY-HERE",
-        "endpoint": "198.51.100.1:51820",
-        "allowed_ips": "0.0.0.0/0, ::/0"
+        "endpoint": "PASTE-THE-ENDPOINT-HERE",
+        "allowed_ips": "PASTE-THE-ALLOWED-IP-RANGE-HERE"
       }
     }
   ]

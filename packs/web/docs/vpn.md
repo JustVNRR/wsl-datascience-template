@@ -37,6 +37,7 @@ pack never writes in it.
   "note": "free server",
   "address": "10.2.0.2/32, 2001:db8::2/128",
   "private_key": "…",
+  "DNS": "10.2.0.1, 2001:db8::1",
   "peer": {
     "public_key": "…",
     "endpoint": "198.51.100.1:51820",
@@ -49,9 +50,10 @@ pack never writes in it.
 | :--- | :--- |
 | `id` | The name the menus show and `VPN_PROFILE` carries: letters, digits, dot, dash, underscore |
 | `address`, `private_key` | From the WireGuard configuration your provider hands you. Keep the IPv4 and the IPv6 address |
+| `DNS` | The resolver that configuration names — **required**: nothing here can guess a provider's. Comma-separated when it gives several |
 | `peer.*` | The server's key, its address, what goes through the tunnel |
 | `note` | Yours |
-| `dns`, `mtu`, `peer.persistent_keepalive` | Optional. Without them: `VPN_DNS`, `VPN_MTU`, none |
+| `mtu`, `peer.persistent_keepalive` | Optional. Without them: `VPN_MTU`, none |
 
 Adding a server is one more entry in that file — there is no import command.
 
@@ -61,7 +63,8 @@ Adding a server is one more entry in that file — there is no import command.
 | :--- | :--- |
 | `VPN_PROFILE` | The `id` of the server in use, and the one the distro starts with |
 | `VPN_KILL_SWITCH` | `true`: the tunnel rejects what would leave outside it |
-| `VPN_DNS`, `VPN_MTU` | What the tunnel resolves with and its MTU, for every server whose entry says nothing |
+| `VPN_MTU` | The tunnel's MTU, for every server whose entry says nothing |
+| `BASE_DNS` | What the instance resolves with while no tunnel is up |
 
 They live in `~/.config/zsh/gmake/.env.global`; `gmake vpn_server` and the kill
 switch targets write the first two, the last two are yours to fill — an entry
@@ -83,8 +86,8 @@ is gone at the next mount. If it is wrong, what writes it is wrong.
 
 ## The DNS
 
-`openresolv` owns `/etc/resolv.conf`: the profile's `DNS` — `VPN_DNS`, `1.1.1.1`
-by default — while the tunnel is up, the base below it while it is down.
+`openresolv` owns `/etc/resolv.conf`: the profile's `DNS` — the entry's, the
+provider's — while the tunnel is up, `BASE_DNS` below it while it is down.
 
 **WSL fights for that file.** It puts its own back at every start, even with
 `generateResolvConf = false`, and it answers the instance's DNS itself — so any

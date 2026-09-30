@@ -50,21 +50,19 @@ SAMPLE=$here/../vpn.servers.sample
 SERVERS=$HOME/.config/vpn/servers.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 
-# What the tunnel resolves with and its MTU: the variables VPN_DNS and VPN_MTU
-# of .env.global come first, and the pair below is the last resort - an
-# .env.global older than the variables, or one that never had them. An entry of
-# servers.json may carry "dns" or "mtu" of its own, and that wins over both; the
-# peer's "persistent_keepalive" is the same arrangement - nothing by default,
-# and a number in an entry when that server needs one.
-#
-# 1.1.1.1 is a public resolver, and no provider's own: while the tunnel is up
-# the query goes through it. 1420 is WireGuard's default MTU.
-DNS_DEFAULT=1.1.1.1
+# The DNS belongs to the server, and its entry carries it - required, because a
+# provider's configuration names its resolver and nothing here can guess it.
+# The MTU belongs to the link: an entry only says one when something eats the
+# packets, and VPN_MTU of .env.global is what every other entry gets, with 1420
+# - WireGuard's own default - as the last resort. The peer's
+# "persistent_keepalive" is the same arrangement: nothing by default, and a
+# number in an entry when that server needs one.
 MTU_DEFAULT=1420
 
-# What the instance resolves with when no tunnel is up: the line the install
-# writes, and the one the page tells a hand-made instance to write.
-DNS_BASE=1.1.1.1
+# What the instance resolves with when no tunnel is up: BASE_DNS of
+# .env.global, and 1.1.1.1 - a public resolver - without it. It is the line the
+# install writes, and the one the page tells a hand-made instance to write.
+BASE_DNS_DEFAULT=1.1.1.1
 
 # The kill switch: two iptables lines, in the generated profile, that reject
 # whatever would leave outside the tunnel. The mark is the one wg-quick puts on
@@ -310,19 +308,17 @@ compose() {
     pub=$(peer_field "$id" public_key)
     endpoint=$(peer_field "$id" endpoint)
     allowed=$(peer_field "$id" allowed_ips)
-    dns=$(field "$id" dns)
+    dns=$(field "$id" DNS)
     mtu=$(field "$id" mtu)
     keepalive=$(peer_field "$id" persistent_keepalive)
-    [ -n "$dns" ] || dns=$(env_var VPN_DNS)
     [ -n "$mtu" ] || mtu=$(env_var VPN_MTU)
-    dns=${dns:-$DNS_DEFAULT}
     mtu=${mtu:-$MTU_DEFAULT}
 
     # What a profile cannot do without - and the sample's placeholders are not
     # values. A half-filled entry would fail with wg-quick's own words ("Key is
     # not the correct length"), which say nothing about this file: so it is said
     # here, before anything is written.
-    for pair in "private_key=$private" "address=$address" "peer.public_key=$pub" \
+    for pair in "DNS=$dns" "private_key=$private" "address=$address" "peer.public_key=$pub" \
         "peer.endpoint=$endpoint" "peer.allowed_ips=$allowed"; do
         name=${pair%%=*}
         value=${pair#*=}
@@ -365,8 +361,11 @@ compose() {
 # Done here as well as at install because an instance built from the image never
 # ran that install on a real filesystem - see install.sh.
 write_base_resolver() {
+    local base
+    base=$(env_var BASE_DNS)
+    base=${base:-$BASE_DNS_DEFAULT}
     as_root ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf 2>/dev/null || true
-    printf 'nameserver %s\n' "$DNS_BASE" | as_root resolvconf -a wsl.base
+    printf 'nameserver %s\n' "$base" | as_root resolvconf -a wsl.base
 }
 
 # Raising the tunnel, with the server named: the profile is rebuilt first, so
