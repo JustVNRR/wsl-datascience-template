@@ -41,6 +41,7 @@ $Commands = @(
     @{ Name = "build";      What = "build an instance from the image" },
     @{ Name = "start";      What = "start a stopped instance" },
     @{ Name = "stop";       What = "stop a running instance" },
+    @{ Name = "restart";    What = "restart an instance" },
     @{ Name = "shell";      What = "open a shell inside an instance" },
     @{ Name = "add_pack";   What = "install a pack into an instance" },
     @{ Name = "remove_pack"; What = "uninstall a pack from an instance" },
@@ -50,7 +51,8 @@ $Commands = @(
     @{ Name = "archive";    What = "write an instance to a named archive" },
     @{ Name = "restore";    What = "rebuild an instance from an archive" },
     @{ Name = "duplicate";  What = "copy an instance under another name" },
-    @{ Name = "shrink";     What = "reclaim the space an instance has freed" }
+    @{ Name = "shrink";     What = "reclaim the space an instance has freed" },
+    @{ Name = "wslconfig";  What = "open the Windows-wide WSL settings" }
 )
 
 # Bare, the repository asks its first question - which command - and it is a

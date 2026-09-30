@@ -12,5 +12,5 @@
 
 set -euo pipefail
 
-echo "✅ Nothing to remove: this pack installed nothing."
+echo "Nothing to remove: this pack installed nothing."
 echo "   ~/projects and the .env files inside it were left alone - they are yours."

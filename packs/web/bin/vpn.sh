@@ -9,7 +9,7 @@
 #
 # Three files hold this half of the pack:
 #
-#   ~/.config/vpn/servers.json    your servers: one entry per Proton server, with
+#   ~/.config/vpn/servers.json    your servers: one entry per server, with
 #                                 its own keys. Yours - the pack seeds it from
 #                                 its sample, and never writes in it again.
 #   ~/.config/zsh/gmake/.env.global
@@ -50,18 +50,6 @@ SAMPLE=$here/../vpn.servers.sample
 SERVERS=$HOME/.config/vpn/servers.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 
-# The DNS and the MTU are constants of the generator, not variables: they are the
-# same for every Proton server, and duplicating them in each entry would be four
-# lines to keep in step. An entry may carry "dns" or "mtu" of its own - a server
-# that needs another value wins - and then it is written here. The peer's
-# "persistent_keepalive" is the same arrangement: nothing by default, and a
-# number in an entry when that server needs one.
-DNS_DEFAULT=10.2.0.1
-MTU_DEFAULT=1420
-
-# What the instance resolves with when no tunnel is up: the line the install
-# writes, and the one the page tells a hand-made instance to write.
-DNS_BASE=1.1.1.1
 
 # The kill switch: two iptables lines, in the generated profile, that reject
 # whatever would leave outside the tunnel. The mark is the one wg-quick puts on
@@ -75,7 +63,7 @@ KS_UP='iptables -I OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrt
 KS_DOWN='iptables -D OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT && ip6tables -D OUTPUT ! -o %i -m mark ! --mark $(wg show %i fwmark) -m addrtype ! --dst-type LOCAL -j REJECT'
 
 die() {
-    printf '❌ %s\n' "$*" >&2
+    printf '%s\n' "$*" >&2
     exit 1
 }
 
@@ -151,13 +139,13 @@ check_ids() {
     while read -r id; do
         [ -n "$id" ] || continue
         if ! valid_id "$id"; then
-            printf '⚠️  id "%s" is not usable: letters, digits, dot, dash and underscore only.\n' "$id" >&2
+            printf 'id "%s" is not usable: letters, digits, dot, dash and underscore only.\n' "$id" >&2
             printf '   It is shown in the menus and written into .env.global, where a space or a # would not survive.\n' >&2
             return 1
         fi
         case " $seen " in
         *" $id "*)
-            printf '⚠️  id "%s" appears twice - one entry per server.\n' "$id" >&2
+            printf 'id "%s" appears twice - one entry per server.\n' "$id" >&2
             return 1
             ;;
         esac
@@ -217,7 +205,7 @@ write_env() {
     else
         printf '\n%s=%s\n' "$name" "$value" >> "$GLOBAL_ENV"
     fi
-    printf '📝 %s=%s (%s)\n' "$name" "$value" "$GLOBAL_ENV"
+    printf '\nWrote %s=%s (%s)\n' "$name" "$value" "$GLOBAL_ENV"
 }
 
 # --- the tunnel ---------------------------------------------------------------
@@ -307,17 +295,16 @@ compose() {
     pub=$(peer_field "$id" public_key)
     endpoint=$(peer_field "$id" endpoint)
     allowed=$(peer_field "$id" allowed_ips)
-    dns=$(field "$id" dns)
+    dns=$(field "$id" DNS)
     mtu=$(field "$id" mtu)
     keepalive=$(peer_field "$id" persistent_keepalive)
-    dns=${dns:-$DNS_DEFAULT}
-    mtu=${mtu:-$MTU_DEFAULT}
-
+    [ -n "$mtu" ] || mtu=$(env_var VPN_MTU)
+    [ -n "$mtu" ] || die "VPN_MTU is not set in $GLOBAL_ENV - gmake env_global_enable writes it from the sample."
     # What a profile cannot do without - and the sample's placeholders are not
     # values. A half-filled entry would fail with wg-quick's own words ("Key is
     # not the correct length"), which say nothing about this file: so it is said
     # here, before anything is written.
-    for pair in "private_key=$private" "address=$address" "peer.public_key=$pub" \
+    for pair in "DNS=$dns" "private_key=$private" "address=$address" "peer.public_key=$pub" \
         "peer.endpoint=$endpoint" "peer.allowed_ips=$allowed"; do
         name=${pair%%=*}
         value=${pair#*=}
@@ -360,8 +347,11 @@ compose() {
 # Done here as well as at install because an instance built from the image never
 # ran that install on a real filesystem - see install.sh.
 write_base_resolver() {
+    local base
+    base=$(env_var BASE_DNS)
+    [ -n "$base" ] || die "BASE_DNS is not set in $GLOBAL_ENV - gmake env_global_enable writes it from the sample."
     as_root ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf 2>/dev/null || true
-    printf 'nameserver %s\n' "$DNS_BASE" | as_root resolvconf -a wsl.base
+    printf 'nameserver %s\n' "$base" | as_root resolvconf -a wsl.base
 }
 
 # Raising the tunnel, with the server named: the profile is rebuilt first, so
@@ -393,7 +383,7 @@ cmd_up() {
     run_quiet as_root wg-quick up "$IFACE" ||
         die "the tunnel did not come up - the lines above are wg-quick's own."
     wait_handshake ||
-        printf '⚠️  the server has not answered yet - the exit IP below may take a moment.\n' >&2
+        printf 'the server has not answered yet - the exit IP below may take a moment.\n' >&2
 
     # What it did is one thing, where it stands is another, and the second is
     # what is worth reading: up, with which server, with the kill switch, and
@@ -410,7 +400,7 @@ cmd_up_from_list() {
 
 cmd_down() {
     if ! is_up; then
-        printf 'ℹ️  no tunnel is up.\n'
+        printf 'no tunnel is up.\n'
         if [ ! -e /etc/resolv.conf ]; then
             write_base_resolver
         fi
@@ -419,7 +409,7 @@ cmd_down() {
     fi
 
     if [ ! -f "$CONF" ]; then
-        printf '⚠️  %s missing, tearing down kernel interface and flush kill switch directly.\n' "$CONF"
+        printf '%s missing, tearing down kernel interface and flush kill switch directly.\n' "$CONF"
         as_root ip link delete dev "$IFACE" 2>/dev/null || true
         as_root iptables -F OUTPUT 2>/dev/null || true
         as_root ip6tables -F OUTPUT 2>/dev/null || true
@@ -448,7 +438,7 @@ cmd_server() {
         die "'$wanted' cannot be a server id: letters, digits, dot, dash and underscore only."
     fi
     if [ -f "$SERVERS" ] && [ "$(entries "$wanted")" != 1 ]; then
-        die "no server '$wanted' in $SERVERS. It holds: $(ids | paste -sd' ' -). gmake vpn_edit_profiles opens it."
+        die "no server '$wanted' in $SERVERS. It holds: $(ids | paste -sd' ' -). Run gmake vpn_edit_profiles to open it."
     fi
 
     write_env VPN_PROFILE "$wanted"
@@ -456,13 +446,13 @@ cmd_server() {
     # Named explicitly, and not read back from the variable: the value this
     # process was started with is the one from before the line above.
     if is_up; then
-        printf '🔁 Switching to %s now.\n' "$wanted"
+        printf 'Switching to %s now.\n' "$wanted"
         cmd_up "$wanted"
     else
-        printf 'ℹ️  It will be used by the next mount, and by the next start of the distro.\n'
+        printf 'Run gmake vpn_up or restart your distro to use this profile.\n'
     fi
     if ! hook_present; then
-        printf 'ℹ️  The automatic start is off - gmake vpn_auto_on turns it on.\n'
+        printf 'Run gmake vpn_auto_on to turn on automatic vpn activation.\n'
     fi
 }
 
@@ -489,10 +479,10 @@ cmd_kill_switch() {
     write_env VPN_KILL_SWITCH "$value"
 
     if is_up; then
-        printf '🔁 Remounting the tunnel on %s, so this is true now.\n' "$wanted"
+        printf 'Remounting the tunnel on %s, so this is true now.\n' "$wanted"
         cmd_up "$wanted"
     else
-        printf 'ℹ️  It applies to the next mount.\n'
+        printf 'It applies to the next mount.\n'
     fi
 }
 
@@ -502,15 +492,11 @@ cmd_edit_profiles() {
     if [ ! -f "$SERVERS" ]; then
         install -d -m 0700 "$(dirname "$SERVERS")"
         install -m 600 "$SAMPLE" "$SERVERS"
-        printf '📝 %s was created from the package sample - fill in your keys.\n' "$SERVERS"
+        printf '%s was created from the package sample - fill in your keys.\n' "$SERVERS"
     fi
     if ! json_ok; then
         die "$SERVERS does not parse, and this will not open a broken file: $(jq . "$SERVERS" 2>&1 | head -n 1)"
     fi
-
-    printf 'ℹ️  One entry per server: the id, the address, the private key, and the peer.\n'
-    printf '   Both keys and the address come from your Proton account:\n'
-    printf '   Downloads, "WireGuard configuration".\n'
 
     # The editor is yours: $EDITOR when it is set (one command, no arguments),
     # nano otherwise - nano is in the image, and it is what the cheatsheets use.
@@ -521,12 +507,12 @@ cmd_edit_profiles() {
     # the ids are checked too, since they are what a menu shows and what
     # .env.global carries. Nothing is read from the file until both hold.
     if ! json_ok; then
-        printf '⚠️  %s does not parse any more: %s\n' "$SERVERS" "$(jq . "$SERVERS" 2>&1 | head -n 1)" >&2
+        printf '%s does not parse any more: %s\n' "$SERVERS" "$(jq . "$SERVERS" 2>&1 | head -n 1)" >&2
         printf '   gmake vpn_edit_profiles opens it again - nothing is read from it until it does.\n' >&2
         return 1
     fi
     check_ids || return 1
-    printf '✅ %s: %s\n' "$SERVERS" "$(ids | paste -sd' ' -)"
+    printf '%s: %s\n' "$SERVERS" "$(ids | paste -sd' ' -)"
 
     # And now the server to use, straight away: the menu is the list the file
     # holds, so a name that no longer exists cannot stay in VPN_PROFILE, and what
@@ -580,12 +566,12 @@ cmd_auto() {
         [ -n "$(server_var)" ] ||
             die "VPN_PROFILE is not set in $GLOBAL_ENV - gmake vpn_server picks the server first."
         hook_on
-        printf '✅ The tunnel will come up with the distro, server %s.\n' "$(server_var)"
+        printf 'The tunnel will come up with the distro, server %s.\n' "$(server_var)"
         printf '   Nothing happens now: it is the next start of the distro that runs it.\n'
         ;;
     off)
         hook_off
-        printf '✅ The distro will not bring the tunnel up.\n'
+        printf 'The distro will not bring the tunnel up.\n'
         printf '   A tunnel that is up right now stays up - gmake vpn_down takes it down.\n'
         ;;
     *)
@@ -598,9 +584,9 @@ cmd_status() {
     local id count in_use ns exit_ip last
 
     if is_up; then
-        printf '🔒 Tunnel      : up (%s)\n' "$IFACE"
+        printf '   Tunnel      : up (%s)\n' "$IFACE"
     else
-        printf '⚪ Tunnel      : down\n'
+        printf '   Tunnel      : down\n'
     fi
 
     id=$(server_var)
@@ -640,7 +626,7 @@ cmd_status() {
         printf '   DNS         : no /etc/resolv.conf - nothing resolves a name\n'
     fi
 
-    exit_ip=$(curl -s --max-time 8 https://am.i.mullvad.net/ip 2>/dev/null || true)
+    exit_ip=$(curl -s --max-time 8 https://api.ipify.org 2>/dev/null || true)
     printf '   Exit IP     : %s\n' "${exit_ip:-unreachable}"
 
     if hook_present; then

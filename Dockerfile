@@ -59,14 +59,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # named here in plain sight: without this line the image would carry no make
     # at all, and every gmake target would be gone with it.
     make \
-    # first_boot.sh writes systemd=true into /etc/wsl.conf, and WSL only boots
-    # systemd when the distribution ships it. Without this package the
-    # declaration is inert: `systemctl` does not exist and PID 1 stays the WSL
-    # init. The ubuntu base image is trimmed and does not include it.
-    systemd \
-    # Pager and network probe the shell expects: git, systemctl and journalctl
-    # page through `less` (a Recommends that --no-install-recommends drops),
-    # and the bash cheatsheet documents both of these commands
+    # No systemd here, and that is deliberate: nothing this image starts is a
+    # service, and the `systemd` package alone never boots anything anyway - WSL
+    # runs the distribution's /sbin/init, which comes from `systemd-sysv`. An
+    # instance that wants services installs both with `gmake systemd_up`.
+    # Pager and network probe the shell expects: git pages through `less` (a
+    # Recommends that --no-install-recommends drops), and the bash cheatsheet
+    # documents them both
     less \
     iputils-ping \
     tree \

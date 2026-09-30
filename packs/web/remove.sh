@@ -27,7 +27,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 declared=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
 
 if [ -z "$declared" ]; then
-    echo "❌ No PACK_PACKAGES found in $here/pack.conf" >&2
+    echo "No PACK_PACKAGES found in $here/pack.conf" >&2
     exit 1
 fi
 
@@ -37,14 +37,14 @@ claimed_elsewhere() {
         grep -qv "^${here}/"
 }
 
-echo "➖ Taking the tunnel down, and removing its boot hook..."
+echo "Taking the tunnel down, and removing its boot hook..."
 "$here/bin/vpn.sh" auto off
 "$here/bin/vpn.sh" down
 
-echo "➖ Removing the tunnel and the browser..."
+echo "Removing the tunnel and the browser..."
 for package in $declared; do
     if claimed_elsewhere "$package"; then
-        echo "⏭️  $package: another installed pack claims it - left in place."
+        echo "$package: another installed pack claims it - left in place."
         continue
     fi
     if [ "$package" = openresolv ]; then
@@ -62,15 +62,15 @@ done
 # they become orphans the moment this pack is gone, and the cleanup remove_pack
 # runs next - apt for what apt installed, ldd for what lives outside its graph -
 # takes them back with the others.
-echo "➖ Leaving the browser's decoder and its sound client to the cleanup that follows..."
+echo "Leaving the browser's decoder and its sound client to the cleanup that follows..."
 sudo apt-mark auto libavcodec60 libpulse0 2>/dev/null || true
 
 # The default preference install.sh wrote, and nothing else: /usr/lib/firefox is
 # the browser's own directory, and the pack touches it in one place.
-echo "➖ Removing the sound preference..."
+echo "Removing the sound preference..."
 sudo rm -f /usr/lib/firefox/defaults/pref/wslg-audio.js
 
-echo "➖ Removing Mozilla's repository..."
+echo "Removing Mozilla's repository..."
 sudo rm -f /etc/apt/sources.list.d/mozilla.list \
            /etc/apt/preferences.d/mozilla \
            /etc/apt/preferences.d/firefox-no-snap \
@@ -79,13 +79,13 @@ sudo rm -f /etc/apt/sources.list.d/mozilla.list \
 # The profile of /etc/wireguard: not a file of the user's, this one - the pack
 # writes it at every mount, out of the JSON - so it goes with the pack. The
 # tunnel is already down by now, which is what wg-quick needed it for.
-echo "➖ Removing the profile the pack generated..."
+echo "Removing the profile the pack generated..."
 sudo rm -f /etc/wireguard/vpn.conf
 
-echo "✅ The tunnel and the browser are gone, and Mozilla's repository with them."
+echo "The tunnel and the browser are gone, and Mozilla's repository with them."
 echo "   Left alone, on purpose:"
 echo "     - your servers, ~/.config/vpn/servers.json - it carries your private keys"
-echo "     - the VPN_PROFILE and VPN_KILL_SWITCH lines of ~/.config/zsh/gmake/.env.global"
+echo "     - the VPN_PROFILE, VPN_KILL_SWITCH, VPN_MTU and BASE_DNS lines of ~/.config/zsh/gmake/.env.global"
 echo "     - the profiles an older install left in /etc/wireguard, if any are still there"
 echo "     - generateResolvConf = false in /etc/wsl.conf - a setting of the machine, not the pack's"
 echo "     - your Firefox profile, ~/.mozilla - bookmarks, passwords, history"

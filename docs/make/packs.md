@@ -12,10 +12,11 @@ What this instance carries — what you chose, not everything its folder holds.
 
 ## What it reads
 
-A pack is installed when its folder is in `~/.config/packs`. Nothing else is
-consulted: no list to keep up to date, no binary to test. The command reads
-those folders and prints one line per pack — its name, and the description from
-its own `pack.conf`:
+A pack is installed when its folder is in `~/.config/packs`, carrying its own
+`pack.conf` — the Windows side asks the same question of the same file, so both
+answer alike. Nothing else is consulted: no list to keep up to date, no binary
+to test. The command reads those folders and prints one line per pack — its
+name, and the description from its own `pack.conf`:
 
 ```text
 Packs installed in this instance:

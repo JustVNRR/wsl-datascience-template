@@ -172,9 +172,14 @@ function Resolve-PackRemoval {
     return @($Gone)
 }
 
-# Which packs an instance already has. The folder IS the state: the gmake
-# Makefile reads ~/.config/packs/*/ to decide what to load, so a folder that is
-# there is an installed pack, and one that is not is not.
+# Which packs an instance already has. A pack is its folder WITH ITS pack.conf:
+# that is what the gmake side counts (packs_list prints one line per pack.conf,
+# and the module loading looks beside it), and the two sides must answer the
+# same thing. They did not, once: a copy that failed left its empty folder
+# behind, this function read `ls`, and the pack was "installed" here while
+# packs_list called it absent - so add_pack stopped offering a pack that was
+# not in. The empty folder is taken back at the end of a failed copy now, and
+# this definition makes any older one harmless too.
 #
 # Wrap the call in @(): PowerShell unrolls a one-element list into its element,
 # and the caller then holds a string - where [0] is its first LETTER, not the
@@ -182,7 +187,8 @@ function Resolve-PackRemoval {
 # deletion aimed at a folder of that name.
 function Get-InstalledPacks {
     param([string]$DistroName, [string]$PacksDirectory)
-    return Get-InInstanceOutput -DistroName $DistroName -Command @("ls", "-1", $PacksDirectory)
+    $Found = Get-InInstanceOutput -DistroName $DistroName -Command @("find", $PacksDirectory, "-mindepth", "2", "-maxdepth", "2", "-name", "pack.conf")
+    return @($Found | ForEach-Object { ($_ -replace "/pack.conf$", "").Split("/")[-1] } | Sort-Object)
 }
 
 # Where a pack's folder is, once it is in the instance. One place, so that the
@@ -203,19 +209,78 @@ function Test-PackScript {
 }
 
 # Copy a pack's folder into the instance - the whole of what "travelling" means.
-# It is copied from inside: the pack's own folder becomes the working directory,
-# which wsl.exe knows how to do with a Windows path (`--cd`), and `.` is then
-# all there is to name. No path translation on purpose: the obvious candidate is
-# `wslpath`, which the instance does not carry at all.
+# Two ways in, and which one is used is decided by asking the instance, before
+# anything is attempted:
+#
+#   - the usual one, the one every pack so far has travelled by: the pack's own
+#     Windows folder becomes the working directory - `--cd` has WSL translate it
+#     through the mounted drives - and `.` is then all there is to name. No path
+#     translation on purpose: the obvious candidate is `wslpath`, which the
+#     instance does not carry at all.
+#   - with the Windows drives unmounted - `gmake automount_down` - nothing
+#     under /mnt exists, `--cd` cannot be honoured, and the first way's copy
+#     ends on "cannot copy a directory into itself": WSL stayed in the home and
+#     the destination is inside it. The second way is Windows' own share into
+#     the running distro, \\wsl.localhost\<distro>: no drive needed, no interop,
+#     no password.
+#
+# The test is the very path's presence under /mnt, so the drive letter of the
+# pack decides, not a guess about the instance's settings. And whichever way it
+# travelled, the pack's scripts are made executable: the Windows side has no
+# Unix bit to carry, so the share route would arrive without one.
 function Copy-PackIntoInstance {
     param([string]$DistroName, [string]$PackPath, [string]$Target, [ref]$ExitCode)
 
     Invoke-InInstance -DistroName $DistroName -Command @("mkdir", "-p", $Target) -ExitCode $ExitCode -Quiet
     if ($ExitCode.Value -ne 0) { return $false }
-    # | Out-Host for the reason written above Invoke-PackScript: this function
-    # answers a value, and the copy must not speak through it.
-    Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", ".", "$Target/") -WorkingDirectory $PackPath -ExitCode $ExitCode | Out-Host
-    return ($ExitCode.Value -eq 0)
+
+    $ThroughTheDrives = "/mnt/" + $PackPath.Substring(0, 1).ToLower() + ($PackPath.Substring(2) -replace "\\", "/")
+    Invoke-InInstance -DistroName $DistroName -Command @("test", "-d", $ThroughTheDrives) -ExitCode $ExitCode -Quiet
+
+    $Copied = $false
+    if ($ExitCode.Value -eq 0) {
+        # | Out-Host for the reason written above Invoke-PackScript: this
+        # function answers a value, and the copy must not speak through it.
+        Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", ".", "$Target/") -WorkingDirectory $PackPath -ExitCode $ExitCode | Out-Host
+        $Copied = ($ExitCode.Value -eq 0)
+    } else {
+        $Unc = "\\wsl.localhost\$DistroName" + ($Target -replace "/", "\")
+        try {
+            Copy-Item -Path (Join-Path $PackPath "*") -Destination $Unc -Recurse -Force -ErrorAction Stop
+            $Copied = $true
+            $ExitCode.Value = 0
+        } catch {
+            Write-Host "  * pack copy  : the drives are unmounted here, so the pack went through Windows' own share - and Windows refused: $($_.Exception.Message)" -ForegroundColor (Get-MessageColour warning)
+            $ExitCode.Value = 1
+        }
+    }
+
+    if ($Copied) {
+        # The scripts are made executable, and the globs travel single-quoted
+        # inside a `sh -c`: passed as bare arguments they are at the mercy of
+        # how wsl.exe hands the command over, and one of the ways globs them -
+        # where nothing matches, the shell stops, and the pack arrives with
+        # every script unexecutable without a word. That is how the web pack
+        # landed on his instance.
+        Invoke-InInstance -DistroName $DistroName -Command @("sh", "-c", "find '$Target' -name '*.sh' -exec chmod +x {} +") -ExitCode $ExitCode -Quiet
+        # And it is checked rather than trusted: a script that cannot run is a
+        # pack that fails on its first target, far from where it went wrong.
+        $Still = @(Get-InInstanceOutput -DistroName $DistroName -Command @("sh", "-c", "find '$Target' -name '*.sh' ! -perm -u+x"))
+        if ($Still.Count -gt 0) {
+            Write-Host "  * pack copy  : some scripts arrived without their executable bit - one command fixes them:" -ForegroundColor (Get-MessageColour warning)
+            Write-Host "                 find ~/.config/packs -name '*.sh' -exec chmod +x {} +" -ForegroundColor (Get-MessageColour hint)
+        }
+    } else {
+        # A copy that failed leaves nothing behind. The folder was created
+        # before the copy, and a folder is what "installed" means on this side:
+        # left there, an empty one made add_pack call the pack present while
+        # the gmake side, which asks for its pack.conf, called it absent. The
+        # copy's own exit code is what the caller reports, so it is kept.
+        $CopyCode = $ExitCode.Value
+        Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode $ExitCode
+        $ExitCode.Value = $CopyCode
+    }
+    return $Copied
 }
 
 # Run one of the pack's own scripts from inside its folder. Output streaming on

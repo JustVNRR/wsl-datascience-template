@@ -6,7 +6,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
   - `python`: Python 3, `uv`, ruff and the compilation tools
   - `gcp`: the Google Cloud CLI
   - `vision`: ffmpeg, ImageMagick and Tesseract OCR
-  - `web`: Firefox, and a WireGuard tunnel to Proton VPN
+  - `web`: Firefox, and a WireGuard tunnel
   - `claude`: Claude Code, the agentic CLI
   - `pandoc`: Pandoc and XeLaTeX, to build a markdown document into a PDF
 
@@ -18,7 +18,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
 - **Modular targets** — `gmake` exposes its targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`, the PDF build with `pandoc`. They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
-- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to Proton VPN — the servers live in one JSON, the server in use and the kill switch are two lines of `.env.global` — and bring it up with the distro.
+- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to your WireGuard server — the servers live in one JSON, the settings in `.env.global` — and bring it up with the distro.
 
 ---
 
@@ -98,10 +98,13 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Any | [Environment files](docs/make/env.md) | `env_global_enable`, `env_global_manage`, `env_project_enable`, `env_project_manage` |
 | Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
+| Any | [The instance's own settings](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `fstab_config`, `wsl_status`, `systemd_*`, `automount_*`, `interop_*`, `windows_path_*`, `fstab_up`, `fstab_down` |
 
 Everything else a project needs — its image, its pull requests — is a pack's.
 The socle's own menu stops at what an instance with no project can still do:
-carry packs, and write the `.env` files it reads before it reads a single pack.
+carry packs, write the `.env` files it reads before it reads a single pack,
+report what it runs on, open `/etc/wsl.conf` and `/etc/resolv.conf`, and turn
+WSL's own features — `systemd`, `automount`, `interop` — on and off.
 
 Then the packs. Each one is listed once — the README does not follow a pack as
 it grows, and a pack leaves with its folder:
@@ -187,7 +190,8 @@ the repository at runtime.
 │   │   └── make/            # The socle's modules (pages in docs/make/)
 │   │       ├── env.mk       # the .env files, and the commands that build them
 │   │       ├── macros.mk    # what a target calls before it runs (check_vars, confirm_action)
-│   │       └── packs.mk     # what this instance carries (gmake packs_list)
+│   │       ├── packs.mk     # what this instance carries (gmake packs_list)
+│   │       └── wsl.mk       # the instance itself: its files, its state, its switches
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing, persistence, and what is kept out of it
@@ -333,7 +337,9 @@ deleting the distro deletes all of it.
                              # tools (python), the claude launcher (claude)
 ~/.local/share/uv/           # the Python builds it downloaded, and their environments
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
-/etc/wsl.conf                # Default user, systemd (first_boot.sh)
+/etc/wsl.conf                # Default user, automount, interop (first_boot.sh; reopened by gmake wsl_config)
+/etc/resolv.conf             # Name servers (WSL's, or yours; reopened by gmake dns_resolve)
+/etc/fstab                   # Mounts to apply at start (reopened by gmake fstab_config)
 ```
 
 ---
@@ -361,8 +367,9 @@ changing one.
 
 ## Instance Administration (wsl.ps1)
 
-Instances are listed, built, started, stopped, opened, copied, archived,
-restored, compacted and removed from `wsl.ps1`, at the root of the repository.
+Instances are listed, built, started, stopped, restarted, opened, copied,
+archived, restored, compacted and removed from `wsl.ps1`, at the root of the
+repository.
 The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to type.
 
 | Command | What it does |
@@ -371,6 +378,7 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
 | [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
+| [`.\wsl.ps1 restart`](docs/wsl/commands.md#restart) | restart an instance |
 | [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |
 | [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
@@ -381,6 +389,7 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
 | [`.\wsl.ps1 shrink`](docs/wsl/commands.md#shrink) | reclaim the space an instance has freed |
+| [`.\wsl.ps1 wslconfig`](docs/wsl/commands.md#wslconfig) | open the Windows-wide WSL settings |
 
 Each command, with its options, its examples and what it prints, is documented
 in [**Instance commands**](docs/wsl/commands.md).

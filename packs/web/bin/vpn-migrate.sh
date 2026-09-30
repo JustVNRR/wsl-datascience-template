@@ -14,11 +14,11 @@
 #
 #   usage: vpn-migrate.sh <path to servers.json>
 #
-# What is carried: the private key, the address, and the peer (public key,
-# endpoint, allowed IPs, and the keepalive when the profile asks for one). The
-# DNS and the MTU only when they differ from the ones the generator applies to
-# every server (10.2.0.1 and 1420) - a value that is already the default does not
-# belong in an entry.
+# What is carried: the private key, the address, the peer (public key, endpoint,
+# allowed IPs, the keepalive when the profile asks for one), and the DNS - which
+# belongs to the server, and which nothing else supplies. The MTU travels too
+# when the profile names one: it is the link's own answer, and the default only
+# covers the profiles that say nothing.
 #
 # What is not carried, and is reported: the kill switch lines (PostUp/PreDown),
 # which are the VPN_KILL_SWITCH variable now, and any other key the JSON has no
@@ -27,8 +27,6 @@
 set -euo pipefail
 
 WG_DIR=/etc/wireguard
-DNS_DEFAULT=10.2.0.1
-MTU_DEFAULT=1420
 
 target=${1:-}
 if [ -z "$target" ]; then
@@ -37,12 +35,12 @@ if [ -z "$target" ]; then
 fi
 
 die() {
-    printf '❌ %s\n' "$*" >&2
+    printf '%s\n' "$*" >&2
     exit 1
 }
 
 if [ -e "$target" ]; then
-    printf 'ℹ️  %s is already there - nothing was migrated.\n' "$target"
+    printf '%s is already there - nothing was migrated.\n' "$target"
     exit 0
 fi
 
@@ -52,7 +50,7 @@ fi
 conf_files=$(sudo find "$WG_DIR" -maxdepth 1 -type f -name '*.conf' 2>/dev/null | sort || true)
 conf_files=$(printf '%s\n' "$conf_files" | grep -v "/vpn\.conf$" || true)
 if [ -z "$conf_files" ]; then
-    printf 'ℹ️  no profile to migrate in %s.\n' "$WG_DIR"
+    printf 'no profile to migrate in %s.\n' "$WG_DIR"
     exit 0
 fi
 
@@ -106,7 +104,7 @@ unknown_keys() {
 entries=$(mktemp)
 trap 'rm -f "$entries"' EXIT
 
-printf '📝 Reading the profiles of %s into %s...\n' "$WG_DIR" "$target"
+printf 'Reading the profiles of %s into %s...\n' "$WG_DIR" "$target"
 count=0
 no_kill_switch=
 while read -r conf; do
@@ -122,13 +120,11 @@ while read -r conf; do
     keepalive=$(value_of peer PersistentKeepalive "$pairs")
     dns=$(value_of interface DNS "$pairs")
     mtu=$(value_of interface MTU "$pairs")
-    [ "$dns" = "$DNS_DEFAULT" ] && dns=
-    [ "$mtu" = "$MTU_DEFAULT" ] && mtu=
     [ -n "$(value_of interface PostUp "$pairs")" ] || no_kill_switch="$no_kill_switch $id"
 
     while read -r line; do
         [ -n "$line" ] || continue
-        printf '⚠️  %s: %s has no field in the JSON and was not carried over.\n' "$id" "$line"
+        printf '%s: %s has no field in the JSON and was not carried over.\n' "$id" "$line"
     done <<< "$(unknown_keys "$pairs")"
 
     jq -nc --arg id "$id" --arg address "$address" --arg key "$key" \
@@ -138,7 +134,7 @@ while read -r conf; do
         {id: $id, note: $note, address: $address, private_key: $key,
          peer: ({public_key: $pub, endpoint: $endpoint, allowed_ips: $allowed}
                 + (if $keepalive == "" then {} else {persistent_keepalive: $keepalive} end))}
-        + (if $dns == "" then {} else {dns: $dns} end)
+        + (if $dns == "" then {} else {DNS: $dns} end)
         + (if $mtu == "" then {} else {mtu: $mtu} end)' >> "$entries"
     count=$((count + 1))
 done <<< "$conf_files"
@@ -154,8 +150,8 @@ jq -n --slurpfile servers "$entries" \
 install -d -m 0700 "$(dirname "$target")"
 install -m 600 "$tmp" "$target"
 
-printf '✅ %s servers are in %s: %s\n' "$count" "$target" "$(jq -r '[.servers[].id] | join(" ")' "$target")"
+printf '%s servers are in %s: %s\n' "$count" "$target" "$(jq -r '[.servers[].id] | join(" ")' "$target")"
 printf '   The profiles in %s are left where they are - delete them when you want.\n' "$WG_DIR"
 if [ -n "$no_kill_switch" ]; then
-    printf 'ℹ️  No kill switch in:%s. It is the VPN_KILL_SWITCH variable now - gmake vpn_ks_off if you want none.\n' "$no_kill_switch"
+    printf 'No kill switch in:%s. It is the VPN_KILL_SWITCH variable now - gmake vpn_ks_off if you want none.\n' "$no_kill_switch"
 fi

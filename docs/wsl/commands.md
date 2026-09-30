@@ -15,6 +15,7 @@ WSL Stack
     build        build an instance from the image
     start        start a stopped instance
     stop         stop a running instance
+    restart      restart an instance
     shell        open a shell inside an instance
     add_pack     install a pack into an instance
     remove_pack  uninstall a pack from an instance
@@ -25,6 +26,7 @@ WSL Stack
     restore      rebuild an instance from an archive
     duplicate    copy an instance under another name
     shrink       reclaim the space an instance has freed
+    wslconfig    open the Windows-wide WSL settings
   up/down to move, Enter to choose, Escape to cancel
 ```
 
@@ -57,6 +59,7 @@ console has always had are used.
 | [`.\wsl.ps1 build`](#build) | build an instance from the image |
 | [`.\wsl.ps1 start`](#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](#stop) | stop a running instance |
+| [`.\wsl.ps1 restart`](#restart) | restart an instance |
 | [`.\wsl.ps1 shell`](#shell) | open a shell inside an instance |
 | [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
@@ -67,6 +70,7 @@ console has always had are used.
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](#duplicate) | copy an instance under another name |
 | [`.\wsl.ps1 shrink`](#shrink) | reclaim the space an instance has freed |
+| [`.\wsl.ps1 wslconfig`](#wslconfig) | open the Windows-wide WSL settings |
 
 ## Which WSL instances are ours
 
@@ -244,6 +248,33 @@ go ahead.
 
 ---
 
+## `restart`
+
+Stops an instance and starts it again, in one command.
+
+```powershell
+.\wsl.ps1 restart
+```
+
+Only running instances are listed — a stopped one has `start`:
+
+```text
+Running instances - the ones that can be restarted:
+   1.  template-bac                  1.1 GB
+   0.  Cancel
+```
+
+**Whatever is open in there and not saved is lost**, exactly as with `stop` —
+the script asks once before doing it, and the default is to go ahead. The disk
+is not touched: the instance comes back with everything it had written.
+
+It is what applies a change to the files WSL reads when it starts —
+`/etc/wsl.conf` and `/etc/resolv.conf`, which `gmake wsl_config` and
+`gmake dns_resolve` open. When it is back up, open it again from its Windows
+Terminal profile.
+
+---
+
 ## `shell`
 
 Opens a shell in one of our instances — the quickest way in when you are
@@ -301,6 +332,12 @@ Which one? (0 to cancel) 1
 
 Only the packs the instance does not have yet are offered. The packs are the
 folders under `packs\`: a folder carrying a `pack.conf` is a pack.
+
+The pack's files travel from the Windows checkout into the instance — through
+the mounted drives when they are there, and through Windows' own
+`\\wsl.localhost` share when the instance has them unmounted (`gmake
+automount_down`) — so a pack arrives either way, and its scripts are made
+executable on arrival.
 
 The list is the packs a **user** chooses. A pack that says `PACK_VISIBLE := no`
 in its `pack.conf` is never in it: it is a shared dependency — `devops` is the
@@ -761,4 +798,25 @@ fails, nothing is compacted**.
 
 It works on a running instance as well as a stopped one, and leaves it in the
 state it was found in.
+
+---
+
+## `wslconfig`
+
+Opens the Windows-wide WSL settings, `%USERPROFILE%\.wslconfig`, with the
+application Windows gives that file.
+
+```powershell
+.\wsl.ps1 wslconfig
+```
+
+This is the machine's own file — the memory cap, the processors, the DNS
+tunnel, the networking mode — not an instance's `/etc/wsl.conf`, which is per
+distro and opened from inside with `gmake wsl_config`. When the file is not
+there, it is created commented, so it documents itself; Windows asks which
+application to use the first time if none is set for `.wslconfig`.
+
+A change here is read when the WSL machine starts. `.\wsl.ps1 restart` does not
+do that — it restarts one instance. Stop the machine with `wsl --shutdown`,
+then open an instance again.
 

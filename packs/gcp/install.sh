@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-echo "➕ Registering the Google APT repository..."
+echo "Registering the Google APT repository..."
 # set -o pipefail inside, because a pipe reports the exit code of its last
 # command only: a curl that fails feeds gpg an empty input, and the failure
 # must stop the install here rather than surface three steps later.
@@ -37,5 +37,5 @@ echo "deb [signed-by=/etc/apt/keyrings/cloud.google.gpg] https://packages.cloud.
 apt-get update
 apt-get install -y --no-install-recommends google-cloud-cli'
 
-echo "✅ Google Cloud CLI installed."
+echo "Google Cloud CLI installed."
 echo "   Next: gmake gcp_auth_cli (signs the CLI in to your Google account)."

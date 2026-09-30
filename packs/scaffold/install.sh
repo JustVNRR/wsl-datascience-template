@@ -29,9 +29,9 @@ clean_path=$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/s
 export PATH=$clean_path
 
 if command -v uv >/dev/null 2>&1; then
-    echo "✅ uv is already installed ($(uv --version)) — nothing to do."
+    echo "uv is already installed ($(uv --version)) - nothing to do."
 else
-    echo "➕ Installing uv..."
+    echo "Installing uv..."
     # UV_NO_MODIFY_PATH: left alone, uv's installer adds a line to the shell's
     # startup files - ~/.zshenv among them - to put itself on the PATH. Each pack
     # that needs it declares its own PATH in its own zsh file, so a removal has
@@ -42,6 +42,6 @@ else
     curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
 fi
 
-echo "✅ The scaffolding is ready."
+echo "The scaffolding is ready."
 echo "   The template tools are fetched on the first fnew, one at a time."
 echo "   Next: cd projects, then type fnew."

@@ -46,9 +46,9 @@ claimed_elsewhere() {
 }
 
 if claimed_elsewhere uv; then
-    echo "⏭️  uv: another installed pack claims it — left in place, with what it manages."
+    echo "uv: another installed pack claims it - left in place, with what it manages."
 else
-    echo "➖ Removing uv and what it manages..."
+    echo "Removing uv and what it manages..."
     # Everything uv wrote is in two places, its shims in ~/.local/bin and its
     # Python builds and tools under ~/.local/share/uv, plus its download cache.
     # Every path is spelled from $HOME, so none can be empty when `rm` reads it,
@@ -60,5 +60,5 @@ else
            "$HOME/.cache/uv"
 fi
 
-echo "✅ The scaffolding is gone."
-echo "   ~/projects was left alone — the projects in it are yours."
+echo "The scaffolding is gone."
+echo "   ~/projects was left alone - the projects in it are yours."

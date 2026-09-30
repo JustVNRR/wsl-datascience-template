@@ -92,13 +92,19 @@ echo "Configuring timezone..."
 dpkg-reconfigure -f readline tzdata
 clear
 
-# Write complete WSL configuration
+# Write the WSL configuration the onboarding knows. No [boot] block: it used to
+# carry systemd=true, but the image ships no /sbin/init, so the line never did
+# anything - systemd comes to the instance that asks for it, with
+# `gmake systemd_up`, and that is what writes the line. mountFsTab=false for
+# the same reason: the instance carries no /etc/fstab lines, and `gmake
+# fstab_up` is what applies them the day there are some.
 cat << WSLCONF > /etc/wsl.conf
-[boot]
-systemd=true
-
 [user]
 default=$NEW_USER
+
+[automount]
+enabled=true
+mountFsTab=false
 
 [interop]
 enabled=true

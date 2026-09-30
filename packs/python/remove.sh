@@ -29,7 +29,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 packages=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
 
 if [ -z "$packages" ]; then
-    echo "❌ No PACK_PACKAGES found in $here/pack.conf" >&2
+    echo "No PACK_PACKAGES found in $here/pack.conf" >&2
     exit 1
 fi
 
@@ -57,10 +57,10 @@ claimed_elsewhere() {
     return 1
 }
 
-echo "➖ Removing the compilation tools..."
+echo "Removing the compilation tools..."
 for package in $packages; do
     if claimed_elsewhere "$package"; then
-        echo "⏭️  $package: another installed pack claims it - left in place."
+        echo "$package: another installed pack claims it - left in place."
         continue
     fi
     # A failure here is not the end of the removal: what apt cannot take back,
@@ -70,7 +70,7 @@ for package in $packages; do
     # that is installed, and a `set -e` script would stop there and leave the
     # rest of the pack on the machine.
     if ! sudo apt-get remove -y "$package"; then
-        echo "⚠️  $package: apt could not remove it — left where it is."
+        echo "$package: apt could not remove it - left where it is."
         echo "   (apt needs its package lists: run 'sudo apt-get update' inside the"
         echo "   instance, then remove the pack again.)"
     fi
@@ -84,14 +84,14 @@ done
 # shim left behind is an install that fails every time it is run again - and
 # worse, a shim whose target has just been removed is a command that answers
 # "No such file or directory" to whoever types it.
-echo "➖ Removing ruff..."
+echo "Removing ruff..."
 rm -f "$HOME/.local/bin/ruff"
 rm -rf "$HOME/.local/share/uv/tools/ruff"
 
 if claimed_elsewhere uv; then
-    echo "⏭️  uv: another installed pack claims it — left in place, with what it manages."
+    echo "uv: another installed pack claims it - left in place, with what it manages."
 else
-    echo "➖ Removing uv and what it installed..."
+    echo "Removing uv and what it installed..."
     # By name, and not by asking uv itself: `uv tool uninstall` and `uv python
     # uninstall` would be the tidy way, but they live on the very binary being
     # removed, and a removal has to work on a machine where the install stopped
@@ -117,5 +117,5 @@ else
            "$HOME/.cache/uv"
 fi
 
-echo "✅ Python 3 and its tools are gone."
+echo "Python 3 and its tools are gone."
 echo "   What the pack wrote in ~/.local went with it; your projects are where they were."
