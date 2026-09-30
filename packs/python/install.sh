@@ -37,11 +37,11 @@ here=$(cd "$(dirname "$0")" && pwd)
 packages=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
 
 if [ -z "$packages" ]; then
-    echo "❌ No PACK_PACKAGES found in $here/pack.conf" >&2
+    echo "No PACK_PACKAGES found in $here/pack.conf" >&2
     exit 1
 fi
 
-echo "➕ Installing the compilation tools (your password will be asked)..."
+echo "Installing the compilation tools (your password will be asked)..."
 # DEBIAN_FRONTEND, so that a package reconfigured on the way (tzdata and its
 # continent question) never stops the install to ask something.
 sudo bash -c "set -eo pipefail
@@ -53,9 +53,9 @@ apt-get install -y --no-install-recommends $packages"
 # it and comes first. Asking the machine rather than installing a second time
 # keeps the download to one.
 if command -v uv >/dev/null 2>&1; then
-    echo "✅ uv is already installed ($(uv --version)) — nothing to do."
+    echo "uv is already installed ($(uv --version)) - nothing to do."
 else
-    echo "➕ Installing uv..."
+    echo "Installing uv..."
     # UV_NO_MODIFY_PATH: left alone, uv's installer adds a line to the shell's
     # startup files - ~/.zshenv among them - to put itself on the PATH. Each pack
     # that needs it declares its own PATH in its own zsh file, so a removal has
@@ -66,7 +66,7 @@ else
     curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
 fi
 
-echo "➕ Installing Python 3 and ruff..."
+echo "Installing Python 3 and ruff..."
 uv python install 3
 # --force: a shim left by an install that stopped halfway makes uv refuse to
 # write ruff's ("Executable already exists: ruff"), and a pack whose install can
@@ -75,7 +75,7 @@ uv python install 3
 # true.
 uv tool install --force ruff
 
-echo "✅ Python 3, uv and ruff are installed."
+echo "Python 3, uv and ruff are installed."
 echo "   The commands are in the cheatsheet picker (fcheat)."
 echo "   Next: fnew makes a project (it comes with the scaffold pack);"
 echo "   add the gcp pack for the GCP targets."

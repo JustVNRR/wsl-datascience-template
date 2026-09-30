@@ -21,7 +21,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 packages=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
 
 if [ -z "$packages" ]; then
-    echo "❌ No PACK_PACKAGES found in $here/pack.conf" >&2
+    echo "No PACK_PACKAGES found in $here/pack.conf" >&2
     exit 1
 fi
 
@@ -31,14 +31,14 @@ claimed_elsewhere() {
         grep -qv "^${here}/"
 }
 
-echo "➖ Removing the vision and OCR tools..."
+echo "Removing the vision and OCR tools..."
 for package in $packages; do
     if claimed_elsewhere "$package"; then
-        echo "⏭️  $package: another installed pack claims it - left in place."
+        echo "$package: another installed pack claims it - left in place."
         continue
     fi
     sudo apt-get remove -y "$package"
 done
 
-echo "✅ ffmpeg, ImageMagick and Tesseract are gone."
+echo "ffmpeg, ImageMagick and Tesseract are gone."
 echo "   Your own files were left alone - the pack wrote none of them."

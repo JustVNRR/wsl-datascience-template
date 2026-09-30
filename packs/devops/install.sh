@@ -15,6 +15,6 @@
 
 set -euo pipefail
 
-echo "✅ Nothing to install: this pack is gmake modules, and its two tools"
+echo "Nothing to install: this pack is gmake modules, and its two tools"
 echo "   (docker, gh) are already on this machine."
 echo "   Its targets appear in:  gmake help"
