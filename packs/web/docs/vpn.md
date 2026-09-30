@@ -135,8 +135,9 @@ terminal, VS Code, Docker Desktop.
 `.\wsl.ps1 remove_pack` takes the tunnel down, removes the hook, the packages and
 `/etc/wireguard/vpn.conf`, and takes `openresolv` back out.
 
-It leaves your servers, the `VPN_*` lines of `.env.global`, the profiles an older
-install kept in `/etc/wireguard`, `generateResolvConf = false`, and `~/.mozilla`.
+It leaves your servers, the `VPN_PROFILE`, `VPN_KILL_SWITCH`, `VPN_MTU` and
+`BASE_DNS` lines of `.env.global`, the profiles an older install kept in
+`/etc/wireguard`, `generateResolvConf = false`, and `~/.mozilla`.
 
 A key that leaks is revoked at your provider (delete that configuration): the
 entry on the machine stops working, and nothing else needs

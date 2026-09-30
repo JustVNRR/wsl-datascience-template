@@ -85,7 +85,7 @@ sudo rm -f /etc/wireguard/vpn.conf
 echo "The tunnel and the browser are gone, and Mozilla's repository with them."
 echo "   Left alone, on purpose:"
 echo "     - your servers, ~/.config/vpn/servers.json - it carries your private keys"
-echo "     - the VPN_PROFILE and VPN_KILL_SWITCH lines of ~/.config/zsh/gmake/.env.global"
+echo "     - the VPN_PROFILE, VPN_KILL_SWITCH, VPN_MTU and BASE_DNS lines of ~/.config/zsh/gmake/.env.global"
 echo "     - the profiles an older install left in /etc/wireguard, if any are still there"
 echo "     - generateResolvConf = false in /etc/wsl.conf - a setting of the machine, not the pack's"
 echo "     - your Firefox profile, ~/.mozilla - bookmarks, passwords, history"

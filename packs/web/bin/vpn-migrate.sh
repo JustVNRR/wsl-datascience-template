@@ -35,12 +35,12 @@ if [ -z "$target" ]; then
 fi
 
 die() {
-    printf '❌ %s\n' "$*" >&2
+    printf '%s\n' "$*" >&2
     exit 1
 }
 
 if [ -e "$target" ]; then
-    printf 'ℹ️  %s is already there - nothing was migrated.\n' "$target"
+    printf '%s is already there - nothing was migrated.\n' "$target"
     exit 0
 fi
 
@@ -50,7 +50,7 @@ fi
 conf_files=$(sudo find "$WG_DIR" -maxdepth 1 -type f -name '*.conf' 2>/dev/null | sort || true)
 conf_files=$(printf '%s\n' "$conf_files" | grep -v "/vpn\.conf$" || true)
 if [ -z "$conf_files" ]; then
-    printf 'ℹ️  no profile to migrate in %s.\n' "$WG_DIR"
+    printf 'no profile to migrate in %s.\n' "$WG_DIR"
     exit 0
 fi
 
@@ -104,7 +104,7 @@ unknown_keys() {
 entries=$(mktemp)
 trap 'rm -f "$entries"' EXIT
 
-printf '📝 Reading the profiles of %s into %s...\n' "$WG_DIR" "$target"
+printf 'Reading the profiles of %s into %s...\n' "$WG_DIR" "$target"
 count=0
 no_kill_switch=
 while read -r conf; do
@@ -124,7 +124,7 @@ while read -r conf; do
 
     while read -r line; do
         [ -n "$line" ] || continue
-        printf '⚠️  %s: %s has no field in the JSON and was not carried over.\n' "$id" "$line"
+        printf '%s: %s has no field in the JSON and was not carried over.\n' "$id" "$line"
     done <<< "$(unknown_keys "$pairs")"
 
     jq -nc --arg id "$id" --arg address "$address" --arg key "$key" \
@@ -150,8 +150,8 @@ jq -n --slurpfile servers "$entries" \
 install -d -m 0700 "$(dirname "$target")"
 install -m 600 "$tmp" "$target"
 
-printf '✅ %s servers are in %s: %s\n' "$count" "$target" "$(jq -r '[.servers[].id] | join(" ")' "$target")"
+printf '%s servers are in %s: %s\n' "$count" "$target" "$(jq -r '[.servers[].id] | join(" ")' "$target")"
 printf '   The profiles in %s are left where they are - delete them when you want.\n' "$WG_DIR"
 if [ -n "$no_kill_switch" ]; then
-    printf 'ℹ️  No kill switch in:%s. It is the VPN_KILL_SWITCH variable now - gmake vpn_ks_off if you want none.\n' "$no_kill_switch"
+    printf 'No kill switch in:%s. It is the VPN_KILL_SWITCH variable now - gmake vpn_ks_off if you want none.\n' "$no_kill_switch"
 fi

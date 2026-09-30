@@ -2,8 +2,8 @@
 # TUNNEL CHEATSHEET (wireguard)
 # requires: wg
 # ==========================================
-# The `web` pack's tunnel: your servers are in ~/.config/vpn/servers.json, the
-# server in use and the kill switch are two lines of
+# The `web` pack's tunnel: your servers are in ~/.config/vpn/servers.json, its
+# settings (server, kill switch, MTU, resolver out of tunnel) in
 # ~/.config/zsh/gmake/.env.global, and /etc/wireguard/vpn.conf is written from
 # both before every mount - it is read, never edited. The pack installs from
 # Windows (`.\wsl.ps1 add_pack`), its page is packs/web/docs/vpn.md, and the
@@ -29,14 +29,14 @@ gmake vpn_edit_profiles                        # The JSON of servers, in nano ($
 jq . ~/.config/vpn/servers.json                # What it holds, when you want to read it
 jq -r '.servers[].id' ~/.config/vpn/servers.json   # Just the ids, one per line
 
-# --- 3. THE TWO VARIABLES ---
-grep VPN_ ~/.config/zsh/gmake/.env.global      # the pack's variables
+# --- 3. THE SETTINGS ---
+grep -E 'VPN_|BASE_DNS' ~/.config/zsh/gmake/.env.global  # the pack's settings
 gmake env_global_enable                        # Adds what the samples carry and the file lacks
 
 # --- 4. WHAT IS REALLY HAPPENING ---
 sudo wg show                                   # The interface, its peer, the last handshake
 sudo cat /etc/wireguard/vpn.conf               # What the pack generated - a read, never an edit
-cat /etc/resolv.conf                           # 10.2.0.1 = the DNS goes through the tunnel
-curl -s https://am.i.mullvad.net/ip            # The exit IP the world sees
+cat /etc/resolv.conf                           # the tunnel's DNS while up, BASE_DNS while down
+curl -s https://api.ipify.org                  # The exit IP the world sees
 sudo iptables -S OUTPUT | head -3              # The kill switch, while a tunnel is up
 tail -20 /var/log/web-vpn.log                  # What the boot hook tried, and why it stopped

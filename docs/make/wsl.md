@@ -25,6 +25,8 @@ reports what the instance runs on.
 | `windows_path_up` | Add the Windows `PATH` to this instance's `PATH` | — |
 | `windows_path_down` | Keep the Windows `PATH` out of this instance's `PATH` | — |
 | `windows_path_check` | Say whether the Windows `PATH` is in this instance's `PATH` | — |
+| `fstab_up` | Apply `/etc/fstab` at every start | — |
+| `fstab_down` | Leave `/etc/fstab` alone at start | — |
 
 ## The WSL file
 
@@ -139,8 +141,10 @@ nano, and not `$EDITOR`: the instance's `$EDITOR` is `code --wait` whenever
 VS Code is installed, and that `code` is the Windows one — it saves as the
 Windows user, who cannot write a file that belongs to root.
 
-Both files are read when the instance starts, so a change applies at the next
-start — from Windows, `.\wsl.ps1 restart`.
+`/etc/wsl.conf` and `/etc/fstab` are read when the instance starts (`/etc/fstab`
+only while `mountFsTab` is on), and WSL rewrites `/etc/resolv.conf` then unless
+`generateResolvConf = false` — so an edit takes effect at the next start:
+`.\wsl.ps1 restart`, from Windows.
 
 ## Variables
 
