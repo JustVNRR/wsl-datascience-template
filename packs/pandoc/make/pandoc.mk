@@ -1,13 +1,13 @@
 # ==============================================================================
 # PDF, WORD, STYLE AND FONT TARGETS (PANDOC)
 # ==============================================================================
-# What this pack adds, five targets. `pdf_from_md` and `docx_from_md` build the
-# project's markdown, and `pdf_open` displays the result - one resolution for
-# the three, in bin/document.sh, where the menu, the builds and the viewer
+# What this pack adds, seven targets. `pdf_from_md` and `docx_from_md` build
+# the project's markdown, and `pdf_open` displays the result - one resolution
+# for the three, in bin/document.sh, where the menu, the builds and the viewer
 # live: a recipe that opened a menu itself is a recipe nobody can read.
-# `csl_from_catalog` and `font_from_windows` bring something a document can
-# need - a citation style, a font family - and their scripts are neighbours of
-# the first.
+# `csl_from_catalog` brings a citation style, and the three `font_from_*`
+# bring a font family, each from its own catalogue: the Windows side, Google
+# Fonts, the Ubuntu archive. Their scripts are neighbours of the first.
 #
 # The names say where they start. What these targets are good at is markdown:
 # the document's YAML header carries the bibliography and the citation style,
@@ -41,9 +41,9 @@
 #   STYLE           the citation style csl_from_catalog fetches, by the name
 #                   the catalog shows (zotero.org/styles). Default: a menu
 #                   over the official catalog.
-#   FONT            the font family font_from_windows copies; a part of the
-#                   name is enough. Default: a menu over the families of the
-#                   Windows side.
+#   FONT            the font family the three font_from_* targets take; a
+#                   part of the name is enough. Default: a menu over the
+#                   catalogue of the one that runs.
 #
 # A project fixes its own once, in its .env - `gmake env_project_enable`
 # appends this pack's sample - and the command line still wins over it.
@@ -62,6 +62,8 @@ PDF_TEMPLATE ?= template.tex
 DOCUMENT := $(dir $(lastword $(MAKEFILE_LIST)))../bin/document.sh
 CSL_FROM_CATALOG := $(dir $(lastword $(MAKEFILE_LIST)))../bin/csl.sh
 FONT_FROM_WINDOWS := $(dir $(lastword $(MAKEFILE_LIST)))../bin/font.sh
+FONT_FROM_GOOGLE := $(dir $(lastword $(MAKEFILE_LIST)))../bin/font_google.sh
+FONT_FROM_UBUNTU := $(dir $(lastword $(MAKEFILE_LIST)))../bin/font_ubuntu.sh
 
 pdf_from_md: ## Build the project's markdown into a PDF (pandoc + XeLaTeX)
 	@$(DOCUMENT)
@@ -77,3 +79,9 @@ csl_from_catalog: ## Fetch a citation style from the official CSL catalog, into 
 
 font_from_windows: ## Copy a font family from the Windows side (Arial came with the install)
 	@$(FONT_FROM_WINDOWS)
+
+font_from_google: ## Copy a font family from Google Fonts (~1 800 free families - menu, or FONT=)
+	@$(FONT_FROM_GOOGLE)
+
+font_from_ubuntu: ## Install a font package from the archive (menu, or FONT=)
+	@$(FONT_FROM_UBUNTU)

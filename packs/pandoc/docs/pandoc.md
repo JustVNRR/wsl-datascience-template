@@ -102,11 +102,16 @@ the installer makes for Arial, on demand. A font cannot be aliased into place
 (XeLaTeX ignores fontconfig substitutions), so the files themselves are what
 arrive. They are yours: removing the pack leaves them where they are.
 
-Windows is not the only source of fonts: Ubuntu carries free families as
-packages — `fonts-noto-core`, `fonts-ebgaramond`, `fonts-urw-base35` (the
-PostScript classics: Nimbus Roman for Times, Nimbus Sans for Helvetica…) —
-and any `.ttf` dropped into `~/.local/share/fonts/` is one `fc-cache -f`
-away. A template that asks for one of those needs no copy at all.
+Four ways to a family, and a template only needs its name:
+
+| Source | Target | What it brings |
+| :--- | :--- | :--- |
+| The Windows side | `font_from_windows` | the fonts this machine already owns — Arial came with the install |
+| Google Fonts | `font_from_google` | ~1 800 free families, into `~/.local/share/fonts/google/<family>/` |
+| The Ubuntu archive | `font_from_ubuntu` | ~200 `fonts-` packages, installed by apt |
+| Anywhere | — | a `.ttf` dropped into `~/.local/share/fonts/` is one `fc-cache -f` away |
+
+Each takes a menu, or `FONT=` a part of the name.
 
 A font that must travel **with the project** goes in it, and the template
 names the file: `\setmainfont{arial.ttf}[Path=fonts/]`. The pack installs a

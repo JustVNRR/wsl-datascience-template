@@ -54,7 +54,7 @@ if [ -n "$FONT" ]; then
     match=$(printf '%s\n' "$table" | awk -F'\t' -v f="$FONT" 'index(tolower($2), tolower(f))')
 else
     families=$(printf '%s\n' "$table" | cut -f2 | sort -u)
-    if choice=$(printf '%s\n' "$families" | fzf --prompt="family > " --info=inline --layout=reverse); then
+    if choice=$(printf '%s\n' "$families" | fzf --exact --prompt="family > " --info=inline --layout=reverse); then
         [ -n "$choice" ] || die "Nothing chosen."
         FONT=$choice
     else

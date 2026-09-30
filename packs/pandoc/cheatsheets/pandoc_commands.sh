@@ -21,6 +21,10 @@ gmake csl_from_catalog                        # A citation style: menu over the 
 gmake csl_from_catalog STYLE=ieee             # ... or named, no menu - the name zotero.org/styles shows
 gmake font_from_windows                       # A font family: menu over the Windows side
 gmake font_from_windows FONT=times            # ... or named; Times New Roman's template asks for it by that name
+gmake font_from_google                        # ... or from Google Fonts (~1 800 free families)
+gmake font_from_google FONT=roboto            # ... named, no menu
+gmake font_from_ubuntu                        # ... or from the Ubuntu archive (~200 fonts- packages)
+gmake font_from_ubuntu FONT=noto              # ... named
 
 # --- 3. WHAT THE DOCUMENT CARRIES (its YAML header) ---
 # ---

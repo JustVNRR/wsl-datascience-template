@@ -44,7 +44,7 @@ if [ -z "$STYLE" ]; then
 
     # fzf, like every other picker of this shell. A menu needs a terminal;
     # STYLE is what a script calls.
-    if choice=$(printf '%s\n' "$catalog" | fzf --prompt="style > " --info=inline --layout=reverse); then
+    if choice=$(printf '%s\n' "$catalog" | fzf --exact --prompt="style > " --info=inline --layout=reverse); then
         [ -n "$choice" ] || die "Nothing chosen."
         STYLE=$choice
     else

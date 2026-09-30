@@ -55,7 +55,7 @@ CHOICE=""
 choose_one() {
     local prompt=$1 status
     shift
-    if CHOICE=$(printf '%s\n' "$@" | fzf --prompt="$prompt > " --info=inline --layout=reverse); then
+    if CHOICE=$(printf '%s\n' "$@" | fzf --exact --prompt="$prompt > " --info=inline --layout=reverse); then
         [ -n "$CHOICE" ] || die "Nothing chosen."
     else
         status=$?
@@ -86,7 +86,7 @@ settle_overwrite() {
         printf '%s already exists (%s, %s).\n' \
             "$file" "$(du -h "$file" | cut -f1)" "$(date -r "$file" '+%Y-%m-%d %H:%M')"
         if choice=$(printf '%s\n' overwrite cancel 'save as...' |
-            fzf --prompt="action > " --info=inline --layout=reverse); then
+            fzf --exact --prompt="action > " --info=inline --layout=reverse); then
             case "$choice" in
             overwrite)
                 OUT=$file

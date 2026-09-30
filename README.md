@@ -111,7 +111,7 @@ it grows, and a pack leaves with its folder:
 | `claude` | [Claude Code](packs/claude/docs/claude.md) | `claude_status`, `claude_profile`, `claude_edit_profiles`, `claude_project` |
 | `devops` | [The devops pack](packs/devops/docs/devops.md) | `docker_*`, `gh_pr_*` |
 | `gcp` | [GCP onboarding guide](packs/gcp/docs/onboarding.md) | `gcp_*`, `gcs_*`, `iam_*`, `bigquery_*`, `cloudrun_*`, `vm_*`, `artifact_registry_*` |
-| `pandoc` | [Pandoc & PDF](packs/pandoc/docs/pandoc.md) | `pdf_from_md`, `pdf_open`, `docx_from_md`, `csl_from_catalog`, `font_from_windows` |
+| `pandoc` | [Pandoc & PDF](packs/pandoc/docs/pandoc.md) | `pdf_from_md`, `pdf_open`, `docx_from_md`, `csl_from_catalog`, `font_from_*` |
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
 | `scaffold` | [Project scaffolding, the pack](packs/scaffold/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
@@ -235,7 +235,7 @@ the repository at runtime.
 │   │   ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
 │   │   ├── env.project.sample # the pack's project variables (PDF_SRC, DOCX_REFERENCE...)
 │   │   ├── bin/             # the scripts behind the targets: the build, the viewer, the styles, the fonts
-│   │   ├── make/            # its gmake module: pdf, pdf_open, docx, csl_get, font_get
+│   │   ├── make/            # its gmake module: the document targets, the styles, the fonts
 │   │   ├── cheatsheets/     # its fcheat sheet: the targets, the commands, the PDF tools
 │   │   └── docs/            # the pack's page
 │   ├── python/              # Python 3, uv, ruff, the compiler a wheel is built with
