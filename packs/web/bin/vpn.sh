@@ -51,6 +51,11 @@ SAMPLE=$here/../vpn.servers.sample
 SERVERS=$HOME/.config/vpn/servers.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 
+# The automatic start's own switch: a marker file, because the boot hook reads
+# it as root - and because the hook is installed for the resolver alone as
+# well (see cmd_hook), so its presence cannot mean "raise the tunnel".
+AUTO_FLAG=$HOME/.config/vpn/auto
+
 
 # The kill switch: two iptables lines, in the generated profile, that reject
 # whatever would leave outside the tunnel. The mark is the one wg-quick puts on
@@ -72,16 +77,20 @@ KS_COMMENT='wsl-stack kill switch'
 # This instance's place in the cgroup tree. A session opened from Windows is
 # already in it; the boot hook is not (a child of the distro's init sits at
 # the cgroup root), so it borrows the place of any session that is open - and
-# the distro was started by one. Empty when WSL says nothing usable: the kill
-# switch then stays out of the kernel and says so, because a rule without a
-# place is exactly the machine-wide rule all of this exists to remove.
+# the distro was started by one. What is kept is the distro's ROOT - WSL
+# numbers it at every start, and sessions hang under it (a systemd instance
+# shows /wsl-user/distro-NNNN/non-systemd): matching the root covers them all,
+# and iptables' --path covers the sub-folders as well (measured). Empty when
+# WSL says nothing usable: the kill switch then stays out of the kernel and
+# says so, because a rule without a place is exactly the machine-wide rule all
+# of this exists to remove.
 # CGROUP_ROOT is what the tests point at a stand-in tree.
 CGROUP_ROOT=${CGROUP_ROOT:-/proc}
 cgroup_distro_path() {
     local p=
-    p=$(sed -n 's/^[0-9]*::\(\/wsl-user\/distro-[^[:space:]]*\)$/\1/p' "$CGROUP_ROOT/self/cgroup" 2>/dev/null | head -n 1 || true)
+    p=$(sed -n 's|^[0-9]*::\(/wsl-user/distro-[0-9]*\).*$|\1|p' "$CGROUP_ROOT/self/cgroup" 2>/dev/null | head -n 1 || true)
     if [ -z "$p" ]; then
-        p=$(sed -n 's/^[0-9]*::\(\/wsl-user\/distro-[^[:space:]]*\)$/\1/p' "$CGROUP_ROOT"/[0-9]*/cgroup 2>/dev/null | head -n 1 || true)
+        p=$(sed -n 's|^[0-9]*::\(/wsl-user/distro-[0-9]*\).*$|\1|p' "$CGROUP_ROOT"/[0-9]*/cgroup 2>/dev/null | head -n 1 || true)
     fi
     printf '%s\n' "$p"
 }
@@ -524,8 +533,7 @@ cmd_down() {
     fi
 
     if [ ! -f "$CONF" ]; then
-        printf '%s missing, tearing down kernel interface and removing the kill-switch rules directly.\n' "$CONF"
-        as_root ip link delete dev "$IFACE" 2>/dev/null || true
+        printf '%s missing: no profile here to take the interface down with, so it is left up - another instance, or an earlier start of this one, raised it. The rules and the resolver are put back.\n' "$CONF"
         swept=$(ks_sweep)
         if [ "$swept" -gt 0 ]; then
             ks_swept_message "$swept"
@@ -575,7 +583,7 @@ cmd_server() {
     else
         printf 'Run gmake vpn_up or restart your distro to use this profile.\n'
     fi
-    if ! hook_present; then
+    if ! auto_flag_present; then
         printf 'Run gmake vpn_auto_on to turn on automatic vpn activation.\n'
     fi
 }
@@ -667,10 +675,21 @@ cmd_edit_profiles() {
     fi
 }
 
-# The automatic start: one line under [boot] in /etc/wsl.conf, which is WSL's own
-# hook (the page says why not a systemd unit). Which server no longer belongs to
-# this: it is VPN_PROFILE, and the hook reads it from the same .env.global this
-# script does.
+# The boot hook, and the automatic start - two things the same [boot] command
+# does, and they are not the same switch:
+#   - the hook is installed with the pack (`vpn.sh hook on`, called by the
+#     install and the removal): it puts the base resolver back at each start,
+#     because /etc/resolv.conf is openresolv's symlink into /run and /run is
+#     empty at every start - without it a restarted instance would resolve
+#     nothing at all until a vpn target ran;
+#   - the automatic start is a marker file the hook reads (AUTO_FLAG, written
+#     by `gmake vpn_auto_on`): only then does the hook also raise the tunnel.
+# Which server no longer belongs to this: it is VPN_PROFILE, and the hook reads
+# it from the same .env.global this script does.
+auto_flag_present() {
+    [ -f "$AUTO_FLAG" ]
+}
+
 hook_present() {
     as_root grep -qxF "$HOOK" "$WSLCONF" 2>/dev/null
 }
@@ -693,6 +712,7 @@ hook_on() {
 }
 
 hook_off() {
+    rm -f "$AUTO_FLAG"
     if as_root test -f "$WSLCONF"; then
         as_root sed -i "\|^${HOOK}$|d" "$WSLCONF"
     fi
@@ -708,12 +728,15 @@ cmd_auto() {
         [ -n "$(server_var)" ] ||
             die "VPN_PROFILE is not set in $GLOBAL_ENV - gmake vpn_server picks the server first."
         hook_on
+        install -d -m 0700 "$(dirname "$AUTO_FLAG")"
+        : > "$AUTO_FLAG"
         printf 'The tunnel will come up with the distro, server %s.\n' "$(server_var)"
         printf '   Nothing happens now: it is the next start of the distro that runs it.\n'
         ;;
     off)
-        hook_off
+        rm -f "$AUTO_FLAG"
         printf 'The distro will not bring the tunnel up.\n'
+        printf '   The boot hook stays: it also puts the base resolver back at each start.\n'
         printf '   A tunnel that is up right now stays up - gmake vpn_down takes it down.\n'
         ;;
     *)
@@ -722,11 +745,38 @@ cmd_auto() {
     esac
 }
 
+# The boot hook itself, whole: what the pack's install puts down and what its
+# removal takes back (`vpn.sh hook on|off`).
+cmd_hook() {
+    case "${1:-}" in
+    on)
+        hook_on
+        printf 'The boot hook is installed: the base resolver is put back at each start.\n'
+        ;;
+    off)
+        hook_off
+        printf 'The boot hook is removed.\n'
+        ;;
+    *)
+        die "hook takes 'on' or 'off'"
+        ;;
+    esac
+}
+
+# What the boot hook runs first, every start: the base resolver. /etc/resolv.conf
+# is openresolv's symlink into /run, and /run is empty at each start - without
+# this a restarted instance would resolve nothing at all until a vpn target ran.
+cmd_base() {
+    write_base_resolver
+}
+
 cmd_status() {
     local id count in_use ns exit_ip last
 
-    if is_up; then
+    if is_up && [ -f "$CONF" ]; then
         printf '   Tunnel      : up (%s)\n' "$IFACE"
+    elif is_up; then
+        printf '   Tunnel      : up (%s), no profile here - raised by another instance, or by an earlier start of this one\n' "$IFACE"
     else
         printf '   Tunnel      : down\n'
     fi
@@ -771,7 +821,7 @@ cmd_status() {
     exit_ip=$(curl -s --max-time 8 https://api.ipify.org 2>/dev/null || true)
     printf '   Exit IP     : %s\n' "${exit_ip:-unreachable}"
 
-    if hook_present; then
+    if auto_flag_present; then
         printf '   Starts with : the distro\n'
     else
         printf '   Starts with : nothing (gmake vpn_auto_on turns it on)\n'
@@ -815,6 +865,14 @@ auto)
     shift
     cmd_auto "$@"
     ;;
+hook)
+    shift
+    cmd_hook "$@"
+    ;;
+base)
+    shift
+    cmd_base "$@"
+    ;;
 *)
     cat <<'USAGE'
 usage: vpn.sh <command>
@@ -829,6 +887,9 @@ usage: vpn.sh <command>
   kill_switch on|off    the kill switch in the tunnel (this instance only),
                         and a remount - off also sweeps rules left behind
   auto on|off           bring the tunnel up with the distro
+  hook on|off           the boot hook itself - the installer and the removal
+                        drive it
+  base                  put the base resolver back (the boot hook's first move)
   edit_profiles         open ~/.config/vpn/servers.json in the editor
 
 Every command is a gmake target of the same name: gmake vpn_status, vpn_up,

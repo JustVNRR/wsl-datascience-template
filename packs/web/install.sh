@@ -131,6 +131,18 @@ apt-get update
 # --allow-downgrades\" on any machine where that stub was ever installed.
 apt-get install -y --no-install-recommends --allow-downgrades firefox"
 
+# The boot side, and it is installed now - not only when someone asks for the
+# automatic start: a [boot] command that puts the base resolver back at every
+# start of the distro. openresolv keeps its file in /run, /run is empty at each
+# start, and WSL leaves /etc/resolv.conf alone here (this pack writes
+# generateResolvConf = false): without the hook, a restarted instance would
+# resolve nothing at all until a vpn target ran. vpn_auto_on/off only decide
+# whether the same hook also raises the tunnel.
+if ! bash "$here/bin/vpn.sh" hook on; then
+    echo "The boot hook was not installed - run it by hand:"
+    echo "   bash ~/.config/packs/web/bin/vpn.sh hook on"
+fi
+
 # The sound, once the browser is there. Its audio process is sandboxed, and on
 # WSLg that sandbox is what keeps it away from the socket the sound travels
 # through: with the client library installed the browser still plays in silence
