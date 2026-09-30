@@ -160,16 +160,17 @@ endef
 # the web pack installs (openresolv): it is only ever a recommendation.
 #
 # One sudo, and the file is only written once the packages are there: a
-# half-enabled instance is not a state to leave behind. When the three are
-# already installed, nothing is asked and nothing is downloaded.
+# half-enabled instance is not a state to leave behind.
+#
+# The words speak of the state the user cares about, not of the packages:
+# installing says nothing once it is done, and "already enabled" is not read
+# from the file - PID 1 is asked. A running systemd answers alone; a flag in a
+# file answers nothing.
 systemd_up: ## Install systemd and turn it on for this instance (a restart boots it)
 	@$(call wsl_conf_set,boot,systemd,true); \
+	installed=0; \
 	if dpkg -s systemd-sysv libpam-systemd dbus-user-session >/dev/null 2>&1; then \
-		if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
-			echo "systemd is already installed and on."; \
-			exit 0; \
-		fi; \
-		printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+		installed=1; \
 	else \
 		echo ""; \
 		echo "Installing systemd, please wait..."; \
@@ -178,8 +179,15 @@ systemd_up: ## Install systemd and turn it on for this instance (a restart boots
 		rc=$$?; rm -f "$$tmp"; \
 		[ $$rc -eq 0 ] || { echo ""; echo "❌ The installation failed — /etc/wsl.conf was left untouched."; exit 1; }; \
 	fi; \
+	if [ "$$(ps -p 1 -o comm= 2>/dev/null)" = "systemd" ]; then \
+		echo "systemd is already enabled."; \
+		exit 0; \
+	fi; \
+	if [ $$installed -eq 1 ]; then \
+		printf '%s\n' "$$new" | sudo tee /etc/wsl.conf >/dev/null; \
+	fi; \
 	echo ""; \
-	echo "✅ systemd is installed and on."; \
+	echo "✅ systemd is enabled."; \
 	$(call apply_hint)
 
 systemd_down: ## Stop booting systemd for this instance (the packages stay installed)

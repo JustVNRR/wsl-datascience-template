@@ -87,8 +87,9 @@ distribution's `/sbin/init`, which comes from `systemd-sysv`. `systemd_up`
 installs three packages — `systemd-sysv`; `libpam-systemd` and
 `dbus-user-session`, which are what WSL's user session needs — about 22 MB
 together, and writes the line; `systemd_down` puts the line back to `false` and
-leaves the packages. When the three are already installed, nothing is
-downloaded and nothing is asked.
+leaves the packages. What it says follows the state, not the packages: nothing
+about the installation once it is done, and `systemd is already enabled` only
+when PID 1 really is systemd — the file's flag is not what answers.
 
 It installs with `--no-install-recommends`, like every apt line of the image,
 and names what it needs: that is also what keeps `systemd-resolved` out — a
