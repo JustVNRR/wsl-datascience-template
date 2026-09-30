@@ -1,5 +1,5 @@
 # ==========================================
-# TUNNEL CHEATSHEET (wireguard / proton)
+# TUNNEL CHEATSHEET (wireguard)
 # requires: wg
 # ==========================================
 # The `web` pack's tunnel: your servers are in ~/.config/vpn/servers.json, the

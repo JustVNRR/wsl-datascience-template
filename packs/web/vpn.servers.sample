@@ -1,9 +1,9 @@
 {
-  "note": "One entry per server. The id is what the menus show and what VPN_PROFILE names. The DNS (10.2.0.1) and the MTU (1420) are applied to every server without being written here; an entry may carry \"dns\", \"mtu\", or a peer \"persistent_keepalive\" of its own when a server needs one. Both keys and the address come from your Proton account: Downloads, 'WireGuard configuration'. gmake vpn_edit_profiles opens this file.",
+  "note": "One entry per server. The id is what the menus show and what VPN_PROFILE names. The DNS (10.2.0.1) and the MTU (1420) are applied to every server without being written here; an entry may carry \"dns\", \"mtu\", or a peer \"persistent_keepalive\" of its own when a server needs one. Both keys and the address come from the WireGuard configuration your provider gives you. gmake vpn_edit_profiles opens this file.",
   "servers": [
     {
-      "id": "proton",
-      "note": "the free server, NL",
+      "id": "server-1",
+      "note": "a name you pick; the menus show it",
       "address": "10.2.0.2/32, 2001:db8::2/128",
       "private_key": "PASTE-YOUR-PRIVATE-KEY-HERE",
       "peer": {

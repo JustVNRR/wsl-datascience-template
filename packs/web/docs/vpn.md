@@ -2,9 +2,9 @@
 
 [← Back to the README](../../../README.md#optional-tooling) · [The pack](web.md)
 
-A WireGuard tunnel inside the instance, driven by `gmake`, from the servers
-Proton gives your account. No Proton application is involved: the profile *is*
-the authentication.
+A WireGuard tunnel inside the instance, driven by `gmake`, from the
+configuration your provider gives you. No VPN client is involved: the profile
+*is* the authentication.
 
 It carries the traffic of this distro — Firefox, `curl`, `pip`, a `git push`. It
 does not cover Windows, your other distros, or Docker Desktop.
@@ -48,7 +48,7 @@ pack never writes in it.
 | Field | What it is |
 | :--- | :--- |
 | `id` | The name the menus show and `VPN_PROFILE` carries: letters, digits, dot, dash, underscore |
-| `address`, `private_key` | From your Proton file (Downloads → WireGuard configuration). Keep the IPv4 and the IPv6 address |
+| `address`, `private_key` | From the WireGuard configuration your provider hands you. Keep the IPv4 and the IPv6 address |
 | `peer.*` | The server's key, its address, what goes through the tunnel |
 | `note` | Yours |
 | `dns`, `mtu`, `peer.persistent_keepalive` | Optional. Without them: `10.2.0.1`, `1420`, none |
@@ -75,7 +75,7 @@ is gone at the next mount. If it is wrong, what writes it is wrong.
 
 | What you see | What it means |
 | :--- | :--- |
-| `sudo wg show` has no `latest handshake` line | The server never answered. The endpoint is the first suspect: Proton gives an IPv4 or an IPv6 address, and an instance with no IPv6 route cannot reach the second — `ip -6 route show` says whether there is one |
+| `sudo wg show` has no `latest handshake` line | The server never answered. The endpoint is the first suspect: the provider gives an IPv4 or an IPv6 address, and an instance with no IPv6 route cannot reach the second — `ip -6 route show` says whether there is one |
 | the exit IP is unreachable, handshake present | The traffic leaves but something eats it: lower the MTU (`"mtu": "1380"` in the entry), or the kill switch on a machine whose traffic should partly stay local |
 | no interface at all | `wg-quick`'s own words are on screen — they are printed when it fails |
 
@@ -133,6 +133,6 @@ terminal, VS Code, Docker Desktop.
 It leaves your servers, the `VPN_*` lines of `.env.global`, the profiles an older
 install kept in `/etc/wireguard`, `generateResolvConf = false`, and `~/.mozilla`.
 
-A key that leaks is revoked in your Proton account (WireGuard → delete the
-configuration): the entry on the machine stops working, and nothing else needs
+A key that leaks is revoked at your provider (delete that configuration): the
+entry on the machine stops working, and nothing else needs
 undoing.

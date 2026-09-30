@@ -6,7 +6,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
   - `python`: Python 3, `uv`, ruff and the compilation tools
   - `gcp`: the Google Cloud CLI
   - `vision`: ffmpeg, ImageMagick and Tesseract OCR
-  - `web`: Firefox, and a WireGuard tunnel to Proton VPN
+  - `web`: Firefox, and a WireGuard tunnel
   - `claude`: Claude Code, the agentic CLI
   - `pandoc`: Pandoc and XeLaTeX, to build a markdown document into a PDF
 
@@ -18,7 +18,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
 - **Modular targets** — `gmake` exposes its targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`, the PDF build with `pandoc`. They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
-- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to Proton VPN — the servers live in one JSON, the server in use and the kill switch are two lines of `.env.global` — and bring it up with the distro.
+- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to your WireGuard server — the servers live in one JSON, the server in use and the kill switch are two lines of `.env.global` — and bring it up with the distro.
 
 ---
 

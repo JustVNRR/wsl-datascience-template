@@ -10,7 +10,7 @@ graphical application — nothing is displayed inside the terminal.
 | :--- | :--- | :--- |
 | Firefox | browsing, from inside the instance | `firefox` |
 | the pack's function | opening it with the session bus the image does not have | `fox` |
-| the tunnel | the traffic, through your own Proton profile | [the tunnel's page](vpn.md) |
+| the tunnel | the traffic, through your own WireGuard profile | [the tunnel's page](vpn.md) |
 
 ## Installing and removing it
 
@@ -103,6 +103,6 @@ the pack does not delete it.
 
 ## The tunnel
 
-WireGuard, from the profile Proton gives your account, with the kill switch, the
+WireGuard, from the profile your provider gives you, with the kill switch, the
 DNS through `openresolv`, and the choice of what starts with the distro:
 [the tunnel's page](vpn.md).

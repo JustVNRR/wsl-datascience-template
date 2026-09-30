@@ -9,7 +9,7 @@
 #
 # Three files hold this half of the pack:
 #
-#   ~/.config/vpn/servers.json    your servers: one entry per Proton server, with
+#   ~/.config/vpn/servers.json    your servers: one entry per server, with
 #                                 its own keys. Yours - the pack seeds it from
 #                                 its sample, and never writes in it again.
 #   ~/.config/zsh/gmake/.env.global
@@ -51,7 +51,7 @@ SERVERS=$HOME/.config/vpn/servers.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 
 # The DNS and the MTU are constants of the generator, not variables: they are the
-# same for every Proton server, and duplicating them in each entry would be four
+# same for every server, and duplicating them in each entry would be four
 # lines to keep in step. An entry may carry "dns" or "mtu" of its own - a server
 # that needs another value wins - and then it is written here. The peer's
 # "persistent_keepalive" is the same arrangement: nothing by default, and a
@@ -509,7 +509,7 @@ cmd_edit_profiles() {
     fi
 
     printf 'ℹ️  One entry per server: the id, the address, the private key, and the peer.\n'
-    printf '   From your Proton file: Downloads, "WireGuard configuration".\n'
+    printf '   From the WireGuard configuration your provider gives you.\n'
 
     # The editor is yours: $EDITOR when it is set (one command, no arguments),
     # nano otherwise - nano is in the image, and it is what the cheatsheets use.

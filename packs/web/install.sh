@@ -187,7 +187,7 @@ else
         install -m 600 "$here/vpn.servers.sample" "$servers"
         echo "$servers is waiting for your keys - one entry per server, and"
         echo "   the file documents itself. Both keys and the address come from"
-        echo "   your Proton account: Downloads, 'WireGuard configuration'."
+        echo "   the WireGuard configuration your provider gives you."
         echo "   Then: gmake vpn_edit_profiles, and gmake vpn_up."
     fi
 fi
