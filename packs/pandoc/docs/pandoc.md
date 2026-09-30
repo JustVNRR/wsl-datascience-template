@@ -52,6 +52,9 @@ YAML header carries the bibliography and the citation style, and a LaTeX
 template shapes the PDF. Pandoc reads other formats (docx, html, LaTeX), and
 the day one of them is wanted, it is another target, named for it.
 
+The three `font_from_*` run from **anywhere** — they install a font for the
+machine, not for a project.
+
 A build that would **replace** an existing PDF or Word file asks first, in a
 menu: `overwrite`, `cancel`, `save as...` — the last one asks for the name.
 Escape is a cancel like any other. With no terminal to draw the menu on — a

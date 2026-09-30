@@ -15,8 +15,12 @@
 # source; the door stays open - pandoc reads docx, html, LaTeX - and the day
 # one of those is wanted, it is another target, named for what it takes.
 #
-# All five are ordinary project targets: the location gate holds them to the
-# root of a project under ~/projects, which is where the documents live.
+# The document targets are ordinary project targets: the location gate holds
+# them to the root of a project under ~/projects, which is where the documents
+# live. The three font_from_* are exempt, and declared so below: they install
+# a font for the MACHINE - a document is not their business, and the question
+# "which family do I have?" is asked from wherever one stands (his ask,
+# 2026-09-30: `gmake font_from_google` was refused from $HOME).
 #
 # The variables, each with a default that covers the ordinary case. They are
 # not named on the recipe lines: the socle's Makefile exports everything it
@@ -47,6 +51,8 @@
 #
 # A project fixes its own once, in its .env - `gmake env_project_enable`
 # appends this pack's sample - and the command line still wins over it.
+
+GATE_EXEMPT_GOALS += font_from_windows font_from_google font_from_ubuntu
 
 PDF_TEMPLATE ?= template.tex
 
