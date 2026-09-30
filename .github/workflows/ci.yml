@@ -191,7 +191,8 @@ jobs:
           for target in help packs_list env_global_enable env_global_manage env_project_enable env_project_manage \
                          wsl_config dns_resolve fstab_config wsl_status \
                          systemd_up systemd_down automount_up automount_down interop_up interop_down \
-                         windows_path_up windows_path_down fstab_up fstab_down; do
+                         windows_path_up windows_path_down fstab_up fstab_down \
+                         automount_check interop_check windows_path_check; do
             grep -q "^  ${target}[[:space:]]" help-bare.txt || {
               echo "::error::socle target '${target}' missing from the menu with no pack"
               bad=1

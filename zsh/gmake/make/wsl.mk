@@ -5,8 +5,9 @@
 # instance keeps outside ~/.config - /etc/wsl.conf, written whole by
 # first_boot.sh at the first boot; /etc/resolv.conf, which answers the DNS; and
 # /etc/fstab, the mounts to apply at start - the status that reports what it
-# runs on, and the ten switches that turn WSL's own features on and off
-# (systemd, automount, interop, the Windows PATH, fstab).
+# runs on, the ten switches that turn WSL's own features on and off (systemd,
+# automount, interop, the Windows PATH, fstab), and the three checks that
+# answer for the switches.
 #
 # The three files belong to root: the editors run under sudo, and nano is named
 # rather than $EDITOR - the instance's $EDITOR is `code --wait` whenever VS
@@ -14,19 +15,21 @@
 # It saves as the Windows user, who cannot write a file that belongs to root.
 # A terminal editor under sudo can.
 #
-# All fourteen run from anywhere: what they touch is the machine's, not a
+# All seventeen run from anywhere: what they touch is the machine's, not a
 # project's, and "how does this instance start?" is asked from wherever you
 # stand. They say so here rather than in the Makefile, like the env_global_*
 # two.
 GATE_EXEMPT_GOALS += wsl_config dns_resolve wsl_status fstab_config
 GATE_EXEMPT_GOALS += systemd_up systemd_down automount_up automount_down interop_up interop_down
 GATE_EXEMPT_GOALS += windows_path_up windows_path_down fstab_up fstab_down
+GATE_EXEMPT_GOALS += automount_check interop_check windows_path_check
 
 # Commands, not files: one of these names landing in the working directory must
 # not turn its target into a no-op.
 .PHONY: wsl_config dns_resolve wsl_status fstab_config
 .PHONY: systemd_up systemd_down automount_up automount_down interop_up interop_down
 .PHONY: windows_path_up windows_path_down fstab_up fstab_down
+.PHONY: automount_check interop_check windows_path_check
 
 # The closing line the switches print once the change is written: the command
 # that applies it, in green inside a yellow sentence - the colour `gmake help`
@@ -238,6 +241,18 @@ automount_down: ## Stop mounting the Windows drives (no more /mnt/c)
 	echo "✅ automount is off."; \
 	$(call apply_hint)
 
+# The three checks answer for the switches from the machine, not from the file:
+# what is mounted, what runs, what is in the PATH. They change nothing, take no
+# password, and one line comes out either way - the folders under /mnt are
+# empty when automount is off, so the mount table is what is asked, not `ls`.
+automount_check: ## Say whether the Windows drives are mounted under /mnt
+	@drives=$$(mount | grep -oE ' on /mnt/[a-z] type drvfs' | sed -e 's| on /mnt/||' -e 's| type drvfs||' | paste -sd, -); \
+	if [ -n "$$drives" ]; then \
+		echo "automount: mounted - the Windows drives ($$drives) are under /mnt."; \
+	else \
+		echo "automount: not mounted - the folders under /mnt are empty."; \
+	fi
+
 interop_up: ## Let the instance run Windows programs (the default)
 	@$(call wsl_conf_set,interop,enabled,true); \
 	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
@@ -260,6 +275,27 @@ interop_down: ## Stop running Windows programs from the instance
 	echo "✅ interop is off."; \
 	$(call apply_hint)
 
+# Interop is tried for real - a Windows binary is run - and the file is not
+# read. cmd.exe off a mounted drive first, because it works whatever the PATH
+# says; powershell.exe after, for an instance whose drives are out but whose
+# PATH is in. When neither is reachable, that is the answer.
+interop_check: ## Say whether Windows programs can be run from this instance
+	@if [ -x /mnt/c/Windows/System32/cmd.exe ]; then \
+		if /mnt/c/Windows/System32/cmd.exe /c exit 0 >/dev/null 2>&1; then \
+			echo "interop: on - a Windows program runs from here."; \
+		else \
+			echo "interop: off - the Windows drives are there, and nothing of theirs runs."; \
+		fi; \
+	elif command -v powershell.exe >/dev/null 2>&1; then \
+		if powershell.exe -NoProfile -Command 'exit 0' >/dev/null 2>&1; then \
+			echo "interop: on - a Windows program runs from here."; \
+		else \
+			echo "interop: off - powershell.exe is on the PATH and does not run."; \
+		fi; \
+	else \
+		echo "interop: nothing Windows to try - no drive is mounted and the Windows PATH is out."; \
+	fi
+
 windows_path_up: ## Add the Windows PATH to this instance's PATH (the default)
 	@$(call wsl_conf_set,interop,appendWindowsPath,true); \
 	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
@@ -281,6 +317,16 @@ windows_path_down: ## Keep the Windows PATH out of this instance's PATH (interop
 	echo ""; \
 	echo "✅ the Windows PATH is out."; \
 	$(call apply_hint)
+
+# Asked of the PATH itself: an entry under /mnt means the Windows folders are
+# in it, whatever the file says.
+windows_path_check: ## Say whether the Windows PATH is in this instance's PATH
+	@dirs=$$(printf '%s' "$$PATH" | tr ':' '\n' | grep -c '^/mnt/'); \
+	if [ "$$dirs" -gt 0 ]; then \
+		echo "windows_path: appended - $$dirs entries from /mnt are in the PATH."; \
+	else \
+		echo "windows_path: not appended - nothing from /mnt is in the PATH."; \
+	fi
 
 fstab_up: ## Apply /etc/fstab at every start (off until you say so)
 	@$(call wsl_conf_set,automount,mountFsTab,true); \

@@ -18,10 +18,13 @@ reports what the instance runs on.
 | `systemd_down` | Stop booting systemd (the packages stay installed) | — |
 | `automount_up` | Mount the Windows drives under `/mnt` at every start | — |
 | `automount_down` | Stop mounting the Windows drives | — |
+| `automount_check` | Say whether the Windows drives are mounted | — |
 | `interop_up` | Let the instance run Windows programs | — |
 | `interop_down` | Stop running Windows programs from the instance | — |
+| `interop_check` | Say whether Windows programs can be run from here | — |
 | `windows_path_up` | Add the Windows `PATH` to this instance's `PATH` | — |
 | `windows_path_down` | Keep the Windows `PATH` out of this instance's `PATH` | — |
+| `windows_path_check` | Say whether the Windows `PATH` is in this instance's `PATH` | — |
 
 ## The WSL file
 
@@ -78,6 +81,12 @@ comments stay, the section is created only when the file has none, and running
 the same one twice changes nothing. `interop_down` also silences the Windows
 block of `wsl_status` — with interop off, Windows is not reachable. The
 `windows_path` pair only matters while `interop` is on.
+
+Three of the pairs have a check — `automount_check`, `interop_check`,
+`windows_path_check` — that answers in one line and from the machine rather
+than from the file: whether the drives are mounted, whether a Windows program
+really runs, whether `/mnt` is in the `PATH`. The folders under `/mnt` stay
+there, empty, when automount is off; the check asks the mount table, not `ls`.
 
 ### What systemd brings
 
