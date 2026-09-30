@@ -293,7 +293,7 @@ interop_check: ## Say whether Windows programs can be run from this instance
 			echo "interop: off - powershell.exe is on the PATH and does not run."; \
 		fi; \
 	else \
-		echo "interop: nothing Windows to try - no drive is mounted and the Windows PATH is out."; \
+		echo "interop: nothing runs here - no drive is mounted and the Windows PATH is out."; \
 	fi
 
 windows_path_up: ## Add the Windows PATH to this instance's PATH (the default)
