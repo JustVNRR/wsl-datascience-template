@@ -2,8 +2,8 @@
 
 [← Back to the README](../../README.md#makefile-gmake)
 
-The instance's own files outside `~/.config`: the one that decides how it
-starts, and the one that answers its DNS.
+The instance's own settings outside `~/.config`: the two files WSL reads, and
+the command that reports what the instance runs on.
 
 ## Targets
 
@@ -11,6 +11,7 @@ starts, and the one that answers its DNS.
 | :--- | :--- | :--- |
 | `wsl_config` | Open `/etc/wsl.conf` in nano, under sudo | — |
 | `dns_resolve` | Open `/etc/resolv.conf` in nano, under sudo | — |
+| `wsl_status` | Report what the instance runs on | — |
 
 ## The WSL file
 
@@ -39,7 +40,19 @@ reports before opening it:
 while the file is a symlink, an edit through it is a change the neighbours see
 too.
 
-## What the commands do
+## The status command
+
+`wsl_status` changes nothing: it reads the instance and prints five blocks.
+
+| Block | Shows |
+| :--- | :--- |
+| The distribution and the kernel | `uname -r`, and `PRETTY_NAME` from `/etc/os-release` |
+| Init and systemd | what PID 1 is, and what `systemctl is-system-running` answers — `offline` in an instance built from this image, which ships the `systemd` package but not `/sbin/init` |
+| The local file | `/etc/wsl.conf`, or that it is absent |
+| The Windows-wide file | `%USERPROFILE%\.wslconfig`, read through interop — the path it looked at is printed either way |
+| Memory and services | `free -h`; systemd's services when it runs, the init.d ones otherwise |
+
+## The editors
 
 Both open their file in nano, under sudo: they belong to root, and an editor
 without sudo would show them and then refuse to save them.

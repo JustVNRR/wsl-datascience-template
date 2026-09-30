@@ -98,12 +98,12 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Any | [Environment files](docs/make/env.md) | `env_global_enable`, `env_global_manage`, `env_project_enable`, `env_project_manage` |
 | Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
-| Any | [WSL configuration](docs/make/wsl.md) | `wsl_config`, `dns_resolve` |
+| Any | [WSL configuration](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `wsl_status` |
 
 Everything else a project needs — its image, its pull requests — is a pack's.
 The socle's own menu stops at what an instance with no project can still do:
-carry packs, write the `.env` files it reads before it reads a single pack, and
-open `/etc/wsl.conf` and `/etc/resolv.conf`.
+carry packs, write the `.env` files it reads before it reads a single pack,
+report what it runs on, and open `/etc/wsl.conf` and `/etc/resolv.conf`.
 
 Then the packs. Each one is listed once — the README does not follow a pack as
 it grows, and a pack leaves with its folder:
