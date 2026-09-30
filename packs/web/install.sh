@@ -212,6 +212,7 @@ if ! make -f "$HOME/.config/zsh/gmake/Makefile" env_global_enable; then
 fi
 
 echo "Firefox is installed, and 'fox' opens it - its commands are in the picker (fcheat)."
+echo "Privacy defaults for it, when you want them: gmake fox_tweak_on   (docs/fox.md)"
 echo "WireGuard is installed: gmake vpn_status   (servers first, see docs/vpn.md)"
 if [ -L /etc/resolv.conf ] || grep -q 'generateResolvConf' /etc/wsl.conf 2>/dev/null; then
     echo "The DNS setting is read when the distro starts: restart it once"

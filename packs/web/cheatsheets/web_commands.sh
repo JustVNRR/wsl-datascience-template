@@ -28,6 +28,11 @@ pactl set-sink-volume @DEFAULT_SINK@ 50%       # Set it - +10% / -10% moves by a
 pactl set-sink-mute @DEFAULT_SINK@ toggle      # Cut the sound, and bring it back
 pactl list sinks short                         # What WSLg offers as an output (one: its own)
 
-# --- 4. FILES ON THIS MACHINE ---
+# --- 4. PRIVACY (the pack's defaults; about:config still wins over them) ---
+gmake fox_tweak_on                             # Apply the pack's privacy defaults (every profile, restart Firefox)
+gmake fox_tweak_off                            # Take them back out
+fox about:config                               # Where one value can be watched or relaxed
+
+# --- 5. FILES ON THIS MACHINE ---
 fox "$(wslpath 'C:\Users')"                    # Open a Windows folder through /mnt/c
 xdg-open report.pdf                            # Open any file with the default application

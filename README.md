@@ -18,7 +18,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
 - **Modular targets** — `gmake` exposes its targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`, the PDF build with `pandoc`. They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
-- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`; its `vpn_*` targets connect the instance to your WireGuard server — the servers live in one JSON, the settings in `.env.global` — and bring it up with the distro.
+- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`, with its privacy defaults (`fox_tweak_on`/`fox_tweak_off`) a target away; its `vpn_*` targets connect the instance to your WireGuard server — the servers live in one JSON, the settings in `.env.global` — and bring it up with the distro.
 
 ---
 
@@ -118,7 +118,7 @@ it grows, and a pack leaves with its folder:
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
 | `scaffold` | [Project scaffolding, the pack](packs/scaffold/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
-| `web` | [Web browser and tunnel](packs/web/docs/web.md) | `fox`, `vpn_*` |
+| `web` | [Web browser and tunnel](packs/web/docs/web.md) | `fox`, `fox_tweak_*`, `vpn_*` |
 
 The pack table is a pack's extremes: `devops` brings targets and no tool, `vision`
 brings a tool and no target — it installs ffmpeg, ImageMagick and Tesseract, and
@@ -271,8 +271,8 @@ the repository at runtime.
 │       ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
 │       ├── vpn.servers.sample  # the servers, in JSON, waiting for your keys
 │       ├── env.global.sample   # VPN_PROFILE and VPN_KILL_SWITCH, for .env.global
-│       ├── bin/             # the tunnel's script, and what the boot hook runs
-│       ├── make/            # its gmake module: the vpn_* targets
+│       ├── bin/             # the two scripts: the tunnel's, the browser's - and the boot hook's
+│       ├── make/            # its gmake modules: the vpn_* and the fox_tweak_* targets
 │       ├── zsh/             # its shell files: the `fox` function
 │       ├── cheatsheets/     # its fcheat sheets: the browser and the tunnel
 │       └── docs/            # the pack's pages, one per module

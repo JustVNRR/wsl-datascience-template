@@ -65,10 +65,13 @@ done
 echo "Leaving the browser's decoder and its sound client to the cleanup that follows..."
 sudo apt-mark auto libavcodec60 libpulse0 2>/dev/null || true
 
-# The default preference install.sh wrote, and nothing else: /usr/lib/firefox is
-# the browser's own directory, and the pack touches it in one place.
-echo "Removing the sound preference..."
-sudo rm -f /usr/lib/firefox/defaults/pref/wslg-audio.js
+# The two default preferences the pack writes - the sound one (install.sh) and
+# the privacy ones (gmake fox_tweak_on) - and nothing else: /usr/lib/firefox is
+# the browser's own directory, and these files are the only places the pack
+# touches it.
+echo "Removing the sound and privacy preferences..."
+sudo rm -f /usr/lib/firefox/defaults/pref/wslg-audio.js \
+           /usr/lib/firefox/defaults/pref/fox-privacy.js
 
 echo "Removing Mozilla's repository..."
 sudo rm -f /etc/apt/sources.list.d/mozilla.list \

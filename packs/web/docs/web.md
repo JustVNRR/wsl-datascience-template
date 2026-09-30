@@ -10,6 +10,7 @@ graphical application — nothing is displayed inside the terminal.
 | :--- | :--- | :--- |
 | Firefox | browsing, from inside the instance | `firefox` |
 | the pack's function | opening it with the session bus the image does not have | `fox` |
+| the privacy defaults | hardening, when you want it, and reversible | `fox_tweak_on`, `fox_tweak_off` |
 | the tunnel | the traffic, through your own WireGuard profile | [the tunnel's page](vpn.md) |
 
 ## Installing and removing it
@@ -97,6 +98,13 @@ two itself but asks the system for H.264. The pack installs that decoder
 (`libavcodec60`) with the browser; a hand-built instance can be missing it, and
 then a live stream answers *"your browser can't play this video"* while
 everything else plays.
+
+**The privacy defaults are one target away**: `gmake fox_tweak_on` writes a
+file beside the sound preference —
+`/usr/lib/firefox/defaults/pref/fox-privacy.js` — and `gmake fox_tweak_off`
+takes it back to the browser's own defaults. They are *defaults*: every
+profile, no name to guess, and `about:config` still wins. What they set, and
+what it changes while browsing: [the privacy page](fox.md).
 
 Your profile (`~/.mozilla`: bookmarks, passwords, history) is yours: removing
 the pack does not delete it.
