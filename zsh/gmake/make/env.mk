@@ -66,15 +66,14 @@ define merge_env_samples
 	readable=; \
 	for s in $(2); do [ -f "$$s" ] && readable="$$readable $$s"; done; \
 	if [ -z "$$readable" ]; then \
-		echo "❌ No sample to read: neither the socle nor an installed pack ships one for this file."; \
-		echo "   Nothing was written — $$target is unchanged."; \
+		echo "No sample to read: neither the socle nor an installed pack ships one for this file."; \
+		echo "Nothing was written - $$target is unchanged."; \
 		exit 1; \
 	fi; \
 	if [ ! -f "$$target" ]; then \
-		echo "📝 Creating $$target from the samples..."; \
+		echo "Creating $$target from the samples..."; \
 		: > "$$target"; \
 		for s in $$readable; do cat "$$s" >> "$$target"; done; \
-		echo "✏️  Fill in the values you need — each block documents its own."; \
 	else \
 		added=0; \
 		for s in $$readable; do \
@@ -87,9 +86,9 @@ define merge_env_samples
 			printf '%s\n' "$$missing" >> "$$target"; \
 		done; \
 		if [ $$added -eq 0 ]; then \
-			echo "ℹ️  $$target already defines every gmake variable — nothing to add."; \
+			echo "$$target already defines every gmake variable - nothing to add."; \
 		else \
-			echo "📝 Added the missing variables to $$target."; \
+			echo "Added the missing variables to $$target."; \
 		fi; \
 	fi
 endef

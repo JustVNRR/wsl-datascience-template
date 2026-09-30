@@ -148,7 +148,8 @@ else
         { echo "$profiles: the pack's own sample of providers does not parse - nothing was written." >&2; exit 1; }
     install -d -m 0700 "$(dirname "$profiles")"
     install -m 600 "$here/profiles.sample" "$profiles"
-    echo "A dictionary of providers is in place: $profiles (mode 600, waiting for your tokens)."
+    echo "A dictionary of providers is in place: $profiles."
+    echo "Fill it with your tokens."
 fi
 
 # The file the pack's variable lives in - CLAUDE_PROFILE is written into it by
@@ -192,9 +193,7 @@ else
     else
         chmod 600 "$tmp"
         mv "$tmp" "$settings"
-        echo "A status line was added to $settings - the pack's, on two rows."
     fi
 fi
 
 echo "Claude Code is ready."
-echo "   Next: gmake claude_status. gmake claude_profile picks a provider."
