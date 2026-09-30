@@ -13,12 +13,12 @@ does not cover Windows, your other distros, or Docker Desktop.
 
 | Target | What it does |
 | :--- | :--- |
-| `vpn_status` | Up or down, the server, the kill switch, the DNS, the exit IP, what the distro starts with |
+| `vpn_status` | Up or down, the server, the kill switch and where its rules are, the DNS, the exit IP, what the distro starts with |
 | `vpn_up [id]` | Connect. Naming a server — `gmake vpn_up VPN_PROFILE=NL72` — uses it for this call only |
 | `vpn_up_from_list` | Connect, picking the server in a menu |
 | `vpn_down` | Disconnect |
 | `vpn_server [id]` | The server the distro starts with, and switch to it now if a tunnel is up |
-| `vpn_ks_on` / `vpn_ks_off` | Put the kill switch in the tunnel, or take it out, and remount |
+| `vpn_ks_on` / `vpn_ks_off` | Put the kill switch in the tunnel, or take it out — the rules with it, from any instance — and remount |
 | `vpn_auto_on` / `vpn_auto_off` | Bring the tunnel up when the distro starts, or stop doing that |
 | `vpn_edit_profiles` | Open the JSON of servers in `$EDITOR` (nano when unset), then pick the server |
 
@@ -89,6 +89,10 @@ is gone at the next mount. If it is wrong, what writes it is wrong.
 `openresolv` owns `/etc/resolv.conf`: the profile's `DNS` — the entry's, the
 provider's — while the tunnel is up, `BASE_DNS` below it while it is down.
 
+The file itself is openresolv's symlink into `/run`, and `/run` is empty at
+every start of the distro: the pack's boot hook puts the base back at each
+start (see below), so a restarted instance is never left without a resolver.
+
 **WSL fights for that file.** It puts its own back at every start, even with
 `generateResolvConf = false`, and it answers the instance's DNS itself — so any
 nameserver resolves, and a missing file means no name resolution at all. To hand
@@ -105,30 +109,51 @@ everything back.
 
 ## The kill switch
 
-`gmake vpn_ks_on` writes `VPN_KILL_SWITCH=true` and puts two `iptables` lines in
-the profile; `vpn_ks_off` takes them out. To see them:
+`gmake vpn_ks_on` writes `VPN_KILL_SWITCH=true` and puts two `iptables` rules in
+the profile; `vpn_ks_off` takes them out. They reject what would leave outside
+the tunnel — **for this instance only**. All of a WSL box's distros share one
+kernel and one firewall, so each rule names this instance's own place in it
+(its cgroup), and a neighbour's traffic never meets them. To see them:
 
 ```bash
-sudo iptables -S OUTPUT | head -3     # two REJECT lines, one per address family
+sudo iptables -S OUTPUT | grep -c 'wsl-stack kill switch'   # 2, one per family
 ```
+
+Both rules carry that label so they can be found from anywhere: `gmake
+vpn_ks_off` sweeps whatever the label finds — tunnel or no tunnel, this
+instance or another — and `vpn_up` sweeps before raising, so a rule left
+behind by a mount that died cannot reject the tunnel that follows. `vpn_status`
+says what the kernel really holds (here, another instance, or nothing), which
+is not always what the variable was set to.
+
+One subtlety of that place: WSL numbers it **at every start of the distro**. A
+mount — the boot hook's included — rebuilds the profile first, so its rules
+always carry the current number; an instance restarted without its tunnel being
+remounted keeps rules that no longer match anything, until the next `vpn_up`,
+`vpn_ks_on` or `vpn_down` rewrites or clears them.
 
 While a tunnel is up, services running on Windows and reached through the WSL
 gateway are rejected too.
 
 ## Starting with the distro
 
-`gmake vpn_auto_on` writes this line in `/etc/wsl.conf`:
+The install writes this line in `/etc/wsl.conf`:
 
 ```ini
 [boot]
 command=/usr/local/sbin/web-vpn-boot
 ```
 
-The hook runs at each start of the distro and raises the tunnel the way
-`gmake vpn_up` does; what it did goes to `/var/log/web-vpn.log`, and
-`vpn_status` shows the last line of it. WSL stops a distro shortly after its last
-session closes, so "with the distro" means "whenever something starts it" — a
-terminal, VS Code, Docker Desktop.
+The hook runs at each start of the distro and does two things, on purpose
+separate: it puts the **base resolver** back — `/etc/resolv.conf` is
+openresolv's symlink into `/run`, and `/run` is empty at each start, so without
+it a restarted instance would resolve nothing until a vpn target ran — and it
+raises the tunnel **only when the automatic start is on**, which is what
+`gmake vpn_auto_on` and `vpn_auto_off` switch. What it did goes to
+`/var/log/web-vpn.log`, and `vpn_status` shows the last line of it.
+
+WSL stops a distro shortly after its last session closes, so "with the distro"
+means "whenever something starts it" — a terminal, VS Code, Docker Desktop.
 
 ## Removing the pack
 

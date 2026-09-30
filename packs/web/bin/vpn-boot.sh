@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE TUNNEL AT DISTRO START - WHAT WSL'S [boot] HOOK RUNS
+# THE RESOLVER AND THE TUNNEL AT DISTRO START - WHAT WSL'S [boot] HOOK RUNS
 # ==============================================================================
 # The pack's page says why this is not a systemd unit: systemd is not there by
-# default - the image ships none, and `gmake systemd_enable` adds it to the
+# default - the image ships none, and `gmake systemd_up` adds it to the
 # instance that wants it - so a unit would leave every other instance with a
 # tunnel that never comes up. The hook WSL offers - `command=` under `[boot]` -
 # is the one that works either way, with no unit, no timer and no journal.
 #
-# It is copied to /usr/local/sbin by `gmake vpn_auto_on`, runs as root, and
-# must never hold the distro back:
+# It is installed with the pack (`vpn.sh hook on`, which the install and the
+# removal call), runs as root, and does two separate things:
+#   1. the base resolver, ALWAYS: /etc/resolv.conf is openresolv's symlink into
+#      /run, and /run is empty at every start of a distro - without this, a
+#      restarted instance would resolve nothing at all until a vpn target ran;
+#   2. the tunnel, ONLY when the automatic start is on - the marker file
+#      `gmake vpn_auto_on` writes, read here from the instance's user's home.
+#
+# And it must never hold the distro back:
 #   - which server, and whether there is a kill switch, are not decided here:
 #     they are VPN_PROFILE and VPN_KILL_SWITCH in the user's .env.global, and the
 #     pack's own script writes the profile out of them. This file finds the
@@ -63,6 +70,20 @@ home=$(home_of_user) || {
     log "⚠️  no home carries the web pack - nothing was started."
     exit 0
 }
+
+# 1. The base resolver, tunnel or no tunnel - /run is empty at each start, so
+# the symlink alone would leave this instance with no name resolution at all.
+if HOME="$home" "$home/.config/packs/web/bin/vpn.sh" base >> "$LOG" 2>&1; then
+    log "base resolver put back."
+else
+    log "the base resolver could not be put back - 'gmake vpn_down' will say more."
+fi
+
+# 2. The tunnel, only when the automatic start is on. The marker is what
+# vpn_auto_on writes, and it is what vpn_status reads for its last line.
+if [ ! -e "$home/.config/vpn/auto" ]; then
+    exit 0
+fi
 
 # Already up: a session raised it, or this ran twice. Leave it alone.
 if /usr/bin/wg show interfaces 2>/dev/null | grep -qx vpn; then

@@ -38,7 +38,7 @@ claimed_elsewhere() {
 }
 
 echo "Taking the tunnel down, and removing its boot hook..."
-"$here/bin/vpn.sh" auto off
+"$here/bin/vpn.sh" hook off
 "$here/bin/vpn.sh" down
 
 echo "Removing the tunnel and the browser..."
