@@ -509,8 +509,7 @@ cmd_edit_profiles() {
     fi
 
     printf 'ℹ️  One entry per server: the id, the address, the private key, and the peer.\n'
-    printf '   Both keys and the address come from your Proton account:\n'
-    printf '   Downloads, "WireGuard configuration".\n'
+    printf '   From your Proton file: Downloads, "WireGuard configuration".\n'
 
     # The editor is yours: $EDITOR when it is set (one command, no arguments),
     # nano otherwise - nano is in the image, and it is what the cheatsheets use.
