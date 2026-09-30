@@ -205,7 +205,7 @@ write_env() {
     else
         printf '\n%s=%s\n' "$name" "$value" >> "$GLOBAL_ENV"
     fi
-    printf 'Wrote %s=%s (%s)\n' "$name" "$value" "$GLOBAL_ENV"
+    printf '\nWrote %s=%s (%s)\n' "$name" "$value" "$GLOBAL_ENV"
 }
 
 # --- the tunnel ---------------------------------------------------------------
@@ -438,7 +438,7 @@ cmd_server() {
         die "'$wanted' cannot be a server id: letters, digits, dot, dash and underscore only."
     fi
     if [ -f "$SERVERS" ] && [ "$(entries "$wanted")" != 1 ]; then
-        die "no server '$wanted' in $SERVERS. It holds: $(ids | paste -sd' ' -). gmake vpn_edit_profiles opens it."
+        die "no server '$wanted' in $SERVERS. It holds: $(ids | paste -sd' ' -). Run gmake vpn_edit_profiles to open it."
     fi
 
     write_env VPN_PROFILE "$wanted"
@@ -449,10 +449,10 @@ cmd_server() {
         printf 'Switching to %s now.\n' "$wanted"
         cmd_up "$wanted"
     else
-        printf 'It will be used by the next mount, and by the next start of the distro.\n'
+        printf 'Run gmake vpn_up or restart your distro to use this profile.\n'
     fi
     if ! hook_present; then
-        printf 'The automatic start is off - gmake vpn_auto_on turns it on.\n'
+        printf 'Run gmake vpn_auto_on to turn on automatic vpn activation.\n'
     fi
 }
 
@@ -497,9 +497,6 @@ cmd_edit_profiles() {
     if ! json_ok; then
         die "$SERVERS does not parse, and this will not open a broken file: $(jq . "$SERVERS" 2>&1 | head -n 1)"
     fi
-
-    printf 'One entry per server: the id, the address, the private key, and the peer.\n'
-    printf '   From the WireGuard configuration your provider gives you.\n'
 
     # The editor is yours: $EDITOR when it is set (one command, no arguments),
     # nano otherwise - nano is in the image, and it is what the cheatsheets use.
