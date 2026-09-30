@@ -29,19 +29,19 @@ there is a **default**, not an order.
 - `fox_tweak_off` is the file leaving: Firefox is back to its own defaults in
   one move — no `prefs.js` to rewrite, nothing half-applied.
 
-A `user.js` in a profile would force the values instead. The pack did not
-choose it: the profile only exists after a first launch, a running Firefox has
-to be refused, and taking one value back means editing `prefs.js` by hand.
+A `user.js` in a profile would force the values instead — more to guard
+(finding the profile, refusing a running Firefox, editing `prefs.js` back) for
+a strength this file does not need.
 
 ## What changes while you browse
 
-| You will notice | Why |
+| You will notice | The preference behind it |
 | :--- | :--- |
-| Pages in English, times in UTC | The anti-fingerprinting trade: one language and one time zone for everyone |
-| Grey margins around pages | Letterboxing — the window's size is standardized, and the margins fill the rest |
-| A warning page on an http-only site | HTTPS-only, with a button through |
-| A location request refused | Geolocation denied by default; one site can be allowed through the padlock |
-| Calls that will not work (Jitsi, Meet) | WebRTC is off — this instance has no camera anyway |
+| Pages in English, times in UTC | `privacy.resistFingerprinting` |
+| Grey margins around pages | `privacy.resistFingerprinting.letterboxing` |
+| A warning page on an http-only site | `dom.security.https_only_mode` |
+| Location requests refused | `permissions.default.geo` |
+| No calls (Jitsi, Meet) | `media.peerconnection.enabled` |
 
 The DNS is the tunnel's business: Firefox's own DNS-over-HTTPS is turned off so
 it cannot step around the tunnel ([the tunnel's page](vpn.md)).
