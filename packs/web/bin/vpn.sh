@@ -315,6 +315,16 @@ write_env() {
 
 # --- the tunnel ---------------------------------------------------------------
 
+# Is the generated profile there? It belongs to root - mode 600 in a 0700
+# /etc/wireguard - so a plain [ -f ] answers no from the user's side, and every
+# test below would read "no profile" on a machine where it is there all along
+# (measured: the user's test -f says 1, root's says 0, same file). This is what
+# made vpn_down announce "vpn.conf missing" while the status read the server's
+# name out of that very file. The question goes through sudo, like its reads.
+conf_present() {
+    as_root test -f "$CONF"
+}
+
 # Is a tunnel up? wg-quick names the interface after the file it read, and the
 # file is always vpn.conf - so the question is one comparison.
 is_up() {
@@ -471,7 +481,7 @@ write_base_resolver() {
 cmd_up() {
     local swept
 
-    if ip link show dev "$IFACE" >/dev/null 2>&1 && [ ! -f "$CONF" ]; then
+    if ip link show dev "$IFACE" >/dev/null 2>&1 && ! conf_present; then
         as_root ip link delete dev "$IFACE" 2>/dev/null || true
     fi
 
@@ -532,7 +542,7 @@ cmd_down() {
         return 0
     fi
 
-    if [ ! -f "$CONF" ]; then
+    if ! conf_present; then
         printf '%s missing: no profile here to take the interface down with, so it is left up - another instance, or an earlier start of this one, raised it. The rules and the resolver are put back.\n' "$CONF"
         swept=$(ks_sweep)
         if [ "$swept" -gt 0 ]; then
@@ -605,7 +615,7 @@ cmd_kill_switch() {
     # Only a tunnel this instance can remount - interface up, profile here - is
     # remounted at all: an interface a neighbour raised comes with no profile
     # of ours to read, and tearing it down would take their tunnel with it.
-    if is_up && [ -f "$CONF" ]; then
+    if is_up && conf_present; then
         wanted=$(server_var)
         [ "$(entries "$wanted")" = 1 ] ||
             die "the tunnel is up, and VPN_PROFILE names '$wanted', which $SERVERS does not hold any more. gmake vpn_server picks one, then try this again."
@@ -618,17 +628,17 @@ cmd_kill_switch() {
         # mount's (its PreDown), and the sweep takes back everything else the
         # label finds - a leftover from an instance that stopped mid-flight, a
         # rule from before a rebuild - from here, no tunnel required.
-        if is_up && [ -f "$CONF" ]; then
+        if is_up && conf_present; then
             printf 'Remounting the tunnel on %s, so this is true now.\n' "$wanted"
             cmd_up "$wanted"
         fi
         swept=$(ks_sweep)
         if [ "$swept" -gt 0 ]; then
             ks_swept_message "$swept"
-        elif ! is_up || [ ! -f "$CONF" ]; then
+        elif ! is_up || ! conf_present; then
             printf 'It applies to the next mount.\n'
         fi
-    elif is_up && [ -f "$CONF" ]; then
+    elif is_up && conf_present; then
         printf 'Remounting the tunnel on %s, so this is true now.\n' "$wanted"
         cmd_up "$wanted"
     else
@@ -773,7 +783,7 @@ cmd_base() {
 cmd_status() {
     local id count in_use ns exit_ip last
 
-    if is_up && [ -f "$CONF" ]; then
+    if is_up && conf_present; then
         printf '   Tunnel      : up (%s)\n' "$IFACE"
     elif is_up; then
         printf '   Tunnel      : up (%s), no profile here - raised by another instance, or by an earlier start of this one\n' "$IFACE"
