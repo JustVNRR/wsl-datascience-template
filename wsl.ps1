@@ -51,7 +51,8 @@ $Commands = @(
     @{ Name = "archive";    What = "write an instance to a named archive" },
     @{ Name = "restore";    What = "rebuild an instance from an archive" },
     @{ Name = "duplicate";  What = "copy an instance under another name" },
-    @{ Name = "shrink";     What = "reclaim the space an instance has freed" }
+    @{ Name = "shrink";     What = "reclaim the space an instance has freed" },
+    @{ Name = "wslconfig";  What = "open the Windows-wide WSL settings" }
 )
 
 # Bare, the repository asks its first question - which command - and it is a

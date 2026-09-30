@@ -102,7 +102,7 @@ wsl_status: ## Show what this instance runs on: base image, init, WSL's files, m
 		elif [ -f "$$wslconfig" ]; then \
 			cat "$$wslconfig"; \
 		else \
-			echo "No $$wslconfig - WSL runs with its own defaults."; \
+			echo "No $$wslconfig - WSL runs with its own defaults (.\wsl.ps1 wslconfig creates it)."; \
 		fi; \
 	fi
 	@printf '\n\033[36m=== Memory and services ===\033[0m\n'

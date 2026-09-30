@@ -389,6 +389,7 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 restore`](docs/wsl/commands.md#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](docs/wsl/commands.md#duplicate) | copy an instance under another name |
 | [`.\wsl.ps1 shrink`](docs/wsl/commands.md#shrink) | reclaim the space an instance has freed |
+| [`.\wsl.ps1 wslconfig`](docs/wsl/commands.md#wslconfig) | open the Windows-wide WSL settings |
 
 Each command, with its options, its examples and what it prints, is documented
 in [**Instance commands**](docs/wsl/commands.md).

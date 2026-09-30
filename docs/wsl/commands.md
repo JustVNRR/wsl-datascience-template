@@ -26,6 +26,7 @@ WSL Stack
     restore      rebuild an instance from an archive
     duplicate    copy an instance under another name
     shrink       reclaim the space an instance has freed
+    wslconfig    open the Windows-wide WSL settings
   up/down to move, Enter to choose, Escape to cancel
 ```
 
@@ -69,6 +70,7 @@ console has always had are used.
 | [`.\wsl.ps1 restore`](#restore) | rebuild an instance from an archive |
 | [`.\wsl.ps1 duplicate`](#duplicate) | copy an instance under another name |
 | [`.\wsl.ps1 shrink`](#shrink) | reclaim the space an instance has freed |
+| [`.\wsl.ps1 wslconfig`](#wslconfig) | open the Windows-wide WSL settings |
 
 ## Which WSL instances are ours
 
@@ -790,4 +792,25 @@ fails, nothing is compacted**.
 
 It works on a running instance as well as a stopped one, and leaves it in the
 state it was found in.
+
+---
+
+## `wslconfig`
+
+Opens the Windows-wide WSL settings, `%USERPROFILE%\.wslconfig`, with the
+application Windows gives that file.
+
+```powershell
+.\wsl.ps1 wslconfig
+```
+
+This is the machine's own file — the memory cap, the processors, the DNS
+tunnel, the networking mode — not an instance's `/etc/wsl.conf`, which is per
+distro and opened from inside with `gmake wsl_config`. When the file is not
+there, it is created commented, so it documents itself; Windows asks which
+application to use the first time if none is set for `.wslconfig`.
+
+A change here is read when the WSL machine starts. `.\wsl.ps1 restart` does not
+do that — it restarts one instance. Stop the machine with `wsl --shutdown`,
+then open an instance again.
 
