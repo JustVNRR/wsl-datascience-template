@@ -3,7 +3,7 @@
 # requires: pandoc
 # ==========================================
 # Pandoc, the LaTeX engine, the Windows Arial copy and the PDF tools the
-# `pandoc` pack installs (`.\wsl.ps1 add_pack`), and the five targets it adds.
+# `pandoc` pack installs (`.\wsl.ps1 add_pack`), and the seven targets it adds.
 # The pack is removed the same way; its page is packs/pandoc/docs/pandoc.md.
 # Offered only while pandoc is installed - the header above is what hides the
 # sheet when it was removed by hand.
