@@ -15,6 +15,7 @@ WSL Stack
     build        build an instance from the image
     start        start a stopped instance
     stop         stop a running instance
+    restart      restart an instance
     shell        open a shell inside an instance
     add_pack     install a pack into an instance
     remove_pack  uninstall a pack from an instance
@@ -57,6 +58,7 @@ console has always had are used.
 | [`.\wsl.ps1 build`](#build) | build an instance from the image |
 | [`.\wsl.ps1 start`](#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](#stop) | stop a running instance |
+| [`.\wsl.ps1 restart`](#restart) | restart an instance |
 | [`.\wsl.ps1 shell`](#shell) | open a shell inside an instance |
 | [`.\wsl.ps1 add_pack`](#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](#remove_pack) | uninstall a pack from an instance |
@@ -241,6 +243,33 @@ Running instances - the ones that can be stopped:
 the disk stays exactly as it is — stopping ends the running processes, it does
 not touch the disk. The script asks once before doing it, and the default is to
 go ahead.
+
+---
+
+## `restart`
+
+Stops an instance and starts it again, in one command.
+
+```powershell
+.\wsl.ps1 restart
+```
+
+Only running instances are listed — a stopped one has `start`:
+
+```text
+Running instances - the ones that can be restarted:
+   1.  template-bac                  1.1 GB
+   0.  Cancel
+```
+
+**Whatever is open in there and not saved is lost**, exactly as with `stop` —
+the script asks once before doing it, and the default is to go ahead. The disk
+is not touched: the instance comes back with everything it had written.
+
+It is what applies a change to the files WSL reads when it starts —
+`/etc/wsl.conf` and `/etc/resolv.conf`, which `gmake wsl_config` and
+`gmake dns_resolve` open. When it is back up, open it again from its Windows
+Terminal profile.
 
 ---
 

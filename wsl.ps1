@@ -41,6 +41,7 @@ $Commands = @(
     @{ Name = "build";      What = "build an instance from the image" },
     @{ Name = "start";      What = "start a stopped instance" },
     @{ Name = "stop";       What = "stop a running instance" },
+    @{ Name = "restart";    What = "restart an instance" },
     @{ Name = "shell";      What = "open a shell inside an instance" },
     @{ Name = "add_pack";   What = "install a pack into an instance" },
     @{ Name = "remove_pack"; What = "uninstall a pack from an instance" },

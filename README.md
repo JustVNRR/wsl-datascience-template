@@ -98,12 +98,12 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Any | [Environment files](docs/make/env.md) | `env_global_enable`, `env_global_manage`, `env_project_enable`, `env_project_manage` |
 | Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
-| Any | [WSL configuration](docs/make/wsl.md) | `wsl_config` |
+| Any | [WSL configuration](docs/make/wsl.md) | `wsl_config`, `dns_resolve` |
 
 Everything else a project needs — its image, its pull requests — is a pack's.
 The socle's own menu stops at what an instance with no project can still do:
 carry packs, write the `.env` files it reads before it reads a single pack, and
-open `/etc/wsl.conf`.
+open `/etc/wsl.conf` and `/etc/resolv.conf`.
 
 Then the packs. Each one is listed once — the README does not follow a pack as
 it grows, and a pack leaves with its folder:
@@ -337,6 +337,7 @@ deleting the distro deletes all of it.
 ~/.local/share/uv/           # the Python builds it downloaded, and their environments
 ~/.config/gcloud/            # The two GCP logins (gcp_auth_cli, gcp_auth_libs)
 /etc/wsl.conf                # Default user, systemd (first_boot.sh; reopened by gmake wsl_config)
+/etc/resolv.conf             # Name servers (WSL's, or yours; reopened by gmake dns_resolve)
 ```
 
 ---
@@ -364,8 +365,9 @@ changing one.
 
 ## Instance Administration (wsl.ps1)
 
-Instances are listed, built, started, stopped, opened, copied, archived,
-restored, compacted and removed from `wsl.ps1`, at the root of the repository.
+Instances are listed, built, started, stopped, restarted, opened, copied,
+archived, restored, compacted and removed from `wsl.ps1`, at the root of the
+repository.
 The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to type.
 
 | Command | What it does |
@@ -374,6 +376,7 @@ The scripts themselves live in `scripts\` — `wsl.ps1` is the only thing to typ
 | [`.\wsl.ps1 build`](docs/wsl/commands.md#build) | build an instance from the image |
 | [`.\wsl.ps1 start`](docs/wsl/commands.md#start) | start a stopped instance |
 | [`.\wsl.ps1 stop`](docs/wsl/commands.md#stop) | stop a running instance |
+| [`.\wsl.ps1 restart`](docs/wsl/commands.md#restart) | restart an instance |
 | [`.\wsl.ps1 shell`](docs/wsl/commands.md#shell) | open a shell inside an instance |
 | [`.\wsl.ps1 add_pack`](docs/wsl/commands.md#add_pack) | install a pack into an instance |
 | [`.\wsl.ps1 remove_pack`](docs/wsl/commands.md#remove_pack) | uninstall a pack from an instance |
