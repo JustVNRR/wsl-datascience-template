@@ -88,6 +88,10 @@ than from the file: whether the drives are mounted, whether a Windows program
 really runs, whether `/mnt` is in the `PATH`. The folders under `/mnt` stay
 there, empty, when automount is off; the check asks the mount table, not `ls`.
 
+Turning the drives off does not cut an instance off from its packs:
+`.\wsl.ps1 add_pack` travels through Windows' own share into the distro when
+nothing is mounted.
+
 ### What systemd brings
 
 The image ships none, and that is deliberate: nothing it starts is a service,

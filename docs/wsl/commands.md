@@ -333,6 +333,11 @@ Which one? (0 to cancel) 1
 Only the packs the instance does not have yet are offered. The packs are the
 folders under `packs\`: a folder carrying a `pack.conf` is a pack.
 
+The pack's files travel from the Windows checkout into the instance — through
+the mounted drives when they are there, and through Windows' own
+`\\wsl.localhost` share when the instance has them unmounted (`gmake
+automount_down`) — so a pack arrives either way.
+
 The list is the packs a **user** chooses. A pack that says `PACK_VISIBLE := no`
 in its `pack.conf` is never in it: it is a shared dependency — `devops` is the
 project targets several packs need — and it arrives with the pack that requires

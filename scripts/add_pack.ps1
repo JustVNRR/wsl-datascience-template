@@ -108,7 +108,7 @@ foreach ($Entry in $ToInstall) {
     $Code = 0
     if (-not (Copy-PackIntoInstance -DistroName $DistroName -PackPath $Entry.Path -Target $Target -ExitCode ([ref]$Code))) {
         Write-Host "[ABORT] Could not copy the pack's files into '$DistroName' (exit code $Code)." -ForegroundColor (Get-MessageColour error)
-        Write-Host "        The message above is the instance's own answer." -ForegroundColor (Get-MessageColour hint)
+        Write-Host "        The message above says what refused: the instance, or Windows." -ForegroundColor (Get-MessageColour hint)
         exit $Code
     }
 

@@ -203,19 +203,56 @@ function Test-PackScript {
 }
 
 # Copy a pack's folder into the instance - the whole of what "travelling" means.
-# It is copied from inside: the pack's own folder becomes the working directory,
-# which wsl.exe knows how to do with a Windows path (`--cd`), and `.` is then
-# all there is to name. No path translation on purpose: the obvious candidate is
-# `wslpath`, which the instance does not carry at all.
+# Two ways in, and which one is used is decided by asking the instance, before
+# anything is attempted:
+#
+#   - the usual one, the one every pack so far has travelled by: the pack's own
+#     Windows folder becomes the working directory - `--cd` has WSL translate it
+#     through the mounted drives - and `.` is then all there is to name. No path
+#     translation on purpose: the obvious candidate is `wslpath`, which the
+#     instance does not carry at all.
+#   - with the Windows drives unmounted - `gmake automount_down` - nothing
+#     under /mnt exists, `--cd` cannot be honoured, and the first way's copy
+#     ends on "cannot copy a directory into itself": WSL stayed in the home and
+#     the destination is inside it. The second way is Windows' own share into
+#     the running distro, \\wsl.localhost\<distro>: no drive needed, no interop,
+#     no password.
+#
+# The test is the very path's presence under /mnt, so the drive letter of the
+# pack decides, not a guess about the instance's settings. And whichever way it
+# travelled, the pack's scripts are made executable: the Windows side has no
+# Unix bit to carry, so the share route would arrive without one.
 function Copy-PackIntoInstance {
     param([string]$DistroName, [string]$PackPath, [string]$Target, [ref]$ExitCode)
 
     Invoke-InInstance -DistroName $DistroName -Command @("mkdir", "-p", $Target) -ExitCode $ExitCode -Quiet
     if ($ExitCode.Value -ne 0) { return $false }
-    # | Out-Host for the reason written above Invoke-PackScript: this function
-    # answers a value, and the copy must not speak through it.
-    Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", ".", "$Target/") -WorkingDirectory $PackPath -ExitCode $ExitCode | Out-Host
-    return ($ExitCode.Value -eq 0)
+
+    $ThroughTheDrives = "/mnt/" + $PackPath.Substring(0, 1).ToLower() + ($PackPath.Substring(2) -replace "\\", "/")
+    Invoke-InInstance -DistroName $DistroName -Command @("test", "-d", $ThroughTheDrives) -ExitCode $ExitCode -Quiet
+
+    $Copied = $false
+    if ($ExitCode.Value -eq 0) {
+        # | Out-Host for the reason written above Invoke-PackScript: this
+        # function answers a value, and the copy must not speak through it.
+        Invoke-InInstance -DistroName $DistroName -Command @("cp", "-r", ".", "$Target/") -WorkingDirectory $PackPath -ExitCode $ExitCode | Out-Host
+        $Copied = ($ExitCode.Value -eq 0)
+    } else {
+        $Unc = "\\wsl.localhost\$DistroName" + ($Target -replace "/", "\")
+        try {
+            Copy-Item -Path (Join-Path $PackPath "*") -Destination $Unc -Recurse -Force -ErrorAction Stop
+            $Copied = $true
+            $ExitCode.Value = 0
+        } catch {
+            Write-Host "  * pack copy  : the drives are unmounted here, so the pack went through Windows' own share - and Windows refused: $($_.Exception.Message)" -ForegroundColor (Get-MessageColour warning)
+            $ExitCode.Value = 1
+        }
+    }
+
+    if ($Copied) {
+        Invoke-InInstance -DistroName $DistroName -Command @("find", $Target, "-name", "*.sh", "-exec", "chmod", "+x", "{}", "+") -ExitCode $ExitCode -Quiet
+    }
+    return $Copied
 }
 
 # Run one of the pack's own scripts from inside its folder. Output streaming on
