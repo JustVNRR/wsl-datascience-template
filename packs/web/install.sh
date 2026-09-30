@@ -28,7 +28,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 declared=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
 
 if [ -z "$declared" ]; then
-    echo "❌ No PACK_PACKAGES found in $here/pack.conf" >&2
+    echo "No PACK_PACKAGES found in $here/pack.conf" >&2
     exit 1
 fi
 
@@ -50,7 +50,7 @@ done
 resolver_package=openresolv
 resolver_url=http://ftp.debian.org/debian/pool/main/o/openresolv/openresolv_3.12.0-1_all.deb
 
-echo "➕ Installing the tunnel and the browser (your password will be asked)..."
+echo "Installing the tunnel and the browser (your password will be asked)..."
 # DEBIAN_FRONTEND, so that a package reconfigured on the way never stops the
 # install to ask a question.
 sudo bash -c "set -eo pipefail
@@ -119,7 +119,7 @@ install -d -m 0755 /etc/apt/keyrings
 wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O /etc/apt/keyrings/packages.mozilla.org.asc
 gpg --show-keys --with-colons /etc/apt/keyrings/packages.mozilla.org.asc |
     grep '^fpr:::::::::35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3:' > /dev/null || {
-        echo \"❌ Mozilla's signing key is not the one this pack knows - nothing was installed.\"
+        echo \"Mozilla's signing key is not the one this pack knows - nothing was installed.\"
         rm -f /etc/apt/keyrings/packages.mozilla.org.asc
         exit 1
     }
@@ -156,9 +156,9 @@ if [ -d /usr/lib/firefox/defaults/pref ]; then
 pref("media.cubeb.sandbox", false);
 PREF
     sudo chmod 0644 "$pref_file"
-    echo "🔊 The sound reaches WSLg (media.cubeb.sandbox off, as a default)."
+    echo "The sound reaches WSLg (media.cubeb.sandbox off, as a default)."
 else
-    echo "ℹ️  No /usr/lib/firefox/defaults/pref: the sound was left alone."
+    echo "No /usr/lib/firefox/defaults/pref: the sound was left alone."
 fi
 
 # The servers, in one JSON in ~/.config/vpn (mode 600: it carries the private
@@ -170,22 +170,22 @@ fi
 #   - neither: the sample is copied over, and waits to be filled in.
 servers=$HOME/.config/vpn/servers.json
 if [ -f "$servers" ]; then
-    echo "ℹ️  $servers is already there - left untouched."
+    echo "$servers is already there - left untouched."
 else
     # The pack's own sample, checked before it is copied: a broken one would be
     # the user's file from the first minute, and jq is what reads it.
     jq -e . "$here/vpn.servers.sample" > /dev/null ||
         {
-            echo "❌ The pack's own sample of servers does not parse - nothing was written to $servers." >&2
+            echo "The pack's own sample of servers does not parse - nothing was written to $servers." >&2
             exit 1
         }
     if ! bash "$here/bin/vpn-migrate.sh" "$servers"; then
-        echo "ℹ️  Nothing was migrated - the pack's sample is used instead."
+        echo "Nothing was migrated - the pack's sample is used instead."
     fi
     if [ ! -f "$servers" ]; then
         install -d -m 0700 "$(dirname "$servers")"
         install -m 600 "$here/vpn.servers.sample" "$servers"
-        echo "📝 $servers is waiting for your keys - one entry per server, and"
+        echo "$servers is waiting for your keys - one entry per server, and"
         echo "   the file documents itself. Both keys and the address come from"
         echo "   your Proton account: Downloads, 'WireGuard configuration'."
         echo "   Then: gmake vpn_edit_profiles, and gmake vpn_up."
@@ -202,12 +202,12 @@ fi
 # broken one elsewhere would make it fail - that must not fail an install that
 # worked, so the message says what to run by hand instead.
 if ! make -f "$HOME/.config/zsh/gmake/Makefile" env_global_enable; then
-    echo "ℹ️  The variables were not merged - run 'gmake env_global_enable' yourself."
+    echo "The variables were not merged - run 'gmake env_global_enable' yourself."
 fi
 
-echo "✅ Firefox is installed, and 'fox' opens it - its commands are in the picker (fcheat)."
-echo "✅ WireGuard is installed: gmake vpn_status   (servers first, see docs/vpn.md)"
+echo "Firefox is installed, and 'fox' opens it - its commands are in the picker (fcheat)."
+echo "WireGuard is installed: gmake vpn_status   (servers first, see docs/vpn.md)"
 if [ -L /etc/resolv.conf ] || grep -q 'generateResolvConf' /etc/wsl.conf 2>/dev/null; then
-    echo "ℹ️  The DNS setting is read when the distro starts: restart it once"
-    echo "   (wsl.exe --terminate <distro>, from Windows) before the tunnel manages /etc/resolv.conf."
+    echo "The DNS setting is read when the distro starts: restart it once"
+    echo "   (.\wsl.ps1 restart, from Windows) before the tunnel manages /etc/resolv.conf."
 fi
