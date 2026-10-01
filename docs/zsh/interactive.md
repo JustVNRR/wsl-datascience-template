@@ -46,9 +46,9 @@ pack from Windows while a shell is open and the next prompt says so and
 restarts the shell; remove one and the next prompt does the same, which is the
 only way its commands can stop existing.
 
-So one command is all it takes — and the shell right after a change is the
-first one that sees it: the restart happens at a prompt boundary, which is why
-the command that noticed the change is the last one the old shell runs.
+The restart happens at a prompt boundary: the command that noticed the change
+is the last one the old shell runs, and the shell right after it is the first
+to see the pack — so one command is all it takes.
 
 A sheet can declare what it needs, in a comment on a line of its own:
 
@@ -56,11 +56,10 @@ A sheet can declare what it needs, in a comment on a line of its own:
 # requires: gcloud
 ```
 
-The picker then leaves that file out when `gcloud` is absent. `# requires:
-!gcloud` does the reverse — for a sheet that only makes sense while the tool is
-*missing*, typically the one holding the command that installs it. Nothing is
-recorded: the question is asked again at every `Alt + z`, so installing the
-tool by any means is enough.
+The picker then leaves that file out when `gcloud` is absent, and `# requires:
+!gcloud` does the reverse — for a sheet that only makes sense while the tool
+is *missing*. Nothing is recorded: the question is asked again at every
+`Alt + z`.
 
 ### Archives
 

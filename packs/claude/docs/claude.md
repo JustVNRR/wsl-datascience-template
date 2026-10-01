@@ -35,12 +35,8 @@ included.
 
 ## What it costs
 
-| | |
-| :--- | :--- |
-| the download | about 230 MB, a few minutes on a slow link |
-| one version on disk | **232 MiB** (measured: one 243 MB binary) |
-
-`gmake claude_status` shows what is on the disk; the last lines of the
+One version on disk is about 230 MB. `gmake claude_status` shows what is there,
+and the last lines of the
 [cheatsheet](../cheatsheets/claude_commands.sh) show how to reclaim it.
 
 ## Getting in
@@ -111,12 +107,11 @@ refused rather than applied.
 hold is what that entry says — which is how a token rotated in the file and not
 applied gets noticed.
 
-Third-party endpoints are named nowhere in Anthropic's documentation: what is
-documented is the *gateway* mechanism — "a proxy your organization runs" — and
-GLM, DeepSeek or Kimi are that mechanism pointed elsewhere. Some of what Claude
-Code does depends on Anthropic's own API and stops behind a gateway: the tool
-search, Remote Control, the dictation, and prompt caching unless the endpoint
-forwards `cache_control`.
+Third-party endpoints are the *gateway* mechanism Anthropic documents — "a proxy
+your organization runs" — pointed elsewhere, and some of what Claude Code does
+depends on Anthropic's own API and stops behind one: the tool search, Remote
+Control, the dictation, and prompt caching unless the endpoint forwards
+`cache_control`.
 
 ## Your projects
 
@@ -177,8 +172,7 @@ script.
 | `~/.claude/settings.json` | the settings the CLI reads at every start |
 
 `~/.local/bin` is already on the PATH — the socle exports it — and the installer
-is run with it there, so its leave-me-in-your-PATH note never appears, and
-nothing needs doing about your shell's configuration file.
+runs with it there, so its leave-me-in-your-PATH note never appears.
 
 ## The one on Windows is not this one
 

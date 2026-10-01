@@ -17,7 +17,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
 - **Command memory** — cheatsheets stored as plain files, injected into the prompt with `Alt + z`.
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
-- **Modular targets** — `gmake` exposes its targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`, the PDF build with `pandoc`. They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
+- **Modular targets** — `gmake` exposes its targets, and the packs add their own: `devops` (Docker, GitHub PRs), `gcp` (BigQuery, Cloud Run, VMs), `python` (lint, tests), `pandoc` (PDF). They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
 - **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`, on its light privacy profile, with `pfox` for the strict one in private; its `vpn_*` targets connect the instance to your WireGuard server — the servers live in one JSON, the settings in `.env.global` — and bring it up with the distro.
 
 ---
@@ -74,11 +74,11 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
 
 ## Makefile (`gmake`)
 
-- **Cascading configuration:**
-
-   - Only values shared across all projects belong in the shared `.env.global`
-   - Anything identifying a project (project ids, resource names) lives in its `.env`.
-   - Both are gitignored, and both are built from committed samples by [`gmake env_global_enable` / `gmake env_project_enable`](docs/make/env.md) — the socle's two, and the block each installed pack ships beside its modules. The commands only ever add what is missing.
+- **Cascading configuration** — what all projects share lives in
+  `.env.global`; what identifies one project lives in its own `.env`. Both are
+  gitignored and built from committed samples by [`gmake
+  env_global_enable` / `gmake env_project_enable`](docs/make/env.md), and the
+  commands only ever add what is missing.
 
 - **`gmake` vs `make`:**
   - Type `gmake` (without any arguments) to display a formatted help menu listing every gmake target (GCP compute, BigQuery, Docker, Cloud Run, etc.).
@@ -87,11 +87,10 @@ The shell experience is documented per topic under [`docs/zsh/`](docs/zsh/):
   - Use `gmake <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the `Makefile` in `~/.config/zsh/gmake`.
   - Use `make <target>` from `~/projects/<your-project-folder>` to run project relative tasks from the local `Makefile` in your current project folder.
 
-The gmake Makefile is split into one module per domain, each documented beside
-it. The socle's modules live under `gmake/make/`, their pages in
-[`docs/make/`](docs/make/); a pack carries its modules *and* its pages in the
-same folder, under `packs/` at the root of this repository — so a pack is one
-folder that can be lifted out whole. Indexed below along a project's lifecycle:
+The gmake Makefile is one module per domain, each documented beside it: the
+socle's under `gmake/make/`, with their pages in [`docs/make/`](docs/make/); a
+pack carries its modules *and* its pages in its own folder, so it can be lifted
+out whole. Indexed along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
@@ -102,13 +101,11 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 | Any | [The instance's own settings](docs/make/wsl.md) | `wsl_config`, `dns_resolve`, `fstab_config`, `wsl_status`, `systemd_*`, `automount_*`, `interop_*`, `windows_path_*`, `fstab_up`, `fstab_down` |
 
 Everything else a project needs — its image, its pull requests — is a pack's.
-The socle's own menu stops at what an instance with no project can still do:
-carry packs, write the `.env` files it reads before it reads a single pack,
-report what it runs on, open `/etc/wsl.conf` and `/etc/resolv.conf`, and turn
-WSL's own features — `systemd`, `automount`, `interop` — on and off.
+The socle stops at what an instance with no project can still do: carry packs,
+write the `.env` files, report what it runs on, open `/etc/wsl.conf` and
+`/etc/resolv.conf`, and turn WSL's features on and off.
 
-Then the packs. Each one is listed once — the README does not follow a pack as
-it grows, and a pack leaves with its folder:
+Then the packs — each listed once: a pack leaves with its folder.
 
 | Pack | Start here | Main targets |
 | :--- | :--- | :--- |
@@ -121,11 +118,9 @@ it grows, and a pack leaves with its folder:
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
 | `web` | [Web browser and tunnel](packs/web/docs/web.md) | `fox`, `pfox`, `fox_tweak_*`, `vpn_*` |
 
-The pack table is a pack's extremes: `devops` brings targets and no tool, `vision`
-brings a tool and no target — it installs ffmpeg, ImageMagick and Tesseract, and
-their commands go to the cheatsheet picker. `devops` and `scaffold` are the two
-nobody chooses: `python` and `gcp` require the first, `python` requires the
-second, and neither is in a list.
+The table holds a pack's extremes: `devops` brings targets and no tool,
+`vision` a tool and no target. `devops` and `scaffold` are the two nobody
+chooses — `python` and `gcp` require the first, `python` the second.
 
 What a pack is, what it must contain, and how to add one:
 [`docs/packs.md`](docs/packs.md). One reaches an instance with
@@ -159,12 +154,11 @@ leaves with `remove_pack`.
 
 ### Python & Data Science
 
-The image carries none of it: `uv`, Python 3, ruff and the four packages most
-wheels are compiled with (`build-essential`, `python3-dev`, `libffi-dev`,
-`libssl-dev`) arrive with the [`python` pack](packs/python/docs/python.md). The
-scaffolding tools come with
-[the `scaffold` pack](packs/scaffold/docs/scaffold.md), which `python` requires
-and which takes each tool from uv's cache the day it is first used.
+None of it is in the image: `uv`, Python 3, ruff and the compiler a wheel needs
+(`build-essential`, `python3-dev`, `libffi-dev`, `libssl-dev`) arrive with the
+[`python` pack](packs/python/docs/python.md); the scaffolding tools with
+[`scaffold`](packs/scaffold/docs/scaffold.md), which `python` requires and which
+takes each tool from uv's cache the day it is first used.
 
 ---
 
@@ -305,7 +299,7 @@ the repository at runtime.
 │       ├── ci.yml           # Static checks, then the code suites on Windows
 │       └── image.yml        # Rootfs image build (push/PR + weekly, catches upstream drift)
 ├── Dockerfile               # Rootfs build recipe: Ubuntu 24.04 and the socle's tools
-├── first_boot.sh            # User creation, Systemd, sudo access
+├── first_boot.sh            # User creation, sudo, timezone, /etc/wsl.conf
 ├── wsl.ps1                  # The way in: one command at the root, the scripts in scripts\
 ├── .dockerignore            # Keeps the context lean, keeps .env.global out of the image
 ├── .gitattributes           # Enforces strict LF line endings for shell scripts
@@ -357,18 +351,14 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 
 | Workflow | Runs on | What it proves |
 | :--- | :--- | :--- |
-| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the colour codes confined to the colour files, the makefile parses with a complete help menu, the docs and cheatsheets stay in sync with the `gmake` modules — and eight suites on Windows drive the real code: the arrow menu with a scripted keyboard, the pack checklist, `build`'s questions over a stand-in docker, the icon a name draws, the icon, font and colour commands on an instance of their own, and the colour a message takes on schemes the test writes out |
+| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck, `zsh -n`, the ASCII-only rule for `.ps1` files, the colour codes confined to their files, the makefile parses with a complete help menu, docs and cheatsheets in sync with the `gmake` modules — then eight suites on Windows drive the real code |
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
 They check the **repository** — the files, and the code run against stand-ins,
-never a running distro — so none of them replaces a real `.\wsl.ps1 build` run.
-
-The weekly run is the point of `image.yml`: it does not check your last edit, it
-catches **upstream drift** — a package that moved, a URL that changed — while the
-repository sits untouched, so an upcoming rebuild does not surprise you.
-
-Each workflow is documented in full at the top of its own file: read that before
-changing one.
+never a running distro — so none replaces a real `.\wsl.ps1 build` run. The
+weekly `image.yml` run is the one that catches **upstream drift** — a package
+that moved, a URL that changed — while the repository sits untouched. Each
+workflow is documented in full at the top of its own file.
 
 ---
 

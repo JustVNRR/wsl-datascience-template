@@ -8,9 +8,8 @@ that install and remove it, all of it living in one folder under `packs/`. The
 socle knows nothing about any particular pack: it finds the folders and loads
 what they carry. Adding a pack touches no file outside that folder.
 
-A pack needs no tool: `devops` is targets and nothing else — the mirror of
-`vision`, which is a tool and no target. What a pack brings is what its folder
-carries, and a folder may carry one of the two, or both.
+A pack needs no tool: what it brings is what its folder carries, and that may be
+targets, a tool, or both — `devops` is targets only, `vision` a tool only.
 
 ## The folder
 
@@ -27,12 +26,10 @@ packs/<name>/
 └── docs/*.md              # its pages: one per module, and whatever else it needs
 ```
 
-Only the first three are always there. The rest is what the pack needs: `vision`
-brings no target, no variable of its own and no sample — its folder is a
-`pack.conf`, two scripts, a sheet and a page. `devops` is the other extreme, with
-no package to install — its folder carries modules, one sample and its pages,
-and its two scripts have nothing to do but say so. `scaffold` is both at once:
-one package to install (uv), targets, a sheet, a sample and its pages.
+Only the first three are always there; the rest is what the pack needs. `vision`
+is a `pack.conf`, two scripts, a sheet and a page — no target, no variable of
+its own. `devops` is the other extreme: modules and pages, no package to
+install. `scaffold` is both at once — one package (uv), targets and pages.
 
 An `install.sh` ends with one of three answers, and the third is the user's:
 
@@ -42,25 +39,18 @@ An `install.sh` ends with one of three answers, and the third is the user's:
 | `1` | the installation failed | its folder goes back out — the folder is what the menu reads, and a pack with no tool behind it is a menu that lies |
 | `2` | **the user was asked something and said no** | the same, but nothing failed: the run goes on, and no caller reports anything |
 
-The `claude` pack is the case that exists: it warns before adding a second copy
-of a program that is already installed on Windows and visible from the instance
-through `/mnt/c`. Yes is the default there, and the decline is an explicit `n` —
-which is an answer, so nothing is asked again; the pack simply is not installed.
+The `claude` pack is the case: it warns before adding a second copy of a program
+already installed on Windows and visible through `/mnt/c`. Yes is the default; a
+decline is an explicit `n` — an answer like any other.
 
-**A pack that asks must be able to be answered**, and that is the install
-script's business, not the socle's. A pack arrives because it was chosen — a box
-ticked in the checklist `build` asks before it builds, a row picked from the list
-`add_pack` shows — so with no answer to read, an `install.sh` must not decline:
-it installs. A build once announced a pack as installed while its script had
-declined to nobody and thrown its own folder away, which is the shape of the
-mistake: a choice is an answer, and the welcome screen states what happened.
+**A pack that asks must be able to be answered** — the install script's
+business, not the socle's. A pack arrives because it was chosen, so with no
+answer to read an `install.sh` must not decline: it installs. A choice is an
+answer.
 
-The same holds at the other end: a `remove.sh` may ask too — the `claude` pack
-asks whether to keep the data the tool left behind — and with no answer to read,
-the default has to be the one that destroys nothing: a removal with nobody at the
-keyboard must not take away what cannot be fetched again. Removing an instance
-never goes through a `remove.sh` at all: the distro is unregistered whole, packs
-and data together.
+The same holds at the other end — a `remove.sh` may ask too — and with no answer
+to read, the default must destroy nothing. Removing an instance never goes
+through a `remove.sh` at all: the distro is unregistered whole.
 
 ## `pack.conf`
 
@@ -87,20 +77,15 @@ nothing else: a pack is installed exactly when its folder is in
 the tool together. Nothing is recorded anywhere, so nothing can disagree with
 what is on the machine.
 
-`gmake help` follows the same rule as ever: it is built by reading the **text**
-of the files make loaded, so a pack whose folder is gone contributes no line at
-all. That is why the two-faced arrangement this replaces — a module loaded only
-when a given binary was on the PATH — had to go: it made a pack's commands
-appear or disappear for a reason that was not the pack's presence.
+`gmake help` follows the same rule: it is built by reading the **text** of the
+files make loaded, so a pack whose folder is gone contributes no line at all.
 
-A pack's targets are ordinary ones, with one thing they can declare themselves:
-a target that only makes sense from `~/projects` (scaffolding) says so in its
-module — `SCAFFOLD_GOALS += copier_project cruft_project ccds_project`, in
+A pack's targets are ordinary ones, with one thing they can declare: a target
+that only makes sense from `~/projects` (scaffolding) says so in its module —
+`SCAFFOLD_GOALS += copier_project cruft_project ccds_project`, in
 `packs/scaffold/make/project-setup.mk` — and the location gate in the Makefile
 reads that declaration. The gate is checked after the modules are loaded,
-precisely so it can: `$(error)` fires when make *reads* the line, and a target
-nobody declares would be treated as a project target and refused from
-`~/projects` with a message about a project root that is not the point.
+precisely so it can: `$(error)` fires when make *reads* the line.
 
 A pack also curates its own template catalog (`cheatsheets/templates.tsv`), and
 the `scaffold` pack's `fnew` reads every installed pack's, showing each row with
@@ -113,9 +98,8 @@ copied and left alone.
 Removing is the same story from the other end: `.\wsl.ps1 remove_pack` runs the
 pack's own `remove.sh` first, then deletes the folder, then takes back the
 dependencies that came in with the pack and that no `remove.sh` ever named —
-they are the bulk of the weight (the vision pack leaves 203 packages and
-462 MB behind). What the install wrote in your files — a login, a `.env` you
-filled in — stays, because it is yours and not the pack's. The rule that
+the bulk of the weight. What the install wrote in your files — a login, a `.env`
+you filled in — stays, because it is yours and not the pack's. The rule that
 decides what may go is in [Instance commands](wsl/commands.md#remove_pack).
 
 Several packs at once go through `.\wsl.ps1 manage_packs`, which is a checklist
@@ -155,18 +139,14 @@ either one would pull the base out from under a pack still installed. It arrives
 with the pack that requires it, it leaves with the last one that does, and it is
 never alone.
 
-`devops` and `scaffold` are the two of them, each the mirror of `vision` in its
-own way: `devops` is the project targets `python` and `gcp` both need, and
-`scaffold` is the act of creating a project — which `python` needs, and which is
-not python.
+`devops` and `scaffold` are the two: the project targets `python` and `gcp`
+both need, and the act of creating a project.
 
-They are required for what they bring, not for a macro: `gcp` reads
-`PACKAGE_NAME` and `DOCKER_BASE_IMAGE`, whose sample is `devops`'s; `python`
-fabricates the projects its targets build, push and configure, and it is the pack
-that has something to do once a template has been copied
-(`SCAFFOLD_AFTER_python`). What a target *calls* — `check_vars`,
-`confirm_action` — is the socle's, loaded with every module, and a pack that
-writes a target declares nothing.
+They are required for what they bring, not for a macro: `devops` ships the
+sample that carries `PACKAGE_NAME` and `DOCKER_BASE_IMAGE`; `scaffold` is what
+runs once a template has been copied (`SCAFFOLD_AFTER_python`). What a target
+*calls* — `check_vars`, `confirm_action` — is the socle's, loaded with every
+module.
 
 ## Two packs, one package
 
@@ -185,22 +165,18 @@ and the last pack to want it takes it away with it.
 What apt never sees goes through the same question. A tool a pack installs
 itself — a binary under `~/.local`, outside dpkg's graph — is declared in
 `PACK_OUTSIDE_APT`, and its `remove.sh` asks before erasing a single file. `uv`
-is the case that exists: `python` uses it for a project's environment, `scaffold`
-for every tool it runs, so the first of the two to leave leaves it where it is
-and the last one takes it away, with the interpreter it downloaded and its
-cache.
+is the case: `python` uses it for a project's environment, `scaffold` for every
+tool it runs, so the first to leave leaves it and the last takes it away.
 
 Two things a `remove.sh` never does:
 
 - **`autoremove` from inside a `remove.sh`.** apt removes the package it is
-  given and leaves its dependencies alone — measured: taking `tesseract-ocr`
-  away leaves `libtesseract5` behind. Those dependencies are taken back, but by
-  `remove_pack`, not by the pack: "does anything still need this?" is a question
-  about the whole instance — apt for what apt installed, `ldd` for the programs
-  living outside its graph — and a pack cannot see the instance it lands in.
-- **Remove a library.** apt *does* take the programs that depend on it along
-  when a library goes (measured, and it says so before doing it). A pack names
-  programs.
+  given and leaves its dependencies alone — taking `tesseract-ocr` away leaves
+  `libtesseract5` behind. Those are taken back by `remove_pack`, not by the
+  pack: "does anything still need this?" is a question about the whole
+  instance, and a pack cannot see the instance it lands in.
+- **Remove a library.** apt takes the programs that depend on it along when a
+  library goes — and says so before doing it. A pack names programs.
 
 A library a program loads **at runtime** is a third case, and the one the two
 rules above do not cover: apt cannot see the need (the program asks for it by
@@ -213,9 +189,8 @@ cleanup `remove_pack` runs afterwards takes it back. `web` is the case that
 exists: Firefox loads `libavcodec60` for H.264 and `libpulse0` for the sound,
 and nothing declares either.
 
-What this buys: no pack has to be cut to avoid an overlap, and no one has to
-arbitrate who owns what. A pack that needs a package installs it, whether or
-not a neighbour already did.
+No pack has to be cut to avoid an overlap: a pack that needs a package installs
+it, neighbour or not.
 
 ## The cheatsheets
 
@@ -228,9 +203,7 @@ time it opens:
 ```
 
 A tool removed by hand (`sudo apt remove google-cloud-cli`) leaves a folder
-behind and a sheet whose commands would not run: the header hides it. That is
-the whole job it has left — the sheets it used to pair with, for installing and
-uninstalling the tool, went with the gate.
+behind and a sheet whose commands would not run: the header hides it.
 
 ## The variables
 
@@ -239,10 +212,3 @@ A pack ships samples, never the real files. `gmake env_global_enable` and
 and append only what the file does not already define — so a value you filled
 in survives, and a pack installed later is covered by the next run. See
 [Environment files](make/env.md).
-
-## Not yet
-
-One field has no reader, and is absent for that reason: `PACK_CONTRACT` — the
-version of this contract, which no instance has ever met another of, since the
-packs and the installer still come from the same checkout. A field nothing
-reads is not a safety.

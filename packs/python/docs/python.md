@@ -18,13 +18,11 @@ menu and the cheatsheets are what it runs on.
 
 Python itself is **not** the system's, unless a project asks for a version the
 distro happens to carry. A `.venv` runs on the version the project asks for
-(`.python-version`, `requires-python`), and uv serves it in this order: its own
-build when it has that version, the distro's interpreter when that is the one
-that matches, a download when neither does. That order is uv's default
-(`python-preference` is `managed`: a system python is still preferred over
-downloading one). A project that asks for nothing runs on the build this pack
-installed — and so do the tools `fnew` drives. Nothing here is global, so
-nothing needs a password once the pack is installed.
+(`.python-version`, `requires-python`), and uv serves it in its own default
+order: its own build when it has that version, the distro's interpreter when
+that is the one that matches, a download when neither does. A project that asks
+for nothing runs on the build this pack installed — as do the tools `fnew`
+drives. Nothing here is global: no password after the pack is installed.
 
 The tools that create a project — copier, cruft, ccds — are not here: they come
 with the `scaffold` pack, which takes each one from uv's cache the day it is

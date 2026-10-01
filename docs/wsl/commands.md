@@ -30,26 +30,19 @@ WSL Stack
   up/down to move, Enter to choose, Escape to cancel
 ```
 
-It is the same menu every command shows when it asks something - the
-instances, the packs, the archives - and it is answered the same way. Where
-there is no console to read a key from (a script, a pipe), that menu becomes
-the numbered prompt it used to be, and the answer is typed.
+The same menu every command shows when it asks something — the instances, the
+packs, the archives — answered the same way. Where there is no console to read
+a key from (a script, a pipe), it becomes the numbered prompt, and the answer is
+typed.
 
 Going down a level, or coming back up, clears the screen: a visit is one menu at
-a time, and nothing is ever drawn over something else. The price, and it is the
-one that was chosen over a cleverer arrangement: what was above — the output of
-the command before, what was typed — goes with it. With no console there is
-nothing to clear, so a run whose answers are piped in keeps every line: a log is
-read, not looked at.
+a time, and the output above goes with it. A run whose answers are piped in
+keeps every line — a log is read, not looked at.
 
-Every line is a message, and a message says what it **is** rather than what
-colour to write it in: an error, a warning, a success, a detail, a hint. The
-colour comes from the colour scheme of the Windows Terminal profile the command
-runs in — that scheme's own red, yellow, green or text colour, the version of
-each that is read on its background — so the output stays readable on a dark
-scheme and on a light one, and changing the scheme changes it. Where there is no
-scheme to read (a console window, another terminal, a script), the colours a
-console has always had are used.
+Every line says what it **is** rather than what colour to write it in, and takes
+that kind's colour from the colour scheme of the window it is written in — so
+the output stays readable on a dark scheme and on a light one. With no scheme to
+read, the colours a console has always had are used.
 
 ## All commands
 
@@ -123,14 +116,11 @@ Archives in D:\WSL\archives (most recent first):
 
 ### Folders left behind by an unregistered instance
 
-Removing an instance happens in two steps:
-
-- Windows forgets the distribution.
-- Then the folder and its multi-gigabyte disk are erased.
-
-The second step sometimes fails. Windows no longer knows the instance, but the folder is still there, marker included, taking up room.
-
-In that case `list` says it exists, what it weighs, and that it has to be deleted by hand:
+Removing an instance happens in two steps — Windows forgets the distribution,
+then the folder and its disk are erased — and the second sometimes fails. The
+folder stays, marker included, taking up room; no instance claims it and no
+command removes it. `list` says it exists, what it weighs, and that it is to be
+deleted by hand:
 
 ```text
 Folders left behind by an instance that is gone:
@@ -159,11 +149,10 @@ Name of the instance (CTRL+C to abort): ubuntu-ml-dev
 Create [D:\WSL\ubuntu-ml-dev]? [Y/n]
 ```
 
-The name is checked as it is typed (letters, digits, `.`, `_`, `-`). The
-location is then shown and confirmed — Enter accepts it, and it is the folder
-every other command writes to. Answer `n` to put the disk somewhere else: the
-folder question follows, and the path that comes out of it is shown and
-confirmed in turn.
+The name is checked as it is typed (letters, digits, `.`, `_`, `-`), then the
+location is shown and confirmed — Enter accepts it, and it is the folder every
+other command writes to. Answer `n` to put the disk somewhere else: the folder
+question follows.
 
 An answer that cannot be used comes back with the reason, and the question is
 asked again:
@@ -174,9 +163,8 @@ asked again:
 
 Docker Desktop must be running: the script checks before asking anything.
 
-If an instance already carries the name, the script shows a red warning and
-asks you to **type the exact name** to confirm. Anything else aborts: the
-rebuild erases that instance and everything in it.
+If an instance already carries the name, it shows the red warning and asks you
+to **type the exact name**: a rebuild erases that instance and everything in it.
 
 The packs are the last question, asked before anything is created:
 
@@ -192,13 +180,11 @@ A rebuild arrives with the boxes ticked for what the instance being replaced
 carries, so its packs come back without being chosen again. What is ticked is
 summarised and confirmed as in `manage_packs` — one question for the whole list.
 
-They are installed **once the instance exists** — after the deployment, and
-before the screen that announces it, which carries the outcome on its `* Packs`
-line. One whose installation fails does not fail the build: the instance is
-built, the pack's files are taken back out, and the build ends normally, naming
-the pack and pointing at `.\wsl.ps1 manage_packs` to finish. The screen the shell
-opens on repeats the same news, since the deployment summary is cleared away when
-that shell starts.
+They are installed **once the instance exists** — after the deployment, and the
+`* Packs` line of the screen that announces it carries the outcome. A pack that
+fails to install does not fail the build: the instance is built, the pack's
+files are taken back out, and the build names the pack and points at
+`.\wsl.ps1 manage_packs`. The shell that opens repeats the same news.
 
 ---
 
@@ -241,10 +227,9 @@ Running instances - the ones that can be stopped:
    0.  Cancel
 ```
 
-**Whatever is open in there and not saved is lost.** What is already written on
-the disk stays exactly as it is — stopping ends the running processes, it does
-not touch the disk. The script asks once before doing it, and the default is to
-go ahead.
+**Whatever is open in there and not saved is lost.** What is written on the
+disk stays: stopping ends the running processes, it does not touch the disk.
+Asked once, and the default is to go ahead.
 
 ---
 
@@ -264,9 +249,9 @@ Running instances - the ones that can be restarted:
    0.  Cancel
 ```
 
-**Whatever is open in there and not saved is lost**, exactly as with `stop` —
-the script asks once before doing it, and the default is to go ahead. The disk
-is not touched: the instance comes back with everything it had written.
+**Whatever is open in there and not saved is lost**, exactly as with `stop`.
+The disk is not touched: the instance comes back with everything it had
+written.
 
 It is what applies a change to the files WSL reads when it starts —
 `/etc/wsl.conf` and `/etc/resolv.conf`, which `gmake wsl_config` and
@@ -354,11 +339,8 @@ it, before it, in the same run:
 ```
 
 **It asks for your password.** The packages and the APT address belong to root;
-the pack's `install.sh` runs as you inside the instance and takes `sudo` where
-it needs to. The prompt appears in this window, in the middle of the
-installation. An instance built with [passwordless
-sudo](#build) asks nothing at all — the rule was written into
-`/etc/sudoers.d/` when the account was made.
+the pack's `install.sh` runs as you and takes `sudo` where it needs to. An
+instance built with [passwordless sudo](#build) asks nothing at all.
 
 Nothing has to be reopened afterwards: `gmake` reads the pack's files at every
 run, and `fcheat` re-reads its cheatsheets at every opening.
@@ -409,9 +391,9 @@ installed. It leaves with the last pack that requires it:
 Remove python, devops? [y/N]
 ```
 
-The chosen pack goes first, and the packs it was holding up follow — that order
-is what lets a `remove.sh` ask whether a neighbour still claims its packages and
-get the right answer.
+The chosen pack goes first, and the packs it held up follow: that order is what
+lets a `remove.sh` ask whether a neighbour still claims its packages and get
+the right answer.
 
 Your password is asked here too. What the pack left in your files is not
 touched: your `gcloud` logins, the variables it copied into `.env.global`.
@@ -423,9 +405,8 @@ command says so, and deleting its files undoes nothing on the system side.
 
 A `remove.sh` names what it installed — `ffmpeg`, the Google CLI — and takes
 those away. What arrived with them as *dependencies* is nobody's to name, and it
-is the bulk of the weight: the vision pack leaves **203 packages and 462 MB**
-behind, measured. So the command asks one more question, and removes only if
-both answers come back empty:
+is the bulk of the weight. So the command asks one more question, and removes
+only if both answers come back empty:
 
 | Question | Who answers |
 | :--- | :--- |
@@ -443,13 +424,11 @@ cleanup, and the command names it:
     Remove the package by hand if that program is gone.
 ```
 
-When nothing answers yes, it goes — `46 dependencies nothing needs any more:
+When nothing answers yes, it goes: `46 dependencies nothing needs any more:
 78 MB`.
 
-This is the one place the repository runs `autoremove`, and it never runs it
-blind: a package kept by mistake costs every user of the instance, a package
-removed one step too early costs one `apt-get install` to whoever needs it
-later.
+It is the one place the repository runs `autoremove`, and it never runs it
+blind.
 
 ---
 
@@ -484,21 +463,17 @@ Proceed? [Y/n]
 ```
 
 A pack nobody ticked gets its reason on the line under the list — it arrives
-because something requires it, or leaves because nothing does any more. A pack
-that came or went without that line would read like a mistake.
+because something requires it, or leaves because nothing does any more.
 
 If the boxes have not moved, it says so and stops there.
 
-### The order, and why it is that one
+### The order
 
-The folders of the packs to add are copied **before** anything is removed. A
-pack's `remove.sh` asks which installed pack still claims a package it is about
-to take away, and a folder that has just arrived counts from that moment — so a
-package two packs share is left where it is, and the newcomer finds it already
-installed. Removing first would take the package away and put it straight back.
-
-There is no list of packages compared anywhere: the packs themselves say what
-they claim, and the question is asked of the instance.
+The folders of the packs to add are copied **before** anything is removed: a
+pack's `remove.sh` asks which installed pack still claims a package, and a
+folder that has just arrived counts — so a package two packs share is left in
+place. There is no list of packages compared anywhere: the packs say what they
+claim, and the question is asked of the instance.
 
 `add_pack` and `remove_pack` stay what they were, for one pack at a time. A
 failure here stops the run where it stands and says what is in place — what was
@@ -561,18 +536,17 @@ The icon is a **file**, not a setting: `terminal-icon.png` in the instance's own
 folder, the one its Terminal profile points at. Nothing else is written, and
 nothing has to be stopped.
 
-The theme menu asks Windows Terminal to look again when the visit is over:
-Terminal watches its own settings file, and a change to it makes it read the
-profiles again, the fragments included. A reload cannot land on a pane that is
-running a menu, so **nothing appears while you are still in there** — the change
-shows the moment you leave. The colours change on the spot then; the font and the
-icon belong to a tab as it is opened, so those want a new one.
+The visit over, Windows Terminal is asked to look again: **nothing appears
+while you are still in the menu** — a reload cannot land on a pane that is
+running one — and the change shows the moment you leave. The colours change at
+once then; the font and the icon belong to a tab as it is opened, so those want
+a new one.
 
-Changing one part keeps the other. The recipe of the last drawing — its letters,
-its three colours — is noted in the instance's own `instance.json`, the same file
-an archive carries, so picking other colours keeps the letters you typed, and the
-other way round. An image of your own replaces the picture and leaves the recipe
-alone: changing your mind starts from it again rather than from the name.
+Changing one part keeps the other: the recipe of the last drawing — its letters,
+its three colours — is noted in the instance's own `instance.json`, the same
+file an archive carries, so picking other colours keeps the letters you typed,
+and the other way round. An image of your own replaces the picture and leaves
+the recipe alone.
 
 The icon travels with the instance: `archive` takes the file and the picture,
 `restore` and `duplicate` put both back.
@@ -592,16 +566,15 @@ Font of 'ubuntu-ml-dev'
   Get more Nerd Fonts at https://www.nerdfonts.com
 ```
 
-The list is the fonts a prompt can be written in: the monospaced families Windows
-has — the weights of a family are left out, a profile takes the family — that
-carry the glyphs a prompt is drawn with, measured by asking each font file. A
-font without them draws a box where your prompt has a folder, so it is not
-offered, and the line under the list says where more of them come from.
+The list is the monospaced families Windows has — a profile takes the family,
+not a weight — that carry the glyphs a prompt is drawn with, measured by asking
+each font file: a font without them draws a box where your prompt has a folder.
+The line under the list says where more of them come from.
 
-The font in use is in the list whatever it carries, and marked `(current)`: it is
-what you came to look at, and on a machine with no Nerd Font at all it is the
-only row there is. The build installs one and writes it into the profile, so an
-instance of this template starts on a font that carries them.
+The font in use is in the list whatever it carries, and marked `(current)`: it
+is what you came to look at, and on a machine with no Nerd Font at all it is the
+only row there is. The build installs one, so an instance of this template
+starts on a font that carries them.
 
 A console writes every row in the font *it* is set to, so no list can show a font
 in itself. The preview is the choice: the profile changes, and the next tab is
@@ -629,9 +602,8 @@ added or wrote over, your version of a name winning over the shipped one. Each
 row is drawn in the colours of its own scheme — its background and its text — and
 the one in use is marked `(current)`.
 
-That file is JSON with comments in it, which PowerShell's own reader refuses. The
-command reads it all the same, without touching it: it is Terminal's file, and
-nothing here writes to it.
+That file is JSON with comments in it, and the command reads it without
+touching it — nothing here writes to it: it is Terminal's file.
 
 ---
 
@@ -702,10 +674,9 @@ Archives already in D:\WSL\archives:
 Name of the archive? [ubuntu-template]
 ```
 
-Press Enter to accept it. If that name is taken, the proposal becomes
-`ubuntu-template-1`, then `-2`, until one is free — so archives do not
-accumulate under a name you did not choose. Typing the name of an existing
-archive replaces it, and the script says so before doing it.
+Enter accepts it. If the name is taken the proposal moves to
+`ubuntu-template-1`, then `-2`, until one is free; typing the name of an
+existing archive replaces it, and the script says so first.
 
 Once the archive is written, it asks what should happen to the instance:
 

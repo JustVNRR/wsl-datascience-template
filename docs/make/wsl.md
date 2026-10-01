@@ -92,18 +92,15 @@ Turning the drives off does not cut an instance off from its packs:
 The image ships none: nothing it starts is a service, and the `systemd` package
 alone never boots anything — WSL runs its distribution's `/sbin/init`, which
 `systemd-sysv` poses. `systemd_up` installs it with `libpam-systemd` and
-`dbus-user-session` (WSL's user session needs them), and writes the line;
+`dbus-user-session` (the user session needs them) and writes the line;
 `systemd_down` puts the line back to `false` and leaves the packages. It also
 masks the two units WSL cannot use — `kmod-static-nodes` (WSL owns `/dev`),
-`systemd-binfmt` (no `binfmt_misc` here) — and clears their failure, so
-`systemctl is-system-running` says `running`, not `degraded`. `systemd is
-already enabled` is said only when PID 1 really is systemd. Everything is
-installed with `--no-install-recommends`, packages named: `systemd-resolved`
-stays out — a rival of the resolver the [web
+`systemd-binfmt` (no `binfmt_misc` here) — so `systemctl is-system-running`
+says `running`, not `degraded`, and installs nothing recommended:
+`systemd-resolved` stays out — a rival of the resolver the [web
 pack](../../packs/web/docs/vpn.md) installs.
 
-When it is on: services started with the instance, restarted when they fall,
-`journalctl`, timers.
+When it is on: services started with the instance, `journalctl`, timers.
 
 ## The status command
 

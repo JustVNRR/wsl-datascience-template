@@ -17,13 +17,12 @@ result, `gmake csl_from_catalog` fetches a citation style, and the three
 | PDF tools | checking and assembling the results | `pdftotext`, `pdfinfo`, `pdftoppm`, `pdfunite` |
 | Arial | the font the templates ask for, copied from Windows | — |
 
-Pandoc and the engine arrive as Debian packages — 115 packages, about 800 MB
-installed, a LaTeX distribution being most of it. Arial is not a package: Linux
-has no Arial, and **fontconfig aliases do not work with XeTeX** (measured: with
-an alias in place, `fc-match` resolves Arial while XeLaTeX still stops on
-`The font Arial cannot be found`). The fonts themselves are copied from
-`C:\Windows\Fonts` into `~/.local/share/fonts/ms-arial`, and a removal takes
-that copy back.
+Pandoc and the engine arrive as Debian packages, a LaTeX distribution being most
+of the weight. Arial is not a package: Linux has no Arial, and **fontconfig
+aliases do not work with XeTeX** — with an alias in place, `fc-match` resolves
+Arial while XeLaTeX still stops on `The font Arial cannot be found`. The fonts
+come from `C:\Windows\Fonts` into `~/.local/share/fonts/ms-arial`, and a
+removal takes that copy back.
 
 ## Installing and removing it
 
@@ -159,5 +158,4 @@ Any of pandoc's other outputs is one flag away, with no LaTeX involved:
 | `The font Arial cannot be found` | the Arial copy is absent — `.\wsl.ps1 add_pack` again, and see `/mnt/c/Windows/Fonts` |
 | `Something's wrong--perhaps a missing \item`, at `\end{CSLReferences}` | the template's `$if(csl-refs)$` block is from an older pandoc: `pandoc -D latex` prints the block of the installed one |
 
-A document of about 200 pages with some fifty images takes about forty seconds;
-a rebuild takes the same — nothing is cached between runs.
+Nothing is cached between runs: a rebuild takes as long as the first build.

@@ -12,19 +12,16 @@ company project, ask your administrator for the roles of the modules you use.
 
 ## Step 1 — install the pack, then authenticate the CLI
 
-The image ships no pack at all: the gcloud CLI weighs 409 MB, and not every
-project uses Google Cloud. A pack arrives on a living instance, from Windows —
-pick the instance, then `gcp`:
+The image ships no pack at all, and not every project uses Google Cloud: a pack
+arrives on a living instance, from Windows — pick the instance, then `gcp`:
 
 ```powershell
 .\wsl.ps1 add_pack
 ```
 
-It registers Google's APT repository (the signing key and the address) before
-installing the package, and copies the pack's files — its gmake targets, its
-cheatsheets, its environment samples — into the instance. The image ships
-neither, so a machine that never does Google Cloud never carries them;
-`.\wsl.ps1 remove_pack` takes both back out.
+It registers Google's APT repository before installing the package, and copies
+the pack's files — targets, cheatsheets, environment samples — into the
+instance. `.\wsl.ps1 remove_pack` takes both back out.
 
 Run `gmake` again: the GCP targets are there. They call `gcloud`
 and `bq` under your Google account — this one-time login authorizes them.
@@ -119,6 +116,6 @@ its full flow.
 - Operational targets refuse to run outside a project folder under
   `~/projects` — the message says so. `GMAKE_ANYWHERE=1` bypasses the gate
   for unconventional setups.
-- Free tiers exist but they all require billing to be enabled. Compute VMs 
-  are billed per second of uptime, hence the explicit `vm_start` / `vm_stop` 
+- Free tiers exist but they all require billing to be enabled. Compute VMs are
+  billed per second of uptime, hence the explicit `vm_start` / `vm_stop`
   targets.

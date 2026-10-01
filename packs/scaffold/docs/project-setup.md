@@ -59,10 +59,9 @@ Project folder: my-analysis
 for the name in their own questions, and `fnew` then steps into the directory
 the tool created.
 
-The last three lines are the python pack's: they come from the row's pack, and a
-row of another pack replaces them with that pack's step. `fnew` only runs from
-`~/projects` itself — it refuses anywhere else, and so do the three targets it
-delegates to. When it is done, it leaves you inside the new project.
+The last three lines are the python pack's — they come from the row's pack, and
+a row of another pack replaces them. `fnew` only runs from `~/projects` itself,
+and leaves you inside the new project.
 
 ## Trying a template without adding it
 
@@ -76,17 +75,14 @@ fnew gh:owner/repo ccds       # ...or the ccds CLI (cookiecutter-data-science v2
 fnew gh:owner/repo cruft v1   # ...pinned to a ref
 ```
 
-This path reads and writes nothing: a template that turns out not to suit you
-costs only the project directory you just created. Use it first — how a template
-behaves is hard to judge from its README, and you only find out by scaffolding
-with it. It names no pack, so `TEMPLATE_PACK` decides whose step runs.
+This path reads and writes nothing: a template that does not suit you costs
+only the project directory. It names no pack, so `TEMPLATE_PACK` decides whose
+step runs.
 
-The ref is not optional decoration: without it a template is taken from its
-**default branch**, which is not always what you want. Cookiecutter Data Science
-is the case to know. Its default branch carries the `ccds` scaffold; the plain
-cookiecutter template lives on the `v1` tag, deprecated by its own maintainers
-but still updatable with `cruft`. One repository, two entries, one per tool —
-and neither works with the other's.
+Without a ref a template is taken from its **default branch**, which is not
+always what you want: Cookiecutter Data Science's carries the `ccds` scaffold,
+while the plain cookiecutter template lives on the `v1` tag — one repository,
+two entries, one per tool, and neither works with the other's.
 
 ## The catalogs
 
@@ -103,18 +99,10 @@ That pack is the one whose step runs once the template is copied, so a row
 belongs in the catalog of the pack that knows what to do with the project it
 produces. This pack ships no catalog of its own: it reads the others'.
 
-An entry belongs there when a **checkable fact** justifies it:
-
-- the project is maintained (recent release or commits);
-- an identifiable owner answers for it (an organisation, rather than an
-  anonymous account);
-- its CI creates and tests a real project — the strongest signal, and the one
-  that separates a maintained template from someone's personal folder.
-
-Popularity alone is not one of those facts: the most starred cookiecutter
-template for data science is also one of the oldest, and star counts never go
-down. Write the fact in the description column, so the next reader knows why
-the line is there.
+An entry belongs there when a **checkable fact** justifies it — the project is
+maintained, an identifiable owner answers for it, its CI creates and tests a
+real project — and the description column says which. Popularity alone is not
+one of those facts: star counts never go down.
 
 The optional `version` column pins a template ref — useful when a template's
 default branch targets a different tool.
@@ -122,10 +110,9 @@ default branch targets a different tool.
 ### The three tools
 
 They are not installed: `uvx --from <package> <command>` takes each one from
-uv's cache the first time it runs (measured: 27 s and about 40 MB for the first,
-3 s and about 20 MB for each one after), and a tool that is never used costs
-nothing. Nothing of them is on your PATH either — what `uvx` fetched cannot
-shadow a command of your own.
+uv's cache the first time it runs, and a tool that is never used costs nothing.
+Nothing of them is on your PATH either — what `uvx` fetched cannot shadow a
+command of your own.
 
 They are not interchangeable, and one repository can appear once per tool:
 
@@ -140,39 +127,23 @@ as a cookiecutter template cannot be scaffolded with `copier`, and the reverse
 is true too. When the same repository appears twice, the descriptions say why.
 
 Only one of the three can edit an answer on its own: `copier` asks through a
-line editor (questionary, over prompt-toolkit), so the arrows and the rest work
-while you answer. `cruft` and `ccds` ask through cookiecutter, which reads a
-plain line — with no editor loaded in the process, the terminal's own editing is
-all there is, and an arrow key lands in the answer as the bytes it sends.
+line editor (questionary), so the arrows work while you answer. `cruft` and
+`ccds` ask through cookiecutter, which reads a plain line — an arrow key lands
+in the answer as the bytes it sends.
 
-So the two of them run under `rlwrap`, which is in the image for that: it reads
-your keys, edits the line, and hands the finished answer to the tool. It steps
-aside where there is nothing to edit — a pipe, the CI, a command with no
-terminal — and the answer is then read exactly as before.
-
-`copier` is left bare: it needs none of that, and wrapping it would add a layer
-to a prompt that already edits. What `rlwrap` adds is the editing, not the
-questions: a tool that reads a plain line still does.
+So the two of them run under `rlwrap`, which is in the image for that: it edits
+the line and hands the finished answer to the tool. It steps aside where there
+is nothing to edit — a pipe, the CI — and `copier` is left bare: wrapping it
+would add a layer to a prompt that already edits.
 
 ### Where they come from
 
-One family, not three rivals. **Cookiecutter** came first (2013): a template is
-a git repository holding a `cookiecutter.json` and files with
-`{{ cookiecutter.project_name }}` holes in them. It asks its questions, writes
-the project, and stops there — it has no way to update a project it already
-generated. Everything else is that idea plus something:
-
-- `cruft` runs the cookiecutter engine (the library ships inside it) and records
-  what it generated in `.cruft.json`, which is what makes `cruft update`
-  possible later;
-- `ccds` is cookiecutter plus the DrivenData template and its own questions;
-- `copier` is a separate implementation of the same idea, not built on
-  cookiecutter, with conventions of its own.
-
-`cookiecutter` itself is taken the same way when a template's README tells you
-to run it: `uvx --from cookiecutter cookiecutter …`. `cruft create` does the
-same thing — and leaves a `.cruft.json` behind, which you may not want for a
-one-off.
+One family: `cruft` runs the cookiecutter engine and records what it generated
+in `.cruft.json`, which is what makes `cruft update` possible; `ccds` is
+cookiecutter plus the DrivenData template; `copier` is a separate
+implementation of the same idea. `cookiecutter` itself is taken the same way
+when a template's README says to run it:
+`uvx --from cookiecutter cookiecutter …`.
 
 ### Adding a line
 

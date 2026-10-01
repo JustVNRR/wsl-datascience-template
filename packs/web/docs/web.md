@@ -38,12 +38,11 @@ WSL (scrolling, menus that stop answering, dropped frames).
 `MOZ_ENABLE_WAYLAND=1 fox` asks for it back for one call. Which one is in use:
 `about:support`, *Window Protocol*.
 
-**The sound goes through PulseAudio**, which is how WSLg carries a Linux
-window's audio to Windows. Two pieces: the client library the browser loads at
-runtime (`libpulse0`), and a default preference letting it reach the socket
-WSLg serves — `media.cubeb.sandbox=false`, in
-`/usr/lib/firefox/defaults/pref/wslg-audio.js` (a default: `about:config`
-wins; removal takes it back).
+**The sound goes through PulseAudio** — how WSLg carries a Linux window's audio
+to Windows: the client library the browser loads at runtime (`libpulse0`), and
+a default letting it reach the socket WSLg serves (`media.cubeb.sandbox=false`,
+in `/usr/lib/firefox/defaults/pref/wslg-audio.js`). `about:config` wins over
+the default; removal takes it back.
 
 The volume is the instance's own, not Windows': `sudo apt install
 pulseaudio-utils`, then
