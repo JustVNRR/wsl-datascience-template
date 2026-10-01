@@ -1,9 +1,7 @@
 // The web pack's LIGHT privacy settings - what `fox` puts in place, and what
-// the pack's install leaves there. Nothing in this set is noticed day to day:
-// no anti-fingerprinting (no English pages, no UTC, no letterboxing) and no
-// WebRTC switch - those two are the strict set, which `pfox` (and `gmake
-// fox_tweak_on`) puts in place instead. Defaults, not orders: a value set in
-// about:config wins over them. The full story is in docs/fox.md.
+// the install leaves there. Nothing here is noticed day to day; the strict
+// set adds anti-fingerprinting and WebRTC off. Defaults: about:config wins.
+// What each line does: docs/fox.md.
 
 // --- Tracking protection: the Strict preset, named pref by pref ---
 // (the category line is what the Settings page shows; the engines read the

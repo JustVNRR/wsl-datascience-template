@@ -3,23 +3,10 @@
 # THE WEB PACK - WHAT IT REMOVES
 # ==============================================================================
 # `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
-# install added to the system leaves it, and only that.
-#
-# The tunnel first, then the packages, then Mozilla's repository: a tunnel still
-# up while its tools are being taken away is a half-removed state, and the boot
-# hook would try to raise it at the next start - so the hook goes, and the
-# tunnel with it.
-#
-# One package at a time, because a package another installed pack still claims
-# must stay where it is: a pack does not own what it installs, it is one of the
-# claimants. The claim is read from every pack's declaration - pack.conf, and
-# install.sh as well, for a pack written before PACK_PACKAGES existed. A pack
-# that is gone claims nothing: the last one to want a package takes it away.
-#
-# Two things this never does: remove a library (a neighbour's program may depend
-# on it, and apt would take that program along), and autoremove (the shared
-# libraries Firefox pulled in are not ours to judge - `remove_pack` takes them
-# back with a question the whole instance answers).
+# install added to the system leaves it, and only that. A package another
+# installed pack still claims stays where it is. No library is ever removed
+# (apt would take its dependents), and no autoremove here - remove_pack runs
+# the cleanup that follows, with its two questions.
 
 set -euo pipefail
 
@@ -48,28 +35,20 @@ for package in $declared; do
         continue
     fi
     if [ "$package" = openresolv ]; then
-        # No candidate in Ubuntu 24.04: it came from Debian's package (see
-        # install.sh), so it goes back the same way.
+        # No candidate in Ubuntu 24.04: it came from Debian's package.
         sudo dpkg -r openresolv
         continue
     fi
     sudo apt-get remove -y "$package"
 done
 
-# The two libraries installed beside the browser (libavcodec60, the decoder, and
-# libpulse0, the sound client - see install.sh) are libraries: no pack removes
-# one, because apt takes the programs that depend on it along. Marked automatic,
-# they become orphans the moment this pack is gone, and the cleanup remove_pack
-# runs next - apt for what apt installed, ldd for what lives outside its graph -
-# takes them back with the others.
+# Libraries installed beside the browser: marked automatic, they become
+# orphans for the cleanup remove_pack runs next.
 echo "Leaving the browser's decoder and its sound client to the cleanup that follows..."
 sudo apt-mark auto libavcodec60 libpulse0 2>/dev/null || true
 
-# The sound preference (install.sh), the privacy link (install.sh and the
-# launchers) and the file it points at - and nothing else: /usr/lib/firefox is
-# the browser's own directory, and these files are the only places the pack
-# touches it. The slot stops nothing without its link, but the pack put it
-# there, so it goes too.
+# What the pack wrote in the browser's directory: the sound preference, and the
+# privacy link with the file it points at.
 echo "Removing the sound preference and the privacy link..."
 sudo rm -f /usr/lib/firefox/defaults/pref/wslg-audio.js \
            /usr/lib/firefox/defaults/pref/fox-privacy.js
@@ -81,9 +60,7 @@ sudo rm -f /etc/apt/sources.list.d/mozilla.list \
            /etc/apt/preferences.d/firefox-no-snap \
            /etc/apt/keyrings/packages.mozilla.org.asc
 
-# The profile of /etc/wireguard: not a file of the user's, this one - the pack
-# writes it at every mount, out of the JSON - so it goes with the pack. The
-# tunnel is already down by now, which is what wg-quick needed it for.
+# Regenerated at every mount - not a file of the user's.
 echo "Removing the profile the pack generated..."
 sudo rm -f /etc/wireguard/vpn.conf
 

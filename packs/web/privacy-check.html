@@ -36,8 +36,8 @@
 <script>
 "use strict";
 
-// The launcher puts the set in the fragment, and the resolver it read from the
-// instance: #strict;dns=10.2.0.1 (or #light;dns=1.1.1.1, or nothing at all).
+// The launcher puts the set and the resolver in the fragment:
+// #strict;dns=10.2.0.1
 const parts = decodeURIComponent(location.hash.slice(1)).split(";");
 const set = parts[0] || "";
 const dns = (parts.find(p => p.startsWith("dns=")) || "dns=").slice(4);
@@ -46,8 +46,7 @@ document.title += set ? " - " + set : "";
 
 const rows = document.getElementById("rows");
 
-// One line of the table. expected/verdict are left out when no set was passed.
-// verdict: true, false, or null for "no promise either way".
+// One table line; verdict: true, false, or null (no promise either way).
 function add(name, value, expected, verdict) {
   const tr = document.createElement("tr");
   tr.innerHTML = "<td>" + name + "</td><td class='value'></td><td></td><td></td>";
@@ -69,17 +68,15 @@ function later(row, value, verdict) {
   }
 }
 
-// --- the time zone: RFP hands every site Reykjavik (UTC+0), since Firefox 128
-// (before that it was the rare name "UTC" itself) -----------------------------
+// RFP spoofs the time zone as Reykjavik (UTC+0) - since Firefox 128.
 const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 add("Time zone", tz, "Atlantic/Reykjavik (UTC+0)", tz === "Atlantic/Reykjavik");
 
 // --- the language Firefox announces ------------------------------------------
 add("Language", navigator.language, "en-US", navigator.language === "en-US");
 
-// --- the user-agent: the plain Firefox one, nothing custom. Since the UA
-// reduction (Firefox 120) everyone's Firefox sends this same reduced shape,
-// and the platform in it is the real one - hiding Linux is the old behaviour.
+// Since the UA reduction (Firefox 120), every Firefox sends the same plain
+// shape - real platform included ("hiding Linux" is old behaviour).
 const ua = navigator.userAgent;
 add(
   "User-agent",
@@ -88,7 +85,7 @@ add(
   /^Mozilla\/5\.0 \([^)]*\) Gecko\/20100101 Firefox\/[\d.]+$/.test(ua)
 );
 
-// --- what a site sees of the window: RFP rounds it to 200 x 100 ---------------
+// RFP rounds the window a site sees to 200 x 100.
 add(
   "Window size a site sees",
   window.innerWidth + " × " + window.innerHeight,
@@ -100,9 +97,8 @@ add(
 const rtc = typeof RTCPeerConnection;
 add("RTCPeerConnection", rtc, "undefined", rtc === "undefined");
 
-// --- the canvas: RFP replaces every read with fresh random bytes (the "poison
-// pill"), so reading twice gives two different pictures - a real canvas gives
-// the same one every time ------------------------------------------------
+// RFP replaces every canvas read with fresh random bytes (the "poison
+// pill"): two reads must differ - a real canvas gives the same one.
 function canvasHash() {
   const c = document.createElement("canvas");
   c.width = 200; c.height = 50;
@@ -130,9 +126,7 @@ try {
 }
 add("Canvas, read twice", canvasVerdict, "random on every read", canvasOk);
 
-// --- geolocation: the permission state, read - never asked. Asking would pop
-// "Allow this local file to access your location?", a question this page has
-// no business asking; permissions.query only reports what is decided ---------
+// The permission state, read - never asked (a request pops a prompt).
 const geoRow = add("Geolocation permission", "asking…", "denied", null);
 navigator.permissions
   .query({ name: "geolocation" })
@@ -143,12 +137,10 @@ navigator.permissions
   })
   .catch(e => later(geoRow, "unknown (" + e.name + ")", null));
 
-// --- a real tracker, with a control request: doubleclick.com is a classic
-// blocker target, example.com never is. If the control goes through and the
-// tracker does not, tracking content is being blocked. If both go through,
-// this local page is simply not the place where the shield acts - said so,
-// instead of guessing. (itisatracker.com is Mozilla's own test site, kept
-// off the lists on purpose - a poor pick, tried first.) ------------------------
+// doubleclick.net against a control: tracker blocked + control through =
+// tracking content blocked. Both through = this local page is not where the
+// shield acts (itisatracker.com would prove nothing - Mozilla's own, listed
+// as allowed).
 const trackerRow = add("doubleclick.net (a classic tracker)", "asking…", "blocked", null);
 const probe = url =>
   fetch(url, { mode: "no-cors", cache: "no-store" }).then(() => "loaded", () => "not loaded");
@@ -169,8 +161,7 @@ fetch("https://ipinfo.io/json")
     ipLine.textContent = "Exit IP: " + (j.ip || "?") + (place ? " - " + place : "") + (j.org ? " (" + j.org + ")" : "");
   })
   .catch(() => {
-    // ipinfo may not answer (or not allow a page opened from a file): the IP
-    // alone still comes from ipify, which does.
+    // ipinfo may not answer; ipify gives the IP alone.
     fetch("https://api.ipify.org?format=json")
       .then(r => r.json())
       .then(j => { ipLine.textContent = "Exit IP: " + j.ip + " (location service unavailable)"; })

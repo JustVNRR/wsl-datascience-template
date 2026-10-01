@@ -1,28 +1,19 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# THE OLD PROFILES - INTO THE JSON
+# THE OLD /etc/wireguard PROFILES - INTO THE JSON
 # ==============================================================================
-# The pack used to keep one WireGuard profile per server in /etc/wireguard, and
-# read them there. It reads ~/.config/vpn/servers.json now, and this is what
-# carries a machine from the one to the other: the values of each .conf become an
-# entry of the JSON, and the .conf files are left where they are - they are the
-# user's, and deleting them is their call, not the pack's.
-#
-# install.sh calls this once, when the JSON does not exist yet, and falls back to
-# copying the sample when there is nothing to carry. Nothing is written when the
-# JSON is already there: it is what the user edits, and it holds their keys.
+# One-shot migration: each .conf of /etc/wireguard becomes an entry of
+# servers.json. The .conf files are left where they are - they are the user's.
+# Called by install.sh when the JSON does not exist yet; writes nothing when it
+# does (the JSON is the user's file, and it holds their keys).
 #
 #   usage: vpn-migrate.sh <path to servers.json>
 #
-# What is carried: the private key, the address, the peer (public key, endpoint,
-# allowed IPs, the keepalive when the profile asks for one), and the DNS - which
-# belongs to the server, and which nothing else supplies. The MTU travels too
-# when the profile names one: it is the link's own answer, and the default only
-# covers the profiles that say nothing.
-#
-# What is not carried, and is reported: the kill switch lines (PostUp/PreDown),
-# which are the VPN_KILL_SWITCH variable now, and any other key the JSON has no
-# field for - a silent half-migration would be a tunnel that half-works.
+# Carried over: private key, address, DNS, the peer (public key, endpoint,
+# allowed IPs, keepalive), and the MTU when the profile names one. Reported as
+# dropped: everything else - a silent half-migration would be a tunnel that
+# half-works. The kill-switch lines (PostUp/PreDown) are the VPN_KILL_SWITCH
+# variable now.
 
 set -euo pipefail
 
@@ -44,9 +35,8 @@ if [ -e "$target" ]; then
     exit 0
 fi
 
-# The folder is root-only, so the listing goes through sudo, and the reading
-# happens on this side of the pipe. vpn.conf is not a server of the user's: it is
-# the file the pack generates, and it has nothing to carry over.
+# Root-only folder: list through sudo, read on this side of the pipe. The
+# generated vpn.conf is not a server of the user's.
 conf_files=$(sudo find "$WG_DIR" -maxdepth 1 -type f -name '*.conf' 2>/dev/null | sort || true)
 conf_files=$(printf '%s\n' "$conf_files" | grep -v "/vpn\.conf$" || true)
 if [ -z "$conf_files" ]; then
@@ -54,12 +44,8 @@ if [ -z "$conf_files" ]; then
     exit 0
 fi
 
-# One line per setting, as section<TAB>Key<TAB>value. Sections matter: PrivateKey
-# and Address live under [Interface], the peer's keys under [Peer], and two
-# profiles can carry the same key name in both.
-#
-# The split is on the FIRST `=` of the line, and that is not a detail: a base64
-# private key ends with one (`...=`, the padding), and splitting on every `=`
+# One line per setting: section<TAB>Key<TAB>value. The split is on the FIRST
+# `=` - a base64 key ends with one (the padding), and splitting on every `=`
 # would hand over a key one character short.
 parse_conf() {
     awk '
@@ -81,8 +67,7 @@ value_of() {
     printf '%s\n' "$pairs" | awk -F'\t' -v s="$section" -v k="$key" '$1 == s && $2 == k { print $3; exit }'
 }
 
-# What the JSON has no field for. The kill switch is not in this list: it is
-# carried, as the VPN_KILL_SWITCH variable, and the summary below says so.
+# What the JSON has no field for.
 unknown_keys() {
     local pairs=$1
     printf '%s\n' "$pairs" | awk -F'\t' '

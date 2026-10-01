@@ -1,20 +1,12 @@
 # ==============================================================================
-# FIREFOX - THE PRIVACY SETTINGS
+# FIREFOX - THE PRIVACY SETTINGS - WHAT THE TARGETS CALL
 # ==============================================================================
-# The browser half's manual targets - two, and the sets themselves are what
-# the launchers put in place at every launch: `fox` runs the light set, `pfox`
-# the strict one (docs/fox.md), through the link the install leaves in the
-# browser's directory. The link is why a launch costs no password: it points
-# at a file of the user's own, and a set is put in place by replacing that.
-#
-# So these two are the manual face: `fox_tweak_on` puts the strict set in
-# place, and sets the link up if it never was (one sudo, once);
-# `fox_tweak_off` takes everything out, the browser stock again. What they
-# call is bin/fox.sh - a recipe that did the work itself is a recipe nobody
-# can read.
-#
-# They run from anywhere: what a browser does with a page is not a project's
-# business - the same declaration vpn_status makes in its own module.
+# The manual switches. The sets themselves are chosen by the launchers at
+# every launch - `fox` light, `pfox` strict (docs/fox.md) - through the link
+# the install leaves in the browser's directory, so a launch costs no
+# password. `fox_tweak_on` puts the strict set in place (and sets the link up
+# if it never was - one sudo, once); `fox_tweak_off` takes everything out.
+# They run from anywhere.
 
 GATE_EXEMPT_GOALS += fox_tweak_on fox_tweak_off
 
