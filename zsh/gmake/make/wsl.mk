@@ -1,23 +1,16 @@
 # ==============================================================================
 # THE INSTANCE ITSELF: ITS FILES, ITS STATE, AND ITS SWITCHES
 # ==============================================================================
-# Everything here is the machine's and not a project's: the three files the
-# instance keeps outside ~/.config - /etc/wsl.conf, written whole by
-# first_boot.sh at the first boot; /etc/resolv.conf, which answers the DNS; and
-# /etc/fstab, the mounts to apply at start - the status that reports what it
-# runs on, and the ten switches that turn WSL's own features on and off
-# (systemd, automount, interop, the Windows PATH, fstab).
+# The machine's, not a project's: the three files the instance keeps outside
+# ~/.config - /etc/wsl.conf, written whole by first_boot.sh at the first boot;
+# /etc/resolv.conf, which answers the DNS; /etc/fstab, the mounts to apply at
+# start - the status that reports what it runs on, and the ten switches.
 #
 # The three files belong to root: the editors run under sudo, and nano is named
-# rather than $EDITOR - the instance's $EDITOR is `code --wait` whenever VS
-# Code is installed, and that `code` is the Windows one seen through /mnt/c.
-# It saves as the Windows user, who cannot write a file that belongs to root.
-# A terminal editor under sudo can.
+# rather than $EDITOR - the instance's $EDITOR is the Windows `code --wait`,
+# which saves as the Windows user and cannot write root's files.
 #
-# All fourteen run from anywhere: what they touch is the machine's, not a
-# project's, and "how does this instance start?" is asked from wherever you
-# stand. They say so here rather than in the Makefile, like the env_global_*
-# two.
+# All fourteen run from anywhere: what they touch is the machine's.
 GATE_EXEMPT_GOALS += wsl_config dns_resolve wsl_status fstab_config
 GATE_EXEMPT_GOALS += systemd_up systemd_down automount_up automount_down interop_up interop_down
 GATE_EXEMPT_GOALS += windows_path_up windows_path_down fstab_up fstab_down
@@ -29,9 +22,8 @@ GATE_EXEMPT_GOALS += windows_path_up windows_path_down fstab_up fstab_down
 .PHONY: windows_path_up windows_path_down fstab_up fstab_down
 
 # The closing line the switches print once the change is written: the command
-# that applies it, in green inside a yellow sentence - the colour `gmake help`
-# gives a target name is cyan, and green reads as "this is what you type".
-# One line, on purpose: it expands inside a recipe's joined command.
+# that applies it, in green inside a yellow sentence. One line on purpose: it
+# expands inside a recipe's joined command.
 define apply_hint
 	printf '$(C_HINT)Run $(C_COMMAND).\\wsl.ps1 restart$(C_HINT) from Windows to apply.$(C_RESET)\n'
 endef
@@ -40,12 +32,10 @@ wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, inter
 	@sudo nano /etc/wsl.conf
 	@printf '\n$(C_HINT)Run $(C_COMMAND).\\wsl.ps1 restart$(C_HINT) from Windows to apply any change.$(C_RESET)\n'
 
-# The resolver file, for the same two reasons and one of its own: it belongs to
-# root, and WSL may be the one writing it. As long as it is a symlink - to
-# /mnt/wsl/resolv.conf, WSL's own - WSL writes it again at every start of the
-# instance, and an edit goes with the next one. The notice says so before the
-# editor opens, rather than let a change disappear without a word. The lasting
-# way is generateResolvConf = false in /etc/wsl.conf, which wsl_config opens.
+# The resolver file: as long as it is a symlink to WSL's own
+# (/mnt/wsl/resolv.conf), WSL writes it again at every start, and an edit goes
+# with the next one - the notice says so before nano opens. The lasting way is
+# generateResolvConf = false in /etc/wsl.conf, which wsl_config opens.
 dns_resolve: ## Open /etc/resolv.conf in nano (sudo)
 	@if [ -L /etc/resolv.conf ]; then \
 		printf '$(C_HINT)Ensure $(C_COMMAND)generateResolvConf = false$(C_HINT) in /etc/wsl.conf if you want your change to survive a restart.$(C_RESET)\n'; \
@@ -54,12 +44,9 @@ dns_resolve: ## Open /etc/resolv.conf in nano (sudo)
 	fi
 	@sudo nano /etc/resolv.conf
 
-# The mount list, the third file of the same family: root's, read at start only
-# when mountFsTab says so. first_boot.sh leaves that setting at false - the
-# instance carries no lines in /etc/fstab - so the closing line names the
-# switch that turns it on, rather than invite a restart that would mount
-# nothing. `sudo mount -a` applies an edit right now, without a restart; the
-# page says so.
+# The mount list, root's too, read at start only when mountFsTab says so -
+# false by default, so the closing line names fstab_up rather than invite a
+# restart that would mount nothing. `sudo mount -a` applies an edit right now.
 fstab_config: ## Open /etc/fstab in nano (sudo) - the mounts to apply at start
 	@sudo nano /etc/fstab
 	@if grep -q '^[[:space:]]*mountFsTab[[:space:]]*=[[:space:]]*true' /etc/wsl.conf 2>/dev/null; then \
@@ -68,26 +55,14 @@ fstab_config: ## Open /etc/fstab in nano (sudo) - the mounts to apply at start
 		printf '\n$(C_HINT)Nothing here is mounted at start: set mountFsTab = true first - gmake fstab_up.$(C_RESET)\n'; \
 	fi
 
-# The reporter: it reads, it changes nothing, and every probe is one a status
-# command has to survive. A state that cannot be read is said plainly - a hole
-# or an error halfway down the page would be worse than the answer.
+# The reporter: it reads, it changes nothing, and a state that cannot be read is
+# said plainly.
 #
-# The /etc/wsl.conf block carries the state back: the three lines whose feature
-# can be seen from here - automount's `enabled`, interop's `enabled` and
-# `appendWindowsPath` - end in `# OK` when the machine really is in the state
-# the line declares, `# NOK` when it is not - a switch thrown without its
-# restart, most of the time. Each answer comes from the machine, never from the
-# file: the mount table (the folders under /mnt stay there, empty; a letter
-# under /mnt is a drive, whatever the filesystem is called - drvfs once, 9p
-# now), a Windows binary really run, /mnt in the PATH. Section-aware, because
-# `enabled` lives in two sections.
-#
-# The image ships no systemd; systemd_up, below, installs it. The line says
-# what it finds: nothing when it is not installed, `offline` once the packages
-# are there and before the restart that boots it.
-#
-# The block titles are cyan - the colour gmake help gives a target name - so the
-# five reads stand apart from the values under them.
+# Three lines of the /etc/wsl.conf block end in `# OK` when the machine really
+# is in the state the line declares, `# NOK` when it is not (a switch thrown
+# without its restart, most of the time). Each answer comes from the machine,
+# never from the file - the mount table, a Windows binary really run, /mnt in
+# the PATH - and section-aware, because `enabled` lives in two sections.
 wsl_status: ## Show what this instance runs on: base image, init, WSL's files, memory
 	@$(call title,Base Image and the kernel)
 	@printf "Kernel     : "; uname -r
@@ -138,24 +113,17 @@ wsl_status: ## Show what this instance runs on: base image, init, WSL's files, m
 # ==============================================================================
 # THE TEN SWITCHES - WSL'S OWN FEATURES, TURNED ON AND OFF
 # ==============================================================================
-# Each pair edits one line of /etc/wsl.conf and nothing else in it, and each
-# takes effect at the next start - WSL reads the file when the instance boots.
-# The pairs are named up and down like the web pack's vpn_up and vpn_down.
+# Each pair edits one line of /etc/wsl.conf and nothing else in it, and takes
+# effect at the next start.
 #
-# The edit the ten share: read /etc/wsl.conf into $new, with `$(2)` set to
-# `$(3)` inside the `[$(1)]` section - the line replaced where it exists in that
-# section, inserted under its header where it does not, and the section appended
-# when the file has none. Nothing else moves: the other sections and the
-# comments come back untouched.
+# The edit they share: read the file into $new, with `$(2)` set to `$(3)` inside
+# the `[$(1)]` section - replaced where it exists, inserted under its header
+# where it does not, the section appended when the file has none.
 #
-# Section-aware on purpose: `enabled` lives in [automount] and in [interop], and
-# a replacement matching on the key alone would hit both. And two passes,
-# because one pass cannot know whether to insert under the header - it would
-# insert AND replace, and the file would grow a line per run (measured).
-#
-# The awk programs stay on one line on purpose: inside single quotes, sh keeps
-# a backslash, and a multi-line program would need one per line to cross the
-# recipe.
+# Section-aware because `enabled` lives in two sections, and two passes because
+# one cannot know whether to insert under the header - it would insert AND
+# replace, and the file would grow a line per run. The awk programs stay on one
+# line: inside single quotes, sh keeps a backslash.
 #   $(1) the section   $(2) the key   $(3) the value
 define wsl_conf_set
 	if [ -f /etc/wsl.conf ]; then \
@@ -166,34 +134,20 @@ define wsl_conf_set
 	fi
 endef
 
-# systemd, on demand: the image ships none, and that is deliberate - nothing it
-# starts is a service, and the `systemd` package alone never boots anything
-# anyway (WSL runs the distribution's /sbin/init, which `systemd-sysv` poses).
-# What it brings when it is on: the standard way to run a service - start it
-# with the instance, restart it when it falls, log to journalctl, schedule
-# timers. What it costs: about 22 MB of packages, and PID 1 changes at the next
-# start.
+# systemd, on demand: the image ships none, and nothing the image starts is a
+# service. Three packages, named, with --no-install-recommends like every apt
+# line: systemd-sysv poses /sbin/init, and libpam-systemd + dbus-user-session
+# are what WSL's user session needs. Naming them is also what keeps
+# systemd-resolved out, a rival of the resolver the web pack installs.
 #
-# Three packages, named, with --no-install-recommends like every apt line of the
-# image: systemd-sysv poses /sbin/init, and libpam-systemd and dbus-user-session
-# are what a user session needs - without them WSL says "Failed to start the
-# systemd user session" at every start (measured on an instance, 2026-09-30).
-# Naming them is also what keeps systemd-resolved out, a rival of the resolver
-# the web pack installs (openresolv): it is only ever a recommendation.
+# One sudo, and the file is written only once the packages are there - a
+# half-enabled instance is not a state to leave behind. "Already enabled" is
+# asked of PID 1, not read from the file.
 #
-# One sudo, and the file is only written once the packages are there: a
-# half-enabled instance is not a state to leave behind.
-#
-# The words speak of the state the user cares about, not of the packages:
-# installing says nothing once it is done, and "already enabled" is not read
-# from the file - PID 1 is asked. A running systemd answers alone; a flag in a
-# file answers nothing.
-#
-# Two units are masked along the way - kmod-static-nodes (WSL owns /dev) and
-# systemd-binfmt (no binfmt_misc here). They can never succeed, and left alone
-# they make `systemctl is-system-running` answer `degraded` instead of
-# `running`. reset-failed clears them from the running boot, so the word turns
-# clean without waiting for a restart.
+# Two units are masked along the way - kmod-static-nodes (WSL owns /dev),
+# systemd-binfmt (no binfmt_misc here): they can never succeed, and left alone
+# they make `systemctl is-system-running` answer `degraded`. reset-failed clears
+# them from the running boot.
 systemd_up: ## Install systemd and turn it on for this instance (a restart boots it)
 	@$(call wsl_conf_set,boot,systemd,true); \
 	installed=0; \

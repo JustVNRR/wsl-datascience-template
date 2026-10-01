@@ -6,7 +6,7 @@
 extract() {
     local target default_dir dest_dir remove_orig
 
-    # Fall back to fzf interactive search if no argument is passed ($# == 0)
+    # No argument: pick one with fzf
     if [ $# -eq 0 ]; then
         target=$(fdfind --type f -e zip -e rar -e gz -e tar -e bz2 -e 7z -e tgz -e tbz2 -e xz -e zst | fzf --prompt="📦 Select archive to extract > ")
         [[ -z "$target" ]] && return 0
@@ -15,27 +15,25 @@ extract() {
     fi
 
     if [ -f "$target" ]; then
-        # 1. Compute the default destination folder name. One strip, never two:
-        # the double suffix (.tar.gz) and the simple one (.zip) are alternatives,
-        # not steps. Chained, the second strip ate a dot of the archive's own
-        # name - results.v2.tar.gz proposed "results", the folder results.v1
-        # also lands in, and the two extractions mixed.
+        # 1. The destination folder's name. One strip, never two: .tar.gz and
+        # .zip are alternatives, not steps - chained, the second ate a dot of
+        # results.v2.tar.gz's own name.
         case "$target" in
             *.tar.*) default_dir="${target%.tar.*}" ;;
             *)       default_dir="${target%.*}"     ;;
         esac
         dest_dir="$default_dir"
 
-        # 2. Interactive target directory prompt via ZLE (pre-filled, editable in-place)
+        # 2. Pre-filled, editable in place
         vared -p "📂 Destination directory: " dest_dir
 
-        # Fall back to default name if user submits an empty string
+        # Empty answer: the default stands
         [[ -z "$dest_dir" ]] && dest_dir="$default_dir"
 
         mkdir -p "$dest_dir"
         echo "🚀 Extracting into '$dest_dir/'..."
 
-        # 3. Targeted decompression based on file signature
+        # 3. By signature
         case "$target" in
             *.tar.bz2)   tar xvjf "$target" -C "$dest_dir"    ;;
             *.tar.gz)    tar xvzf "$target" -C "$dest_dir"    ;;
@@ -51,8 +49,7 @@ extract() {
             *.tar.xz)    tar xvf "$target" -C "$dest_dir"     ;;
             *.xz)        cp "$target" "$dest_dir/" && unxz "$dest_dir/$(basename "$target")" ;;
             *.tar.zst)   tar --zstd -xvf "$target" -C "$dest_dir" ;;
-            # --rm is not decoration: unlike gunzip, bunzip2 and unxz, zstd
-            # keeps its input by default, and the copy would stay behind.
+            # --rm: zstd keeps its input by default, unlike gunzip/bunzip2/unxz.
             *.zst)       cp "$target" "$dest_dir/" && zstd -d --rm "$dest_dir/$(basename "$target")" ;;
             *)
                 echo "❌ Unsupported archive format: '$target'" >&2
@@ -61,7 +58,7 @@ extract() {
                 ;;
         esac
 
-        # 4. Prompt for original archive removal
+        # 4. And the original?
         echo -n "🗑️  Remove original archive ($target)? [y/N] "
         read -r remove_orig
         if [[ "$remove_orig" =~ ^[yY](es)?$ ]]; then

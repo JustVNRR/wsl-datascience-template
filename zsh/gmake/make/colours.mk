@@ -1,14 +1,9 @@
 # ==============================================================================
 # THE MAKE COLOURS
 # ==============================================================================
-# The gmake side of zsh/lib/colours.sh: make expands text and cannot read a
-# shell file, so the codes are spelled here as well - a colour changed in one
-# file is changed in the other.
-#
-# A recipe asks for a ROLE, never for a colour: change a value here and no call
-# site learns of it. The roles are the convention the modules already follow -
-# a title in cyan, the colour `gmake help` gives a target name; green for what
-# you type; yellow for what to watch.
+# The gmake side of zsh/lib/colours.sh - make cannot read a shell file, so the
+# codes are spelled here too; a colour changed in one file is changed in the
+# other. A recipe asks for a ROLE, never for a colour.
 #
 # No comment on a value's own line, and no `##` in this file: make keeps the
 # blanks that precede a `#` in the value (one stray space would shift every
@@ -19,8 +14,8 @@ C_HINT := \033[33m
 C_RESET := \033[0m
 
 # A block title - the `=== ... ===` lines of wsl_status: a blank line, the
-# title in cyan, a newline. One macro rather than a printf per call, because
-# the shape is the same for every title and the colour lives here.
+# title in cyan, a newline. One macro rather than a printf per call: the shape
+# is the same for every title.
 define title
 	printf '\n$(C_TITLE)=== %s ===$(C_RESET)\n' "$(1)"
 endef
