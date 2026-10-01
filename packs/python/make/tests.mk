@@ -1,19 +1,16 @@
 # ==============================================================================
 # 🧪 TESTS
 # ==============================================================================
-# pytest is a project dependency, not a machine tool (unlike ruff): it must run
-# inside the project's virtual environment to import its code and plugins.
-# Install it per project: uv add --dev pytest
+# pytest is a project dependency, not a machine tool: it runs inside the
+# project's virtual environment - install it per project: uv add --dev pytest
 #
-# Marker convention — register the markers used by each project in its
-# pyproject.toml ([tool.pytest.ini_options] markers):
-#   (none)      fast unit tests, no external infrastructure (CI lane)
+# Marker convention, registered per project in pyproject.toml:
+#   (none)      fast unit tests, no infrastructure (CI lane)
 #   functional  needs real local infra (.env, Docker, a trained model...)
 #   gcp         hits a real GCP environment (test/staging/prod)
 # Unmarked tests run in `test` and `test-fast`; the functional and gcp lanes
 # select their marker, so a project that declares none collects nothing there
-# (pytest exits 5). The convention stays optional: pytest only warns about
-# markers it does not know.
+# (pytest exits 5). The convention stays optional.
 
 .PHONY: test test-fast test-functional test-gcp
 

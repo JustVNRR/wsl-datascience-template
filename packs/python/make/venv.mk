@@ -1,32 +1,24 @@
 # ==============================================================================
 # THE VIRTUAL ENVIRONMENT
 # ==============================================================================
-# What the python pack adds once the scaffolding act has copied a template and
-# written the project's .env. This macro is the whole of it: the act itself -
-# the picker, the three targets, the catalogs - is the scaffold pack's, and it
-# calls this one through the declaration below.
+# What the python pack adds once the scaffolding act copied a template and
+# wrote the project's .env. The act itself (the picker, the targets) is the
+# scaffold pack's, which calls this macro through the declaration below.
 
-# init_venv: detect the project's dependency manifest and bootstrap its environment.
-# Exactly one branch installs dependencies:
-#   1. uv.lock, or a PEP 621 [project] table  ->  uv sync (creates .venv,
-#      installs dependencies + the dev group by default)
-#   2. requirements.txt                        ->  uv venv + uv pip install
-#      (+ requirements_dev.txt when present)
-#   3. no recognized manifest                  ->  bare uv venv, with a warning
+# init_venv: detect the project's dependency manifest and bootstrap its
+# environment:
+#   1. uv.lock or a PEP 621 [project] table  ->  uv sync
+#   2. requirements.txt                       ->  uv venv + uv pip install
+#      (+ requirements_dev.txt)
+#   3. no recognized manifest                 ->  bare uv venv, with a warning
 #
-# Branch 2 is the one to watch: its line ends with the test on
-# requirements_dev.txt, and a false test with no else returns 0. A failing
-# install above it would then be swallowed and reported as a success, which is
-# what the `|| exit 1` next to it prevents.
+# Branch 2: its line ends with the test on requirements_dev.txt, and a false
+# test with no else returns 0 - a failing install above it would be swallowed
+# as a success, which the `|| exit 1` next to it prevents.
 #
-# The direnv hook comes last, and it writes over nothing that is already there:
-# our own template ships an .envrc that also loads .env through dotenv, and
-# another template's .envrc is its own business. Ours - the line that activates
-# the venv this macro just created - is written only where there is none, with
-# the guard that keeps it quiet before the first `uv sync`, and then approved, so
-# the project is usable on the way in. That line is why the hook is here and not
-# in the generic after-copy step: it is Python's, and a template that ships no
-# .envrc is the only case that ever sees it.
+# The direnv hook writes over nothing that is already there: ours - the line
+# that activates this venv, with the guard that keeps it quiet before the first
+# uv sync - only where no .envrc exists. Another template's is its own business.
 define init_venv
 	@if [ -f $(PROJECT_NAME)/uv.lock ] || { [ -f $(PROJECT_NAME)/pyproject.toml ] && grep -qx '\[project\]' $(PROJECT_NAME)/pyproject.toml; }; then \
 		echo "🐍 uv project detected (uv.lock or [project] table) — running uv sync..."; \

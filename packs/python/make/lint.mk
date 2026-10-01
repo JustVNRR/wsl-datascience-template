@@ -1,20 +1,15 @@
 # ==============================================================================
 # 🧹 LINT
 # ==============================================================================
-# Python : ruff — installed by this pack (`uv tool install ruff`, in install.sh);
-#   rules are configured per-project in pyproject.toml ([tool.ruff]).
-# Shell  : shellcheck — preinstalled in the template image.
-#   Debian/Ubuntu/WSL : sudo apt-get install shellcheck
-#   macOS             : brew install shellcheck
+# Python: ruff, installed by this pack; rules per project in pyproject.toml
+# ([tool.ruff]). Shell: shellcheck, a machine tool (apt-get install shellcheck).
 
-# Default scan roots (can be overridden from the command line)
 PY_TARGETS ?= .
 SH_TARGETS ?= .
 
-# The scan roots default to the whole project: scope them on the command line
-# when you want less, e.g. gmake lint PY_TARGETS="src/" SH_TARGETS="scripts/"
-# Reading the project asks nothing. Only lint-format writes, and it guards
-# itself - see the target.
+# The scan roots default to the whole project: scope them on the command line,
+# e.g. gmake lint PY_TARGETS="src/" SH_TARGETS="scripts/". Reading asks
+# nothing; only lint-format writes, and it guards itself - see the target.
 
 .PHONY: lint lint-py lint-sh lint-format
 
@@ -51,13 +46,9 @@ lint-format: ## Auto-fix and format Python code with ruff (optional: PY_TARGETS=
 		exit 1; \
 	}
 	@# The only target that rewrites files, so it refuses to start on a tree that
-	@# is not committed: ruff's edits would otherwise mix with work in progress.
-	@# Both halves matter - the first covers unstaged edits, the second what has
-	@# been staged but not committed.
-	@# A project that is not a git repository yet has nothing to mix with: fnew
-	@# leaves one that way - it ships a .gitignore and a .gitattributes, and its
-	@# owner runs `git init` when they want one. The check steps aside there
-	@# rather than refuse a target that cannot do any harm.
+	@# is not committed - ruff's edits would otherwise mix with work in progress.
+	@# Nothing to mix with where there is no git repository yet: that case steps
+	@# aside.
 	@if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then \
 		git diff --quiet -- . && git diff --cached --quiet -- . || { \
 			echo "❌ Uncommitted changes - commit or stash them first, or ruff will rewrite files you are still working on." >&2; \

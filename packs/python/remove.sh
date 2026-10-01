@@ -5,23 +5,17 @@
 # `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
-# Two halves again. The apt packages go one at a time, and one that another
-# installed pack still claims stays where it is: a pack does not own what it
-# installs, it is one of the claimants (see docs/packs.md). A pack that is gone
-# claims nothing.
+# The apt packages go one at a time, and one another installed pack still
+# claims stays where it is - a pack is one claimant among others, not an owner.
 #
-# uv is the same question asked the same way, about something apt never saw. It
-# is what a pack declares in PACK_OUTSIDE_APT - apt will never see it - and the
-# pack that installed it asks before erasing anything. The scaffold pack names
-# uv too, and every tool it runs goes through it: the first of the two to leave
-# leaves uv where it is, the last one takes it away with everything it manages -
-# the interpreter it downloaded, the tools' environments, its download cache.
-# The whole tree goes together, because uv's shims point into it and half of it
-# is worth nothing.
+# uv is the same question about something apt never saw (PACK_OUTSIDE_APT): the
+# scaffold pack names it too, so the first of the two to leave leaves uv where
+# it is, and the last takes it away with everything it manages - the
+# interpreter, the tools' environments, the cache. The whole tree goes
+# together: its shims point into it, and half of it is worth nothing.
 #
-# Two things this never does: remove a library (a neighbour's program may depend
-# on it, and apt would take that program along), and autoremove (the shared
-# libraries these tools pulled in are not ours to judge).
+# Two things this never does: remove a library, and autoremove - remove_pack
+# takes the dependencies back afterwards.
 
 set -euo pipefail
 
@@ -33,13 +27,9 @@ if [ -z "$packages" ]; then
     exit 1
 fi
 
-# Is this name declared by another pack that is still installed?
-#
-# A claim is a declaration, not a mention: these files talk about what they
-# install, and a comment that says "uv" claims nothing. So the name is read off
-# the two declaration lines - PACK_PACKAGES for what apt installs,
-# PACK_OUTSIDE_APT for what apt never sees - and off install.sh as well, in one
-# piece, for a pack written before PACK_PACKAGES existed.
+# A claim is a declaration, not a mention: the name is read off PACK_PACKAGES
+# and PACK_OUTSIDE_APT, and off install.sh for a pack written before the first
+# existed.
 claimed_elsewhere() {
     local other value word
     for other in "$HOME"/.config/packs/*/; do
@@ -63,12 +53,10 @@ for package in $packages; do
         echo "$package: another installed pack claims it - left in place."
         continue
     fi
-    # A failure here is not the end of the removal: what apt cannot take back,
-    # it says so about, and the script goes on to what it can (uv, below, which
-    # is not apt's business at all). Measured: with no package lists,
-    # `apt-get remove` answers "Unable to locate package" even for a package
-    # that is installed, and a `set -e` script would stop there and leave the
-    # rest of the pack on the machine.
+    # A failure here is not the end: what apt cannot take back, it says so
+    # about, and the script goes on to what it can (uv, below). With no package
+    # lists, `apt-get remove` answers "Unable to locate package" even for an
+    # installed one.
     if ! sudo apt-get remove -y "$package"; then
         echo "$package: apt could not remove it - left where it is."
         echo "   (apt needs its package lists: run 'sudo apt-get update' inside the"
@@ -76,13 +64,9 @@ for package in $packages; do
     fi
 done
 
-# ruff is this pack's, and it goes back whether or not uv stays: it is the one
-# thing here that another pack's uv has nothing to do with. Both halves matter.
-# The environment under uv's tree is where ruff lives, and the shim in
-# ~/.local/bin is where the next install trips: uv refuses to write an
-# executable that is already there ("Executable already exists: ruff"), so a
-# shim left behind is an install that fails every time it is run again - and
-# worse, a shim whose target has just been removed is a command that answers
+# ruff goes back whether or not uv stays. Both halves matter: the shim in
+# ~/.local/bin is where the next install trips - uv refuses to write an
+# executable that is already there - and a shim whose target is gone answers
 # "No such file or directory" to whoever types it.
 echo "Removing ruff..."
 rm -f "$HOME/.local/bin/ruff"
@@ -92,18 +76,14 @@ if claimed_elsewhere uv; then
     echo "uv: another installed pack claims it - left in place, with what it manages."
 else
     echo "Removing uv and what it installed..."
-    # By name, and not by asking uv itself: `uv tool uninstall` and `uv python
-    # uninstall` would be the tidy way, but they live on the very binary being
-    # removed, and a removal has to work on a machine where the install stopped
-    # halfway. Everything uv wrote is in two places - ~/.local/bin for the shims,
-    # ~/.local/share/uv for the Python builds and the tools' environments - plus
-    # its download cache. Every path is spelled from $HOME, so none can be empty
-    # when `rm` reads it, and `rm -f` never fails on one that is already gone.
+    # By name, not by asking uv: `uv tool uninstall` lives on the very binary
+    # being removed, and a removal must work on a machine where the install
+    # stopped halfway. Everything uv wrote is in ~/.local/bin (the shims),
+    # ~/.local/share/uv and its cache; every path is spelled from $HOME.
     #
-    # The Python shims are named after their version (`python3.14`), and the pack
-    # never chose that version: it asks uv for `3`, whatever that is today. Hence
-    # the glob where the tools get a name. nullglob, so a machine with no managed
-    # Python left hands `rm` nothing at all rather than the pattern.
+    # The Python shims are named after their version, and the pack never chose
+    # it - it asks uv for `3`, whatever that is today - hence the glob, with
+    # nullglob so an empty directory hands `rm` nothing.
     shopt -s nullglob
     rm -rf "$HOME/.local/bin/uv" \
            "$HOME/.local/bin/uvx" \

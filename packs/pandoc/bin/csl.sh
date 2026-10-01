@@ -2,20 +2,17 @@
 # ==============================================================================
 # THE PANDOC PACK - `csl_from_catalog`: A CITATION STYLE, FROM THE OFFICIAL CATALOG
 # ==============================================================================
-# A .csl (Citation Style Language) is the file that tells pandoc how citations
-# are written and how the bibliography is ordered: numbers or author-year,
-# superscript or not, the punctuation, the order. The document names its own
-# in its YAML header (`csl: csl/vancouver-superscript.csl`) and the file
-# travels beside it, in the project's csl/ folder. A style belongs to the
-# document, not to the tool - which is why the pack ships none - and this
-# target fetches one from the official catalog (the Citation Style Language
-# project, the ten thousand styles Zotero offers) into that folder.
+# A .csl (Citation Style Language) tells pandoc how citations are written and
+# how the bibliography is ordered. The document names its own in its YAML
+# header (`csl: csl/vancouver-superscript.csl`) and the file travels beside it
+# in the project's csl/ folder - a style belongs to the document, not to the
+# tool, which is why the pack ships none. This fetches one from the official
+# catalog (the ten-thousand styles Zotero offers).
 #
-# Which one: STYLE names it - `gmake csl_from_catalog STYLE=ieee` - and the file comes
-# straight from the catalog's raw storage: no list, nothing to choose, and the
-# only path that works without a terminal. Unnamed, a menu asks: the list is
-# one call to GitHub's API, fzf filters it (a few letters), and the chosen
-# file is downloaded from the same raw storage.
+# STYLE names it (`gmake csl_from_catalog STYLE=ieee`), straight from the
+# catalog's raw storage - the only path that works without a terminal.
+# Unnamed, a menu asks: one call to GitHub's API, fzf filters, the file is
+# downloaded from the same storage.
 #
 # This runs inside the instance, where the network is WSL's; a machine without
 # it gets the two lines below, not a hang.
@@ -58,12 +55,9 @@ if [ -z "$STYLE" ]; then
     fi
 fi
 
-# The style, in csl/ beside the document that names it: the folder keeps the
-# document's root down to the files that change - the markdown, the .bib, the
-# template, the images - and the YAML line carries the path (his call,
-# 2026-09-30: the styles in one place, the root readable). One that is already
-# there is left alone: it may be a version someone edited, and this target
-# fetches.
+# In csl/ beside the document that names it - the folder keeps the document's
+# root down to the files that change, and the YAML line carries the path. One
+# that is already there is left alone: it may be a version someone edited.
 out=csl/$STYLE.csl
 if [ -f "$out" ]; then
     echo "$out is already here - left as it is."

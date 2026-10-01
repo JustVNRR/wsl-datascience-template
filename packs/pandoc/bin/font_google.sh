@@ -5,16 +5,13 @@
 # The second source of fonts beside the Windows side: Google Fonts - around
 # 1 800 families, all free, no account, one repository.
 #
-# FONT names a family, and a part of the name is enough; unnamed, a menu asks
-# - fzf over the catalogue, the picker used everywhere in this shell, with
-# --exact: the typed letters are looked for as they are typed. Without it,
-# fzf's fuzzy mode matches letters scattered through a name ("asi" finds
-# "acm-siggraph"), which reads as noise on a list of thousands (his find,
-# 2026-09-30).
+# FONT names a family and a part of one is enough; unnamed, a menu asks - fzf
+# over the catalogue with --exact: fuzzy mode matches letters scattered through
+# a name ("asi" finds "acm-siggraph"), which reads as noise on a list of
+# thousands.
 #
-# The files land in ~/.local/share/fonts/google/<family>/, one folder per
-# family, where fc-cache registers them at once. They are yours: removing the
-# pack leaves them where they are.
+# The files land in ~/.local/share/fonts/google/<family>/, where fc-cache
+# registers them at once. They are the user's: removing the pack leaves them.
 set -euo pipefail
 
 die() {
@@ -69,11 +66,10 @@ fi
 licence=${CHOSEN%%$'\t'*}
 family=${CHOSEN#*$'\t'}
 
-# The files: the static/ folder when the family has one (the classic faces -
-# regular, bold, italic...), the family's own .ttf files otherwise (a
-# variable font). What lands is read back from the files themselves, because
-# the folder name is not the family name a template writes (the folder is
-# open-sans, the family "Open Sans").
+# The files: the static/ folder when the family has one (the classic faces),
+# the family's own .ttf files otherwise (a variable font). What lands is read
+# back from the files themselves: the folder name is not the family name a
+# template writes (open-sans holds "Open Sans").
 entries=$(curl -fsSL "$api/$licence/$family") || die "$family: not in the catalogue any more."
 if [ "$(printf '%s\n' "$entries" | jq -r '[.[] | select(.type == "dir" and .name == "static")] | length')" != "0" ]; then
     entries=$(curl -fsSL "$api/$licence/$family/static") || die "$family: its static folder could not be read."

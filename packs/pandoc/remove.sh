@@ -5,22 +5,17 @@
 # `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
-# The packages go one at a time, and one that another installed pack still
-# claims stays where it is: a pack does not own what it installs, it is one of
-# the claimants (see docs/packs.md). A pack that is gone claims nothing.
+# The packages go one at a time, and one another installed pack still claims
+# stays where it is - a pack is one claimant among others, not an owner.
 #
-# The four Arial files are the pack's own copy, in a directory of its own - this
-# script put them there, this script takes them back, and nothing else under
-# ~/.local/share/fonts is touched: a font you put there in the meantime is
-# yours.
+# The four Arial files are the pack's own copy, in a directory of its own:
+# nothing else under ~/.local/share/fonts is touched.
 #
-# Two things this never does: remove a library (a neighbour's program may depend
-# on it, and apt would take that program along), and autoremove (the shared
-# libraries these tools pulled in are not ours to judge - remove_pack takes them
-# back with a question the whole instance answers).
+# Two things this never does: remove a library (apt would take its dependents
+# along), and autoremove - remove_pack takes the dependencies back afterwards,
+# with its question.
 #
-# Everything this script PRINTS is plain ASCII: it travels through wsl.exe to
-# the Windows console, which reads those bytes in its own code page.
+# Everything this script PRINTS is plain ASCII: it travels through wsl.exe.
 
 set -euo pipefail
 
@@ -32,13 +27,9 @@ if [ -z "$packages" ]; then
     exit 1
 fi
 
-# Is this name declared by another pack that is still installed?
-#
-# A claim is a declaration, not a mention: these files talk about what they
-# install, and a comment that says "pandoc" claims nothing. So the name is read
-# off the declaration lines - PACK_PACKAGES for what apt installs,
-# PACK_OUTSIDE_APT for what apt never sees - and off install.sh as well, for a
-# pack written before PACK_PACKAGES existed.
+# A claim is a declaration, not a mention: the name is read off PACK_PACKAGES
+# and PACK_OUTSIDE_APT, and off install.sh for a pack written before the first
+# existed.
 claimed_elsewhere() {
     local other value word
     for other in "$HOME"/.config/packs/*/; do
@@ -56,12 +47,9 @@ claimed_elsewhere() {
     return 1
 }
 
-# The claimed ones leave the list first, then ONE sudo for the lot: each
-# `sudo` call asks again wherever the credential cache does not hold (a
-# session per command, a cache turned off), and seven questions for seven
-# packages is the kind of friction that makes a removal unpleasant (his ask,
-# 2026-09-30: a grouped shot). The name is not printed per package any more -
-# apt lists what it takes back.
+# The claimed ones leave the list first, then ONE sudo for the lot: each sudo
+# call asks again wherever the credential cache does not hold, and seven
+# questions for seven packages is friction. apt lists what it takes back.
 to_remove=()
 echo "Removing Pandoc and the LaTeX engine..."
 for package in $packages; do
@@ -72,11 +60,10 @@ for package in $packages; do
     to_remove+=("$package")
 done
 
-# A failure here is not the end of the removal: what apt cannot take back, it
-# says so about, and the script goes on to the fonts below. Measured on the
-# python pack: with no package lists, `apt-get remove` answers "Unable to
-# locate package" even for a package that is installed, and a `set -e` script
-# would stop there and leave the rest behind.
+# A failure here is not the end: what apt cannot take back, it says so about,
+# and the script goes on to the fonts below. With no package lists,
+# `apt-get remove` answers "Unable to locate package" even for an installed
+# one - a `set -e` script would stop there and leave the rest behind.
 if [ ${#to_remove[@]} -gt 0 ] && ! sudo apt-get remove -y "${to_remove[@]}"; then
     echo "apt could not remove: ${to_remove[*]} - left where they are."
     echo "(apt needs its package lists: run 'sudo apt-get update' inside the"

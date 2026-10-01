@@ -5,31 +5,24 @@
 # `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/python, then
 # runs this script from inside it, as the instance's own user.
 #
-# Two halves, one script:
-#   - the compiler and the headers are root's business, asked for once, in a
-#     single sudo - one `sudo bash -c` is asked at a point where the keyboard is
-#     still free, whereas several small suds would each need the ticket;
-#   - Python and its tools belong to the user who runs this. uv installs and
-#     manages them under ~/.local, so removing them never asks for a password.
+# Two halves: the compiler and the headers are root's business, asked once in a
+# single sudo; Python and its tools are the user's - uv installs them under
+# ~/.local, so removing them never asks for a password.
 #
-# The tools that create a project - copier, cruft, ccds - are not installed
-# here: they belong to the scaffold pack, which takes each one from uv's cache
-# the day it is first used. What this script installs is what a project's
-# environment needs: an interpreter, and ruff to lint it.
+# The tools that create a project (copier, cruft, ccds) belong to the scaffold
+# pack. This one installs what a project's environment needs: an interpreter,
+# and ruff to lint it.
 
 set -euo pipefail
 
-# The PATH is built here, not inherited. The shell this script runs from carries
-# WSL's Windows directories (WSL appends them), and a name resolved through them
-# can be a Windows program: the claude pack's installer uninstalled the Windows
-# copy of Claude Code exactly that way, through the npm it found under /mnt
-# (measured, 2026-09-29). Nothing here needs Windows - sed, sudo, apt-get, curl,
-# sh and uv all live under /usr or in ~/.local/bin. The list is the claude pack's
-# clean_path, kept identical so the two packs read alike.
+# The PATH is built here, not inherited: the shell this script runs from
+# carries WSL's Windows directories, and a name resolved through them can be a
+# Windows program - the claude pack's installer uninstalled the Windows copy
+# that way. The claude pack's clean_path, kept identical so the two read alike.
 #
-# ~/.local/bin is in it for this script's own two reasons: uv warns on every
-# tool it installs when that directory is missing from the PATH, and the `uv`
-# lines below must find the binary the line above just installed.
+# ~/.local/bin is in it: uv warns on every tool when that directory is missing
+# from the PATH, and the `uv` lines below must find what the line above
+# installed.
 clean_path=$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export PATH=$clean_path
 
@@ -57,22 +50,17 @@ if command -v uv >/dev/null 2>&1; then
 else
     echo "Installing uv..."
     # UV_NO_MODIFY_PATH: left alone, uv's installer adds a line to the shell's
-    # startup files - ~/.zshenv among them - to put itself on the PATH. Each pack
-    # that needs it declares its own PATH in its own zsh file, so a removal has
-    # nothing to undo in yours.
-    # pipefail is on from the top of this script, and it is what makes the pipe
-    # safe: a curl that fails would feed the installer an empty script, which
-    # exits 0, and the failure would surface one step later, on a missing `uv`.
+    # startup files; each pack declares its own PATH in its own zsh file.
+    # pipefail makes the curl pipe safe: a failed curl would feed an empty
+    # script, which exits 0.
     curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
 fi
 
 echo "Installing Python 3 and ruff..."
 uv python install 3
 # --force: a shim left by an install that stopped halfway makes uv refuse to
-# write ruff's ("Executable already exists: ruff"), and a pack whose install can
-# only be re-run after cleaning up by hand is a pack that never finishes - the
-# message above the prompt says "run this again to finish", and it has to be
-# true.
+# write ruff's, and a pack whose install can only be re-run after cleaning up
+# by hand never finishes.
 uv tool install --force ruff
 
 echo "Python 3, uv and ruff are installed."
