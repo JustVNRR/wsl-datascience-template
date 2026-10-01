@@ -138,16 +138,13 @@ cmd_on() {
         die "no $PREF_DIR: Firefox is not installed here - it arrives from Windows (.\wsl.ps1 add_pack)."
 
     if [ -f "$PREF_FILE" ] && prefs_are_current; then
-        printf 'The privacy defaults are in place.\n'
+        printf 'The privacy settings are in place.\n'
         return 0
     fi
 
     write_prefs
 
-    printf 'The privacy defaults are in place: %s\n' "$PREF_FILE"
-    printf '   Defaults, not orders: a value set in about:config wins over them.\n'
-    printf '   Close and reopen Firefox for them to apply.\n'
-    printf '   Sites will see en-US and UTC, and pages are letterboxed - the anti-fingerprinting trade, in docs/fox.md.\n'
+    printf 'The privacy settings are in place: %s\n' "$PREF_FILE"
 }
 
 cmd_off() {
