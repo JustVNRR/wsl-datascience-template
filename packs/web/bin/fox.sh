@@ -75,6 +75,9 @@ ensure_link() {
     fi
     as_root ln -sfn "$SLOT" "$PREF_FILE" ||
         die "the link could not be written to $PREF_FILE"
+    if [ "$(readlink -- "$PREF_FILE" 2>/dev/null)" != "$SLOT" ]; then
+        die "the link at $PREF_FILE does not point at $SLOT"
+    fi
 }
 
 # One of the two sets, in the slot. Copies only when the slot holds something
@@ -96,6 +99,10 @@ put_set() {
     install -d "$(dirname "$SLOT")"
     cp "$src" "$SLOT" ||
         die "the $1 set could not be written to $SLOT"
+    # Read back what was just written - a claim that was not re-read is how
+    # "in place" once lied (measured, in the harness).
+    cmp -s "$src" "$SLOT" ||
+        die "the $1 set did not survive the write to $SLOT"
     return 0
 }
 

@@ -36,6 +36,19 @@ gmake fox_tweak_off                          # everything out - the browser stoc
   and a browser keeps the set it started with until it is closed — which is
   why the launcher is what picks.
 
+## Proving it
+
+`pfox` opens the pack's `privacy-check.html` in the window it launches. A page
+cannot read Firefox's preferences — that is what the browser keeps to itself —
+so the page measures the **effects**, live, against what the strict set
+expects: the time zone (UTC), the language (en-US), the user-agent (generic),
+WebRTC (absent), the canvas (one flat colour), a geolocation request (refused),
+and a real tracker's site (blocked). It also shows what the internet sees right
+now — the exit IP, its city and country — and the DNS resolver the launcher
+read from the instance when the window opened. The one thing it cannot do is
+test DNS leaks on its own; for the raw values, `about:config` stays the
+reference.
+
 ## What changes while you browse
 
 The strict set is the one with visible effects:

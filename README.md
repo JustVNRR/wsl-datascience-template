@@ -270,6 +270,7 @@ the repository at runtime.
 │       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │       ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
 │       ├── fox-privacy-*.js # the two privacy sets (light, strict) the launchers choose
+│       ├── privacy-check.html  # the live check page pfox opens
 │       ├── vpn.servers.sample  # the servers, in JSON, waiting for your keys
 │       ├── env.global.sample   # VPN_PROFILE and VPN_KILL_SWITCH, for .env.global
 │       ├── bin/             # the two scripts: the tunnel's, the browser's - and the boot hook's

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What this browser actually does</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 52rem; padding: 0 1rem; }
+  h1 { font-size: 1.3rem; }
+  p.note { font-size: 0.85rem; opacity: 0.8; max-width: 44rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-top: 1rem; }
+  th, td { border: 1px solid #8884; padding: 0.35rem 0.6rem; text-align: left; vertical-align: top; }
+  th { font-weight: 600; }
+  td.ok { color: #2e7d32; font-weight: 700; }
+  td.bad { color: #c62828; font-weight: 700; }
+  td.value { font-family: ui-monospace, monospace; word-break: break-all; }
+  footer { font-size: 0.85rem; opacity: 0.8; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<h1>What this browser actually does</h1>
+<p class="note">
+A web page cannot read Firefox's preferences — that is what the browser keeps to itself.
+What follows is the <em>effects</em>, measured live in this window, against what the
+<strong id="set-name">current</strong> privacy set expects. For the raw values, open
+<code>about:config</code>. The last rows look at the network: what the internet sees right now.
+</p>
+<table>
+  <thead>
+    <tr><th>Measured live</th><th>Value</th><th>Expected</th><th></th></tr>
+  </thead>
+  <tbody id="rows"></tbody>
+</table>
+<footer id="footer"></footer>
+
+<script>
+"use strict";
+
+// The launcher puts the set in the fragment, and the resolver it read from the
+// instance: #strict;dns=10.2.0.1 (or #light;dns=1.1.1.1, or nothing at all).
+const parts = decodeURIComponent(location.hash.slice(1)).split(";");
+const set = parts[0] || "";
+const dns = (parts.find(p => p.startsWith("dns=")) || "dns=").slice(4);
+const strict = set === "strict";
+document.getElementById("set-name").textContent = strict ? "strict" : (set ? "light" : "current");
+
+const rows = document.getElementById("rows");
+
+// One line of the table. expected/verdict are left out when no set was passed.
+function add(name, value, expected, ok) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = "<td>" + name + "</td><td class='value'></td><td></td><td></td>";
+  tr.children[1].textContent = value === "" ? "(empty)" : value;
+  tr.children[2].textContent = strict ? expected : "";
+  if (strict && ok !== undefined && ok !== null) {
+    tr.children[3].textContent = ok ? "✓" : "✗";
+    tr.children[3].className = ok ? "ok" : "bad";
+  }
+  rows.appendChild(tr);
+  return tr;
+}
+
+// --- the time zone: RFP hands every site UTC --------------------------------
+const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+add("Time zone", tz, "UTC", tz === "UTC");
+
+// --- the language Firefox announces ------------------------------------------
+add("Language", navigator.language, "en-US", navigator.language === "en-US");
+
+// --- the user-agent: generic under RFP, and it claims Windows (everyone does,
+// under RFP - it is one of the crowd's values) --------------------------------
+const ua = navigator.userAgent;
+add("User-agent", ua, "generic Firefox, no Linux", /Windows/.test(ua) && !/Linux/.test(ua));
+
+// --- what a site sees of the window ------------------------------------------
+add(
+  "Window size a site sees",
+  window.innerWidth + " × " + window.innerHeight,
+  "a standard size (letterboxing)",
+  window.innerWidth % 200 === 0
+);
+
+// --- WebRTC: gone with the strict set ----------------------------------------
+const rtc = typeof RTCPeerConnection;
+add("RTCPeerConnection", rtc, "undefined", rtc === "undefined");
+
+// --- the canvas: neutralized under RFP (one flat colour, not your GPU) -------
+let canvasVerdict;
+try {
+  const c = document.createElement("canvas");
+  c.width = 200; c.height = 50;
+  const g = c.getContext("2d");
+  g.textBaseline = "top";
+  g.font = "16px monospace";
+  g.fillStyle = "#f60";
+  g.fillRect(0, 0, 200, 50);
+  g.fillStyle = "#069";
+  g.fillText("fingerprint me", 2, 2);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  let flat = true;
+  for (let i = 4; i < d.length; i += 4) {
+    if (d[i] !== d[0]) { flat = false; break; }
+  }
+  canvasVerdict = flat ? "one flat colour - neutralized" : "a drawn image - readable";
+} catch (e) {
+  canvasVerdict = "unreadable (" + e.name + ")";
+}
+add("Canvas", canvasVerdict, "one flat colour - neutralized", canvasVerdict.startsWith("one flat"));
+
+// --- geolocation: asked, and answered -----------------------------------------
+const geoRow = add("Geolocation (asked just now)", "asking…", "refused", null);
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(
+    () => { geoRow.children[1].textContent = "granted"; if (strict) { geoRow.children[3].textContent = "✗"; geoRow.children[3].className = "bad"; } },
+    (e) => {
+      geoRow.children[1].textContent = e.code === 1 ? "refused (denied)" : "failed (" + e.message + ")";
+      if (strict) { const ok = e.code === 1; geoRow.children[3].textContent = ok ? "✓" : "✗"; geoRow.children[3].className = ok ? "ok" : "bad"; }
+    },
+    { timeout: 4000 }
+  );
+} else {
+  geoRow.children[1].textContent = "no geolocation API";
+}
+
+// --- a real tracker's page: blocked by tracking protection, in strict ---------
+const trackerRow = add("itisatracker.com (Mozilla's tracker test site)", "asking…", "blocked", null);
+fetch("https://itisatracker.com/", { mode: "no-cors", cache: "no-store" })
+  .then(() => {
+    trackerRow.children[1].textContent = "LOADED";
+    if (strict) { trackerRow.children[3].textContent = "✗"; trackerRow.children[3].className = "bad"; }
+  })
+  .catch(() => {
+    trackerRow.children[1].textContent = "not loaded (blocked, or the network is down)";
+    if (strict) { trackerRow.children[3].textContent = "✓"; trackerRow.children[3].className = "ok"; }
+  });
+
+// --- what the internet sees right now: the exit IP, and where it points -------
+const ipRow = add("Exit IP", "asking…", "the tunnel's, when it is up", null);
+fetch("https://ipinfo.io/json")
+  .then(r => r.json())
+  .then(j => {
+    const place = [j.city, j.region, j.country].filter(Boolean).join(", ");
+    ipRow.children[1].textContent = (j.ip || "?") + (place ? "  -  " + place : "") + (j.org ? "  (" + j.org + ")" : "");
+  })
+  .catch(() => {
+    // ipinfo may not answer (or not allow a page opened from a file): the IP
+    // alone still comes from ipify, which does.
+    fetch("https://api.ipify.org?format=json")
+      .then(r => r.json())
+      .then(j => { ipRow.children[1].textContent = j.ip + "  (location service unavailable)"; })
+      .catch(() => { ipRow.children[1].textContent = "unreachable"; });
+  });
+
+// --- the DNS resolver pfox read from the instance -----------------------------
+add("DNS resolver (read by pfox)", dns, "the tunnel's, when it is up");
+
+document.getElementById("footer").textContent =
+  "A page can prove these effects, not the preferences themselves - and it cannot test DNS leaks " +
+  "on its own: the DNS line is what the instance resolved with when pfox ran. For the rest: about:config.";
+</script>
+</body>
+</html>

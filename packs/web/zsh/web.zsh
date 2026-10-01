@@ -15,9 +15,10 @@
 # `MOZ_ENABLE_WAYLAND=1 fox`.
 export MOZ_ENABLE_WAYLAND=0
 
-# The pack's script, from this file's own path - %x is where a function here
-# was defined (inside one, $0 is the function's name).
-FOX_SH=${${(%):-%x}:A:h}/../bin/fox.sh
+# The pack's root and script, from this file's own path - %x is where a
+# function here was defined (inside one, $0 is the function's name).
+PACK=${${(%):-%x}:A:h:h}
+FOX_SH=$PACK/bin/fox.sh
 
 # What both launchers end on, and the bus Firefox asks for before it draws
 # anything - this image has none (no dbus-daemon, no dbus-launch), and the
@@ -46,14 +47,19 @@ fox() {
     _fox_launch "$@"
 }
 
-# pfox opens the private window on the strict settings. The switch counts at
-# Firefox's next start, so a switch while it runs would be silently wrong -
-# a "strict" pfox opening a light session - and pfox refuses instead.
+# pfox opens the private window on the strict settings, with the pack's check
+# page first - what the browser actually does, measured live
+# (privacy-check.html, filled with the set and the DNS resolver read here).
+# The switch counts at Firefox's next start, so a switch while it runs would
+# be silently wrong - a "strict" pfox opening a light session - and pfox
+# refuses instead.
 pfox() {
     if pgrep -x firefox >/dev/null 2>&1; then
         print -u2 "Firefox is already running - close it, then run pfox again (the settings count at its next start)."
         return 1
     fi
     "$FOX_SH" strict || return
-    _fox_launch --private-window "$@"
+    local dns
+    dns=$(awk '/^[[:space:]]*nameserver/{print $2; exit}' /etc/resolv.conf 2>/dev/null)
+    _fox_launch --private-window "file://$PACK/privacy-check.html#strict;dns=$dns" "$@"
 }

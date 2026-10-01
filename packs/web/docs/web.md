@@ -106,8 +106,9 @@ settings are read as Firefox starts. The install leaves the light set in
 place; a switch costs no password, because the browser's directory holds a
 link to a file of your own; and `pfox` refuses to launch while Firefox is
 already running, since a switch would count only at the next start.
-`gmake fox_tweak_on` / `fox_tweak_off` are the manual switches. What each set
-holds: [the privacy page](fox.md).
+`gmake fox_tweak_on` / `fox_tweak_off` are the manual switches. `pfox` also
+opens the pack's check page first: what the browser actually does, measured
+live. What each set holds: [the privacy page](fox.md).
 
 Your profile (`~/.mozilla`: bookmarks, passwords, history) is yours: removing
 the pack does not delete it.
