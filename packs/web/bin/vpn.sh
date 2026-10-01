@@ -7,7 +7,7 @@
 #   ~/.config/zsh/gmake/.env.global   VPN_PROFILE, VPN_KILL_SWITCH, VPN_MTU, BASE_DNS
 #   /etc/wireguard/vpn.conf           generated from the two above before every
 #                                     mount; never edited by hand
-# bin/vpn-boot.sh goes through this same file, so the profile is never stale.
+# bin/vpn-boot.sh reads through this same file, so the profile is never stale.
 
 set -euo pipefail
 
@@ -26,20 +26,18 @@ SAMPLE=$here/../vpn.servers.sample
 SERVERS=$HOME/.config/vpn/servers.json
 GLOBAL_ENV=$HOME/.config/zsh/gmake/.env.global
 
-# The automatic start: a marker file, because the hook also runs for the
-# resolver alone - its presence is what means "raise the tunnel".
+# The automatic start: a marker file - the boot hook also runs for the
+# resolver alone, so its presence is what means "raise the tunnel".
 AUTO_FLAG=$HOME/.config/vpn/auto
 
-# The kill-switch rules carry this label, so any instance can find and sweep
-# them. Scoped to this distro's cgroup path, never to the machine: the kernel
-# and the firewall are shared by every distro of the box.
+# The rules carry this label, so any instance can find and sweep them - scoped
+# to this distro's cgroup path: the firewall is shared by every distro.
 KS_COMMENT='wsl-stack kill switch'
 
-# This distro's root in WSL's cgroup tree. The id is renumbered at every start,
-# and sessions hang under the root - matching the root covers them all
-# (iptables' --path covers sub-folders too). Empty when WSL says nothing
-# usable: no rule is laid then, and compose says why. CGROUP_ROOT is what a
-# test points at a stand-in tree.
+# This distro's root in WSL's cgroup tree: the id is renumbered at every start,
+# and matching the root covers the sessions (iptables' --path covers
+# sub-folders). Empty when WSL says nothing usable - no rule is laid then.
+# CGROUP_ROOT is what a test points at a stand-in tree.
 CGROUP_ROOT=${CGROUP_ROOT:-/proc}
 cgroup_distro_path() {
     local p=
@@ -50,10 +48,9 @@ cgroup_distro_path() {
     printf '%s\n' "$p"
 }
 
-# PostUp and PreDown, both address families. The same words for -I and -D (a
-# -D that differs by one match deletes nothing); $3 is the tail - raising
-# fails loud, tearing down only tries, and the sweep finishes by label. The
-# $( ) is wg-quick's: expanded when the tunnel comes up, not here.
+# The same words for -I and -D (a -D that differs by one match deletes
+# nothing); the $( ) is wg-quick's - expanded when the tunnel comes up, not
+# here.
 ks_rule() { # $1: -I or -D, $2: this instance's cgroup path, $3: the verb's tail
     # shellcheck disable=SC2016
     printf 'iptables %s OUTPUT ! -o %%i -m cgroup --path "%s" -m mark ! --mark $(wg show %%i fwmark) -m addrtype ! --dst-type LOCAL -m comment --comment "%s" -j REJECT%s; ip6tables %s OUTPUT ! -o %%i -m cgroup --path "%s" -m mark ! --mark $(wg show %%i fwmark) -m addrtype ! --dst-type LOCAL -m comment --comment "%s" -j REJECT%s' \
@@ -83,8 +80,8 @@ as_root() {
 }
 
 # Remove every labelled rule still in the kernel; answers how many went. By
-# label only: never by rebuilding a spec (the fwmark dies with the interface),
-# never by flushing the chain (Docker's rules live there).
+# label only: never by rebuilding a spec - the fwmark dies with the interface -
+# and never by flushing the chain: Docker's rules live there.
 ks_sweep() {
     local fam='' num='' removed=0
     for fam in iptables ip6tables; do
@@ -264,10 +261,9 @@ server_in_use() {
     as_root sed -n 's/^# Server: \([^ ]*\).*/\1/p' "$CONF" 2>/dev/null | head -n 1 || true
 }
 
-# Is the up interface running one of OUR servers? A survivor of our own last
-# start must be re-raised - its DNS registration and its rules died with that
-# start. A neighbour's must be left alone. The live public key against the
-# public keys of servers.json tells them apart.
+# A survivor of our own last start must be re-raised - its DNS registration and
+# its rules died with that start. A neighbour's is left alone: the live public
+# key against servers.json's tells them apart.
 owns() {
     local live key ours
     live=$(as_root wg show "$IFACE" public-key 2>/dev/null || true)
@@ -306,9 +302,8 @@ pick() {
     printf '%s\n' "$choice"
 }
 
-# Write /etc/wireguard/vpn.conf from the JSON and the variables. Every path
-# that raises the tunnel goes through here, the boot hook included; edits made
-# in the generated file are lost at the next mount.
+# Every path that raises the tunnel goes through here, the boot hook included;
+# edits made in the generated file are lost at the next mount.
 compose() {
     local id=$1 private address pub endpoint allowed dns mtu keepalive pair name value ks_path
 
@@ -573,9 +568,8 @@ cmd_edit_profiles() {
     fi
 }
 
-# The [boot] command does two separate things: the resolver is put back at
-# every start (the hook, installed with the pack); the tunnel is raised only
-# when the marker file vpn_auto_on writes is there.
+# The [boot] command does two things: the resolver at every start (the hook);
+# the tunnel only when the marker file vpn_auto_on writes is there.
 auto_flag_present() {
     [ -f "$AUTO_FLAG" ]
 }
@@ -584,8 +578,8 @@ hook_present() {
     as_root grep -qxF "$HOOK" "$WSLCONF" 2>/dev/null
 }
 
-# Idempotent: one copy of the script, one line under [boot] (and nowhere else:
-# /etc/wsl.conf also holds generateResolvConf).
+# Idempotent: one copy of the script, one line under [boot] - /etc/wsl.conf
+# also holds generateResolvConf.
 hook_on() {
     as_root install -m 0755 "$here/vpn-boot.sh" "$BOOT_SCRIPT"
     if hook_present; then

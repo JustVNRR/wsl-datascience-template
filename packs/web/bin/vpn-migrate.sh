@@ -4,16 +4,14 @@
 # ==============================================================================
 # One-shot migration: each .conf of /etc/wireguard becomes an entry of
 # servers.json. The .conf files are left where they are - they are the user's.
-# Called by install.sh when the JSON does not exist yet; writes nothing when it
-# does (the JSON is the user's file, and it holds their keys).
+# Called by install.sh when the JSON does not exist yet.
 #
 #   usage: vpn-migrate.sh <path to servers.json>
 #
 # Carried over: private key, address, DNS, the peer (public key, endpoint,
-# allowed IPs, keepalive), and the MTU when the profile names one. Reported as
-# dropped: everything else - a silent half-migration would be a tunnel that
-# half-works. The kill-switch lines (PostUp/PreDown) are the VPN_KILL_SWITCH
-# variable now.
+# allowed IPs, keepalive), and the MTU when the profile names one. Everything
+# else is reported as dropped - a silent half-migration would be a tunnel that
+# half-works. PostUp/PreDown are the VPN_KILL_SWITCH variable now.
 
 set -euo pipefail
 

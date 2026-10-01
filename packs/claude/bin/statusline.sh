@@ -2,19 +2,16 @@
 # ==============================================================================
 # CLAUDE CODE'S STATUS LINE, IN THIS INSTANCE
 # ==============================================================================
-# Two rows, and the reason is the whole design: the folder is the one thing
-# whose length nobody controls, and on a single row it pushed the context - the
-# number worth watching - off the screen. Row 1 holds the short values; row 2
-# ends with the folder, so being cut is the right job for it.
+# Two rows: the folder is the one value whose length nobody controls, and on a
+# single row it pushed the context off the screen. Row 1 holds the short
+# values; row 2 ends with the folder.
 #
-# The CLI hands the session's JSON on stdin (its own contract - the status line
-# page of its documentation). install.sh writes this script into
-# ~/.claude/settings.json as the statusLine, once, and never over one that is
-# already there; remove.sh takes back exactly this one.
+# The CLI hands the session's JSON on stdin. install.sh writes this script into
+# ~/.claude/settings.json as the statusLine, once, and never over one already
+# there; remove.sh takes back exactly this one.
 #
 # Everything below the SHARED line is byte-for-byte the same as the copy on
-# Windows, in ~/.claude/statusline-command.sh: one code, two machines, and no
-# drift between them.
+# Windows, in ~/.claude/statusline-command.sh: one code, two machines.
 #
 # ==============================================================================
 # SHARED - the same file on both machines, from this line down
