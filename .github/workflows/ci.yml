@@ -121,6 +121,28 @@ jobs:
           done < <(find . -type f -name '*.ps1' -not -path './.git/*' -print0)
           exit $bad
 
+      - name: The colour codes stay in their files
+        run: |
+          # A message names a kind, and a code is written once per world:
+          # zsh/lib/colours.sh for the shell, zsh/gmake/make/colours.mk for
+          # make. The claude status line is the one exception - its block is
+          # shared, byte for byte, with the Windows copy. Anywhere else a
+          # `\033[` is a call site that went back to writing the code itself,
+          # and a comment cannot notice that.
+          bad=0
+          while IFS= read -r hit; do
+            case "$hit" in
+              ./zsh/lib/colours.sh:* | ./zsh/gmake/make/colours.mk:* | ./packs/claude/bin/statusline.sh:*) ;;
+              *)
+                echo "::error::a colour code outside the colour files: $hit"
+                bad=1
+                ;;
+            esac
+          done < <(grep -rnF '\033[' --exclude-dir=.git \
+                     --include='*.sh' --include='*.zsh' --include='.zshrc' \
+                     --include='*.mk' --include='Makefile' . || true)
+          exit $bad
+
       - name: Makefile parse + help menu
         run: |
           # The menu is what the repository carries: the socle's targets and

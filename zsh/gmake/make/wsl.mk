@@ -33,12 +33,12 @@ GATE_EXEMPT_GOALS += windows_path_up windows_path_down fstab_up fstab_down
 # gives a target name is cyan, and green reads as "this is what you type".
 # One line, on purpose: it expands inside a recipe's joined command.
 define apply_hint
-	printf '\033[33mRun \033[32m.\\wsl.ps1 restart\033[33m from Windows to apply.\033[0m\n'
+	printf '$(C_HINT)Run $(C_COMMAND).\\wsl.ps1 restart$(C_HINT) from Windows to apply.$(C_RESET)\n'
 endef
 
 wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, interop
 	@sudo nano /etc/wsl.conf
-	@printf '\n\033[33mRun \033[32m.\\wsl.ps1 restart\033[33m from Windows to apply any change.\033[0m\n'
+	@printf '\n$(C_HINT)Run $(C_COMMAND).\\wsl.ps1 restart$(C_HINT) from Windows to apply any change.$(C_RESET)\n'
 
 # The resolver file, for the same two reasons and one of its own: it belongs to
 # root, and WSL may be the one writing it. As long as it is a symlink - to
@@ -48,7 +48,7 @@ wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, inter
 # way is generateResolvConf = false in /etc/wsl.conf, which wsl_config opens.
 dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance resolves names with
 	@if [ -L /etc/resolv.conf ]; then \
-		printf '\033[33mEnsure \033[32mgenerateResolvConf = false\033[33m in /etc/wsl.conf if you want your change to survive a restart.\033[0m\n'; \
+		printf '$(C_HINT)Ensure $(C_COMMAND)generateResolvConf = false$(C_HINT) in /etc/wsl.conf if you want your change to survive a restart.$(C_RESET)\n'; \
 	elif [ ! -e /etc/resolv.conf ]; then \
 		echo "ℹ️  There is no /etc/resolv.conf — nothing resolves until one exists; WSL will write its own at the next start."; \
 	fi
@@ -63,9 +63,9 @@ dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance res
 fstab_config: ## Open /etc/fstab in nano (sudo) - the mounts to apply at start
 	@sudo nano /etc/fstab
 	@if grep -q '^[[:space:]]*mountFsTab[[:space:]]*=[[:space:]]*true' /etc/wsl.conf 2>/dev/null; then \
-		printf '\n\033[33mRun \033[32m.\\wsl.ps1 restart\033[33m from Windows to apply.\033[0m\n'; \
+		printf '\n$(C_HINT)Run $(C_COMMAND).\\wsl.ps1 restart$(C_HINT) from Windows to apply.$(C_RESET)\n'; \
 	else \
-		printf '\n\033[33mNothing here is mounted at start: set mountFsTab = true first - gmake fstab_up.\033[0m\n'; \
+		printf '\n$(C_HINT)Nothing here is mounted at start: set mountFsTab = true first - gmake fstab_up.$(C_RESET)\n'; \
 	fi
 
 # The reporter: it reads, it changes nothing, and every probe is one a status
@@ -89,14 +89,14 @@ fstab_config: ## Open /etc/fstab in nano (sudo) - the mounts to apply at start
 # The block titles are cyan - the colour gmake help gives a target name - so the
 # five reads stand apart from the values under them.
 wsl_status: ## Show what this instance runs on: base image, init, WSL's files, memory
-	@printf '\n\033[36m=== Base Image and the kernel ===\033[0m\n'
+	@$(call title,Base Image and the kernel)
 	@printf "Kernel     : "; uname -r
 	@printf "Base Image : "; grep PRETTY_NAME /etc/os-release | cut -d= -f2 | tr -d '"'
-	@printf '\n\033[36m=== Service Manager ===\033[0m\n'
+	@$(call title,Service Manager)
 	@printf "PID 1      : "; ps -p 1 -o comm= || true
 	@printf "systemd    : "; state=$$(systemctl is-system-running 2>/dev/null || true); \
 		if [ -n "$$state" ]; then echo "$$state"; else echo "not installed - gmake systemd_up adds it"; fi
-	@printf '\n\033[36m=== /etc/wsl.conf (local) ===\033[0m\n'
+	@$(call title,/etc/wsl.conf (local))
 	@if [ -f /etc/wsl.conf ]; then \
 		am=off; \
 		if [ -n "$$(mount | sed -n 's|.* on /mnt/\([a-z]\) .*|\1|p')" ]; then am=on; fi; \
@@ -110,7 +110,7 @@ wsl_status: ## Show what this instance runs on: base image, init, WSL's files, m
 		fi; \
 		awk -v am="$$am" -v ip="$$ip" -v wp="$$wp" '/^[[:space:]]*\[/ { s = $$0; gsub(/[^A-Za-z]/, "", s); sec = tolower(s); print; next } { t = $$0; if (t !~ /^[[:space:]]*#/ && index(t, "=") > 0) { k = t; sub(/ *=.*/, "", k); gsub(/[^A-Za-z]/, "", k); k = tolower(k); v = t; sub(/^[^=]*=[[:space:]]*/, "", v); sub(/[[:space:]#].*/, "", v); v = tolower(v); obs = ""; if (sec == "automount" && k == "enabled") obs = am; else if (sec == "interop" && k == "enabled") obs = ip; else if (sec == "interop" && k == "appendwindowspath") obs = wp; if (obs != "" && (v == "true" || v == "false")) { want = (v == "true") ? "on" : "off"; sub(/[[:space:]]+$$/, "", t); t = t ((obs == want) ? " # OK" : " # NOK") } } print t }' /etc/wsl.conf; \
 	else echo "No such file - WSL starts with its defaults."; fi
-	@printf '\n\033[36m=== %%USERPROFILE%%\\.wslconfig (windows) ===\033[0m\n'
+	@$(call title,%USERPROFILE%\.wslconfig (windows))
 	@if ! powershell.exe -NoProfile -Command 'exit 0' >/dev/null 2>&1; then \
 		echo "Windows is not reachable from here - interop is off, or there is no Windows."; \
 	else \
@@ -126,7 +126,7 @@ wsl_status: ## Show what this instance runs on: base image, init, WSL's files, m
 			echo "No $$wslconfig - WSL runs with its own defaults (.\wsl.ps1 wslconfig creates it)."; \
 		fi; \
 	fi
-	@printf '\n\033[36m=== Memory and services ===\033[0m\n'
+	@$(call title,Memory and services)
 	@printf "Memory     : "; free -h | awk '/^Mem:/ {print $$3 "/" $$2 " in use"}'
 	@if systemctl is-system-running >/dev/null 2>&1; then \
 		printf "Services   : %s running, %s failed\n" "$$(systemctl list-units --type=service --state=running --no-legend | wc -l)" "$$(systemctl --failed --no-legend | wc -l)"; \

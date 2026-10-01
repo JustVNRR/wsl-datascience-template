@@ -45,7 +45,7 @@ _ftemplate_select() {
         NF < 4 { print FILENAME ": " $0 }
     ' "${readable[@]}")
 
-    awk -F'\t' '
+    awk -F'\t' -v c="$C_CYAN" -v y="$C_YELLOW" -v m="$C_GREY" -v r="$C_RESET" '
         # Which pack a row comes from is the folder its catalog sits in:
         # <packs>/<pack>/cheatsheets/templates.tsv. FILENAME changes with every
         # file awk opens, so this is read once per file, on its first line.
@@ -91,14 +91,14 @@ _ftemplate_select() {
         END {
             for (i = 1; i <= count; i++) {
                 if (vers[i] == "") {
-                    tag = sprintf("\033[36m%s\033[0m%s", tools[i], spaces(wlabel - length(tools[i])))
+                    tag = sprintf("%s%s%s%s", c, tools[i], r, spaces(wlabel - length(tools[i])))
                 } else {
-                    tag = sprintf("\033[36m%s\033[0m \033[33m@%s\033[0m%s", tools[i], vers[i], spaces(wlabel - length(labels[i])))
+                    tag = sprintf("%s%s%s %s@%s%s%s", c, tools[i], r, y, vers[i], r, spaces(wlabel - length(labels[i])))
                 }
                 # Field 4 is the pack, kept out of the display on purpose: fzf
                 # shows field 5 and hands the whole line back, so the pack
                 # survives the pipe without being read by the eye twice.
-                printf "%s\t%s\t%s\t%s\t\033[90m%s\033[0m%s \033[90m·\033[0m %s  \033[90m|\033[0m  %s%s  \033[90m|\033[0m  %s\n", urls[i], tools[i], vers[i], packs[i], packs[i], spaces(wpack - length(packs[i])), tag, repos[i], spaces(wrepo - length(repos[i])), descs[i]
+                printf "%s\t%s\t%s\t%s\t%s%s%s%s %s·%s %s  %s|%s  %s%s  %s|%s  %s\n", urls[i], tools[i], vers[i], packs[i], m, packs[i], r, spaces(wpack - length(packs[i])), m, r, tag, m, r, repos[i], spaces(wrepo - length(repos[i])), m, r, descs[i]
             }
         }
 

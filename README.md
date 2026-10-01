@@ -95,6 +95,7 @@ folder that can be lifted out whole. Indexed below along a project's lifecycle:
 
 | Stage | Module | Main targets |
 | :--- | :--- | :--- |
+| Any | [The colours, written once](docs/make/colours.md) | — (the roles a recipe asks for) |
 | Any | [Environment files](docs/make/env.md) | `env_global_enable`, `env_global_manage`, `env_project_enable`, `env_project_manage` |
 | Any | [What a target says](docs/make/macros.md) | — (the two macros a module calls) |
 | Any | [Packs installed here](docs/make/packs.md) | `packs_list` |
@@ -188,6 +189,7 @@ the repository at runtime.
 │   ├── gmake/               # Makefile ecosystem (the gmake command)
 │   │   ├── Makefile         # Entrypoint: loads the modules, builds the menu, gates where targets run
 │   │   └── make/            # The socle's modules (pages in docs/make/)
+│   │       ├── colours.mk   # the colours a recipe asks for, written once
 │   │       ├── env.mk       # the .env files, and the commands that build them
 │   │       ├── macros.mk    # what a target calls before it runs (check_vars, confirm_action)
 │   │       ├── packs.mk     # what this instance carries (gmake packs_list)
@@ -195,6 +197,9 @@ the repository at runtime.
 │   ├── exports.zsh          # Environment variables and dynamic PATH exports
 │   ├── fzf.zsh              # Fuzzy finder engines, layout, and preview templates
 │   ├── history.zsh          # History file sizing, persistence, and what is kept out of it
+│   ├── lib/                 # The colours, and the messages built on them
+│   │   ├── colours.sh       #   the only shell file writing a colour code
+│   │   └── message.sh       #   a line says its kind (hint, error...); the colour follows
 │   ├── navigation.zsh       # Advanced directory hopping (cdv, cda, fv, fa)
 │   ├── prompts/
 │   │   ├── starship.toml    # Starship visual configuration
@@ -322,7 +327,7 @@ deleting the distro deletes all of it.
 │   ├── env.project.sample   # The header a project's .env opens on
 │   ├── Makefile
 │   └── make/*.mk            # the socle's modules
-└── .zshrc, modules, prompts/, cheatsheets/
+└── .zshrc, modules, lib/, prompts/, cheatsheets/
 
 ~/.config/packs/             # A pack lands here, its files and its tool together:
 └── gcp/                     # added by `.\wsl.ps1 add_pack`, removed by remove_pack.
@@ -352,7 +357,7 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 
 | Workflow | Runs on | What it proves |
 | :--- | :--- | :--- |
-| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the makefile parses with a complete help menu, the docs and cheatsheets stay in sync with the `gmake` modules — and eight suites on Windows drive the real code: the arrow menu with a scripted keyboard, the pack checklist, `build`'s questions over a stand-in docker, the icon a name draws, the icon, font and colour commands on an instance of their own, and the colour a message takes on schemes the test writes out |
+| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck on the shell scripts, `zsh -n` on the configuration, the ASCII-only rule for the `.ps1` files, the colour codes confined to the colour files, the makefile parses with a complete help menu, the docs and cheatsheets stay in sync with the `gmake` modules — and eight suites on Windows drive the real code: the arrow menu with a scripted keyboard, the pack checklist, `build`'s questions over a stand-in docker, the icon a name draws, the icon, font and colour commands on an instance of their own, and the colour a message takes on schemes the test writes out |
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
 They check the **repository** — the files, and the code run against stand-ins,
