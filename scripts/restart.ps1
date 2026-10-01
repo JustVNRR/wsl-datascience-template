@@ -101,8 +101,4 @@ Write-Host ""
 Write-Host "  * Install folder   : " -NoNewline; Write-Host "$($Distro.BasePath)" -ForegroundColor (Get-MessageColour info)
 Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size (Get-VhdxSize $Distro.BasePath))" -ForegroundColor (Get-MessageColour info)
 Write-Host ""
-Write-Host "  The instance came back with everything it had written, and WSL read" -ForegroundColor (Get-MessageColour muted)
-Write-Host "  /etc/wsl.conf and /etc/resolv.conf again for this start: a change to" -ForegroundColor (Get-MessageColour muted)
-Write-Host "  either one takes effect from here. Open the instance from its Windows" -ForegroundColor (Get-MessageColour muted)
-Write-Host "  Terminal profile." -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
