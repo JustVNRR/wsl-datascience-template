@@ -1,20 +1,17 @@
 [CmdletBinding()]
 param (
-    # The instance, when the theme menu has already asked which one. Not an
-    # option and not documented as one: no command of this family takes a name
-    # typed by heart - this is how the level above hands over, and the command is
-    # not a command of wsl.ps1 in the first place.
+    # The instance, when the theme menu has already asked which one: how the
+    # level above hands over. Not an option - and not a command of wsl.ps1.
     [string]$DistroName
 )
 
 # The icon is a file, not a setting: terminal-icon.png in the instance's own
 # folder, the one the Terminal profile points at. This command draws another
-# over it, or copies an image of yours there. Nothing else is written - and
-# nothing has to be stopped for it: an icon belongs to a tab as it is opened.
+# over it, or copies an image there. Nothing has to be stopped for it: an icon
+# belongs to a tab as it is opened.
 #
-# It keeps asking: one change keeps the others, so changing two things is the
-# ordinary way to use it, and the menu comes back after each one. Escape is how
-# it ends.
+# It keeps asking - one change keeps the others, so two changes are one visit.
+# Escape leaves.
 
 $ErrorActionPreference = "Stop"
 
@@ -51,15 +48,13 @@ if ($HandedOver) {
 }
 $IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
 
-# The menus it came through - the way in, the instance it picked - come off the
-# screen: this command opens on its own question, and a visit of four turns is
-# one screen rather than four stacked menus.
+# The menus it came through come off the screen: a visit of four turns is one
+# screen, not four stacked menus.
 Clear-MenuScreen
 
-# The one thing worth saying before the question - where the icon is, and what
-# was drawn there last, are both said inside it. This one is said because it is
-# what would make all of it invisible: an icon is only ever read through the
-# fragment this repository writes.
+# Worth saying before the question because it is what would make all of it
+# invisible: an icon is only ever read through the fragment this repository
+# writes.
 $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$DistroName.json"
 if (-not (Test-Path $OurFragment)) {
     Write-Host ""
@@ -72,9 +67,8 @@ if (-not (Test-Path $OurFragment)) {
 $Escape = [char]27
 $Coloured = Test-ColourOutput
 
-# An empty answer, wherever it is asked, is a cancel like any other. The question
-# is written here and Read-Host asked bare: what Read-Host writes itself never
-# reaches a pipe, and a question worth asking is worth showing.
+# An empty answer is a cancel like any other. The question is written here and
+# Read-Host asked bare: what Read-Host writes itself never reaches a pipe.
 function Read-Answer {
     param([string]$Question)
 
@@ -88,45 +82,41 @@ function Read-Answer {
     return $Answer
 }
 
-# One turn of the menu: ask for whatever the choice needs, then draw the icon or
-# copy the image there, and note what it is made of in the instance's own file -
-# the one an archive carries.
+# One turn of the menu: ask what the choice needs, then draw the icon or copy
+# the image there, and note what it is made of in the instance's own file.
 #
-# A drawing that fails leaves the icon that was there: the drawing script writes
-# the picture once, at the end, and nothing before that.
+# A drawing that fails leaves the icon that was there: the drawing script
+# writes the picture once, at the end.
 function Invoke-IconChoice {
     param([hashtable]$Choice, [hashtable]$Recipe, [string]$Suggestion)
 
     # What the drawing script is told, by name: -Name gives the letters and the
-    # colours, whatever is put beside it wins over it - and what the icon is
-    # already made of is put beside it first, so only the part being changed
-    # moves.
+    # colours, and whatever is put beside it wins - the recipe first, so only
+    # the part being changed moves.
     #
-    # A table of parameters, not a list of them. Handed a LIST, the drawing script
-    # receives its values in order and not by name: "-Text" would land where a
-    # colour is expected, and the tile would be drawn in the colour of the word
-    # "-Text" - which is to say not at all. (Measured, on the day this command was
-    # first run.)
+    # A hashtable, not a list: handed a LIST the script reads its values in
+    # order, not by name - "-Text" would land where a colour is expected and the
+    # tile would be drawn in the colour of the word "-Text".
     $Draw = @{ Name = $DistroName }
     $Draw += $Recipe
     $Source = $null
 
     switch ($Choice.How) {
         "auto" {
-            # Start again from the name: whatever was kept of the previous drawing
-            # goes with it, letters and colours both.
+            # Start again from the name - the kept letters and colours go with
+            # it.
             $Draw = @{ Name = $DistroName }
         }
         "letters" {
-            # Up to three. A tab is about sixteen pixels tall, and past three
-            # letters stop being letters - which is the point of the tile.
+            # Up to three: a tab is about sixteen pixels tall, and past three
+            # letters stop being letters.
             $Question = if ($Suggestion) { "Letters, 1 to 3 [$Suggestion]" } else { "Letters, 1 to 3" }
             while ($true) {
                 Write-Host -NoNewline "${Question}: "
                 $Answer = [string](Read-Host).Trim()
-                # Enter takes what is suggested - the letters the icon has now, or
-                # the name's when nothing was drawn. With nothing to suggest, it
-                # cancels, like every other empty answer in this family.
+                # Enter takes what is suggested - the letters the icon has now,
+                # or the name's. With nothing to suggest it cancels, like every
+                # other empty answer here.
                 if ([string]::IsNullOrWhiteSpace($Answer)) {
                     if (-not $Suggestion) {
                         Write-Host ""
@@ -148,17 +138,16 @@ function Invoke-IconChoice {
             $Picked = Select-FromList -Title "Colours for '$DistroName'" -Items $Rows -Label {
                 param($Row)
                 $Field = $Row -split "`t"
-                # What is being chosen is a look, and two hex codes say nothing to
-                # the eye: the letters are shown in the colours of the pair. Only
-                # the background is exact - the ink is white, or dark on the light
-                # tile - which is one escape fewer and the same picture.
+                # Two hex codes say nothing to the eye: the letters are shown
+                # in the colours of the pair. Only the background is exact - the
+                # ink is white, or dark on the light tile.
                 $Sample = $Suggestion
                 if ($Coloured) {
                     $Ink = if ($Field[3] -eq "#FFFFFF") { "97" } else { "30" }
                     $Sample = "{0}[48;2;{1}m{0}[{2}m {3} {0}[0m" -f $Escape, (ConvertTo-Rgb $Field[1]), $Ink, $Suggestion
                 }
-                # The pair the icon is on now, said rather than left to be guessed:
-                # choosing is easier when you know where you are.
+                # The pair the icon is on now - choosing is easier when you
+                # know where you are.
                 $Here = if ($Recipe.Top -eq $Field[1] -and $Recipe.Bottom -eq $Field[2]) { "  (current)" } else { "" }
                 "{0}  {1,-9}{2}" -f $Sample, $Field[0], $Here
             }
@@ -192,8 +181,8 @@ function Invoke-IconChoice {
     # tab is the answer. A failure is the one thing worth saying.
     if ($Source) {
         Copy-Item -LiteralPath $Source -Destination $IconPath -Force
-        # The recipe stays where it is: an image replaces the picture, not what you
-        # had drawn before it. Changing your mind starts from there again.
+        # The recipe stays: an image replaces the picture, not the drawing
+        # behind it.
     } else {
         try {
             $Drawn = & $IconScript @Draw -Out $IconPath -Quiet -What | ConvertFrom-Json
@@ -225,10 +214,9 @@ $Default = 0
 $Changed = $false
 
 while ($true) {
-    # Read again every turn: the questions offer what the icon is made of now, and
-    # the turn before may have changed it. The recipe is what makes one change
-    # keep the others - redraw the colours and the letters you typed stay - and it
-    # is kept whatever the icon on disk is, an image of your own included.
+    # Read again every turn: the questions offer what the icon is made of now.
+    # The recipe is what makes one change keep the others - redraw the colours
+    # and the letters you typed stay - whatever the icon on disk is.
     $Current = Get-IconRecipe -Name $DistroName
     $Suggested = $Current.Text
     if (-not $Suggested) {
@@ -251,29 +239,26 @@ while ($true) {
 
     Invoke-IconChoice -Choice $Chosen -Recipe $Current -Suggestion $Suggested
 
-    # And the question goes when the answer is in: the menu comes back exactly
-    # where it was, so the screen holds one thing at a time.
+    # And the question goes when the answer is in: the menu comes back where it
+    # was.
     Clear-MenuScreen
     $Changed = $true
 }
 
-# Leaving, by Escape or because the visit is over: the menu goes too, so that the
-# level above draws its own on a clean screen instead of under this one. It is
-# the mirror of the clear at the top - down a level, up a level, same screen.
+# Leaving, by Escape or by a change made: the menu goes too, so the level above
+# draws its own on a clean screen instead of under this one.
 Clear-MenuScreen
 
 if (-not $Changed) {
-    # Handed over: the level above owns the goodbye, and it has its menu to draw
-    # where this one was.
+    # Handed over: the level above owns the goodbye.
     if ($HandedOver) { exit 0 }
     Write-Host ""
     Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
-# Ask Terminal to look again, and only when this command was run on its own: the
-# visit is over, the prompt is back, and the pane is idle - the one moment a
-# reload lands. Behind the theme menu this is not done here at all: the menu is
-# still running, and it asks when IT is over (see theme.ps1).
+# Ask Terminal to look again, and only when run on its own: behind the theme
+# menu this is asked when IT is over (see theme.ps1) - a reload only lands with
+# the prompt back and the pane idle.
 if (-not $HandedOver) { Update-TerminalSettings }
 exit 0

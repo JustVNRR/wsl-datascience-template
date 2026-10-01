@@ -6,39 +6,28 @@
 #   Write-Host "  Start Docker Desktop, then run this again." -ForegroundColor (Get-MessageColour hint)
 #
 # Six kinds are lines - error, warning, success, info, muted, hint - and the
-# seventh, danger, is the DANGER banner: a box rather than a line, drawn by
-# Write-DangerBanner.
+# seventh, danger, is the DANGER banner: a box rather than a line.
 #
-# The colour is not chosen here either. It is read from the colour scheme of the
-# Windows Terminal profile this command is running in: a scheme keeps two
-# versions of each colour, a normal one and a bright one, and the one that is
-# read on its background is the one used. A light scheme comes out in the
-# colours of a light scheme, and nothing here has to know it is light.
+# The colour is read from the colour scheme of the Windows Terminal profile
+# this command runs in: of the two versions a scheme keeps of each colour, the
+# one read on its background is used. Where a scheme offers nothing readable
+# for a kind, that kind is written in the colour the scheme writes its own text
+# in - the one colour it guarantees.
 #
-# Where a scheme offers nothing readable for a kind - a light scheme whose white
-# is its own background - that kind is written in the colour the scheme writes
-# its own text in, which is the one colour it guarantees.
-#
-# With nothing to read - a console window, VS Code, a terminal that is not
-# Windows Terminal, a test, CI - the sixteen names a console has always had are
-# used, the ones this project wrote before this file existed. A terminal that
-# resolves them is all that can be asked for when nothing says what they mean.
+# With nothing to read - a console window, VS Code, a test, CI - the sixteen
+# names a console has always had are used.
 # ==============================================================================
 
 # ---------------------------------------------------------------------------
 # READING WINDOWS TERMINAL'S FILES
 # ---------------------------------------------------------------------------
-# Windows Terminal writes JSON with comments and with a comma left before a
-# closing bracket. PowerShell's reader refuses both - and a blind replace on the
-# text is worse than refusing: that file holds a string of every punctuation
-# mark there is ("wordDelimiters"), and taking a comma out of IT breaks the JSON
-# somewhere that has nothing to do with commas. Measured, after two attempts
-# that did exactly that.
+# Windows Terminal writes JSON with // comments and a comma before a closing
+# bracket; PowerShell's reader refuses both. A blind replace is worse: the file
+# holds a string of every punctuation mark ("wordDelimiters"), and taking a
+# comma out of IT breaks the JSON elsewhere.
 #
-# So the walk below knows what a string is: inside quotes nothing is touched, a
-# "//" outside quotes runs to the end of its line, and a comma followed by a
-# closing bracket - outside a string - is dropped. Anything else is left alone,
-# and a file that still will not parse is no schemes at all, not a crash.
+# So the walk below knows what a string is, and a file that still will not
+# parse is no schemes at all, not a crash.
 function Read-TerminalJson {
     param([string]$Path)
 
@@ -103,15 +92,11 @@ $OurFragments = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragment
 # ---------------------------------------------------------------------------
 # WHERE A SCHEME KEEPS THE SIXTEEN NAMES
 # ---------------------------------------------------------------------------
-# A console has always asked for its colours by name, and the sixteen names are
-# two versions of eight colours. A scheme may write them the long way, one key
-# each, or as a list of sixteen.
-#
-# The list is in ANSI order - black, red, green, yellow, blue, magenta, cyan,
-# white, then the bright eight - which is NOT the order a console numbers them
-# in: red is the second row of the list and the fourth value of [ConsoleColor].
-# Reading the list by console number would paint every error green, and this
-# table is the only place the two orders meet.
+# The sixteen names are two versions of eight colours; a scheme writes them one
+# key each, or as a list of sixteen - in ANSI order, which is NOT the order a
+# console numbers them in: red is the second row of the list and the fourth
+# value of [ConsoleColor]. Reading the list by console number would paint every
+# error green, and this table is the only place the two orders meet.
 $SlotNames = [ordered]@{
     "Black"       = @{ Key = "black";        Index = 0 }
     "DarkRed"     = @{ Key = "red";          Index = 1 }
@@ -146,10 +131,9 @@ $WithoutScheme = [ordered]@{
     danger  = "DarkRed"
 }
 
-# Which colour of a scheme a kind asks for. warning and hint are the two that
-# part company here: a warning is about the state of things and takes the colour
-# a scheme keeps for cautions, while a hint says what to do next and takes the
-# colour that scheme writes its own text in.
+# warning and hint part company here: a warning takes the colour a scheme keeps
+# for cautions; a hint says what to do next and takes the colour that scheme
+# writes its text in.
 $FamilyOf = [ordered]@{
     error   = "red"
     warning = "yellow"
@@ -160,10 +144,9 @@ $FamilyOf = [ordered]@{
     danger  = "red"
 }
 
-# The two versions a scheme keeps of each colour, named the way a console names
-# them. The last one wins a tie, which keeps the bright version - the one this
-# project has always used - wherever a scheme gives the two the same value, as
-# the dark schemes do.
+# The two versions a scheme keeps, named as a console names them. The last one
+# wins a tie - the bright version, the one this project has always used,
+# wherever a scheme gives the two the same value.
 $VersionOfColour = [ordered]@{
     red    = @("DarkRed", "Red")
     yellow = @("DarkYellow", "Yellow")
@@ -173,10 +156,9 @@ $VersionOfColour = [ordered]@{
     quiet  = @("DarkGray")
 }
 
-# Below this, a line is not read, it is guessed - so a colour under it is
-# refused and the scheme's own text colour is used instead. It sits under 2.31
-# on purpose: that is the quiet grey of One Half Dark, the scheme this project
-# has been read in, and a scheme that works today keeps the colours it has.
+# Below this a line is not read, it is guessed - so a colour under it is
+# refused and the scheme's text colour is used. It sits under the quiet grey of
+# One Half Dark, the scheme this project has been read in.
 $UnreadableBelow = 2.0
 
 # The scheme is read once per command, not once per line: a command prints one
@@ -291,10 +273,9 @@ function Get-WindowColorScheme {
     return $null
 }
 
-# The colours behind a scheme's name: the user's own version of it first - they
-# wrote it, and Windows Terminal lets it win over the one it ships - then the
-# one inside Windows Terminal's own package. Read at the end, because asking
-# Windows for a package costs a fifth of a second.
+# The user's own version of the scheme first - they wrote it, and Terminal lets
+# it win - then the one inside Terminal's package. Read last: asking for a
+# package costs a fifth of a second.
 function Get-WindowScheme {
     param([string]$Name)
 
@@ -342,10 +323,9 @@ function Get-MessageTheme {
     return $MessageTheme
 }
 
-# The name that comes closest to the colour the scheme writes its own text in.
-# Every scheme read here happens to keep its text colour in one of the sixteen
-# as well - One Half Light in its black, Solarized Light in its bright yellow,
-# Tango Light in its bright black - so this is a lookup rather than a blend.
+# The name closest to the colour the scheme writes its own text in - every
+# scheme read here keeps its text colour in one of the sixteen too, so this is
+# a lookup, not a blend.
 function Get-TextColour {
     param($Theme)
 
@@ -397,10 +377,9 @@ function Get-MessageColour {
         -Candidates $Candidates -Fallback (Get-TextColour -Theme $Theme))
 }
 
-# The DANGER banner: the one thing here that is a box rather than a line, and
-# the one place where two colours have to be read together. Its background is
-# the scheme's red; its text is whichever of the light names is read on that
-# red, and not on the terminal behind it.
+# The one box rather than a line, and the one place two colours are read
+# together: the scheme's red as background, and whichever light name is read on
+# that red - not on the terminal behind it.
 function Write-DangerBanner {
     $Box = "DarkRed"
     $Ink = "White"

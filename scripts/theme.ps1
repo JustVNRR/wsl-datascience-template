@@ -4,13 +4,8 @@ param ()
 # What an instance wears: its icon, its font and its colours - the three things
 # Windows Terminal takes from the profile this repository writes.
 #
-# The instance comes first, once, then the commands - and each of them comes back
-# here when it is done, so changing the icon and then the font is one visit to
-# one instance. Escape on this menu is the way out.
-#
-# The italic face and the background picture are not offered: the first is a coin
-# toss with the fonts that have one, the second is a Windows setting this
-# repository does not own.
+# The instance comes first, once, then the commands - and each comes back here
+# when done, so changing the icon and then the font is one visit.
 
 $ErrorActionPreference = "Stop"
 
@@ -37,16 +32,14 @@ foreach ($Choice in $Choices) {
     }
 }
 
-# 1. Which instance, and then which of the three - and Escape walks back up the
-# way it came: from the theme menu to the list of instances, so that another one
-# can be picked, and from the list to the prompt. One visit per instance is the
-# ordinary way to use this; changing two instances is two visits, and there is no
-# reason to leave the command to start it again.
+# 1. Which instance, and then which of the three. Escape walks back up the way
+# it came: from the theme menu to the list of instances, so another one can be
+# picked, and from the list to the prompt.
 $Visited = $false
 
 while ($true) {
-    # The menu this one was reached from - and everything typed before it - goes
-    # first: the instance list gets a screen of its own.
+    # The menu this one was reached from goes first: the instance list gets a
+    # screen of its own.
     Clear-MenuScreen
 
     $Distro = Select-Distro -AllowCancel
@@ -55,9 +48,8 @@ while ($true) {
 
     Clear-MenuScreen
 
-    # What has been done is written in the instance, and the menu comes back
-    # until Escape says the visit to THIS one is over - the level below clears
-    # the screen, and this one is drawn on a clean one.
+    # The menu comes back until Escape says the visit to THIS one is over: the
+    # level below clears the screen, and this one is drawn on a clean one.
     $Default = 0
     while ($true) {
         Write-Host ""
@@ -70,16 +62,15 @@ while ($true) {
 
         $Default = [array]::IndexOf($Choices, $Chosen)
 
-        # The menu has been answered: the command it named takes the screen - and
-        # clears it itself, the way it came in.
+        # The command named takes the screen and clears it itself, the way it
+        # came in.
         & (Join-Path $PSScriptRoot "$($Chosen.Name).ps1") -DistroName $DistroName
         $Visited = $true
     }
 }
 
 # Coming out: the menu goes with the visit. Ending on the menu you have just
-# finished with reads like the command never returned - what is left is the line
-# below, and the prompt.
+# finished with reads like the command never returned.
 Clear-MenuScreen
 
 if (-not $Visited) {
@@ -88,12 +79,10 @@ if (-not $Visited) {
 }
 
 # The visit is over, and this is the moment Terminal can be asked to look again:
-# the menu is answered for good, and the pane is about to be idle at its prompt.
-# Asked any earlier - inside the menu, right after a change - nothing happens: a
-# reload cannot land on a pane that is running a menu. That is measured, and it
-# is why the change shows when you leave, not while you are still in there.
+# a reload cannot land on a pane that is running a menu, so the change shows
+# when you leave, not while you are still in there.
 Update-TerminalSettings
 
-# And nothing is said: the screen was cleared, the change is in the tab, and a
-# line explaining that would be one line too many. Silence is the report.
+# And nothing is said: the change is in the tab, and a line explaining that
+# would be one line too many.
 exit 0

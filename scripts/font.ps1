@@ -1,31 +1,24 @@
 [CmdletBinding()]
 param (
-    # The instance, when the theme menu has already asked which one. Not an
-    # option and not documented as one: no command of this family takes a name
-    # typed by heart - this is how the level above hands over.
+    # The instance, when the theme menu has already asked which one: how the
+    # level above hands over. Not an option, and not documented as one.
     [string]$DistroName
 )
 
 # What an instance is written in: the font of its Terminal profile - the whole
 # terminal, prompt and icons included. Reached through `.\wsl.ps1 theme`.
 #
-# The list is the fonts Windows has that carry the glyphs a prompt is drawn with,
-# asked of GDI+ rather than read off the registry - those are the family names a
-# Terminal profile takes - and measured on the font file rather than guessed from
-# the name: a font without them draws a box where the prompt has a folder, and
-# offering it would be offering the problem. The line under the list says where
-# more of them come from; the template installs one at build time, so the list is
-# never empty on a machine this repository built on.
+# The list is the fonts Windows has that carry the glyphs a prompt is drawn
+# with, asked of GDI+ rather than read off the registry - those are the family
+# names a Terminal profile takes - and measured on the font file rather than
+# guessed from the name: a font without them draws a box where the prompt has a
+# folder, and offering it would be offering the problem.
 #
-# One font is in the list whether it carries icons or not: the one in use. It is
-# the thing a person comes here to see, and on a machine with no Nerd Font at all
-# it is the only row there is.
+# One font is in the list whether it carries icons or not: the one in use.
 #
-# What no console can do is show a font in itself: a terminal writes every row in
-# the font IT is set to, whatever we ask for. So the list says what can be
-# measured, and the preview is the choice itself - the profile changes, and the
-# next tab is written in it. (Windows Terminal's own settings, Ctrl+, show them
-# all in their own face, for anyone who wants to browse that way.)
+# No console can show a font in itself - a terminal writes every row in the
+# font IT is set to - so the preview is the choice itself: the profile changes,
+# and the next tab is written in it.
 #
 # It keeps asking, like the icon command: Escape leaves.
 
@@ -65,16 +58,13 @@ if (-not (Test-Path $OurFragment)) {
     Write-Host "          Build it again, or set the font by hand in Ctrl+," -ForegroundColor (Get-MessageColour muted)
 }
 
-# The glyph a prompt is drawn with, and the one that says a font is a Nerd Font
-# rather than a text font that happens to be installed: the folder, and the
-# powerline arrow. Either one is enough - a prompt needs both, but a font that
-# has the arrows is one somebody meant for a terminal.
+# The glyphs a prompt is drawn with: the folder, and the powerline arrow that
+# says a font was made for a terminal. Either one is enough to offer it.
 $Folder = 0xF07B
 $Arrow = 0xE0B0
 
 # The fonts keys name every file after the face it holds - "MesloLGS NF Regular
-# (TrueType)" - so one pass over them gives family -> file, which is what asking
-# a font about its glyphs needs.
+# (TrueType)" - so one pass over them gives family -> file.
 function Get-FontFiles {
     $Files = @{}
     foreach ($Root in @("HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",
@@ -92,15 +82,12 @@ function Get-FontFiles {
     return $Files
 }
 
-# Which glyphs this family has, read off the font file itself: every font carries
-# a map from characters to glyphs, and a character it does not have maps to glyph
-# zero - the box. Measured, and not guessed at by looking for ink where the glyph
-# should be: a box has ink too.
+# Which glyphs this family has, read off the font file itself: a character the
+# font does not have maps to glyph zero - the box. Measured, not guessed by
+# looking for ink where the glyph should be: a box has ink too.
 #
-# $null when the file could not be found or read, which is not the same answer as
-# "no glyphs": the list then says nothing rather than something wrong. Read once
-# per family - opening a font file is the expensive half, and the map is good for
-# every character asked after it.
+# $null when the file could not be read is not the same answer as "no glyphs":
+# the list then says nothing rather than something wrong.
 function Get-FontGlyphMap {
     param([System.Collections.Hashtable]$Files, [string]$Family)
 
@@ -117,20 +104,17 @@ function Get-FontGlyphMap {
         Add-Type -AssemblyName PresentationCore
         $Typeface = New-Object Windows.Media.GlyphTypeface (New-Object System.Uri $Path)
         # The comma: a dictionary written to the pipeline is unrolled into its
-        # entries, and the caller would get the first pair - a KeyValuePair with
-        # no ContainsKey on it - instead of the map. Measured, the day this was
-        # written.
+        # entries, and the caller would get a KeyValuePair with no ContainsKey
+        # on it instead of the map.
         return ,$Typeface.CharacterToGlyphMap
     } catch {
         return $null
     }
 }
 
-# A terminal font is monospaced. Measured rather than assumed - 'i' and 'W' take
-# the same room in one - and it is what keeps a list a person can read: Windows
-# carries a few hundred fonts and most of them are for reading prose, where a
-# prompt would come out ragged. Wingdings and its kind are monospaced too but
-# nothing else, which is why one half of this list is short.
+# A terminal font is monospaced, measured rather than assumed - 'i' and 'W' take
+# the same room in one - and it is what keeps the list readable: Windows carries
+# a few hundred fonts and most are for reading prose.
 function Test-MonospaceFont {
     param([string]$Family)
 
@@ -155,8 +139,7 @@ function Test-MonospaceFont {
 }
 
 # Every font Windows has that a terminal can use, by the name a profile takes,
-# with what it can draw. Asked once: the answers do not change while the command
-# runs.
+# with what it can draw. Asked once: the answers cannot change while it runs.
 Write-Host ""
 Write-Host "Reading the fonts Windows has..." -ForegroundColor (Get-MessageColour muted)
 
@@ -164,19 +147,16 @@ Add-Type -AssemblyName System.Drawing
 $Files = Get-FontFiles
 $Families = @([System.Drawing.FontFamily]::Families | ForEach-Object { $_.Name } | Sort-Object)
 
-# The styles of a font are families of their own to GDI+ - "JetBrainsMono NF
-# ExtraBold" beside "JetBrainsMono NF" - and a profile takes the family. A name
-# that is another font's plus a style word is left out; one that is another
-# font's plus anything else is not, because "Segoe UI Emoji" is a font of its own.
+# A font's styles are families of their own to GDI+ - "JetBrainsMono NF
+# ExtraBold" beside "JetBrainsMono NF" - and a profile takes the family: a name
+# that is another family plus a style word is left out, and nothing else is.
 $Styles = @("Regular", "Bold", "Italic", "Oblique", "Light", "SemiLight", "Medium",
             "Thin", "Black", "Heavy", "SemiBold", "Semibold", "DemiBold", "ExtraBold",
             "ExtraLight", "UltraLight", "Book", "Condensed", "Narrow")
 
-# The symbol fonts Windows ships under its own names. Monospaced, so the test
-# above keeps them, and full of private-area glyphs, so the one below finds every
-# icon in them - measured: Wingdings 2 answers yes to both. They are not fonts to
-# write in, whatever their glyphs say, and the list is short because it is the
-# whole of them.
+# The symbol fonts Windows ships under its own names: monospaced, so the test
+# above keeps them, and full of private-area glyphs, so the one below finds
+# every icon in them. Not fonts to write in, whatever their glyphs say.
 $SymbolFonts = @("Wingdings", "Wingdings 2", "Wingdings 3", "Webdings", "Symbol", "Marlett")
 
 $Fonts = @()
@@ -194,22 +174,19 @@ foreach ($Family in $Families) {
 
     $Glyphs = Get-FontGlyphMap -Files $Files -Family $Family
 
-    # A font with no plain capital A is a symbol font too - the piled symbols
-    # Windows keeps for its own use. It is monospaced, and the private area it
-    # lives in makes it look like it has every icon there is; a prompt written in
-    # one is a row of boxes. Left out.
+    # A font with no plain capital A is a symbol font too - Windows' own piled
+    # symbols: monospaced, and its private area makes it look like it carries
+    # every icon. A prompt written in one is a row of boxes.
     if ($Glyphs -and -not $Glyphs.ContainsKey([int][char]"A")) { continue }
 
     $HasIcons = if ($Glyphs) { $Glyphs.ContainsKey($Folder) -or $Glyphs.ContainsKey($Arrow) } else { $null }
     $Fonts += @{ Name = $Family; Icons = $HasIcons }
 }
 
-# Only the ones a prompt can be written in. There is nothing to mark beside them
-# - a column that says "icons" on every row says nothing - and what a font
-# carries is asked of its file rather than read off its name: the Nerd Fonts are
-# recognisable by name and the rest are not, and a name is not a measurement.
-# A family whose file could not be read is not offered either: that is not the
-# same answer as "carries none", and this list only says what it measured.
+# Only the ones a prompt can be written in, and nothing is marked beside them -
+# a column that says "icons" on every row says nothing. A family whose file
+# could not be read is left out too: that is not the same answer as "carries
+# none".
 $Fonts = @($Fonts | Where-Object { $_.Icons -eq $true } | Sort-Object @{ Expression = { $_.Name } })
 
 $Default = 0
@@ -220,11 +197,9 @@ while ($true) {
     # before may have changed it.
     $Current = (Get-InstanceAppearance -Name $DistroName).Font
 
-    # And the one in use is always in the list, in its place among the others
-    # whether it carries icons or not: it is the row a person comes here to look
-    # at, and on a machine where no font carries them it is the only row there
-    # is - leaving with an empty list would read as "cancelled by user", which is
-    # not what happened.
+    # And the one in use is always in the list, sorted in among the others,
+    # whether it carries icons or not: on a machine where no font carries them
+    # it is the only row there is.
     $Rows = @($Fonts)
     if ($Current -and -not @($Rows | Where-Object { $_.Name -eq $Current }).Count) {
         $Rows = @(($Rows + @{ Name = $Current }) | Sort-Object @{ Expression = { $_.Name } })
@@ -246,9 +221,8 @@ while ($true) {
     # every turn, so the object the last turn handed back is not in this list.
     $Default = [array]::IndexOf(@($Rows | ForEach-Object { $_.Name }), $Picked.Name)
 
-    # The profile is ours to write: the icon and the colours stay as they are,
-    # the font is the one just chosen. WSL's own profile is only ever layered
-    # over - "updates" - so the user's settings.json is never touched.
+    # The profile is ours to write: the icon and the colours stay, the font is
+    # the one just chosen.
     $Guid = Get-WslProfileGuid -Name $DistroName
     if (-not $Guid) {
         Write-Host ""
@@ -270,23 +244,20 @@ while ($true) {
     $Changed = $true
 }
 
-# Leaving, by Escape or because the visit is over: the menu goes too, so that the
-# level above draws its own on a clean screen instead of under this one. It is
-# the mirror of the clear at the top - down a level, up a level, same screen.
+# Leaving, by Escape or by a change made: the menu goes too, so the level above
+# draws its own on a clean screen instead of under this one.
 Clear-MenuScreen
 
 if (-not $Changed) {
-    # Handed over: the level above owns the goodbye, and it has its menu to draw
-    # where this one was.
+    # Handed over: the level above owns the goodbye.
     if ($HandedOver) { exit 0 }
     Write-Host ""
     Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
-# Ask Terminal to look again, and only when this command was run on its own: the
-# visit is over, the prompt is back, and the pane is idle - the one moment a
-# reload lands. Behind the theme menu this is not done here at all: the menu is
-# still running, and it asks when IT is over (see theme.ps1).
+# Ask Terminal to look again, and only when run on its own: behind the theme
+# menu this is asked when IT is over (see theme.ps1) - a reload only lands with
+# the prompt back and the pane idle.
 if (-not $HandedOver) { Update-TerminalSettings }
 exit 0

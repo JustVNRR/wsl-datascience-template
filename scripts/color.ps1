@@ -1,8 +1,7 @@
 [CmdletBinding()]
 param (
-    # The instance, when the theme menu has already asked which one. Not an
-    # option and not documented as one: no command of this family takes a name
-    # typed by heart - this is how the level above hands over.
+    # The instance, when the theme menu has already asked which one: how the
+    # level above hands over. Not an option, and not documented as one.
     [string]$DistroName
 )
 
@@ -10,11 +9,11 @@ param (
 # background, the text, and the sixteen colours a program may ask for by number.
 # Reached through `.\wsl.ps1 theme`.
 #
-# The list is every scheme this machine can be told to use: those Windows
-# Terminal ships (read from the file inside its own package) and those the user
-# added or wrote over, their own settings winning over the built-in of the same
-# name. Each is shown in its own colours, and the one in use is marked. It keeps
-# asking, like the two commands beside it: Escape leaves.
+# The list is every scheme this machine can be told to use: those Terminal ships
+# and those the user added or wrote over. Each is shown in its own colours, and
+# the one in use is marked.
+#
+# It keeps asking, like the two commands beside it: Escape leaves.
 
 $ErrorActionPreference = "Stop"
 
@@ -26,20 +25,18 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# The reader this file needs lives in message.ps1, which instance.ps1 loads
-# with everything the commands share: Windows Terminal writes JSON with
-# comments, and the walk that knows what a string is lives there, once.
+# Read-TerminalJson comes from message.ps1, loaded by instance.ps1: the walk
+# that knows what a string is lives there, once.
 
 # Every colour scheme this machine can wear, by name: the name is what a profile
 # takes, and what is behind it is what the list shows.
 function Get-ColorSchemes {
     $Schemes = @{}
 
-    # What Windows Terminal ships, from the file inside its own package. Readable
-    # by a normal account - the folder is not, and the file is, which was worth
-    # measuring before ruling it out.
+    # What Terminal ships, from the file inside its own package - readable by a
+    # normal account, where the folder is not.
     # Asked one at a time: an array handed to -Name binds to a parameter that
-    # takes one name, and the call is refused before it runs - measured.
+    # takes one name, and the call is refused before it runs.
     $Packages = @()
     foreach ($PackageName in @("Microsoft.WindowsTerminal", "Microsoft.WindowsTerminalPreview")) {
         $Packages += @(Get-AppxPackage -Name $PackageName -ErrorAction SilentlyContinue)
@@ -66,9 +63,8 @@ function Get-ColorSchemes {
         }
     }
 
-    # And the schemes our instances already wear, when nothing above named them:
-    # a name with no colours behind it is still a choice a profile takes, and
-    # leaving it out would hide the scheme the instance is using right now.
+    # And the schemes our instances wear when nothing above named them: leaving
+    # one out would hide the scheme the instance is using now.
     $Ours = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
     foreach ($File in @(Get-ChildItem $Ours -Filter *.json -ErrorAction SilentlyContinue)) {
         $Parsed = Read-TerminalJson -Path $File.FullName
@@ -133,40 +129,31 @@ while ($true) {
 
         $Scheme = $Schemes[$Name]
 
-        # Padded, and padded INSIDE the colours: every row has to end at the same
-        # column, or the painted blocks come out raggeder the longer the names
-        # get, and a list of coloured bars of different lengths is a barcode, not
-        # a list. The mark gets a column of its own for the same reason - jumping
-        # after the name it belongs to, it jumped from row to row.
+        # Padded, and padded INSIDE the colours: every row has to end at the
+        # same column, or the painted blocks come out raggeder the longer the
+        # names get. The mark gets a column of its own for the same reason.
         $Here = if ($Name -eq $Current) { "(current)" } else { "" }
         $Text = "{0,-20} {1,-11}" -f $Name, $Here
 
-        # The mark in red, so it is found before the row is read - and the colour
-        # is put around the word INSIDE the padded text: padding a string that
-        # already carries escapes would count them as letters and break the
-        # column the rows are aligned on.
+        # The mark in red, found before the row is read - and the colour goes
+        # around the word INSIDE the padded text: padding a string that carries
+        # escapes would count them as letters and break the column.
         if ($Here -and $Coloured) {
             $Text = $Text -replace [regex]::Escape($Here), ("{0}[91m{1}{0}[39m" -f $Escape, $Here)
         }
         $Sample = $Text
 
-        # The scheme itself, and three of its colours beside it. What is being
-        # chosen is a look, and a name says nothing to the eye - the icons and
-        # the font have the same problem and the same answer.
+        # The scheme itself, painted: what is being chosen is a look, and a name
+        # says nothing to the eye.
         #
-        # The reset comes first: a label long enough to be cut by a narrow window
-        # would otherwise leave the terminal wearing the colours of the row it
-        # was cut in, and nothing after it would clear them.
+        # The reset comes first: a label cut by a narrow window would otherwise
+        # leave the terminal wearing the colours of the row it was cut in.
         if ($Coloured -and $Scheme -and $Scheme.background -and $Scheme.foreground) {
             $Sample = "{0}[0m{0}[48;2;{1}m{0}[38;2;{2}m{3}{0}[0m" -f $Escape,
                 (ConvertTo-Rgb $Scheme.background), (ConvertTo-Rgb $Scheme.foreground), $Text
         }
 
-        # And nothing else. There used to be three coloured swatches beside the
-        # name, and they were the wrong idea twice over: the row is already
-        # painted in the colours of its scheme, which is the whole preview, and
-        # the swatches made the label longer than the window - so it was cut, and
-        # what showed was a fragment of a colour block and the menu's own "...".
+        # And nothing else: the painted row is the whole preview.
         $Sample
     } -DefaultIndex $Default
 
@@ -197,23 +184,20 @@ while ($true) {
     $Changed = $true
 }
 
-# Leaving, by Escape or because the visit is over: the menu goes too, so that the
-# level above draws its own on a clean screen instead of under this one. It is
-# the mirror of the clear at the top - down a level, up a level, same screen.
+# Leaving, by Escape or by a change made: the menu goes too, so the level above
+# draws its own on a clean screen instead of under this one.
 Clear-MenuScreen
 
 if (-not $Changed) {
-    # Handed over: the level above owns the goodbye, and it has its menu to draw
-    # where this one was.
+    # Handed over: the level above owns the goodbye.
     if ($HandedOver) { exit 0 }
     Write-Host ""
     Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
     exit 0
 }
 
-# Ask Terminal to look again, and only when this command was run on its own: the
-# visit is over, the prompt is back, and the pane is idle - the one moment a
-# reload lands. Behind the theme menu this is not done here at all: the menu is
-# still running, and it asks when IT is over (see theme.ps1).
+# Ask Terminal to look again, and only when run on its own: behind the theme
+# menu this is asked when IT is over (see theme.ps1) - a reload only lands with
+# the prompt back and the pane idle.
 if (-not $HandedOver) { Update-TerminalSettings }
 exit 0
