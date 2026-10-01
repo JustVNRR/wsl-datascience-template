@@ -15,13 +15,17 @@
 # `MOZ_ENABLE_WAYLAND=1 fox`.
 export MOZ_ENABLE_WAYLAND=0
 
-# Firefox asks for a session bus before it draws anything, and this image has
-# none: no dbus-daemon, no dbus-launch, and the report is the same everywhere -
-# the first window never opens, the second one does. dbus-x11 is part of the
-# pack for that reason, and this is the other half: the first `fox` of a shell
-# starts a bus for that shell, and every later call finds the variable already
-# set and runs the plain command.
-fox() {
+# The pack's script, from this file's own path - %x is where a function here
+# was defined (inside one, $0 is the function's name).
+FOX_SH=${${(%):-%x}:A:h}/../bin/fox.sh
+
+# What both launchers end on, and the bus Firefox asks for before it draws
+# anything - this image has none (no dbus-daemon, no dbus-launch), and the
+# report is the same everywhere: the first window never opens, the second one
+# does. dbus-x11 is part of the pack for that reason, and this is the other
+# half: the first launch of a shell starts a bus for that shell, and every
+# later call finds the variable already set and runs the plain command.
+_fox_launch() {
     if [[ -z "$DBUS_SESSION_BUS_ADDRESS" ]] && command -v dbus-launch >/dev/null 2>&1; then
         # The bus refuses the runtime directory WSLg hands the shell -
         # /mnt/wslg/runtime-dir is world-writable, and dbus says so at every
@@ -34,12 +38,22 @@ fox() {
     firefox "$@"
 }
 
-# One word for the browser the pack hardens, in private: the privacy defaults
-# first, the private window after. The defaults are only written when they are
-# not already the pack's copy (fox.sh compares before it writes), so the usual
-# call asks for no password and answers one line - and `gmake fox_tweak_off`
-# still takes the file away, the next `pfox` putting it back.
+# fox opens the browser on the light privacy settings - and puts them back if
+# the previous visit was a strict one. The launcher chooses the set, because
+# the settings are read as Firefox starts (docs/fox.md).
+fox() {
+    "$FOX_SH" light || return
+    _fox_launch "$@"
+}
+
+# pfox opens the private window on the strict settings. The switch counts at
+# Firefox's next start, so a switch while it runs would be silently wrong -
+# a "strict" pfox opening a light session - and pfox refuses instead.
 pfox() {
-    gmake fox_tweak_on || return
-    fox --private-window "$@"
+    if pgrep -x firefox >/dev/null 2>&1; then
+        print -u2 "Firefox is already running - close it, then run pfox again (the settings count at its next start)."
+        return 1
+    fi
+    "$FOX_SH" strict || return
+    _fox_launch --private-window "$@"
 }

@@ -65,13 +65,15 @@ done
 echo "Leaving the browser's decoder and its sound client to the cleanup that follows..."
 sudo apt-mark auto libavcodec60 libpulse0 2>/dev/null || true
 
-# The two default preferences the pack writes - the sound one (install.sh) and
-# the privacy ones (gmake fox_tweak_on) - and nothing else: /usr/lib/firefox is
+# The sound preference (install.sh), the privacy link (install.sh and the
+# launchers) and the file it points at - and nothing else: /usr/lib/firefox is
 # the browser's own directory, and these files are the only places the pack
-# touches it.
-echo "Removing the sound and privacy preferences..."
+# touches it. The slot stops nothing without its link, but the pack put it
+# there, so it goes too.
+echo "Removing the sound preference and the privacy link..."
 sudo rm -f /usr/lib/firefox/defaults/pref/wslg-audio.js \
            /usr/lib/firefox/defaults/pref/fox-privacy.js
+rm -f "$HOME/.config/fox-privacy.js"
 
 echo "Removing Mozilla's repository..."
 sudo rm -f /etc/apt/sources.list.d/mozilla.list \

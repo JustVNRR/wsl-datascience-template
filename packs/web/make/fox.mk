@@ -1,16 +1,17 @@
 # ==============================================================================
-# FIREFOX - THE PRIVACY DEFAULTS
+# FIREFOX - THE PRIVACY SETTINGS
 # ==============================================================================
-# The browser half's targets - two, and they are a switch: what they call is
-# bin/fox.sh, where the state is read and the file written, the arrangement
-# vpn.mk and the other packs' modules use - a recipe that did the work itself
-# is a recipe nobody can read.
+# The browser half's manual targets - two, and the sets themselves are what
+# the launchers put in place at every launch: `fox` runs the light set, `pfox`
+# the strict one (docs/fox.md), through the link the install leaves in the
+# browser's directory. The link is why a launch costs no password: it points
+# at a file of the user's own, and a set is put in place by replacing that.
 #
-# They touch one file of the browser's own directory, beside the sound
-# preference the install leaves there, and for the same reason: a preference
-# written there is a DEFAULT, so it applies to every profile without a name to
-# guess, and a value set in about:config still wins. The file is there, or it
-# is not - that is the whole state, and `off` leaves the browser as it was.
+# So these two are the manual face: `fox_tweak_on` puts the strict set in
+# place, and sets the link up if it never was (one sudo, once);
+# `fox_tweak_off` takes everything out, the browser stock again. What they
+# call is bin/fox.sh - a recipe that did the work itself is a recipe nobody
+# can read.
 #
 # They run from anywhere: what a browser does with a page is not a project's
 # business - the same declaration vpn_status makes in its own module.
@@ -21,8 +22,8 @@ GATE_EXEMPT_GOALS += fox_tweak_on fox_tweak_off
 # neighbours inside the pack folder, and the pack moves as one folder.
 FOX := $(dir $(lastword $(MAKEFILE_LIST)))../bin/fox.sh
 
-fox_tweak_on: ## Apply the pack's privacy defaults to Firefox (every profile)
+fox_tweak_on: ## Apply the strict privacy settings (fox/pfox pick a set on their own)
 	@$(FOX) on
 
-fox_tweak_off: ## Take them back out - the browser's own defaults again
+fox_tweak_off: ## Take the settings out - the browser's own defaults again
 	@$(FOX) off

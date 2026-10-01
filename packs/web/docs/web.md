@@ -10,8 +10,8 @@ graphical application — nothing is displayed inside the terminal.
 | :--- | :--- | :--- |
 | Firefox | browsing, from inside the instance | `firefox` |
 | the pack's function | opening it with the session bus the image does not have | `fox` |
-| the private launcher | a private window, the defaults applied first | `pfox` |
-| the privacy defaults | hardening, when you want it, and reversible | `fox_tweak_on`, `fox_tweak_off` |
+| the private launcher | a private window, on the strict privacy set | `pfox` |
+| the privacy sets | light with `fox`, strict with `pfox`; manual switches when needed | `fox_tweak_on`, `fox_tweak_off` |
 | the tunnel | the traffic, through your own WireGuard profile | [the tunnel's page](vpn.md) |
 
 ## Installing and removing it
@@ -100,16 +100,14 @@ two itself but asks the system for H.264. The pack installs that decoder
 then a live stream answers *"your browser can't play this video"* while
 everything else plays.
 
-**The privacy defaults are one target away**: `gmake fox_tweak_on` writes a
-file beside the sound preference —
-`/usr/lib/firefox/defaults/pref/fox-privacy.js` — and `gmake fox_tweak_off`
-takes it back to the browser's own defaults. They are *defaults*: every
-profile, no name to guess, and `about:config` still wins. What they set, and
-what it changes while browsing: [the privacy page](fox.md).
-
-**`pfox` is the pair in one word**: it applies the defaults (writing nothing
-when they are already the pack's copy, so it asks for no password), then opens
-a private window — one command for "the hardened browser, in private".
+**The privacy settings come in two sets, and the launcher picks**: `fox` opens
+on the light set, `pfox` opens a private window on the strict one — the
+settings are read as Firefox starts. The install leaves the light set in
+place; a switch costs no password, because the browser's directory holds a
+link to a file of your own; and `pfox` refuses to launch while Firefox is
+already running, since a switch would count only at the next start.
+`gmake fox_tweak_on` / `fox_tweak_off` are the manual switches. What each set
+holds: [the privacy page](fox.md).
 
 Your profile (`~/.mozilla`: bookmarks, passwords, history) is yours: removing
 the pack does not delete it.

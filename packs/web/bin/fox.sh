@@ -1,18 +1,31 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# FIREFOX - THE PRIVACY DEFAULTS - WHAT THE gmake TARGETS CALL
+# FIREFOX - THE PRIVACY SETTINGS - WHAT THE LAUNCHERS AND THE TARGETS CALL
 # ==============================================================================
-# Two subcommands, one per target in make/fox.mk, and one file: in the
-# browser's own directory, where install.sh already leaves wslg-audio.js - see
-# install.sh for why the pack touches that directory at all.
+# Two sets, two launchers, two manual commands:
 #
-# The file holds DEFAULT preferences, not orders, and that is the whole design:
+#   fox-privacy-light.js    everything invisible: tracking protection, URL
+#                           cleaning, telemetry off, HTTPS-only, DoH off,
+#                           geolocation denied. What `fox` puts in place, and
+#                           what the pack's install leaves.
+#   fox-privacy-strict.js   the light set, plus anti-fingerprinting (RFP and
+#                           letterboxing) and WebRTC off - the two that are
+#                           noticed day to day. What `pfox` puts in place.
+#
+# One set is ever in place, and it is a file of DEFAULT preferences, not
+# orders:
 #   - a default applies to every profile, present and future - no profile name
 #     to guess, and a new one inherits it with nothing to do;
 #   - a value set in about:config wins over it, so a site that needs one of
 #     them relaxed is a one-line exception, not a fight with a lock;
-#   - `off` is the file leaving: Firefox is back to its own defaults - no
+#   - `off` is everything leaving: Firefox is back to its own defaults - no
 #     prefs.js to rewrite, nothing half-applied.
+#
+# And choosing a set costs no password: the browser's directory holds a LINK -
+# /usr/lib/firefox/defaults/pref/fox-privacy.js, pointing at
+# $HOME/.config/fox-privacy.js - and a set is put in place by replacing THAT
+# file, which lives in the user's home. Only the link's creation (once - the
+# install does it, the first run as a fallback) and `off` go through sudo.
 #
 # A `user.js` in a profile would force the values instead, and it is the
 # arrangement this pack did not choose: the profile only exists after a first
@@ -20,33 +33,28 @@
 # editing prefs.js by hand. All of that for a strength this file does not need:
 # there is one user here, and about:config is theirs to use.
 #
-# `on` compares before it writes: identical file, nothing done, no password
-# asked. That is what lets `pfox` - the shell function beside `fox` in
-# web.zsh - run this first at every launch and stay a one-word command.
-#
-# What is being set, and why each of it, is the pack's page (docs/fox.md).
+# What is in each set, and why each line, is the pack's page (docs/fox.md).
 
 set -euo pipefail
 
-# The one file these targets touch, and the whole state: the file is there, or
-# it is not. FOX_PREF_FILE is what a test points at a stand-in copy.
+# The link Firefox reads, and the file it points at: those two are the whole
+# state. FOX_PREF_FILE is what a test points at a stand-in copy.
 PREF_FILE=${FOX_PREF_FILE:-/usr/lib/firefox/defaults/pref/fox-privacy.js}
 PREF_DIR=$(dirname "$PREF_FILE")
+SLOT=$HOME/.config/fox-privacy.js
 
-# The preferences themselves, beside this script in the pack: a .js file, so
-# that it is read like what it is - the very file Firefox reads - and not a
-# heredoc to be rebuilt here. `on` installs it as it stands.
+# The sets themselves, beside this script in the pack.
 here=$(cd "$(dirname "$0")" && pwd)
-PACK_COPY=$here/../fox-privacy.js
 
 die() {
     printf '%s\n' "$*" >&2
     exit 1
 }
 
-# Privileged work: /usr/lib/firefox belongs to the package, so the write and
-# the removal go through sudo - and run as root (the day a test does), sudo
-# would be one indirection too many. The same shape vpn.sh's as_root has.
+# Privileged work: /usr/lib/firefox belongs to the package, so the link and
+# anything removed from there go through sudo - and run as root (the day a
+# test does), sudo would be one indirection too many. The same shape vpn.sh's
+# as_root has.
 as_root() {
     if [ "$(id -u)" -eq 0 ]; then
         "$@"
@@ -55,68 +63,92 @@ as_root() {
     fi
 }
 
-# The pack's copy goes in whole, and `install` is what sets the mode on the
-# way: 0644 - readable by every user, writable by root, the shape the sound
-# preference has and what Firefox expects of a defaults file.
-write_prefs() {
-    as_root install -m 0644 "$PACK_COPY" "$PREF_FILE"
-}
-
-# Is the installed file already exactly the pack's copy? Both are 0644, so the
-# question is answered as the user - and answered before any sudo. This is
-# what makes an `on` that has nothing to do cost nothing.
-prefs_are_current() {
-    cmp -s "$PACK_COPY" "$PREF_FILE"
-}
-
-cmd_on() {
+# The link, in place and pointing at the slot. Asked before every switch, and
+# answered WITHOUT any sudo first: a launch where it is already right must
+# not cost a password. `ln -sfn` replaces whatever is there - the plain file
+# of the pack's first shape included, which is the migration.
+ensure_link() {
     [ -d "$PREF_DIR" ] ||
         die "no $PREF_DIR: Firefox is not installed here - it arrives from Windows (.\wsl.ps1 add_pack)."
-    [ -f "$PACK_COPY" ] ||
-        die "no $PACK_COPY: the pack's copy of the preferences is missing - put the pack's folder back (.\wsl.ps1 add_pack)."
-
-    if [ -f "$PREF_FILE" ] && prefs_are_current; then
-        printf 'The privacy settings are in place.\n'
+    if [ -L "$PREF_FILE" ] && [ "$(readlink -- "$PREF_FILE")" = "$SLOT" ]; then
         return 0
     fi
+    as_root ln -sfn "$SLOT" "$PREF_FILE" ||
+        die "the link could not be written to $PREF_FILE"
+}
 
-    write_prefs
+# One of the two sets, in the slot. Copies only when the slot holds something
+# else, so the ordinary launch writes nothing. Answers 0 when it changed
+# something, 1 when the slot already held it - both are a success.
+#
+# Every write is checked, and that is not decoration: put_set runs inside `if`
+# conditions (use, cmd_on), where bash suspends `set -e` - an unchecked `cp`
+# that failed would be reported as "in place" the step after (measured, in the
+# harness: a missing ~/.config and a full four-line lie).
+put_set() {
+    local src=$here/../fox-privacy-$1.js
+    [ -f "$src" ] ||
+        die "no $src: the pack's copy of the $1 set is missing - put the pack's folder back (.\wsl.ps1 add_pack)."
+    ensure_link
+    if [ -f "$SLOT" ] && cmp -s "$src" "$SLOT"; then
+        return 1
+    fi
+    install -d "$(dirname "$SLOT")"
+    cp "$src" "$SLOT" ||
+        die "the $1 set could not be written to $SLOT"
+    return 0
+}
 
-    printf 'The privacy settings are in place: %s\n' "$PREF_FILE"
+# What the launchers call: silent when there is nothing to change, one line
+# when the set in place changes under them.
+use() {
+    if put_set "$1"; then
+        printf 'The %s privacy settings are in place - Firefox reads them as it starts.\n' "$1"
+    fi
+}
+
+# The manual switch: the strict set, and it says so even when it changed
+# nothing (the file path is where the set now lives).
+cmd_on() {
+    if put_set strict; then
+        printf 'The privacy settings are in place: %s\n' "$SLOT"
+    else
+        printf 'The privacy settings are in place.\n'
+    fi
 }
 
 cmd_off() {
-    if [ ! -f "$PREF_FILE" ]; then
-        printf 'Nothing to remove: the privacy defaults are not in place.\n'
+    if [ ! -e "$PREF_FILE" ] && [ ! -e "$SLOT" ]; then
+        printf 'Nothing to remove: the privacy settings are not in place.\n'
         return 0
     fi
 
     as_root rm -f "$PREF_FILE"
+    rm -f "$SLOT"
 
-    printf 'The privacy defaults are removed - Firefox is back to its own.\n'
+    printf 'The privacy settings are removed - Firefox is back to its own.\n'
     printf '   Close and reopen Firefox for that to take effect.\n'
 }
 
 case "${1:-}" in
-on)
-    shift
-    cmd_on "$@"
-    ;;
-off)
-    shift
-    cmd_off "$@"
-    ;;
+on) cmd_on ;;
+off) cmd_off ;;
+light) use light ;;
+strict) use strict ;;
 *)
     cat <<'USAGE'
 usage: fox.sh <command>
 
-  on                    write the pack's privacy defaults, where Firefox reads
-                        its own - every profile, and about:config still wins.
-                        An identical file is left alone, no password asked
-  off                   take the file back - the browser's own defaults again
+  light                 put the light privacy settings in place - what `fox`
+                        runs at every launch; silent when nothing changes
+  strict                put the strict ones in place - what `pfox` runs
+  on                    the strict ones, and it says so (gmake fox_tweak_on)
+  off                   take everything out - the browser's own defaults again
+                        (gmake fox_tweak_off)
 
-Both are gmake targets of the same name: gmake fox_tweak_on, fox_tweak_off.
-pfox, in web.zsh, runs `on` and then opens a private window.
+The first switch sets the link up (one sudo, once); after that a switch costs
+no password, and about:config still wins over both sets. docs/fox.md tells
+what each set holds.
 USAGE
     exit 2
     ;;

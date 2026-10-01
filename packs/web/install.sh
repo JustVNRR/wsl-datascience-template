@@ -166,6 +166,17 @@ else
     echo "No /usr/lib/firefox/defaults/pref: the sound was left alone."
 fi
 
+# The privacy link, and the light set left in place: what `fox` and `pfox`
+# switch between needs the browser's directory written exactly once - a link
+# pointing at a file of the user's own, so the launchers choose a set at every
+# launch with no password (docs/fox.md). Best-effort like the boot hook: a
+# failure here must not fail an install that worked, so the message says what
+# to run by hand - and the first `fox` would say the same.
+if ! bash "$here/bin/fox.sh" light; then
+    echo "The privacy link was not set up - run it by hand:"
+    echo "   bash ~/.config/packs/web/bin/fox.sh light"
+fi
+
 # The servers, in one JSON in ~/.config/vpn (mode 600: it carries the private
 # keys). Three cases, in this order:
 #   - it is already there: nothing is touched, ever - that file is the user's;
@@ -212,7 +223,7 @@ if ! make -f "$HOME/.config/zsh/gmake/Makefile" env_global_enable; then
 fi
 
 echo "Firefox is installed, and 'fox' opens it - its commands are in the picker (fcheat)."
-echo "Privacy defaults for it, when you want them: gmake fox_tweak_on   (docs/fox.md)"
+echo "It starts on the light privacy settings; pfox opens the strict ones (docs/fox.md)."
 echo "WireGuard is installed: gmake vpn_status   (servers first, see docs/vpn.md)"
 if [ -L /etc/resolv.conf ] || grep -q 'generateResolvConf' /etc/wsl.conf 2>/dev/null; then
     echo "The DNS setting is read when the distro starts: restart it once"

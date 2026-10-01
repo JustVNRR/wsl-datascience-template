@@ -1,44 +1,44 @@
-# Firefox, the privacy defaults
+# Firefox, the privacy settings
 
 [← Back to the README](../../../README.md#optional-tooling)
 
-Two targets, one file, and a switch between them: `gmake fox_tweak_on` writes
-the pack's privacy preferences where Firefox reads its own, `gmake
-fox_tweak_off` takes them back out. Nothing is applied by the install — the
-defaults are opt-in, and the browser the pack ships stays stock until one of
-these runs. The rest of the pack is [the browser and the tunnel](web.md).
+Two sets, one at a time, and the launcher picks: `fox` opens the browser on
+the **light** set, `pfox` opens a private window on the **strict** one.
+Nothing to activate by hand — the settings are read as Firefox starts, so
+opening the browser with one of these *is* choosing the set, and the install
+leaves the light one in place. The rest of the pack is
+[the browser and the tunnel](web.md).
 
 ```bash
-gmake fox_tweak_on                           # every profile; about:config still wins
-gmake fox_tweak_off                          # the browser's own defaults again
+gmake fox_tweak_on                           # the strict set, put in place by hand
+gmake fox_tweak_off                          # everything out - the browser stock again
 ```
 
-Close and reopen Firefox for either to take effect — preferences are read at
-startup, like the sound one.
+## The two sets
 
-`pfox` — the shell function beside `fox` — is the pair in one word: it applies
-the defaults first (an identical file is left alone, so the call costs nothing
-and asks for no password), then opens a private window. `fox_tweak_off` still
-takes them away; the next `pfox` puts them back.
+|  | The light set | The strict set |
+| :--- | :--- | :--- |
+| What it holds | tracking protection, URL cleaning, pings and prefetch off, HTTPS-only, DoH off, telemetry off, geolocation denied | the light set **plus** anti-fingerprinting and WebRTC off |
+| What you notice | nothing | English pages, UTC hours, grey margins, no calls in the browser |
 
-## The file
+## How the switch works
 
-`/usr/lib/firefox/defaults/pref/fox-privacy.js`, beside the sound preference
-the install leaves in the same directory — and for the same reason: what lives
-there is a **default**, not an order.
-
-- It applies to **every profile**, present and future — no profile name to
-  guess, and a profile created later inherits it with nothing to do.
-- A value set in `about:config` **wins over it**: relaxing one preference for
-  one site is a one-line exception.
-- `fox_tweak_off` is the file leaving: Firefox is back to its own defaults in
-  one move — no `prefs.js` to rewrite, nothing half-applied.
-
-A `user.js` in a profile would force the values instead — more to guard
-(finding the profile, refusing a running Firefox, editing `prefs.js` back) for
-a strength this file does not need.
+- The browser's directory holds one **link** —
+  `/usr/lib/firefox/defaults/pref/fox-privacy.js` — pointing at a file of your
+  own, `~/.config/fox-privacy.js`. A set is put in place by replacing *that*
+  file: the link is written once (by the install, or by the first launch), and
+  after that **a switch costs no password**.
+- **`fox`** puts the light set back, then opens the browser. **`pfox`** puts
+  the strict set, then opens a private window — and refuses to launch while
+  Firefox is already running: the settings count at the next start, and a
+  "strict" `pfox` opening a light session would be silently wrong.
+- Both sets are *defaults*, not orders: a value set in `about:config` wins,
+  and a browser keeps the set it started with until it is closed — which is
+  why the launcher is what picks.
 
 ## What changes while you browse
+
+The strict set is the one with visible effects:
 
 | You will notice | The preference behind it |
 | :--- | :--- |
@@ -53,36 +53,22 @@ it cannot step around the tunnel ([the tunnel's page](vpn.md)).
 
 ## The preferences
 
-**Tracking protection** — the Strict preset: `browser.contentblocking.category`
-and the engines it names (trackers, suspected fingerprinters, cryptominers,
-social trackers, email pixels). URL tracking parameters (`fbclid`, `utm_*`…)
-are stripped in every window, private or not.
+**Both sets** — the Strict tracking preset, named pref by pref (trackers,
+suspected fingerprinters, cryptominers, social trackers, email pixels); URL
+tracking parameters (`fbclid`, `utm_*`…) stripped in every window, private or
+not; pings and the Beacon API off; no prefetch or DNS pre-resolution;
+HTTPS-only in every window; DoH off; no camera/microphone enumeration;
+geolocation denied by default (one site can still be allowed through the
+padlock); telemetry and studies off; the do-not-sell signal on.
 
-**Pings** — `browser.send_pings` and `beacon.enabled`: no notification when you
-click a link, no Beacon API.
-
-**Prefetch** — `network.prefetch-next`, `network.dns.disablePrefetch`: Firefox
-neither preloads pages you have not clicked nor resolves their names early.
-
-**TLS and DNS** — `dom.security.https_only_mode`, `network.trr.mode` (5: DoH
-off, see above).
-
-**What a page may read** — `media.navigator.enabled` (no camera/microphone
-enumeration), `permissions.default.geo` (2: denied unless allowed by hand).
-
-**Telemetry and studies** — `datareporting.healthreport.uploadEnabled`,
-`app.shield.optoutstudies.enabled`, and `privacy.globalprivacycontrol.enabled`
-(the do-not-sell signal on).
-
-**Anti-fingerprinting** — `privacy.resistFingerprinting` and
-`privacy.resistFingerprinting.letterboxing`: the UTC/en-US trade above, a
-generic user-agent, canvas noise, standardized window sizes.
-
-**WebRTC** — `media.peerconnection.enabled` false.
+**The strict set adds** — `privacy.resistFingerprinting` with
+`privacy.resistFingerprinting.letterboxing`: the UTC/en-US trade, a generic
+user-agent, canvas noise, standardized window sizes. And
+`media.peerconnection.enabled` false: no real-time connections from a page.
 
 ## uBlock Origin, and the rest
 
-Ad blocking is not in the file: uBlock Origin is two clicks from
+Ad blocking is not in the sets: uBlock Origin is two clicks from
 [addons.mozilla.org](https://addons.mozilla.org/firefox/addon/ublock-origin/)
 and updates itself. In its dashboard, beyond the lists that are on by default:
 *AdGuard Tracking Protection*, the two malware/phishing lists, and — under
@@ -93,5 +79,6 @@ ClearURLs used to do — without one more extension reading every page.
 
 ## Removing the pack
 
-`remove_pack` takes the file back with the sound preference. Your profile —
-`~/.mozilla`, bookmarks, passwords, history — stays, as always.
+`remove_pack` takes the link, the file it points at and the sound preference
+back. Your profile — `~/.mozilla`, bookmarks, passwords, history — stays, as
+always.

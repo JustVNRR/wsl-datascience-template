@@ -1,7 +1,9 @@
-// Set by the web pack - `gmake fox_tweak_on` wrote it, `gmake fox_tweak_off`
-// takes it back. These are DEFAULT values, not orders: they apply to every
-// profile, and a value set in about:config wins over them. What each one does,
-// and what it changes while browsing, is in docs/fox.md.
+// The web pack's LIGHT privacy settings - what `fox` puts in place, and what
+// the pack's install leaves there. Nothing in this set is noticed day to day:
+// no anti-fingerprinting (no English pages, no UTC, no letterboxing) and no
+// WebRTC switch - those two are the strict set, which `pfox` (and `gmake
+// fox_tweak_on`) puts in place instead. Defaults, not orders: a value set in
+// about:config wins over them. The full story is in docs/fox.md.
 
 // --- Tracking protection: the Strict preset, named pref by pref ---
 // (the category line is what the Settings page shows; the engines read the
@@ -43,15 +45,3 @@ pref("permissions.default.geo", 2);
 pref("datareporting.healthreport.uploadEnabled", false);
 pref("app.shield.optoutstudies.enabled", false);
 pref("privacy.globalprivacycontrol.enabled", true);
-
-// --- Anti-fingerprinting (the big switch: it changes what sites see) ---
-// Time zone UTC, language en-US, a generic user-agent, canvas noise - and the
-// letterboxing, which standardizes the window's size (grey margins around
-// pages until the window matches a standard shape).
-pref("privacy.resistFingerprinting", true);
-pref("privacy.resistFingerprinting.letterboxing", true);
-
-// --- WebRTC off ---
-// No real-time connections from a page: this instance has no camera, and an
-// in-browser call is a leak this browser does not need.
-pref("media.peerconnection.enabled", false);

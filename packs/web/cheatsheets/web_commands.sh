@@ -9,11 +9,11 @@
 # the sheet when it was removed by hand.
 
 # --- 1. OPEN ---
-fox                                            # Open Firefox (the pack's function)
+fox                                            # Open Firefox (the pack's function, light privacy set)
 firefox                                        # ... the command itself
 fox https://example.com                        # Open a page
 fox --private-window                           # A private window
-pfox                                           # ... and the privacy defaults applied first
+pfox                                           # A private window, on the strict privacy set
 fox --new-window                               # A new window, even if one is open
 fox https://example.com/report.pdf             # A URL with a query string, quoted if it has &
 
@@ -29,9 +29,9 @@ pactl set-sink-volume @DEFAULT_SINK@ 50%       # Set it - +10% / -10% moves by a
 pactl set-sink-mute @DEFAULT_SINK@ toggle      # Cut the sound, and bring it back
 pactl list sinks short                         # What WSLg offers as an output (one: its own)
 
-# --- 4. PRIVACY (the pack's defaults; about:config still wins over them) ---
-gmake fox_tweak_on                             # Apply the pack's privacy defaults (every profile, restart Firefox)
-gmake fox_tweak_off                            # Take them back out
+# --- 4. PRIVACY (the launcher picks the set: fox = light, pfox = strict) ---
+gmake fox_tweak_on                             # The strict set, put in place by hand
+gmake fox_tweak_off                            # Everything out - the browser stock again
 fox about:config                               # Where one value can be watched or relaxed
 
 # --- 5. FILES ON THIS MACHINE ---
