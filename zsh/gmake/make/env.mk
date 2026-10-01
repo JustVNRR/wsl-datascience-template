@@ -45,11 +45,11 @@ env_project_enable: ## Create or complete this project's .env from the samples
 # line rewritten — so the editor never opens on an empty file: one that is not
 # there yet is created whole from the samples, header included, and running
 # enable first is never something to remember.
-env_global_manage: ## Create or complete ~/.config/zsh/gmake/.env.global, then open it in the editor (nano, or $EDITOR)
+env_global_manage: ## Create or complete ~/.config/zsh/gmake/.env.global, then open it in the editor
 	$(call merge_env_samples,$(THIS_DIR)/.env.global,$(GLOBAL_ENV_SAMPLES))
 	@editor=$${EDITOR:-nano}; $$editor "$(THIS_DIR)/.env.global"
 
-env_project_manage: ## Create or complete this project's .env, then open it in the editor (nano, or $EDITOR)
+env_project_manage: ## Create or complete this project's .env, then open it in the editor
 	$(call merge_env_samples,.env,$(PROJECT_ENV_SAMPLES))
 	@editor=$${EDITOR:-nano}; $$editor .env
 

@@ -45,5 +45,5 @@ vpn_auto_on: ## Bring the tunnel up when the distro starts
 vpn_auto_off: ## Stop bringing it up with the distro
 	@$(VPN) auto off
 
-vpn_edit_profiles: ## Open the JSON of servers in the editor (nano, or $EDITOR)
+vpn_edit_profiles: ## Open the JSON of servers in the editor
 	@$(VPN) edit_profiles

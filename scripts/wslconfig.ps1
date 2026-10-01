@@ -35,7 +35,7 @@ if (-not (Test-Path $Path)) {
 # [wsl2]
 # memory=8GB          # the machine's memory cap
 # processors=4        # the CPUs it may use
-# dnsTunneling=true   # WSL answers the DNS itself (the default)
+# dnsTunneling=true   # WSL answers the DNS itself
 '@ | Set-Content -Path $Path -Encoding ascii
     Write-Host "  * .wslconfig : " -NoNewline
     Write-Host "created - there was none" -ForegroundColor (Get-MessageColour success)

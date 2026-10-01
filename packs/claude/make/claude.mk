@@ -35,7 +35,7 @@ claude_status: ## Show Claude Code here: version, the versions on disk, the prov
 claude_profile: ## Choose the provider this instance talks to, and apply it
 	@$(CLAUDE) profile $(NAMED_PROFILE)
 
-claude_edit_profiles: ## Open the dictionary of providers in the editor (nano, or $EDITOR)
+claude_edit_profiles: ## Open the dictionary of providers in the editor
 	@$(CLAUDE) edit_profiles
 
 claude_project: ## Pick a project of this instance, and reopen its last session

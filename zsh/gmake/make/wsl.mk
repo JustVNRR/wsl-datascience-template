@@ -46,7 +46,7 @@ wsl_config: ## Open /etc/wsl.conf in nano (sudo): default user, automount, inter
 # instance, and an edit goes with the next one. The notice says so before the
 # editor opens, rather than let a change disappear without a word. The lasting
 # way is generateResolvConf = false in /etc/wsl.conf, which wsl_config opens.
-dns_resolve: ## Open /etc/resolv.conf in nano (sudo) - the file the instance resolves names with
+dns_resolve: ## Open /etc/resolv.conf in nano (sudo)
 	@if [ -L /etc/resolv.conf ]; then \
 		printf '$(C_HINT)Ensure $(C_COMMAND)generateResolvConf = false$(C_HINT) in /etc/wsl.conf if you want your change to survive a restart.$(C_RESET)\n'; \
 	elif [ ! -e /etc/resolv.conf ]; then \
@@ -238,7 +238,7 @@ systemd_down: ## Stop booting systemd for this instance (the packages stay insta
 	echo "✅ systemd is off. The packages stay installed."; \
 	$(call apply_hint)
 
-automount_up: ## Mount the Windows drives under /mnt at every start (the default)
+automount_up: ## Mount the Windows drives under /mnt at every start
 	@$(call wsl_conf_set,automount,enabled,true); \
 	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
 		echo "automount is already on for this instance."; \
@@ -249,7 +249,7 @@ automount_up: ## Mount the Windows drives under /mnt at every start (the default
 	echo "✅ automount is on."; \
 	$(call apply_hint)
 
-automount_down: ## Stop mounting the Windows drives (no more /mnt/c)
+automount_down: ## Stop mounting the Windows drives
 	@$(call wsl_conf_set,automount,enabled,false); \
 	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
 		echo "automount is already off for this instance."; \
@@ -260,7 +260,7 @@ automount_down: ## Stop mounting the Windows drives (no more /mnt/c)
 	echo "✅ automount is off."; \
 	$(call apply_hint)
 
-interop_up: ## Let the instance run Windows programs (the default)
+interop_up: ## Let the instance run Windows programs
 	@$(call wsl_conf_set,interop,enabled,true); \
 	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
 		echo "interop is already on for this instance."; \
@@ -282,7 +282,7 @@ interop_down: ## Stop running Windows programs from the instance
 	echo "✅ interop is off."; \
 	$(call apply_hint)
 
-windows_path_up: ## Add the Windows PATH to this instance's PATH (the default)
+windows_path_up: ## Add the Windows PATH to this instance's PATH
 	@$(call wsl_conf_set,interop,appendWindowsPath,true); \
 	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
 		echo "the Windows PATH is already appended here."; \
@@ -315,7 +315,7 @@ fstab_up: ## Apply /etc/fstab at every start (off until you say so)
 	echo "✅ the fstab entries are applied at start."; \
 	$(call apply_hint)
 
-fstab_down: ## Leave /etc/fstab alone at start (the default)
+fstab_down: ## Leave /etc/fstab alone at start
 	@$(call wsl_conf_set,automount,mountFsTab,false); \
 	if [ "$$new" = "$$(cat /etc/wsl.conf 2>/dev/null)" ]; then \
 		echo "the fstab entries are already left alone at start."; \
