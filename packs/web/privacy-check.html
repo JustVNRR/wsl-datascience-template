@@ -4,17 +4,19 @@
 <meta charset="utf-8">
 <title>What this browser actually does</title>
 <style>
-  :root { color-scheme: light dark; }
-  body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 52rem; padding: 0 1rem; }
+  /* One Half Dark, the scheme the terminal wears: the white was violent. */
+  :root { color-scheme: dark; }
+  body { background: #282c34; color: #dcdfe4; font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 52rem; padding: 0 1rem; }
   h1 { font-size: 1.3rem; }
-  p.note { font-size: 0.85rem; opacity: 0.8; max-width: 44rem; }
+  p.note { font-size: 0.85rem; opacity: 0.75; max-width: 44rem; }
+  code { color: #e5c07b; }
   table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin-top: 1rem; }
-  th, td { border: 1px solid #8884; padding: 0.35rem 0.6rem; text-align: left; vertical-align: top; }
+  th, td { border: 1px solid #3e4451; padding: 0.35rem 0.6rem; text-align: left; vertical-align: top; }
   th { font-weight: 600; }
-  td.ok { color: #2e7d32; font-weight: 700; }
-  td.bad { color: #c62828; font-weight: 700; }
+  td.ok { color: #98c379; font-weight: 700; }
+  td.bad { color: #e06c75; font-weight: 700; }
   td.value { font-family: ui-monospace, monospace; word-break: break-all; }
-  footer { font-size: 0.85rem; opacity: 0.8; margin-top: 1rem; }
+  footer { font-size: 0.85rem; opacity: 0.75; margin-top: 1rem; }
 </style>
 </head>
 <body>
@@ -128,17 +130,18 @@ try {
 }
 add("Canvas, read twice", canvasVerdict, "random on every read", canvasOk);
 
-// --- geolocation: asked, and answered -----------------------------------------
-const geoRow = add("Geolocation (asked just now)", "asking…", "refused", null);
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(
-    () => later(geoRow, "granted", false),
-    (e) => later(geoRow, e.code === 1 ? "refused (denied)" : "failed (" + e.message + ")", e.code === 1),
-    { timeout: 4000 }
-  );
-} else {
-  later(geoRow, "no geolocation API", true);
-}
+// --- geolocation: the permission state, read - never asked. Asking would pop
+// "Allow this local file to access your location?", a question this page has
+// no business asking; permissions.query only reports what is decided ---------
+const geoRow = add("Geolocation permission", "asking…", "denied", null);
+navigator.permissions
+  .query({ name: "geolocation" })
+  .then(p => {
+    if (p.state === "denied") later(geoRow, "denied", true);
+    else if (p.state === "granted") later(geoRow, "granted", false);
+    else later(geoRow, "would be asked (a local file is not remembered by the permission store)", null);
+  })
+  .catch(e => later(geoRow, "unknown (" + e.name + ")", null));
 
 // --- a real tracker, with a control request: doubleclick.com is a classic
 // blocker target, example.com never is. If the control goes through and the

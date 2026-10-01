@@ -44,8 +44,8 @@ so the page measures the **effects**, live, against what the strict set
 expects: the time zone Reykjavik/UTC+0 (RFP's spoof, since Firefox 128), the
 language (en-US), the user-agent (the plain Firefox one, nothing custom), the
 window a site sees (rounded to 200 × 100), WebRTC (absent), the canvas read
-twice (random both times — RFP's poison pill), a geolocation request
-(refused), and a tracker's site against a control request (doubleclick.net
+twice (random both times — RFP's poison pill), the geolocation permission
+(read, never asked — denied), and a tracker's site against a control request (doubleclick.net
 blocked while example.com loads; when a local page is not where the shield
 acts, the line says so instead of guessing). The footer of the page shows what
 the internet sees right now — the exit IP, its city and country — and the DNS
