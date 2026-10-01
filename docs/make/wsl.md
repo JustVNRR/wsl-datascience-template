@@ -18,13 +18,10 @@ reports what the instance runs on.
 | `systemd_down` | Stop booting systemd (the packages stay installed) | — |
 | `automount_up` | Mount the Windows drives under `/mnt` at every start | — |
 | `automount_down` | Stop mounting the Windows drives | — |
-| `automount_check` | Say whether the Windows drives are mounted | — |
 | `interop_up` | Let the instance run Windows programs | — |
 | `interop_down` | Stop running Windows programs from the instance | — |
-| `interop_check` | Say whether Windows programs can be run from here | — |
 | `windows_path_up` | Add the Windows `PATH` to this instance's `PATH` | — |
 | `windows_path_down` | Keep the Windows `PATH` out of this instance's `PATH` | — |
-| `windows_path_check` | Say whether the Windows `PATH` is in this instance's `PATH` | — |
 | `fstab_up` | Apply `/etc/fstab` at every start | — |
 | `fstab_down` | Leave `/etc/fstab` alone at start | — |
 
@@ -84,11 +81,12 @@ the same one twice changes nothing. `interop_down` also silences the Windows
 block of `wsl_status` — with interop off, Windows is not reachable. The
 `windows_path` pair only matters while `interop` is on.
 
-Three of the pairs have a check — `automount_check`, `interop_check`,
-`windows_path_check` — that answers in one line and from the machine rather
-than from the file: whether the drives are mounted, whether a Windows program
-really runs, whether `/mnt` is in the `PATH`. The folders under `/mnt` stay
-there, empty, when automount is off; the check asks the mount table, not `ls`.
+The real state of three of the pairs — automount, interop, the Windows `PATH`
+— is reported by `wsl_status` rather than by a target of its own, and read
+from the machine rather than from the file: the mount table (the folders under
+`/mnt` stay there, empty, when automount is off), a Windows program really
+run, the `PATH` itself. Each comes back as a trailing comment on the pair's
+line of `/etc/wsl.conf` — see [the status command](#the-status-command).
 
 Turning the drives off does not cut an instance off from its packs:
 `.\wsl.ps1 add_pack` travels through Windows' own share into the distro when
@@ -127,9 +125,15 @@ a server that is the rule; here it is an option.
 | :--- | :--- |
 | The distribution and the kernel | `uname -r`, and `PRETTY_NAME` from `/etc/os-release` |
 | Init and systemd | what PID 1 is, and what `systemctl is-system-running` answers — not installed by default, then `offline` until the restart that boots it |
-| The local file | `/etc/wsl.conf`, or that it is absent |
+| The local file | `/etc/wsl.conf`, or that it is absent — three of its lines carry `# OK` / `# NOK` |
 | The Windows-wide file | `%USERPROFILE%\.wslconfig`, read through interop — the path it looked at is printed either way |
 | Memory and services | `free -h`; systemd's services when it runs, the init.d ones otherwise |
+
+Three lines can carry that comment: `[automount] enabled`, `[interop] enabled`
+and `[interop] appendWindowsPath`. `# OK` means the instance really is in the
+state the line declares, `# NOK` that it is not — most often a switch just
+thrown whose restart has not happened yet (`.\wsl.ps1 restart`, from Windows).
+The other lines are printed as they are.
 
 ## The editors
 
