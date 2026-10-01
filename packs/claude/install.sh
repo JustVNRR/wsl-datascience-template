@@ -18,6 +18,14 @@
 
 set -euo pipefail
 
+# The messages: the shared library replaces this fallback when the image
+# carries it; an instance built before it prints a plain sentence.
+hint() { printf '%s\n' "$*"; }
+if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/zsh/lib/message.sh" || true
+fi
+
 # The pack's own folder: the sample of providers is read from beside this file,
 # so the two travel together wherever the folder lands.
 here=$(cd "$(dirname "$0")" && pwd)
@@ -49,11 +57,9 @@ else
     # ANSWER, not a failure: exit code 2, which the socle reports as "not
     # installed" rather than as a broken installation (docs/packs.md).
     #
-    # And the question is FRAMED, because it travels to a Windows console in a
-    # stream of other lines, where a bare sentence reads as one more log line
-    # and gets answered without being seen (his return, 2026-09-29: "ca se voit
-    # pas assez"). The fences are plain ASCII, like everything printed here,
-    # and they stand out anywhere.
+    # The question is yellow (lib/message.sh's hint): it travels to a Windows
+    # console in a stream of other lines, where a bare sentence reads as one
+    # more log line - it has to stand out to be answered.
     #
     # The silent case agrees with the default: a pack arrives because it was
     # CHOSEN - a box ticked in the checklist `build` asks before it builds, a row
@@ -69,11 +75,8 @@ else
     foreign=$(command -v claude 2>/dev/null || true)
     if [ -n "$foreign" ]; then
         echo ""
-        echo "=============================================================================="
-        echo "  Claude Code is already installed on Windows."
-        echo "  Install a copy in this instance too? [Y/n]"
-        echo "=============================================================================="
-        echo ""
+        hint "Claude Code is already installed on Windows."
+        hint "Install a copy in this instance too? [Y/n]"
         if read -r answer; then
             case "$answer" in
                 [nN]*)
