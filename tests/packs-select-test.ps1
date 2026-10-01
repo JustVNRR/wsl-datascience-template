@@ -11,9 +11,9 @@
 #                  newcomer's folder is placed BEFORE a remove.sh asks its
 #                  question, so a shared package is left where it is.
 #
-# Run it with tests\packs-select-test.answers on standard input, which holds the
-# answers one per line, in the order they are read - and in these exact counts,
-# because each scenario consumes its own:
+# Run it with tests\packs-select-test.answers on standard input: the answers,
+# one per line, in the order they are read - and in these exact counts, because
+# each scenario consumes its own:
 #   1, v, (empty)   one box ticked -> it and its requirement, requirement first
 #   2, v, (empty)   the installed box unticked -> one removal
 #   0               cancelled
@@ -46,16 +46,13 @@ function Check {
 }
 
 # The shape Get-AvailablePacks hands back, declarations included: gcp requires
-# devops, python requires devops AND scaffold, and those two are the invisible
-# ones - a pack in no list, travelling with what requires it. Their rows are
-# absent from the checklist, which is also what every numbered answer below
-# counts on: were one offered, the numbering would shift and every scenario
-# would answer about the wrong pack.
+# devops, python requires devops AND scaffold - the two invisible ones, packs in
+# no list, travelling with what requires them. Their rows are absent from the
+# checklist, which every numbered answer below counts on: were one offered, the
+# numbering would shift and every scenario would answer about the wrong pack.
 #
-# Two invisible packs, because a run can hold one of them and let the other go
-# (python and gcp are installed, python leaves: devops stays, scaffold does not)
-# - and because the two requirements of a single pack arrive in the order that
-# pack names them.
+# Two of them, because a run can hold one and let the other go - and because the
+# requirements of one pack arrive in the order that pack names them.
 $Available = @(
     [PSCustomObject]@{ Name = "gcp";      Path = "X:\packs\gcp";      Description = "Google Cloud CLI";    Requires = @("devops");            Visible = $true },
     [PSCustomObject]@{ Name = "vision";   Path = "X:\packs\vision";   Description = "Image and OCR tools"; Requires = @();                    Visible = $true },
@@ -74,9 +71,8 @@ Check "one box ticked -> its requirement comes first, then it" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "devops,gcp / "
 
 # 2. Unticking what is installed, with nothing else ticked, is a removal - and
-#    ONLY a removal. The first version of this shipped reading the additions off
-#    the available packs instead of the ticked ones, so a run installed the pack
-#    nobody had asked for.
+#    ONLY a removal. (The additions once came off the available packs instead of
+#    the ticked ones, so a run installed the pack nobody had asked for.)
 $Selection = Select-Packs -Title "T" -Available $Available -Installed @("vision")
 Check "unticking -> the pack leaves, the rest is NOT added" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / vision"
@@ -105,11 +101,10 @@ $Selection = Select-Packs -Title "T" -Available $Available -Installed @() -Check
 Check "pre-checked is not installed" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "vision / "
 
-# 7. A pack installed in the instance that THIS checkout does not carry - one
-#    copied in by hand, one from another checkout, one since removed from the
-#    repository - is not in the checklist, so nobody can have unchecked it. It
-#    must be left alone. The first version read "installed and not ticked" and
-#    removed it without ever showing it.
+# 7. A pack installed in the instance that THIS checkout does not carry is not
+#    in the checklist, so nobody can have unchecked it - it must be left alone.
+#    (The first version read "installed and not ticked" and removed it without
+#    ever showing it.)
 $Selection = Select-Packs -Title "T" -Available $Available -Installed @("vision", "foreign")
 Check "a pack this checkout does not carry is left alone" ($Selection.ToRemove -join ",") ""
 Check "  ... and the answer is still an answer, not a cancellation" ($null -eq $Selection) "False"
@@ -118,12 +113,10 @@ Write-Output ""
 Write-Output "--- Select-Packs: the packs nobody picks ---"
 
 # 8. What the instance already carries is not installed a second time. devops is
-#    there, python is ticked, and the requirement that is already in place is
-#    not copied over itself - its install.sh does not run again. What is missing
-#    still arrives, and before the pack that requires it: scaffold, then python,
-#    in the order python's own declaration names them.
-#    Installing gcp on an instance that has carried python for months is that
-#    same case - and devops stays, held by the arrival of the same run.
+#    there, python is ticked, and the requirement already in place is not copied
+#    over itself - its install.sh does not run again. What is missing still
+#    arrives, and before the pack that requires it: scaffold, then python, in the
+#    order python's own declaration names them.
 $Selection = Select-Packs -Title "T" -Available $Available -Installed @("devops")
 Check "a requirement already installed is not installed again" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "scaffold,python / "
@@ -153,10 +146,9 @@ Check "  ... and both lists are empty" ("$($Selection.ToAdd.Count)$($Selection.T
 Write-Output ""
 Write-Output "--- Invoke-PackApply: the order, and where a failure stops ---"
 
-# The stand-in speaks on purpose. The functions below hand a value back, and a
-# value must not carry the output of what was run to produce it: this is what
-# made a pack's install go silent, with apt's lines captured into the variable
-# that was holding the answer. Every check that reads a returned value is
+# The stand-in speaks on purpose: a returned value must not carry the output of
+# what was run to produce it - a pack's install once went silent into the
+# variable holding the answer. Every check that reads a returned value is
 # therefore also a check on where the output went.
 $script:Calls = @()
 $script:FailCommand = ""
@@ -171,9 +163,8 @@ function Invoke-InInstance {
     else { $ExitCode.Value = 0 }
 }
 # What the forced failure answers: 1 for a broken install, 2 for a pack that
-# asked the user something and was told no. The two must not be confused - the
-# first takes the pack back out as a failure, the second as an answer - so the
-# stand-in has to be able to say both.
+# asked and was told no - the first takes the pack back out as a failure, the
+# second as an answer, and the stand-in has to be able to say both.
 function Reset { $script:Calls = @(); $script:FailCommand = ""; $script:FailCode = 1 }
 function Commands { return @($script:Calls | ForEach-Object { ($_ -split " :: ", 2)[1] }) }
 
@@ -221,11 +212,9 @@ Check "  ... after the failure, not before" `
     ($script:Calls.IndexOf("~ :: rm -rf $Directory/fake-a") -gt
      $script:Calls.IndexOf("$Directory/fake-a :: bash install.sh")) "True"
 
-# A pack that asked a question and was told no is not a failure. Exit code 2 is
-# that answer, and the pack's folder goes back out for the same reason as above -
-# the folder is what the menu reads - but the run carries on and the caller has
-# nothing to report: no object naming a pack, no failure to explain, and the
-# removals and the other installs are untouched by it.
+# Exit code 2 is a pack that asked a question and was told no, not a failure:
+# its folder goes back out (the menu reads the folder), but the run carries on -
+# no object naming a pack, no failure to explain, the other moves untouched.
 Reset
 $script:FailCommand = "bash install.sh"
 $script:FailCode = 2

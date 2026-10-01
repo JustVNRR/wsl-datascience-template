@@ -6,12 +6,10 @@
 # runs this script from inside it, as the instance's own user.
 #
 # It installs nothing, and that is the pack: what it brings is gmake modules -
-# text, already in its folder and loaded from there. The two tools its targets
-# drive are on the machine before any pack arrives: docker comes from Docker
-# Desktop, gh from the image.
-#
-# The file exists so that a pack stays a pack - same folder, same two scripts,
-# same lifecycle as the others. It says what it did, which here is nothing.
+# text, loaded from its folder. The two tools its targets drive are on the
+# machine before any pack arrives: docker from Docker Desktop, gh from the
+# image. The file exists so that a pack stays a pack - same folder, same two
+# scripts, same lifecycle as the others.
 
 set -euo pipefail
 

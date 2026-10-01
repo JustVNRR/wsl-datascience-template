@@ -48,9 +48,9 @@ the pack never writes in it.
 
 | Field | What it is |
 | :--- | :--- |
-| `id` | The name the menus show and `VPN_PROFILE` carries: letters, digits, dot, dash, underscore |
-| `address`, `private_key` | From the provider's configuration (keep the IPv4 and the IPv6 address) |
-| `DNS` | The resolver that configuration names — **required**, nothing here can guess a provider's; comma-separated when several |
+| `id` | The name the menus show and `VPN_PROFILE` carries |
+| `address`, `private_key` | From the provider's configuration |
+| `DNS` | The resolver that configuration names |
 | `peer.*` | The server's key, its address, what goes through the tunnel |
 | `note` | Yours |
 | `mtu`, `peer.persistent_keepalive` | Optional; without them: `VPN_MTU`, none |
@@ -101,10 +101,6 @@ no resolution at all. To hand the file back, in `%USERPROFILE%\.wslconfig`:
 [wsl2]
 dnsTunneling=false
 ```
-
-**Stop Docker Desktop before the `wsl.exe --shutdown` that follows** — it does
-not survive it well. Deleting that file puts everything back.
-
 ## The kill switch
 
 `vpn_ks_on` writes `VPN_KILL_SWITCH=true` and puts two `iptables` rules in the
@@ -129,32 +125,3 @@ number; rules from a previous start stop matching until the next `vpn_up`,
 While a tunnel is up, services on Windows reached through the WSL gateway are
 rejected too.
 
-## Starting with the distro
-
-The install writes this line in `/etc/wsl.conf`:
-
-```ini
-[boot]
-command=/usr/local/sbin/web-vpn-boot
-```
-
-At each start, the hook puts the **base resolver** back, and raises the tunnel
-**only when the automatic start is on** (`vpn_auto_on` / `vpn_auto_off`). An
-interface that survived the stop is raised again — its DNS registration and
-its rules died with the previous start; one raised by another instance is left
-alone. Journal: `/var/log/web-vpn.log`, its last line in `vpn_status`.
-
-WSL stops a distro shortly after its last session closes, so "with the distro"
-means "whenever something starts it" — a terminal, VS Code, Docker Desktop.
-
-## Removing the pack
-
-`.\wsl.ps1 remove_pack` takes the tunnel down, removes the hook, the packages
-and `/etc/wireguard/vpn.conf`, and takes `openresolv` back out.
-
-It leaves your servers, the `.env.global` lines above, the profiles an older
-install kept in `/etc/wireguard`, `generateResolvConf = false`, and
-`~/.mozilla`.
-
-A key that leaks is revoked at your provider: the entry stops working, and
-nothing else needs undoing.

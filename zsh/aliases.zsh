@@ -9,11 +9,9 @@ unalias lt 2>/dev/null
 # 2. CUSTOM SHORTCUTS & SYSTEM UTILITIES
 # ============================================================
 
-# The gmake Makefile inside the $ZDOTDIR gmake directory. A function and not an
-# alias, for one reason: zsh expands an alias before it completes the line, so
-# a completion bound to the name of one is never consulted - Tab would complete
-# plain `make`, and this Makefile is not the one zsh would read. Same command
-# line either way.
+# The gmake Makefile inside $ZDOTDIR. A function, not an alias: zsh expands an
+# alias before completing the line, so a completion bound to its name is never
+# consulted - Tab would complete plain `make`.
 gmake() {
     make -f "$ZDOTDIR/gmake/Makefile" "$@"
 }
@@ -25,13 +23,9 @@ alias ports='sudo lsof -i -P -n | grep LISTEN'
 # Quick configuration edits and reload (XDG compliant)
 alias zsh_conf='code ~/.config/zsh'
 
-# exec, not source: re-reading the configuration inside a LIVE shell makes zsh
-# expand the alias table it already holds while it re-parses Oh My Zsh's lib,
-# and OMZ defines GLOBAL aliases (P, L, G, H...) that expand anywhere. The `P`
-# of `zparseopts -D -E -a opts r m P` then becomes `2>&1 | pygmentize -l pytb`,
-# which breaks omz_urlencode at every single prompt. A fresh process reads the
-# configuration in the normal order - lib before plugins - and cannot hit that.
-# It also avoids double-registering the hooks the plugins install.
+# exec, not source: re-reading inside a live shell runs Oh My Zsh's lib against
+# an alias table already expanded - its GLOBAL aliases (P, L, G...) break it. A
+# fresh process reads the configuration in the normal order and cannot hit that.
 alias reload='exec zsh'
 
 # ============================================================
@@ -39,10 +33,8 @@ alias reload='exec zsh'
 # ============================================================
 
 # eza (ls replacement with icons and Git status integration)
-# --icons=always, never a bare --icons: the flag takes an optional value
-# (always|auto|never), so a bare one swallows whatever follows it - `ls /tmp`
-# died on "invalid value '/tmp' for '--icons'". `auto` renders no icon here
-# even on a terminal, so `always` is what the flag meant before it took a value.
+# --icons=always, never a bare --icons: the flag takes an optional value and a
+# bare one swallows what follows it. `auto` renders no icon even on a terminal.
 if command -v eza >/dev/null 2>&1; then
     alias ls='eza --icons=always'
     alias ll='eza -lh --icons=always --git'
@@ -86,10 +78,8 @@ falias() {
 # ZLE Widget: Alt + y
 _falias_widget() {
     local alias_name
-    # -I before the picker: fzf paints only the bottom of the screen, and zsh
-    # must be told its idea of the display is stale. reset-prompt (not
-    # redisplay) redraws the prompt afterwards - the same pair the VS Code
-    # widgets use, and what fzf's own widget does.
+    # -I before the picker, reset-prompt after: zsh must be told its idea of
+    # the display is stale before it redraws the prompt over what fzf painted.
     zle -I
     alias_name=$(_falias_select)
     [[ -z "$alias_name" ]] && {

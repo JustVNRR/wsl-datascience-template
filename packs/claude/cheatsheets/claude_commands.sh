@@ -2,13 +2,10 @@
 # CLAUDE CODE CHEATSHEET
 # requires: claude
 # ==========================================
-# The `claude` pack: Anthropic's agentic CLI, in the instance. It is a terminal
-# program and nothing else, and it installs itself under ~/.local - no apt
-# package, no root, no Node. The pack installs from Windows
-# (`.\wsl.ps1 add_pack`), its page is packs/claude/docs/claude.md, and the
-# module behind these targets is make/claude.mk.
-# Offered only while the program is on the PATH - the header above hides the
-# sheet when it was removed by hand.
+# The `claude` pack: Anthropic's agentic CLI, in the instance - a terminal
+# program installed under ~/.local (no apt, no root, no Node). Offered only
+# while the program is on the PATH: the `# requires:` line above hides the
+# sheet once it was removed by hand.
 
 # --- 1. WHAT THIS INSTANCE HAS ---
 gmake claude_status                            # Version, versions on disk, the login

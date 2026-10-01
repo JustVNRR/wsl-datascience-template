@@ -2,15 +2,9 @@
 # CHEATSHEETS (FCHEAT)
 # ============================================================
 
-# The cheatsheets the picker should offer, minus those whose `# requires:`
-# header is not met. The condition can be negated - `# requires: !gcloud` hides
-# the sheet when the tool IS there, which is what a sheet about installing that
-# tool wants. Nothing is recorded: the question is asked again every time the
-# picker opens, the way `gmake` asks it at every run.
-#
-# Two folders, one rule: the socle's sheets, then the packs' - the same place
-# the gmake Makefile looks for a pack, so a pack added later brings its sheets
-# with it and this file never learns its name.
+# The sheets the picker offers, minus those whose `# requires:` header is not
+# met (negated with `!`). Nothing is recorded: the question is asked again at
+# every opening. Two folders, one rule: the socle's sheets, then the packs'.
 _fcheat_files() {
     local file requires binary
 
@@ -59,15 +53,10 @@ _fcheat_select() {
         }
     ' "${sheets[@]}" 2>/dev/null |
         sort -f -t $'\t' -k1,1V |
-        # Exact matching, not fzf's fuzzy default: the default takes the letters
-        # of the query in order, anywhere in the line, so a word also matches
-        # lines that merely spell it out at a distance. Measured on this
-        # repository's own sheets, a query for `docker` ended its list on
-        # `fnew`, `ping <DOMAIN_OR_IP>`, `gcloud auth login` and
-        # `sudo apt upgrade` - none of which is a docker command - where exact
-        # matching keeps the docker ones and nothing else. What fuzzy was good
-        # at, a fragment like `dckr`, is gone with it: that is the trade. `'`
-        # and `!` behave as they always did.
+        # Exact matching, not fzf's fuzzy default: fuzzy takes the query's
+        # letters in order anywhere in the line, so `docker` ended its list on
+        # `fnew` and `gcloud auth login`. The trade: a fragment like `dckr` no
+        # longer matches. `'` and `!` behave as they always did.
         fzf \
             --exact \
             --ansi \
@@ -96,10 +85,7 @@ fcheat() {
 _fcheat_widget() {
     local command
 
-    # -I before the picker, reset-prompt after: see the note in aliases.zsh
-    # (_falias_widget). fzf overwrites the bottom of the screen, and zsh has
-    # to be told before it redraws the prompt over what it still believes is
-    # there.
+    # -I before the picker, reset-prompt after: see aliases.zsh.
     zle -I
     command=$(_fcheat_select)
 

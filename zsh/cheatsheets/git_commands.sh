@@ -50,9 +50,7 @@ git rebase --continue                        # Resume rebase after resolving mer
 git rebase --abort                           # Abort in-progress rebase and restore original state
 
 
-# ==========================================
-# 🐙 GIT CHEATSHEET (Oh My Zsh Aliases)
-# ==========================================
+# ========== Oh My Zsh aliases ==========
 
 # --- 1. INSPECTION & HISTORY ---
 gst                                          # [git status] Check working tree status and modified files

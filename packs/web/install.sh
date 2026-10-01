@@ -47,10 +47,9 @@ if dpkg -s systemd-resolved >/dev/null 2>&1; then
 fi
 
 # 2. wireguard-tools, kmod (the module dies with 'wsl --shutdown' without
-#    modprobe - see docs/vpn.md), iproute2 and iptables for wg-quick and the
-#    kill switch. libavcodec60 (H.264/AAC - YouTube live) and libpulse0 (WSLg's
-#    sound) are libraries the browser loads at runtime: never in PACK_PACKAGES,
-#    see docs/packs.md.
+#    modprobe), iproute2 and iptables for wg-quick and the kill switch.
+#    libavcodec60 and libpulse0 are libraries the browser loads at runtime:
+#    never in PACK_PACKAGES, installed beside it on purpose.
 apt-get update
 apt-get install -y --no-install-recommends $packages libavcodec60 libpulse0
 
@@ -61,9 +60,8 @@ dpkg -i $resolver_package.deb
 rm -f $resolver_package.deb
 
 # 4. WSL must stop rewriting /etc/resolv.conf at every start, or openresolv's
-#    work is undone by the next boot. Read at distro start - the last lines of
-#    this script ask for the restart. The file itself is written by vpn.sh
-#    (the base, from BASE_DNS) before every mount.
+#    work is undone by the next boot. vpn.sh writes the file (the base, from
+#    BASE_DNS) before every mount.
 if grep -q '^[[:space:]]*generateResolvConf' /etc/wsl.conf 2>/dev/null; then
     sed -i 's/^[[:space:]]*generateResolvConf.*/generateResolvConf = false/' /etc/wsl.conf
 else
@@ -95,18 +93,15 @@ apt-get update
 #    above Mozilla's package, so apt refuses the change without it.
 apt-get install -y --no-install-recommends --allow-downgrades firefox"
 
-# The boot hook, installed with the pack - not only with the automatic start:
-# it puts the base resolver back at each start (/run is empty then, and WSL
-# leaves /etc/resolv.conf alone here). vpn_auto_on/off only decide whether it
-# also raises the tunnel.
+# The boot hook, installed with the pack: it puts the base resolver back at
+# each start. vpn_auto_on/off only decide whether it also raises the tunnel.
 if ! bash "$here/bin/vpn.sh" hook on; then
     echo "The boot hook was not installed - run it by hand:"
     echo "   bash ~/.config/packs/web/bin/vpn.sh hook on"
 fi
 
-# The sound of a WSLg window: the audio sandbox keeps the browser away from the
-# socket WSLg serves, so this default turns it off. A default, not an order -
-# about:config wins. remove.sh takes the file back.
+# The audio sandbox keeps the browser away from WSLg's sound socket; this
+# default turns it off (about:config wins). remove.sh takes the file back.
 pref_file=/usr/lib/firefox/defaults/pref/wslg-audio.js
 if [ -d /usr/lib/firefox/defaults/pref ]; then
     sudo tee "$pref_file" > /dev/null <<'PREF'
@@ -122,9 +117,8 @@ else
 fi
 
 # The privacy link, and the light profile in place: one link in the browser's
-# directory, pointing at a file of the user's own - the launchers switch
-# profiles through it with no password (docs/fox.md). Best-effort, like the
-# hook.
+# directory pointing at a file of the user's own - the launchers switch with no
+# password. Best-effort, like the hook.
 if ! bash "$here/bin/fox.sh" light; then
     echo "The privacy link was not set up - run it by hand:"
     echo "   bash ~/.config/packs/web/bin/fox.sh light"
@@ -148,10 +142,9 @@ else
     if [ ! -f "$servers" ]; then
         install -d -m 0700 "$(dirname "$servers")"
         install -m 600 "$here/vpn.servers.sample" "$servers"
-        echo "$servers is waiting for your keys - the sample says where every"
-        echo "   value goes, from the WireGuard configuration your provider"
-        echo "   gives you (its DNS line with them)."
-        echo "   Then: gmake vpn_edit_profiles, and gmake vpn_up."
+        echo "$servers is waiting for your keys - the sample shows where each"
+        echo "   value goes (the WireGuard configuration from your provider)."
+        echo "   Then: gmake vpn_edit_profiles, gmake vpn_up."
     fi
 fi
 
@@ -162,9 +155,8 @@ if ! make -f "$HOME/.config/zsh/gmake/Makefile" env_global_enable; then
     echo "The variables were not merged - run 'gmake env_global_enable' yourself."
 fi
 
-echo "Firefox is installed, and 'fox' opens it - its commands are in the picker (fcheat)."
-echo "It starts on the light privacy settings; pfox opens the strict ones (docs/fox.md)."
-echo "WireGuard is installed: gmake vpn_status   (servers first, see docs/vpn.md)"
+echo "Firefox is installed: 'fox' opens it on the light privacy settings, 'pfox' on the strict ones."
+echo "WireGuard is installed: gmake vpn_status   (servers first: gmake vpn_edit_profiles)"
 if [ -L /etc/resolv.conf ] || grep -q 'generateResolvConf' /etc/wsl.conf 2>/dev/null; then
     echo "The DNS setting is read when the distro starts: restart it once"
     echo "   (.\wsl.ps1 restart, from Windows) before the tunnel manages /etc/resolv.conf."

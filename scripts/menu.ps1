@@ -2,44 +2,23 @@
 # ASKING: THE LIST EVERY COMMAND SHOWS
 # ==============================================================================
 # The instances, the packs, the archives: every command in this family offers a
-# list, and until now each one printed it by hand and asked for a number.
+# list, and Select-FromList draws it so it can be walked with the arrows:
+# up/down move (and wrap), Enter chooses, Escape cancels, and a digit chooses
+# directly in short lists. -Note adds one line under the list; -Multi makes it a
+# checklist (space checks, Enter applies) - "none checked" and "cancelled" are
+# different answers, kept apart by the comma before the return.
 #
-# Select-FromList draws the same list so it can be walked with the arrows: up
-# and down move (and wrap), Enter chooses, Escape cancels, and in a list of
-# nine or fewer a digit chooses directly. -Note adds one line under the list,
-# for what a command has to say about the whole of it rather than about a row -
-# where the other fonts are, for the one list that offers a choice smaller than
-# what Windows has.
+# The one reason it falls back to the numbered prompt: no console (a pipe, a
+# script, a test), or a host without one. The check is made BEFORE reading -
+# [Console]::ReadKey does not throw there, it BLOCKS. A narrow window or a long
+# list does not send us back any more: the drawing gives way instead - the
+# labels are cut to the width, the list scrolls inside the window.
 #
-# With -Multi the same list is a checklist: space checks and unchecks where the
-# cursor is, Enter applies, Escape cancels, and what comes back is the list of
-# checked items - in the order they appear, and empty when none was checked.
-# "None checked" and "cancelled" are different answers, and the comma before the
-# return is what keeps them apart.
-#
-# It falls back to the numbered prompt - the one every command used before -
-# and the fallback is the important half, because a menu that waits for a key
-# on a machine with no keyboard waits forever:
-#
-#   - no console (input redirected: a pipe, a script, a test), or a host without
-#     one to speak of (the ISE). The check is made BEFORE reading, never with a
-#     try/catch around the read: [Console]::ReadKey does not throw there, it
-#     BLOCKS - measured on 2026-09-25, with two minutes of nothing to show for
-#     it - and a menu that waits for a key nobody can press waits forever.
-#
-# Nothing else sends a reader to the numbered prompt. A narrow window and a long
-# list used to, and that was wrong: the arrows are what was asked for, so the
-# drawing gives way instead - the labels are cut to the width, the list scrolls
-# inside the window.
-#
-# This file defines functions; it is not a command. instance.ps1 loads it, and
-# every command loads instance.ps1.
+# This file defines functions; it is not a command.
 # ==============================================================================
 
-# What a line says and the colour it takes. Loaded here too, and not only by
-# instance.ps1: tests\menu-test.ps1 drives this file on its own, and a file that
-# draws every line it draws as a message says where that colour comes from.
-# Loading a file of definitions twice costs one read and defines the same names.
+# Loaded here too: tests\menu-test.ps1 drives this file on its own, and a file
+# that draws every line as a message says where the colour comes from.
 . (Join-Path $PSScriptRoot "message.ps1")
 
 # Is there a keyboard we can read without hanging? Both checks are cheap and
@@ -61,17 +40,15 @@ function Read-MenuKey {
     return [Console]::ReadKey($true).Key
 }
 
-# The cursor, asked gently, and answered honestly: $null means the host would
-# not say, which is not the same as "row zero". A terminal that refuses to be
-# drawn on - a redrawn window, a capture, a test - leaves the menu working, only
-# uglier: the choice is the keys, never the paint.
+# $null means the host would not say - not the same as "row zero". A terminal
+# that refuses to be drawn on leaves the menu working, only uglier: the choice
+# is the keys, never the paint.
 function Get-ConsoleTop {
     try { return [Console]::CursorTop } catch { return $null }
 }
 
-# Moves the cursor, and says whether it moved. A silent failure here is what
-# turned a menu into a stack of copies once: every repaint that could not be
-# placed was written where the cursor already was, so each arrow added a block.
+# Says whether it moved: a silent failure here is what turned a menu into a
+# stack of copies once - every repaint landed where the cursor already was.
 function Set-ConsoleTop {
     param([int]$Top)
     try {
@@ -82,10 +59,8 @@ function Set-ConsoleTop {
     }
 }
 
-# Are the colours worth writing? Both questions have to be yes: a console that
-# reads the escape sequences, and somebody looking at them - a console that does
-# not know them shows gibberish instead of a colour, and a script piping the
-# answers in is reading a file, not a screen.
+# Both questions have to be yes: a console that reads the escape sequences, and
+# somebody looking at them - a pipe is reading a file, not a screen.
 function Test-ColourOutput {
     $Coloured = $false
     try { $Coloured = [bool]$Host.UI.SupportsVirtualTerminal } catch { $Coloured = $false }
@@ -104,18 +79,11 @@ function ConvertTo-Rgb {
                            [Convert]::ToInt32($Hex.Substring(4, 2), 16)
 }
 
-# A clean screen, for going down a level or coming back up one.
-#
-# What this replaces is worth writing down, because it looked clever and was not.
-# The first version remembered, for every menu, the row it started on and how
-# many lines it took, and blanked exactly those lines when the menu was done. Row
-# numbers are absolute, and the console moves: one line too many printed, one
-# scroll, and every remembered row is a row off - the next menu was drawn over
-# the prompt, the one before it stayed where it was. The fix is to stop counting.
-#
-# Clearing is one call and cannot drift. The price, and it is the one that was
-# chosen: what was above - the output of the command before, what was typed - is
-# gone with it.
+# A clean screen, for going down a level or coming back up one. The first
+# version blanked exactly the rows each menu had drawn - row numbers are
+# absolute and the console moves, so one scroll made every remembered row a row
+# off. Clearing is one call and cannot drift; the price, chosen: what was above
+# goes with it.
 function Clear-MenuScreen {
     try { Clear-Host } catch { }
 }
@@ -133,22 +101,15 @@ function Format-MenuRow {
     return ($Marker + $Box + $Labels[$Index])
 }
 
-# One row is one line, always. A label wider than the window would wrap, and a
-# wrapped block is a block whose rows are no longer where the arithmetic says
-# they are - which is the shape of the bug this file already had once. So the
-# tail is cut rather than the menu refused: the description loses its end, the
-# arrows keep working. A window that will not say how wide it is (a test, a
-# captured run) gets no cutting at all.
+# One row is one line, always: a wrapped row is a row whose neighbours are no
+# longer where the arithmetic says. The tail is cut rather than the menu
+# refused; a window that will not say how wide it is gets no cutting at all.
 #
-# What goes in front of the label is part of the row, and -Prefix says how much
-# of it there is: 4 for the "  > " marker, 8 for a checklist row that also
-# carries the "[x] " box, 0 for the title and the hint, which have neither. The
-# box is what this was written for: the cut left room for the marker only, so a
-# checklist row came out four characters too wide, wrapped, and the next
-# keypress painted the choice one line off - the row it replaced stayed where it
-# was, with its old marker, and the same pack appeared twice, one unchecked and
-# one checked. The title and the hint are lines of the same block and obey the
-# same rule: any line of it that wraps moves everything below by one.
+# -Prefix says what goes in front of the label: 4 for the marker, 8 for a
+# checklist row, 0 for the title and the hint. The box is what this was written
+# for - the cut left room for the marker only, the row wrapped, and the same
+# pack appeared twice. Title and hint obey the same rule: any line that wraps
+# moves everything below by one.
 function Format-MenuLabels {
     param([string[]]$Labels, [int]$Width, [int]$Prefix = 4)
     if ($Width -le 0) { return $Labels }
@@ -245,14 +206,11 @@ function Select-ByNumber {
     }
 }
 
-# The arrow menu. The rows are drawn once and repainted in place: the cursor
-# goes back up to the first row and each line is written again. Every label
-# keeps its length, so nothing has to be erased - and no Clear-Host, which
-# would wipe what the user scrolled through before.
+# The rows are drawn once and repainted in place - every label keeps its length,
+# so nothing has to be erased, and no Clear-Host.
 #
-# -KeyReader exists for the tests: it replaces the keyboard with a script that
-# returns a [ConsoleKey] on demand, so the whole loop - wrapping included - runs
-# with no terminal in sight.
+# -KeyReader exists for the tests: a script returns a [ConsoleKey] on demand, so
+# the whole loop - wrapping included - runs with no terminal in sight.
 function Select-WithArrows {
     param(
         [string]$Title,
@@ -271,36 +229,28 @@ function Select-WithArrows {
     $Hint = if ($Multi) { "  up/down to move, space to check, Enter to apply, Escape to cancel" }
             else { "  up/down to move, Enter to choose, Escape to cancel" }
     $Size = Get-ConsoleSize
-    # Every line of the block is cut to the window, the title and the hint
-    # included: one line that wraps moves the rows below it by one, and the
-    # repainting arithmetic is written for a block of exactly Visible + 3 lines,
-    # plus the note when there is one.
-    #
-    # The note is one more line of the same block, and it is counted as one
-    # everywhere below - the rows' top, the line the cursor is left on, the room
-    # kept for the lines around the list. A line of the block that the arithmetic
-    # does not know about is the bug this file was written against.
+    # Every line of the block is cut to the window, title and hint included: one
+    # line that wraps moves the rows below by one, and the arithmetic below is
+    # written for exactly Visible + 3 lines, plus the note when there is one. A
+    # line the arithmetic does not know about is the bug this file was written
+    # against.
     $Extra = if ($Note) { 1 } else { 0 }
     $Shown = Format-MenuLabels -Labels $Labels -Width $Size[0] -Prefix $(if ($Multi) { 8 } else { 4 })
     $ShownTitle = @(Format-MenuLabels -Labels @($Title) -Width $Size[0] -Prefix 0)[0]
     $ShownHint = @(Format-MenuLabels -Labels @($Hint) -Width $Size[0] -Prefix 0)[0]
     $ShownNote = @(Format-MenuLabels -Labels @($Note) -Width $Size[0] -Prefix 0)[0]
 
-    # A list taller than the window is scrolled rather than refused: only the
-    # rows that fit are drawn, and the window follows the choice. Three lines
-    # are kept for the blank above the title and the hint below it - and one more
-    # when the note takes a line of its own.
+    # A list taller than the window scrolls rather than refuse: only the rows
+    # that fit are drawn, and the window follows the choice. Three lines kept
+    # for the blank and the hint, one more for the note.
     $Visible = if ($Size[1] -gt 0) { [Math]::Min($Count, [Math]::Max(1, $Size[1] - 3 - $Extra)) } else { $Count }
     # The choice starts in the middle when it can: it is where the eye goes.
     $First = [Math]::Max(0, [Math]::Min($Current - [int](($Visible - 1) / 2), $Count - $Visible))
 
-    # Drawn once, in the natural course of the output - and the top row is READ
-    # BACK from the cursor only after that. Not computed before drawing: writing
-    # the block can scroll the console (a command that prints a lot before its
-    # menu leaves the cursor near the bottom), the lines just written move up
-    # with the scroll, and a row number remembered from before it is wrong by
-    # exactly what scrolled. That was the bug: every arrow added one more copy
-    # of the list, lower each time, whenever the console had scrolled.
+    # The top row is READ BACK from the cursor after drawing, never computed
+    # before: writing the block can scroll the console, and a row number from
+    # before is wrong by what scrolled - that was the bug: every arrow added one
+    # more copy of the list.
     Write-Host ""
     if ($ShownTitle) { Write-Host "$ShownTitle" -ForegroundColor (Get-MessageColour info) }
     for ($Row = 0; $Row -lt $Visible; $Row++) {
@@ -362,11 +312,10 @@ function Select-WithArrows {
 
         if (-not $Moved -or -not $CanPaint) { continue }
 
-        # Bring the choice back into the window if it left it, then repaint the
-        # rows where they already are. If the cursor will not go back, the whole
-        # block is written again instead: one more copy is ugly, a screen
-        # showing a choice that is no longer the current one is worse - and this
-        # is the one failure that must never pass unnoticed.
+        # Bring the choice back into the window, then repaint where the rows
+        # already are; if the cursor will not go back, the block is written
+        # again - one more copy is ugly, a screen showing the wrong current row
+        # is worse.
         if ($Current -lt $First) { $First = $Current }
         if ($Current -ge ($First + $Visible)) { $First = $Current - $Visible + 1 }
 
@@ -414,11 +363,9 @@ function Select-FromList {
     if ($DefaultIndex -lt 0 -or $DefaultIndex -ge $Items.Count) { $DefaultIndex = 0 }
     $Labels = @($Items | ForEach-Object { [string](& $Label $_) })
 
-    # A -KeyReader means a test asked for the arrows: it stands in for the
-    # console, which a test has not got. Nothing else sends us to the numbered
-    # prompt - a narrow window or a long list used to, and that was wrong: the
-    # arrows are what the reader asked for, so the drawing gives way instead
-    # (the labels are cut to the width, the list scrolls in the window).
+    # A -KeyReader means a test asked for the arrows - it stands in for the
+    # console a test has not got. Nothing else sends us to the numbered prompt:
+    # the drawing gives way instead.
     $Arrows = [bool]$KeyReader -or (Test-KeyInput)
 
     if (-not $Arrows) {
@@ -428,12 +375,10 @@ function Select-FromList {
             -Start $DefaultIndex -Multi:$Multi -Checked $Checked -Note $Note
     }
 
-    # Multi hands back a list, and it has to survive the trip to the caller: an
-    # array written to the pipeline is unrolled, so a single checked item would
-    # arrive as that item, and an empty list as NOTHING AT ALL - which is the
-    # same thing a cancellation looks like. Hence the comma, here as well as in
-    # the two functions above, and the cancellation checked first so it stays
-    # what it is.
+    # Multi hands back a list that has to survive the trip: an array written to
+    # the pipeline is unrolled - a single checked item arrives as that item, an
+    # empty list as NOTHING AT ALL, which is what a cancellation looks like.
+    # Hence the comma, and the cancellation checked first.
     if ($Multi) {
         if ($null -eq $Chosen) { return $null }
         return ,$Chosen
@@ -444,14 +389,12 @@ function Select-FromList {
 # ---------------------------------------------------------------------------
 # THE LIST THIS FAMILY SHOWS MOST
 # ---------------------------------------------------------------------------
-# The instances that are OURS, with the state and the room each takes. The list
-# is filtered on the marker: the machine holds other distributions - Docker
-# Desktop's, a colleague's - and none of them are ours to touch. An instance
-# that is not in this list is not missing; it is not ours.
-# The instance to work on, picked from the list of ours. Escape is the end of the
-# command that asked - the family's usual way out - unless -AllowCancel is given,
-# and then it is $null: for a command that has somewhere to go back to, the way
-# the theme menu has the list it came from.
+# The instances that are OURS, with the state and the room each takes - filtered
+# on the marker: the machine holds other distributions, and none of them are
+# ours to touch.
+#
+# Escape is the end of the command that asked, unless -AllowCancel: then it is
+# $null, for a command that has somewhere to go back to.
 function Select-Distro {
     param([switch]$AllowCancel)
 

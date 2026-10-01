@@ -1,19 +1,17 @@
 [CmdletBinding()]
 param ()
 
-# No parameter, and no question either: this command only reads. Nothing here
-# can modify anything, so it can be run at any moment, and its exit code says
-# whether there was anything to show (1 when there is none, like the lists of
-# the other commands).
+# No parameter, and no question either: this command only reads, so it can be
+# run at any moment. Its exit code says whether there was anything to show - 1
+# when there is none, like the other commands' lists.
 
 $ErrorActionPreference = "Stop"
 
-# One working folder, no guessing: an instance lives in <Root>\<name>, and
-# every archive in <Root>\archives - the rule the other scripts follow too.
+# One working folder, no guessing: instances in <Root>\<name>, archives in
+# <Root>\archives - the family's rule.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one.
+# The family's shared half: the marker.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -22,8 +20,8 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# 1. Our instances, running or stopped: the sum of what start and stop offer,
-# and nothing else. Sorted by name, like every list in this family.
+# 1. Our instances, running or stopped. Sorted by name, like every list in this
+# family.
 $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
 if ($All.Count -eq 0) {
     Write-Host ""
@@ -43,8 +41,8 @@ for ($Index = 0; $Index -lt $All.Count; $Index++) {
         (Format-Size (Get-VhdxSize $Entry.BasePath)), $Entry.BasePath)
 }
 
-# 2. The archives. Nothing to tell apart here: everything in that folder was
-# written by archive.ps1, and it shows what it holds - whatever it is.
+# 2. The archives: everything in that folder was written by archive.ps1, so
+# there is nothing to tell apart.
 $ArchiveFolder = Join-Path $Root "archives"
 $Archives = @()
 if (Test-Path $ArchiveFolder) {
@@ -64,9 +62,8 @@ if ($Archives.Count -gt 0) {
     }
 }
 
-# 3. Marked folders that no instance claims: what an interrupted removal leaves
-# behind, or a distribution unregistered from outside this repository. Nothing
-# else shows them - this is the one place they are not invisible.
+# 3. Marked folders that no instance claims - what an interrupted removal, or
+# an outside `wsl --unregister`, leaves behind. The one place they show.
 $RegisteredPaths = @($All | ForEach-Object { $_.BasePath })
 $Forgotten = @()
 if (Test-Path $Root) {

@@ -11,11 +11,10 @@ RUN rm -f /etc/dpkg/dpkg.cfg.d/*
 
 # 1. Install prerequisites for third-party repositories and core networking tools
 #
-# apt-utils is here for the line it silences rather than for its own tools:
-# without it, debconf announces "delaying package configuration, since apt-utils
-# is not installed" on every apt run that configures a package - which is every
-# pack's install, in front of the user, next to nothing else. It is part of a
-# normal Ubuntu install, and what it depends on is already here.
+# apt-utils is here for the line it silences: without it, debconf announces
+# "delaying package configuration, since apt-utils is not installed" on every
+# apt run that configures a package - which is every pack's install, in front
+# of the user.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-transport-https \
     apt-utils \
@@ -28,10 +27,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # 2. Configure third-party APT repositories (GitHub CLI, eza)
 #
-# Only the tools this image installs get their repository registered here. A
-# tool installed on demand registers its own, at the moment it is installed:
-# the image then carries no key and no address for a machine that may never use
-# it, and uninstalling that tool has something to undo.
+# Only the tools this image installs register a repository here. A tool
+# installed on demand registers its own at that moment: the image carries no
+# key for a machine that may never use it, and uninstalling has something to
+# undo.
 RUN mkdir -p -m 755 /etc/apt/keyrings \
     # GitHub CLI
     && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
@@ -54,18 +53,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     strace \
     lsof \
-    # gmake is the whole command surface of this image, and make used to arrive
-    # as a dependency of build-essential - which is the python pack's now. It is
-    # named here in plain sight: without this line the image would carry no make
-    # at all, and every gmake target would be gone with it.
+    # make is the whole command surface of this image, and it used to arrive as
+    # a dependency of build-essential - the python pack's now. Named here in
+    # plain sight: without this line the image would carry no make at all, and
+    # every gmake target would be gone with it.
     make \
-    # No systemd here, and that is deliberate: nothing this image starts is a
-    # service, and the `systemd` package alone never boots anything anyway - WSL
-    # runs the distribution's /sbin/init, which comes from `systemd-sysv`. An
-    # instance that wants services installs both with `gmake systemd_up`.
-    # Pager and network probe the shell expects: git pages through `less` (a
-    # Recommends that --no-install-recommends drops), and the bash cheatsheet
-    # documents them both
+    # No systemd: nothing this image starts is a service, and the systemd
+    # package alone never boots anything - WSL runs /sbin/init, which comes
+    # from systemd-sysv. `gmake systemd_up` installs both on the instance that
+    # asks.
+    # git pages through `less` - a Recommends that --no-install-recommends
+    # drops - and the bash cheatsheet documents it and ping
     less \
     iputils-ping \
     tree \
@@ -86,21 +84,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gh \
     jq \
     ripgrep \
-    # The line editor the scaffolding tools lack, and the reason the arrows work
-    # at cruft's and ccds' questions: cookiecutter reads a plain line, with no
-    # editor loaded in the process, so the bytes an arrow key sends land in the
-    # answer. packs/scaffold/make/project-setup.mk runs it in front of the three
-    # tools. A few hundred KB, and it has to be there before the first project.
+    # The line editor cruft's and ccds' questions lack: cookiecutter reads a
+    # plain line, so the bytes an arrow key sends land in the answer.
+    # packs/scaffold/make/project-setup.mk runs it in front of the three tools,
+    # and it has to be there before the first project.
     rlwrap \
     shellcheck \
     zoxide \
     # Database CLI
     sqlite3 \
-    # No Python, and no compiler for it: uv, python3-dev, libffi-dev,
-    # libssl-dev and build-essential are the `python` pack's, and they arrive on
-    # the instance that asks for them, with `.\wsl.ps1 add_pack`. Same for
-    # ffmpeg, ImageMagick and Tesseract, the `vision` pack's. What this image
-    # carries is what every project needs.
+    # No Python and no compiler for it: uv, python3-dev, libffi-dev, libssl-dev
+    # and build-essential are the `python` pack's, and ffmpeg, ImageMagick and
+    # Tesseract the `vision` pack's - they arrive on the instance that asks,
+    # with `.\wsl.ps1 add_pack`.
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -139,16 +135,14 @@ RUN git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /etc/skel/.local/
 # Copy modular Zsh configuration to the user skeleton directory
 COPY zsh /etc/skel/.config/zsh
 
-# Nothing of the packs, and that is deliberate: the image carries the socle. A
-# pack arrives afterwards, on a living instance, with `.\wsl.ps1 add_pack`,
-# which copies its folder into ~/.config/packs and runs its install script
-# there - the files and the tool together. A machine that never wants one never
-# pays for it, and `build` stays quick.
+# Nothing of the packs: the image carries the socle. A pack arrives afterwards,
+# on a living instance, with `.\wsl.ps1 add_pack`, which copies its folder into
+# ~/.config/packs and runs its install script there - files and tool together.
+# A machine that never wants one never pays for it.
 
-# Bootstrap ZDOTDIR and create the skeleton directories. The ubuntu base image
-# leaves a bash dotfile set (.bashrc, .bash_logout, .profile) in /etc/skel, and
-# every account created here would inherit it - for a shell this image never
-# runs. They go.
+# Bootstrap ZDOTDIR and create the skeleton directories. The base image leaves
+# a bash dotfile set (.bashrc, .bash_logout, .profile) in /etc/skel, inherited
+# by accounts for a shell this image never runs - they go.
 RUN echo 'export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"' > /etc/skel/.zshenv \
     && echo 'skip_global_compinit=1' >> /etc/skel/.zshenv \
     && rm -f /etc/skel/.bashrc /etc/skel/.bash_logout /etc/skel/.profile \

@@ -1,18 +1,16 @@
 [CmdletBinding()]
 param ()
 
-# No parameter on purpose, like everywhere in this family: the instance comes
-# from a list, and so does the pack.
+# No parameter on purpose: the instance and the pack both come from lists.
 #
-# The pack's own remove.sh runs first - the copy that lives INSIDE the instance,
-# not the one in this checkout: what has to come out is what the code that
-# installed it put in, and that code travelled with the pack. Then the folder
-# goes, and the gmake menu loses the commands with it.
+# The pack's own remove.sh runs first - the copy INSIDE the instance, not the
+# one in this checkout: what has to come out is what the code that installed it
+# put in, and that code travelled with the pack. Then the folder goes, and the
+# gmake menu loses the commands with it.
 
 $ErrorActionPreference = "Stop"
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one.
+# The family's shared half: the marker.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -21,9 +19,8 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# What an instance carries, and the moves that take a pack out, live in
-# scripts\packs.ps1, loaded by instance.ps1 above. This file is the flow: which
-# instance, which pack, what it says on the way, and the one question asked
+# The moves that take a pack out live in scripts\packs.ps1, loaded above. This
+# file is the flow: which instance, which pack, and the one question asked
 # before anything leaves.
 
 # 1. Which instance the pack comes out of
@@ -42,10 +39,9 @@ if (-not $InstanceHome) {
 $PacksDirectory = "$InstanceHome/.config/packs"
 
 # 2. Which pack - the ones a user chooses. A pack marked invisible in its own
-# pack.conf is not offered here: it arrived because another pack requires it,
-# and it leaves with the last one that does. No guard on an empty $Available:
-# a pack installed from another checkout is still a pack this command can take
-# out, and it is not in this checkout's list at all.
+# pack.conf is not offered: it leaves with the last pack that requires it. No
+# guard on an empty $Available: a pack installed from another checkout is still
+# a pack this command can take out.
 $Available = @(Get-AvailablePacks)
 $Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 if ($Installed.Count -eq 0) {
@@ -74,18 +70,16 @@ if (-not $PackName) {
     exit 0
 }
 
-# What leaves with it: a pack nothing installed requires any more, so that the
-# other packs do not stay on an instance with their base pulled out from under
-# them. The chosen pack goes first - the other order would ask a remove.sh
-# whether a neighbour still claims its packages while that neighbour is still
-# there to say yes.
+# What leaves with it: a pack nothing installed requires any more, so the other
+# packs do not stay with their base pulled out. The chosen pack goes first - the
+# other order would ask a remove.sh whether a neighbour still claims its
+# packages while that neighbour can still say yes.
 $ToRemove = @(Resolve-PackRemoval -Available $Available -Installed $Installed -Leaving @($PackName))
 $Also = @($ToRemove | Where-Object { $_ -ne $PackName })
 
 # 3. What is about to happen, and only then the question. A pack without a
-# remove.sh is one installed before packs had one: its folder can leave, but
-# nothing of it will be undone on the system side, and that is said rather than
-# discovered afterwards.
+# remove.sh was installed before packs had one: its folder can leave, but
+# nothing is undone on the system side - said, not discovered afterwards.
 $Code = 0
 $Missing = @()
 foreach ($Name in $ToRemove) {
@@ -97,8 +91,7 @@ foreach ($Name in $ToRemove) {
 
 Write-Host ""
 Write-Host "==> Removing from '$DistroName': $($ToRemove -join ', ')" -ForegroundColor (Get-MessageColour info)
-Write-Host "    Each pack's own remove.sh runs first - what it installed leaves the system." -ForegroundColor (Get-MessageColour muted)
-Write-Host "    Then its folder leaves, and the gmake menu loses its commands." -ForegroundColor (Get-MessageColour muted)
+Write-Host "    What each pack installed leaves the system, and the gmake menu loses its commands." -ForegroundColor (Get-MessageColour muted)
 foreach ($Name in $Also) {
     Write-Host "    '$Name' goes with '$PackName': nothing installed requires it any more." -ForegroundColor (Get-MessageColour muted)
 }
@@ -115,9 +108,9 @@ if ($Confirm -notmatch "^[yY]") {
     exit 0
 }
 
-# 4. What each pack does to leave, run from inside its own folder. Streamed,
-# like the install: it may ask for a password. Then its folder, once the
-# self-removal is behind us.
+# 4. What each pack does to leave, run from inside its own folder and streamed
+# (it may ask for a password) - then its folder, once the self-removal is behind
+# us.
 foreach ($Name in $ToRemove) {
     $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Name
 
@@ -148,8 +141,7 @@ foreach ($Name in $ToRemove) {
 
 # 5. What the packs left on the system side: the dependencies their remove.sh
 # never named. scripts\cleanup_orphans.sh asks apt and ldd before taking
-# anything, and the command says what happened either way. Once, at the end -
-# it is a question about the instance, not about a pack.
+# anything. Once, at the end: a question about the instance, not about a pack.
 Write-Host ""
 Write-Host "==> Taking back what the removed packs left on the system side..." -ForegroundColor (Get-MessageColour info)
 Write-Host "    Their remove.sh scripts named what they installed; what remains is what" -ForegroundColor (Get-MessageColour muted)

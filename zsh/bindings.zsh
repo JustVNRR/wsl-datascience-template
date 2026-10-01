@@ -22,8 +22,8 @@ _fa_widget() {
 zle -N _fa_widget
 bindkey '^[a' _fa_widget
 
-# Ctrl + X then v: Open the Zsh configuration directory in VS Code. `v` for VS
-# Code, and the slot was free: zsh binds neither ^Xv nor ^XV.
+# Ctrl + X then v: Open the Zsh configuration directory in VS Code - zsh binds
+# neither ^Xv nor ^XV.
 _open_zsh_conf() {
     code "$ZDOTDIR"
     zle reset-prompt
@@ -43,7 +43,7 @@ bindkey '^[r' _open_hist_file
 
 # Ctrl + X then g: Insert the path of a VISIBLE file at the current cursor
 # position. zsh bound ^Xg AND ^XG to list-expand - the same widget twice - so
-# one of the two was there for the taking, and ^Xg is the one without Shift.
+# ^Xg was free.
 _fzf_file_no_hidden() {
     local result
     zle -I
@@ -57,23 +57,19 @@ zle -N _fzf_file_no_hidden
 bindkey '^Xg' _fzf_file_no_hidden
 
 # Alt + y: Insert an alias at the current cursor position. ^[y was yank-pop,
-# which only does anything right after a Ctrl+Y.
+# which only acts right after a Ctrl+Y.
 zle -N _falias_widget
 bindkey '^[y' _falias_widget
 
 # Alt + z: Load a cheatsheet command directly into the prompt buffer. ^[z
-# relaunched the last named command, a zsh feature almost nobody uses.
+# relaunched the last named command, a feature almost nobody uses.
 zle -N _fcheat_widget
 bindkey '^[z' _fcheat_widget
 
 # --- 3. COMPLETION MENU ---
 
-# Escape leaves a completion menu. The block zsh lists stays on screen below
-# the line once it is printed, and nothing redraws over it - the cursor is
-# brought back up to the line, and every erase goes downwards from there - so
-# the ways out were to pick an entry or to clear the line and start again. In
-# the menu keymap Escape is bound to nothing; send-break is the widget that
-# abandons the completion, and the block goes with it. That keymap belongs to
-# zsh/complist: without the module there is no `menuselect` to bind.
+# Escape leaves a completion menu: in the menu keymap it is bound to nothing,
+# and send-break abandons the completion. That keymap belongs to zsh/complist:
+# without the module there is no `menuselect` to bind.
 zmodload zsh/complist
 bindkey -M menuselect '\e' send-break

@@ -83,12 +83,10 @@ gcs_delete_bucket: ## Delete the Cloud Storage bucket and all its contents
 	@echo "💣 Deleting bucket gs://$(BUCKET_NAME)..."
 	gcloud storage rm --recursive gs://$(BUCKET_NAME) --project=$(GCP_PROJECT)
 
-# No way out here, and that is deliberate: a pack leaves from Windows, by
-# `.\wsl.ps1 remove_pack`, which runs the pack's own remove.sh and then deletes
-# this folder - the file you are reading included. A target that has to erase
-# what defines it can only ever half do the job; the removal needs the package,
-# the APT key and the address, and a script that outlives the call.
-# ~/.config/gcloud keeps the logins: they are the user's data, not the pack's.
+# No way out here: a pack leaves from Windows - `.\wsl.ps1 remove_pack` runs
+# remove.sh, then deletes this folder, the file you are reading included. A
+# target that has to erase what defines it can only half do the job.
+# ~/.config/gcloud keeps the logins: the user's data, not the pack's.
 
 iam_setup_service_account: ## Create the Service Account and assign IAM roles
 	$(call check_vars, SA_NAME GCP_PROJECT)

@@ -14,10 +14,6 @@ Datasets and tables.
 | `bigquery_delete_table` | Delete a specific table (`TABLE_NAME`) | ⚠️ |
 | `bigquery_delete_dataset` | Delete the dataset **and all its tables** | ⚠️ destructive |
 
-`bigquery_show` adapts to what is set: with `BQ_DATASET` and `TABLE_NAME` it
-shows the table, with `BQ_DATASET` only it shows the dataset, otherwise it
-lists the project's datasets.
-
 ## Variables
 
 | Variable | Required by | Example / default |

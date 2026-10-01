@@ -59,21 +59,12 @@ source "$ZDOTDIR/completion.zsh"   # Tab on gmake: the targets, read from the Ma
 source "$ZDOTDIR/bindings.zsh"
 
 # --- 5. PACKS ---
-# Each installed pack's shell files, read where they live. A pack's folder is
-# the whole switch, exactly as it is for its gmake modules: nothing is copied
-# into this directory, so a pack that leaves takes its zsh with it - and an
-# instance carrying no pack reads nothing here at all.
+# Each installed pack's shell files, read where they live: a pack that leaves
+# takes its zsh with it. When the list changes the shell restarts - nothing can
+# undefine a function in a running shell, so a fresh process is the only way.
 #
-# The list is looked at again before every prompt, the way `gmake` asks its
-# question at every run and `fcheat` at every opening. A pack installed from
-# Windows while this shell was open is a command that answers on the next
-# prompt; a pack removed stops being read. When the list has changed the shell
-# restarts: that is `exec zsh` done by itself, and the only way to lose what a
-# departed pack had defined - nothing here can undefine a function it never
-# named, and no command from outside can reach into a running shell.
 # [@] and not $var: in zsh, "$array" of an EMPTY array is one empty word, and
-# this loop would then source "" - an instance carrying no pack is the case
-# that must work, not the one that crashes.
+# this loop would then source "".
 typeset -ga _pack_zsh_loaded
 _pack_zsh_loaded=("$ZDOTDIR"/../packs/*/zsh/*.zsh(N))
 for _pack_zsh in "${_pack_zsh_loaded[@]}"; do

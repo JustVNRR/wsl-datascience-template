@@ -5,27 +5,29 @@
 # `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added leaves the machine, and only that.
 #
-# Three things to take back, and they are the whole weight: the launcher, the
-# versions behind it, and the desktop entry the CLI drops for its URL scheme -
-# it names the launcher, so it dies with it.
+# Three things to take back: the launcher, the versions behind it, and the
+# desktop entry the CLI drops for its URL scheme (it points at the launcher).
 #
-# What the CLI wrote (~/.claude, its state file, its caches) and the dictionary
-# the pack seeded are the user's, and they STAY - exactly as ~/.mozilla stays
-# when the web pack leaves. Keeping them is the default, and the one question
-# at the end is the only thing that says otherwise; with no answer to read, the
-# default is the answer (docs/packs.md).
+# The CLI's own data (~/.claude, its caches) and the dictionary the pack seeded
+# are the user's, and they STAY - exactly as ~/.mozilla stays when the web pack
+# leaves. The one question at the end is the only thing that says otherwise;
+# with no answer to read, keeping is the answer.
 
 set -euo pipefail
 
+# The messages: the shared library replaces this fallback when the image
+# carries it; an instance built before it prints plain sentences.
+hint() { printf '%s\n' "$*"; }
+if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/zsh/lib/message.sh" || true
+fi
+
 here=$(cd "$(dirname "$0")" && pwd)
 
-# Is this name declared by another pack that is still installed?
-#
-# A claim is a declaration, not a mention: these files talk about what they
-# install, and a comment that says "claude" claims nothing. So the name is read
-# off the two declaration lines - PACK_PACKAGES for what apt installs,
-# PACK_OUTSIDE_APT for what apt never sees - and off install.sh as well, in one
-# piece, for a pack written before PACK_PACKAGES existed.
+# A claim is a declaration, not a mention: the name is read off PACK_PACKAGES
+# and PACK_OUTSIDE_APT, and off install.sh for a pack written before the first
+# existed.
 claimed_elsewhere() {
     local other value word
     for other in "$HOME"/.config/packs/*/; do
@@ -49,24 +51,19 @@ if claimed_elsewhere claude; then
     echo "claude: another installed pack claims it - left in place, with the versions it keeps."
 else
     echo "Removing Claude Code and the versions it keeps..."
-    # Every path is spelled from $HOME, so none can be empty when `rm` reads it,
-    # and `rm -f` never fails on one that is already gone. The launcher may be a
-    # symlink (the ordinary case) or a launcher file the CLI wrote for itself;
-    # `rm -f` takes either, and takes nothing else.
+    # Every path is spelled from $HOME so none is empty, and `rm -f` takes a
+    # symlink or a file - nothing else.
     rm -f "$HOME/.local/bin/claude"
     rm -rf "$HOME/.local/share/claude"
-    # And the desktop entry for the claude-cli:// scheme. Not a file the pack
-    # wrote - the CLI drops it at a run - but it points at the launcher just
-    # removed, so it is a dead entry the day the pack leaves (measured on a real
-    # instance). Only that file: the applications directory is shared.
+    # The dead desktop entry for the claude-cli:// scheme: the CLI drops it at a
+    # run, and it points at the launcher just removed. Only that file - the
+    # applications directory is shared.
     rm -f "$HOME/.local/share/applications/claude-code-url-handler.desktop"
 fi
 
-# And the provider keys it wrote in the settings - the four shorthand ones, plus
-# every key the dictionary declared. They are meaningless without the file that
-# named them, and a token left behind by a removed pack is a token nobody looks
-# after. Everything else in that file - the statusLine, the permissions, your own
-# variables - is not looked at, here no more than when they are written.
+# And the provider keys in the settings - the four shorthand ones, plus every
+# key the dictionary declared: meaningless without it, and a token left behind
+# is a token nobody looks after. Everything else in that file is not looked at.
 settings=$HOME/.claude/settings.json
 if [ -f "$settings" ]; then
     profiles=$HOME/.config/claude/profiles.json
@@ -108,15 +105,12 @@ if [ -f "$settings" ]; then
     fi
 fi
 
-# What the CLI wrote and the dictionary the pack seeded: the removals above were
-# about the program, this is about the data, and it is the user's. It stays, and
-# that is the default - sessions, a login, tokens are the things that cannot be
-# fetched again - and a `n` is the one answer that takes it all. Asked only when
-# the program really left (a pack claiming claude means the tool stays, and its
-# data stays with it) and only when there is something to keep. With no answer
-# to read, the default is the answer, like everywhere a pack asks
-# (docs/packs.md). Framed, like the install question and for the same reason:
-# this text lands in a Windows console, where a bare sentence gets lost.
+# What the CLI wrote and the dictionary: the removals above were the program,
+# this is the data, and it is the user's - sessions, a login, tokens cannot be
+# fetched again. `n` is the only answer that takes it all; no answer means
+# keep. Asked only when the program really left and there is something to keep.
+# Yellow, like the install question, for the same reason: this text lands in a
+# Windows console.
 wiped=0
 has_data=0
 if [ -e "$HOME/.claude" ] || [ -e "$HOME/.claude.json" ] || [ -e "$HOME/.config/claude" ]; then
@@ -125,25 +119,22 @@ fi
 
 if [ "$claimed" -eq 0 ] && [ "$has_data" -eq 1 ]; then
     echo ""
-    echo "=============================================================================="
-    echo "  Your data stays where it is:"
-    echo "     ~/.claude and ~/.claude.json - settings, login, history, sessions"
-    echo "     the caches under ~/.cache and ~/.local/state"
-    echo "     ~/.config/claude/profiles.json - your providers, and their tokens"
-    echo "  Keep it all? [Y/n]"
-    echo "=============================================================================="
-    echo ""
+    hint "Your data stays where it is:"
+    hint "   ~/.claude and ~/.claude.json - settings, login, history, sessions"
+    hint "   the caches under ~/.cache and ~/.local/state"
+    hint "   ~/.config/claude/profiles.json - your providers, and their tokens"
+    hint "Keep it all? [Y/n]"
     if read -r answer; then
         case "$answer" in
         [nN]*)
             wiped=1
             rm -rf "$HOME/.claude" "$HOME/.claude.json" "$HOME/.cache/claude" \
                 "$HOME/.local/state/claude" "$HOME/.config/claude"
-            # And the pack's block in .env.global: the fence, the title, the
-            # comments, and the CLAUDE_PROFILE line the target writes - removed
-            # only when the block is really there, so a file that never saw the
-            # merge is left byte for byte. The awk buffers the file because the
-            # fence to drop is the line BEFORE the title.
+            # The pack's block in .env.global - the fence, the title, the
+            # comments and the CLAUDE_PROFILE line - removed only when the block
+            # is really there, so a file that never saw the merge is left byte
+            # for byte. The awk buffers because the fence to drop is the line
+            # BEFORE the title.
             global_env=$HOME/.config/zsh/gmake/.env.global
             if [ -f "$global_env" ] && grep -q "^# CLAUDE - SHARED DEFAULTS (the claude pack)$" "$global_env"; then
                 tmp=$(mktemp)
@@ -188,6 +179,5 @@ else
     echo "Claude Code is still there: another installed pack claims it."
 fi
 
-# Everything printed above is plain ASCII, like install.sh and for the same
-# reason: this text travels through wsl.exe to the Windows console, which reads
-# it in its own code page.
+# Plain ASCII, like install.sh and for the same reason: this text travels
+# through wsl.exe to the Windows console.

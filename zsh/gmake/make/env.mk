@@ -2,34 +2,24 @@
 # THE ENVIRONMENT FILES
 # ==============================================================================
 # Two files decide what a gmake target sees: ~/.config/zsh/gmake/.env.global
-# for the values shared by every project, and the project's own .env for what
-# identifies it. Both are assembled from samples — the socle's own, in the
-# folder above this one, and the ones the packs ship beside their modules.
+# for the values every project shares, the project's own .env for what
+# identifies it. Both are assembled from samples — the socle's, in the folder
+# above, and the ones the packs ship beside their modules.
 #
-# Nothing reads a sample: they are templates, and what gmake loads is the
-# filled copy. Two commands below build that copy, and neither ever rewrites a
-# line that is already there — a value you set survives the next run, and so
-# does a pack you add later. Two more build it the same way, then open it in
-# the editor.
+# The commands never rewrite a line that is already there: a value you set, and
+# a pack added later, survive the next run. With no readable sample at all they
+# stop rather than leave an empty file behind.
 #
-# They name no pack: they read every sample they find, so the day a pack
-# arrives its variables are already covered.
+# They are the socle's because the file they write is: this Makefile loads
+# .env.global before it reads a single pack.
 #
-# They are the socle's because the file they write is the socle's: this
-# Makefile loads .env.global itself, before it reads a single pack, so a pack
-# that shipped the command to build it would be a pack gmake cannot start
-# without — the one thing no pack may be.
-#
-# The two env_global targets run from anywhere — the file they write and open
-# is machine-wide, and they ask nothing of the directory you stand in: they are
-# the targets the location gate must let through, and they say so here rather
-# than in the Makefile.
+# The two env_global targets run from anywhere — machine-wide files, and no
+# question about the directory you stand in: the gate must let them through.
 GATE_EXEMPT_GOALS += env_global_enable env_global_manage
 
 # The samples, in the order they are read: the socle's own first — it carries
-# the header that explains the file and its rule — then every installed pack's,
-# alphabetically, the way `wildcard` sorts them. The socle's two sit outside
-# PACKS_DIR, so no sample can be found twice and nothing has to filter one out.
+# the header that explains the file and its rule — then every installed pack's.
+# The socle's two sit outside PACKS_DIR, so none can be found twice.
 GLOBAL_ENV_SAMPLES := $(THIS_DIR)/env.global.sample $(wildcard $(PACKS_DIR)/*/env.global.sample)
 PROJECT_ENV_SAMPLES := $(THIS_DIR)/env.project.sample $(wildcard $(PACKS_DIR)/*/env.project.sample)
 
@@ -39,27 +29,19 @@ env_global_enable: ## Create or complete ~/.config/zsh/gmake/.env.global from th
 env_project_enable: ## Create or complete this project's .env from the samples
 	$(call merge_env_samples,.env,$(PROJECT_ENV_SAMPLES))
 
-# The same two files, opened instead of assembled: the editor is yours — $EDITOR
-# when the shell exports one (nano, or `code --wait` where VS Code is), nano
-# otherwise. Each runs its _enable merge first — create or complete, never a
-# line rewritten — so the editor never opens on an empty file: one that is not
-# there yet is created whole from the samples, header included, and running
-# enable first is never something to remember.
-env_global_manage: ## Create or complete ~/.config/zsh/gmake/.env.global, then open it in the editor (nano, or $EDITOR)
+# The same two files, opened instead of assembled: `$EDITOR`, or nano. Each
+# merges first, so the editor never opens on an empty file.
+env_global_manage: ## Create or complete ~/.config/zsh/gmake/.env.global, then open it in the editor
 	$(call merge_env_samples,$(THIS_DIR)/.env.global,$(GLOBAL_ENV_SAMPLES))
 	@editor=$${EDITOR:-nano}; $$editor "$(THIS_DIR)/.env.global"
 
-env_project_manage: ## Create or complete this project's .env, then open it in the editor (nano, or $EDITOR)
+env_project_manage: ## Create or complete this project's .env, then open it in the editor
 	$(call merge_env_samples,.env,$(PROJECT_ENV_SAMPLES))
 	@editor=$${EDITOR:-nano}; $$editor .env
 
-# Macro 3: create or complete an environment file from the samples, in order.
-# Each sample carries its own header, so the assembled file documents itself.
-# Nothing is ever *rewritten*: a variable the target already defines is left
-# alone, which is what makes the commands safe to re-run. A value you
-# filled in survives, and so does a pack you add later.
-# And nothing is written from nothing: with no readable sample at all, the
-# command says so and stops rather than leave an empty file behind.
+# Macro 3: create or complete an environment file from the samples, in order —
+# each carries its own header. Never rewrites an existing variable, and never
+# writes from nothing.
 #   $(1) the file to write   $(2) the samples to read
 define merge_env_samples
 	@target=$(1); \

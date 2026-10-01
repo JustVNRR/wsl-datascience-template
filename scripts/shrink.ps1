@@ -1,17 +1,16 @@
 [CmdletBinding()]
 param ()
 
-# No parameter on purpose: the instance comes from the list, never from the
-# command line. Typing a name by heart is a name you can get wrong.
+# No parameter on purpose: the instance comes from the list - a name typed by
+# heart is a name you can get wrong.
 
 $ErrorActionPreference = "Stop"
 
-# One working folder, no guessing: an instance lives in <Root>\<name>, and
-# every archive in <Root>\archives - the rule the other scripts follow too.
+# One working folder, no guessing: instances in <Root>\<name>, archives in
+# <Root>\archives - the family's rule.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one.
+# The family's shared half: the marker.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -38,8 +37,8 @@ function Get-Distro {
 $Distro = Select-Distro
 $DistroName = $Distro.Name
 
-# Was it running when we arrived? Compacting works either way, but the archive
-# does not, and whatever we stopped is started again at the end.
+# Compacting works either way, but the archive does not - whatever we stop is
+# started again at the end.
 $WasRunning = (Get-DistroNames -Running) -contains $DistroName
 
 $BeforeBytes = Get-VhdxSize $Distro.BasePath
@@ -48,14 +47,11 @@ Write-Host ""
 Write-Host "==> Reclaiming space in '$DistroName'" -ForegroundColor (Get-MessageColour info)
 Write-Host "  * Disk file now    : $(Format-Size $BeforeBytes)" -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
-Write-Host "  This compacts the instance's virtual disk: the space its filesystem" -ForegroundColor (Get-MessageColour muted)
-Write-Host "  has freed over time comes back to Windows. Nothing inside is touched," -ForegroundColor (Get-MessageColour muted)
-Write-Host "  and it is the operation Windows ships without any warning - unlike the" -ForegroundColor (Get-MessageColour muted)
-Write-Host "  sparse flag, which it refuses by default as a corruption risk." -ForegroundColor (Get-MessageColour muted)
+Write-Host "  This compacts the instance's virtual disk: the space its filesystem has" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  freed over time comes back to Windows. Nothing inside is touched." -ForegroundColor (Get-MessageColour muted)
 
-# 2. A copy first, and the answer is yes by default: compacting rewrites the
-# disk's metadata, which is exactly what a backup taken a minute before turns
-# into a non-event.
+# 2. A copy first, yes by default: compacting rewrites the disk's metadata -
+# exactly what a backup a minute before turns into a non-event.
 $ArchiveScript = Join-Path $PSScriptRoot "archive.ps1"
 Write-Host ""
 $ArchiveFirst = [string](Read-Host "Archive it first? [Y/n]")
@@ -78,9 +74,9 @@ if ($ArchiveFirst -match "^[nN]") {
     }
 }
 
-# 3. Compact. One command, in place: measured working on a running instance, and
-# it refuses on its own if the disk cannot be compacted - there is nothing to
-# prepare and nothing to undo.
+# 3. Compact. One command, in place, working on a running instance; it refuses
+# on its own if the disk cannot be compacted - nothing to prepare, nothing to
+# undo.
 Write-Host ""
 Write-Host "==> Compacting the virtual disk..." -ForegroundColor (Get-MessageColour info)
 try {
@@ -113,8 +109,8 @@ Write-Host "  The virtual disk's size does not change, only what it occupies on"
 Write-Host "  Windows. Nothing inside the instance was touched." -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
 
-# 4. It was running when we arrived: leave it the way it was found. `--exec`
-# runs a command and returns, so it comes back up without a shell in it.
+# 4. Left the way it was found: `--exec` runs a command and returns, so it
+# comes back up without a shell.
 if ($WasRunning) {
     try {
         Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."

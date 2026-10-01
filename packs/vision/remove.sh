@@ -5,15 +5,13 @@
 # `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added to the system leaves it, and only that.
 #
-# One package at a time, because a package another installed pack still claims
-# must stay where it is: a pack does not own what it installs, it is one of the
-# claimants. The claim is read from every pack's declaration - pack.conf, and
-# install.sh as well, for a pack written before PACK_PACKAGES existed. A pack
-# that is gone claims nothing: the last one to want a package takes it away.
+# One package at a time, and one another installed pack still claims stays: a
+# pack is one claimant among others, not an owner. The claim is read from every
+# pack's declaration, pack.conf and install.sh alike; the last one to want a
+# package takes it away.
 #
-# Two things this never does: remove a library (a neighbour's program may
-# depend on it, and apt would take that program along), and autoremove (the
-# shared libraries these tools pulled in are not ours to judge).
+# Two things this never does: remove a library, and autoremove - remove_pack
+# takes the dependencies back afterwards.
 
 set -euo pipefail
 

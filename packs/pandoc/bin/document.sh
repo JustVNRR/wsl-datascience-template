@@ -2,55 +2,35 @@
 # ==============================================================================
 # THE PANDOC PACK - THE SCRIPTS BEHIND `pdf_from_md`, `pdf_open` AND `docx_from_md`
 # ==============================================================================
-# The targets call this, one line each: where the questions are asked and the
-# work happens lives here - the arrangement the claude and web packs follow,
-# and for the same reason: a recipe that opened a menu itself is a recipe
-# nobody can read.
+# The targets call this, one line each: the questions and the work live here.
 #
 # Three modes:
-#   document.sh          builds the PDF (the `pdf_from_md` target);
-#   document.sh open     opens a built PDF (the `pdf_open` target);
-#   document.sh docx     writes the same document in Word format (the
-#                        `docx_from_md` target - pandoc writes .docx itself:
-#                        no Word, no Office, nothing to install).
+#   document.sh          builds the PDF (pdf_from_md)
+#   document.sh open     opens a built PDF (pdf_open)
+#   document.sh docx     writes the same document in Word format (docx_from_md -
+#                        pandoc writes .docx itself: no Word, no Office)
 #
-# The three answer different questions, and the answers come from different
-# files. The two builds ask WHICH MARKDOWN, in the order the answers are tried:
-#   - PDF_SRC, when the project's .env or the command line sets it: that one,
-#     no question. It is also the only path that works without a terminal,
-#     which is what a script - or a test - calls;
-#   - the folder's only .md: no question either, the ordinary case;
-#   - several: fzf asks which, from the folder's own list - and Escape is a
-#     decision, not an error (the claude pack's menus, same terms);
-#   - none: one line, and out.
-# `pdf_open` asks WHICH PDF, because that is what it opens: PDF_OUT when the
-# project names it, else the PDF of PDF_SRC, else the folder's own .pdf files -
-# one of them, or fzf's menu when there are several. It listed the markdown
-# files once, and that was wrong twice over: it showed sources for a target
-# that opens results, and it demanded a choice the build had already made
-# (his find, 2026-09-30).
+# Which markdown: PDF_SRC when the .env or the command line names one (the only
+# path that needs no terminal); else the folder's only .md; several: fzf asks,
+# and Escape is a decision; none: one line, and out. `pdf_open` asks which PDF
+# for the same reason - it opens results, not sources.
 #
-# What this prints travels to the terminal the target was run from, inside the
-# instance: the ASCII rule of install.sh and remove.sh is about wsl.exe and the
-# Windows console, and does not reach a target's output.
+# This output stays inside the instance: the ASCII rule of install.sh and
+# remove.sh is about wsl.exe, not about a target.
 
 set -euo pipefail
 
-# The pack's variables are read from the environment: the socle's Makefile
-# exports everything it loaded (the bare `export` above the includes), so
 # PDF_SRC, PDF_OUT, PDF_TEMPLATE, PDF_VIEWER, DOCX_OUT and DOCX_REFERENCE
-# arrive here already carrying what the .env, the command line and the
-# defaults decided - nothing is parsed a second time.
+# arrive from the environment: the Makefile exports everything it loaded -
+# nothing is parsed a second time.
 die() {
     printf '%s\n' "$1" >&2
     exit 1
 }
 
-# One menu, one shape: fzf, like every other picker of this shell (fnew,
-# fcheat, the packs' menus), the choice in CHOICE. A menu needs a terminal -
-# answered from a pipe or a script it cannot be, and the caller's message says
-# what to name instead. Escape (fzf's 130) is a decision, not a failure: it
-# prints one line and exits 0, so make must not write "Error" over it.
+# One menu, one shape: fzf, the choice in CHOICE. A menu needs a terminal -
+# Escape (130) is a decision, not a failure: one line and exit 0, so make must
+# not write "Error" over it.
 CHOICE=""
 choose_one() {
     local prompt=$1 status
@@ -69,17 +49,13 @@ choose_one() {
 
 # --- the one question a build asks: replacing a file that already exists ------
 #
-# An output that exists is not replaced in silence: it can be a version
-# someone annotated, or the fruit of a name chosen once and forgotten (his
-# find, 2026-09-30). The answer is a menu, the way every other choice in this
-# shell is asked - fzf, three lines, arrows or the mouse: overwrite, cancel,
-# save as... - and "save as..." asks for the name, plainly, with nothing
-# pre-filled (his shape, 2026-09-30; my pre-filled line was a contraption).
+# An existing output is not replaced in silence - it can be annotated, or a
+# name chosen once and forgotten. The answer is a menu: overwrite, cancel,
+# save as... (the name asked plainly, nothing pre-filled).
 #
-# Escape and cancel are decisions, not failures: one line and exit 0. And when
-# the menu cannot be drawn - no terminal, a script, a pipe - the build goes
-# on, replacing: that is what a build is for, and a caller that wants another
-# name says so in PDF_OUT or DOCX_OUT.
+# Escape and cancel are decisions: one line and exit 0. A menu that cannot be
+# drawn (no terminal) lets the build go on, replacing - a caller that wants
+# another name says so in PDF_OUT or DOCX_OUT.
 settle_overwrite() {
     local file=$1 answer choice status
     while [ -e "$file" ]; do
@@ -161,11 +137,9 @@ fi
 
 # --- docx: the same document, in Word ------------------------------------------
 #
-# A .docx is the Office format - an archive of XML - and pandoc writes it
-# itself: no Word, no Office, nothing installed. What the Word file LOOKS like
-# is not the LaTeX template's business (that one shapes the PDF): it comes
-# from a reference document - a .docx of your own whose styles pandoc copies -
-# and DOCX_REFERENCE names it. Without one, pandoc's default styles.
+# A .docx is Office XML and pandoc writes it itself - no Word, no Office. Its
+# LOOK comes from a reference document whose styles pandoc copies
+# (DOCX_REFERENCE); without one, pandoc's default styles.
 if [ "$MODE" = docx ]; then
     docx_out=${DOCX_OUT:-}
     [ -n "$docx_out" ] || docx_out=${OUT%.pdf}.docx
@@ -184,18 +158,13 @@ fi
 
 # --- pdf_open: which PDF, and hand it to something that displays it ------------
 #
-# The pack installs no viewer, and that is deliberate: each is a matter of
-# taste and none is required to build, so a pack that forced one would make
-# every machine pay for it (measured on the three, 2026-09-29: xpdf 31 MB,
-# zathura 170 MB, evince 265 MB). This asks the instance instead, in this
-# order:
-#   - PDF_VIEWER, when the project's .env or the command line names one - for
-#     the person who wants xpdf here and evince there;
+# The pack installs no viewer - each is a matter of taste, and none is needed
+# to build. This asks the instance, in this order:
+#   - PDF_VIEWER, when the project's .env or the command line names one;
 #   - the viewers people install by hand, the convivial one first;
-#   - Windows, through explorer.exe, when the instance can reach it - the
-#     default application for a PDF, and the path travels as Windows knows it
-#     (wslpath). With interop off, this door is shut and the line below says
-#     what to do instead.
+#   - Windows, through explorer.exe, when the instance can reach it (wslpath
+#     for the path). Interop off shuts this door, and the line below says what
+#     to do instead.
 if [ "$MODE" = open ]; then
     if [ -n "${PDF_OUT:-}" ]; then
         # Named outright: the PDF the project writes, wherever the build put it.
@@ -245,9 +214,8 @@ fi
 # --- pdf_from_md: build it -----------------------------------------------------
 
 # PDF_TEMPLATE, or template.tex when the project has one - pandoc's own
-# template otherwise, and the line says so. An array, not a string: an empty
-# variable between two other arguments would vanish into the word split - which
-# the linter is right to refuse, the day it is an unquoted flag.
+# otherwise. An array, not a string: an empty variable between two arguments
+# would vanish into the word split.
 tpl=${PDF_TEMPLATE:-template.tex}
 if [ -f "$tpl" ]; then
     TEMPLATE_ARGS=(--template="$tpl")
@@ -256,12 +224,10 @@ else
     printf '   no %s in this project: pandoc own template will be used.\n' "$tpl"
 fi
 
-# The command a document's own folder carries:
-#   pandoc <src>.md --citeproc [--template=...] -o <out>.pdf --pdf-engine=xelatex
-# --citeproc: the bibliography and the CSL style are read from the YAML header
-# of the document itself. set -e is on: a build that fails stops here, before
-# the tick line - a success line over a failed build is the one lie this script
-# could tell.
+# --citeproc: the bibliography and the CSL style come from the document's own
+# YAML header. set -e is on: a failed build stops here, before the tick line -
+# a success line over a failed build would be the one lie this script could
+# tell.
 settle_overwrite "$OUT"
 echo "📄 Building $SRC -> $OUT (pandoc + xelatex)..."
 pandoc "$SRC" --citeproc "${TEMPLATE_ARGS[@]}" -o "$OUT" --pdf-engine=xelatex

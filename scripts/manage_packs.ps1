@@ -1,20 +1,17 @@
 [CmdletBinding()]
 param ()
 
-# Several packs at once: every pack this checkout carries is shown, the ones the
-# instance already has arrive checked, and what comes back is applied - the
+# Several packs at once: every pack this checkout carries is shown, the ones
+# the instance already has arrive checked, and what comes back is applied - the
 # missing ones installed, the unchecked ones taken out.
 #
-# The asking and the applying live in scripts\packs.ps1, because build asks the
-# same question with the same menu and applies the same answer in the same
-# order. What is left here is the shape of this command: which instance, what it
-# carries now, and what it says at the end.
+# The asking and the applying live in scripts\packs.ps1 - build asks the same
+# question. What is left here is the shape of this command.
 
 $ErrorActionPreference = "Stop"
 
-# What the whole family shares: the instances, the menus, the packs, and the
-# moves a pack makes - copy its folder in, run one of its scripts, take the
-# folder out.
+# The family's shared half: the instances, the menus, the packs, and the moves
+# a pack makes.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -66,8 +63,8 @@ $Failure = Invoke-PackApply -DistroName $DistroName -PacksDirectory $PacksDirect
     -ToAdd $Selection.ToAdd -ToRemove $Selection.ToRemove
 if ($null -ne $Failure) { exit $Failure.ExitCode }
 
-# 5. Where things stand, read back from the instance: the folder is the state,
-# so the answer is what is there, not what this run meant to do.
+# 5. Where things stand, read back from the instance: the folder is the state -
+# what is there, not what this run meant to do.
 $Now = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 Write-Host ""
 Write-Host "==> '$DistroName' now carries: $(if ($Now.Count -gt 0) { $Now -join ', ' } else { 'no pack' })" -ForegroundColor (Get-MessageColour success)

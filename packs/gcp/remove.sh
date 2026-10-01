@@ -6,8 +6,7 @@
 # install added to the system leaves it - the CLI, the signing key, the APT
 # address - and nothing else.
 #
-# The logins in ~/.config/gcloud are the user's, not the pack's: they stay,
-# exactly as they did when this was a make target.
+# The logins in ~/.config/gcloud are the user's, not the pack's: they stay.
 
 set -euo pipefail
 

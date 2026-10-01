@@ -1,14 +1,12 @@
 [CmdletBinding()]
 param ()
 
-# No parameter on purpose: the instance comes from a list - the ones that are
-# running - never from the command line. Typing a name by heart is a name you
-# can get wrong.
+# No parameter on purpose: the instance comes from the list of running ones - a
+# name typed by heart is a name you can get wrong.
 
 $ErrorActionPreference = "Stop"
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one.
+# The family's shared half: the marker.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -17,9 +15,9 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# 1. Who can be stopped: our instances running at this moment, and only those -
-# one already stopped has nothing to do here. Sorted by name, like every list
-# in this family: a menu whose numbers move is a menu you cannot trust twice.
+# 1. Who can be stopped: our running instances, and only those - an
+# already-stopped one has nothing to do here. Sorted by name, like every list
+# in this family.
 $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
 if ($All.Count -eq 0) {
     Write-Host ""
@@ -51,10 +49,9 @@ if (-not $Distro) {
 
 $DistroName = $Distro.Name
 
-# 2. Stopping is what was asked for, but it is the one thing here that can
-# lose work: what is open in there and not saved goes with it. The disk is not
-# touched - only what is in memory. Asked once, default yes, because picking
-# the instance in the list was already a deliberate act.
+# 2. Stopping is the one thing here that can lose work: what is open and
+# unsaved goes with it, the disk is not touched. Asked once, default yes -
+# picking the instance was already deliberate.
 Write-Host ""
 Write-Host "  '$DistroName' will be stopped." -ForegroundColor (Get-MessageColour warning)
 Write-Host "  Whatever is open in there and not saved is lost; what is already" -ForegroundColor (Get-MessageColour warning)

@@ -2,17 +2,15 @@
 # ==============================================================================
 # THE PANDOC PACK - `font_from_ubuntu`: A FAMILY, FROM THE UBUNTU PACKAGES
 # ==============================================================================
-# The third source of fonts beside the Windows side and Google Fonts, and the
-# only one that installs nothing by hand: the fonts- packages of the archive,
-# about two hundred families between them - Noto, EB Garamond, the URW
-# PostScript classics (Nimbus Roman for Times, Nimbus Sans for Helvetica)...
+# The third source of fonts, and the only one that installs nothing by hand:
+# the fonts- packages of the archive - Noto, EB Garamond, the URW PostScript
+# classics (Nimbus Roman for Times, Nimbus Sans for Helvetica)...
 #
-# FONT names one, and a part of the name is enough; unnamed, a menu asks -
-# fzf over the packages with their one-line description, --exact so the typed
-# letters are looked for as they are typed (his find, 2026-09-30).
+# FONT names one and a part of the name is enough; unnamed, a menu asks - fzf
+# over the packages and their one-line description, with --exact.
 #
-# The install is apt's, with one sudo. The package is yours: it leaves with
-# `sudo apt-get remove`, not with the pack.
+# The install is apt's, with one sudo. The package is the user's: it leaves
+# with `sudo apt-get remove`, not with the pack.
 set -euo pipefail
 
 die() {

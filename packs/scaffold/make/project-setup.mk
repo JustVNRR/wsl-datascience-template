@@ -5,58 +5,35 @@
 # from do its part. The tools are taken by uvx at the moment one of them runs,
 # so nothing is installed here and nothing is left on the PATH.
 #
-# One tool is read from the image instead, because nothing else can do its job:
-# rlwrap. Two of the three ask their questions through cookiecutter, which reads
-# a plain line with no editor loaded in the process — the terminal is all there
-# is, and the bytes an arrow key sends land in the answer. rlwrap is that
-# editor, put in front of the command: it reads the keys, edits the line, and
-# hands the finished answer over. copier is left bare: questionary, over
-# prompt-toolkit, is a line editor of its own, so wrapping it would add a layer
-# to a prompt that already edits.
-#
-# No test for a terminal here: rlwrap makes that one itself, and better than a
-# test could - measured in a pipe, it hands the answer over untouched and exits
-# 0, so the CI and the pipes read exactly as they did before. What this variable
-# guards is the other case: an instance that has not installed rlwrap yet (an
-# older distro, a machine where the image's package is missing). There the name
-# is empty, the commands run plain, and the only thing lost is the editing.
+# rlwrap, from the image: cookiecutter asks on a plain line with no editor in
+# the process, so an arrow key's bytes land in the answer - rlwrap is that
+# editor, put in front of the command. copier stays bare (questionary is a line
+# editor of its own). No terminal test: in a pipe rlwrap hands the answer over
+# untouched; the variable only guards an instance without rlwrap yet.
 RLWRAP := $(shell command -v rlwrap 2>/dev/null)
 
-# The part every project wants, whatever language it is written in: the .env the
-# template's own sample describes. That is all of it - the sample is shaped by
-# the template's answers, it is the file the user has to fill in, and it is
-# copied once. An existing .env is never touched, and a template that ships no
-# sample gets nothing.
+# The part every project wants, whatever its language: the .env its own sample
+# describes - copied once, an existing one never touched, nothing when there is
+# no sample.
 #
-# What a project needs *besides* that is not generic: the .envrc this writes
-# when a template ships none sources a Python venv, so it belongs to the pack
-# that has one, together with the `direnv allow` that approves it. A pack with
-# no venv writes nothing and approves nothing.
+# The .envrc that sources a Python venv belongs to the pack that has one, with
+# its `direnv allow`.
 define scaffold_generic_after
 	@cd $(PROJECT_NAME) && ( [ -f .env ] || [ ! -f .env.sample ] || { echo "📝 Creating ./.env from the project's .env.sample..."; cp .env.sample .env; } )
 endef
 
-# What the pack that curates the row adds after that is declared by that pack,
-# beside the macro it names: SCAFFOLD_AFTER_python := init_venv is in the python
-# pack's own module. `fnew` reads the declaration off the row it picked and
-# names the pack on the make command line; called directly, the target names it
-# in TEMPLATE_PACK.
-#
-# $(call $(VAR)) is a macro whose name comes from a variable, which is the whole
-# trick - this file never spells out the name of a pack's step. A pack that
-# declares nothing, or a call that names no pack, expands to nothing at all: the
-# project is copied, its .env is written, and it is left at that.
+# What the pack that curates the row adds is declared by that pack, beside the
+# macro it names (SCAFFOLD_AFTER_python := init_venv). $(call $(VAR)) is the
+# trick: this file never spells a pack's step name, and a row that names none
+# leaves the project copied and its .env written.
 scaffold_after = $(if $(SCAFFOLD_AFTER_$(1)),$(call $(SCAFFOLD_AFTER_$(1))))
 
 # ==============================================================================
 # THE THREE TARGETS
 # ==============================================================================
-# Location: these targets only run from ~/projects itself, and the gate that
-# enforces it lives in the gmake Makefile. That gate cannot name them itself -
-# it has to read this declaration, which is why the names are written here,
-# beside the targets they name. The socle names no target of a pack: a target
-# nobody declares is treated as an ordinary one, and would be refused from
-# ~/projects with a message about a project root that is not the point.
+# These targets only run from ~/projects itself; the gate that enforces it
+# reads this declaration - which is why the names are written here, beside the
+# targets. A target nobody declares is treated as an ordinary one.
 SCAFFOLD_GOALS += copier_project cruft_project ccds_project finish_scaffold
 
 copier_project: ## Scaffold a project with Copier from ~/projects (fnew picker)
@@ -78,13 +55,10 @@ cruft_project: ## Scaffold a project with Cruft/Cookiecutter from ~/projects (fn
 	CREATED_DIR=$$(command ls -td -- */ | head -n 1 | tr -d '/'); \
 	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) finish_scaffold PROJECT_NAME="$$CREATED_DIR" TEMPLATE_PACK=$(TEMPLATE_PACK)
 
-# The `ccds` CLI (cookiecutter-data-science v2) asks for project_name and
-# repo_name itself, so neither is passed: its question is the only place the
-# name is asked, and the directory it creates is then found the same way
-# cruft's is. It also asks before running the template's hooks - --accept-hooks
-# yes answers that one, like copier and cruft, which run hooks without asking.
-# The package is `cookiecutter-data-science`; `ccds` is the command inside it,
-# and the one uvx has to be told to look for.
+# `ccds` asks for project_name and repo_name itself, so neither is passed - the
+# directory it creates is found the way cruft's is. --accept-hooks yes answers
+# its hook question, like copier and cruft. The package is
+# `cookiecutter-data-science`; `ccds` the command inside it.
 ccds_project: ## Scaffold a project with CCDS v2 from ~/projects (fnew picker)
 	$(call check_vars, PROJECT_TEMPLATE_REPO)
 	@echo "🏗️  Scaffolding project with ccds..."
@@ -92,12 +66,11 @@ ccds_project: ## Scaffold a project with CCDS v2 from ~/projects (fnew picker)
 	CREATED_DIR=$$(command ls -td -- */ | head -n 1 | tr -d '/'); \
 	$(MAKE) -f $(firstword $(MAKEFILE_LIST)) finish_scaffold PROJECT_NAME="$$CREATED_DIR" TEMPLATE_PACK=$(TEMPLATE_PACK)
 
-# The step that follows a copy, for the two tools that create the folder
-# themselves: the target above hands it the name it just found. Called with no
-# name at all - the target typed by hand, or a template that created nothing -
-# every step below would `cd` with no argument, which is $HOME: the venv would
-# land in the person's own directory instead of a project's. So it refuses,
-# rather than do the wrong thing quietly.
+# For the two tools that create the folder themselves: the target above hands
+# it the name it just found. Called with no name - the target typed by hand, or
+# a template that created nothing - every step below would `cd` with no
+# argument, which is $HOME, and the venv would land in the person's own
+# directory. It refuses instead.
 finish_scaffold:
 	@[ -n "$(PROJECT_NAME)" ] || { echo "❌ No folder to finish — nothing was created, and nothing was done."; exit 1; }
 	$(call scaffold_generic_after)

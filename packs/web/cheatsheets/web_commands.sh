@@ -2,11 +2,9 @@
 # WEB BROWSER CHEATSHEET
 # requires: firefox
 # ==========================================
-# Firefox, which the `web` pack installs (`.\wsl.ps1 add_pack`), and the one
-# function the pack adds. The pack is removed the same way; its page is
-# packs/web/docs/web.md.
-# Offered only while the browser is installed - the header above is what hides
-# the sheet when it was removed by hand.
+# Firefox, which the `web` pack installs, and the one function it adds.
+# Offered only while the browser is installed: the `# requires:` line above
+# hides the sheet once it was removed by hand.
 
 # --- 1. OPEN ---
 fox                                            # Open Firefox (the pack's function, light privacy profile)

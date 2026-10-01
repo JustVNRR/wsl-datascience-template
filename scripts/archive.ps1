@@ -1,37 +1,32 @@
 [CmdletBinding()]
 param (
-    # Not part of the interface: run bare, this command lists the instances and
-    # you pick one. The parameter exists because shrink.ps1 and unregister.ps1
-    # call it with the instance already chosen.
+    # Not part of the interface: run bare, it lists the instances. shrink.ps1
+    # and unregister.ps1 call it with the instance already chosen.
     [string]$DistroName,
 
     [ValidateSet("tar", "tar.gz", "tar.xz")]
     [string]$Format = "tar.gz",
 
-    # Skip the naming question and use this as the name. unregister.ps1 and
-    # shrink.ps1 pass the instance's name: they are mid-operation, with nobody
-    # to ask, and the name they want is obvious.
+    # Skip the naming question and use this. unregister.ps1 and shrink.ps1 pass
+    # the instance's name: they are mid-operation, with nobody to ask.
     [string]$Name,
 
-    # What to do with the instance once the archive is written. "Ask" is the
-    # default and puts the question to the user; unregister.ps1 passes "Leave"
-    # because it is about to delete the instance anyway.
+    # What to do once the archive is written. unregister.ps1 passes "Leave":
+    # it is about to delete the instance anyway.
     [ValidateSet("Ask", "Start", "Delete", "Leave")]
     [string]$AfterExport = "Ask"
 )
 
 $ErrorActionPreference = "Stop"
 
-# One working folder, no guessing: an instance lives in <Root>\<name>, and
-# every archive in <Root>\archives. It is the folder build.ps1 proposes when it
-# asks where an instance should live, so everything this repository manages
-# sits under one folder.
+# One working folder, no guessing: instances in <Root>\<name>, archives in
+# <Root>\archives - the folder build.ps1 proposes, so everything this
+# repository manages sits under one folder.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $ArchiveFolder = Join-Path $Root "archives"
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one, and what Windows knows about its look - which is not Linux
-# and not in the tar, so it has to travel next to it.
+# The family's shared half: the marker that tells our instances from any other,
+# and the Windows-side look - not in the tar, so it travels next to it.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -65,8 +60,8 @@ if ($DistroName) {
         Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
         exit 1
     }
-    # Named on the command line, so nothing has vouched for it: the same check
-    # the list does, and it comes before anything is written.
+    # Named on the command line, so nothing vouched for it: the check the list
+    # does, before anything is written.
     if (-not (Test-TemplateInstance -Folder $Distro.BasePath)) {
         Write-Host ""
         Write-Host "[ABORT] '$DistroName' is not an instance of this template." -ForegroundColor (Get-MessageColour error)
@@ -83,9 +78,8 @@ if ($DistroName) {
 $VhdxPath = Join-Path $Distro.BasePath "ext4.vhdx"
 $DiskBytes = if (Test-Path $VhdxPath) { (Get-Item $VhdxPath).Length } else { 0 }
 
-# 2. The export stops the instance: WSL terminates it to read a consistent
-# disk, and whatever a running program has not written yet is gone. Ask rather
-# than surprise - only the user knows what is open in there.
+# 2. The export stops the instance - WSL terminates it to read a consistent
+# disk - and unsaved work is gone: ask rather than surprise.
 $StoppedByUs = $false
 if ((Get-DistroNames -Running) -contains $DistroName) {
     Write-Host ""
@@ -102,11 +96,10 @@ if ((Get-DistroNames -Running) -contains $DistroName) {
     $StoppedByUs = $true
 }
 
-# 3. The name. An archive is a folder you name: it holds the tar AND the look
-# of the instance, because a tar cannot carry an icon or a colour scheme - they
-# are Windows settings. The instance's name is proposed, a name already taken
-# gets the next free suffix, and typing a name that exists is how an archive is
-# replaced.
+# 3. The name. An archive is a folder: the tar AND the look - an icon and a
+# colour scheme are Windows settings, not a tar's. The instance's name is
+# proposed, a taken name gets the next free suffix, and typing an existing name
+# is how an archive is replaced.
 if (-not (Test-Path -Path $ArchiveFolder)) {
     New-Item -ItemType Directory -Path $ArchiveFolder -Force | Out-Null
 }
@@ -152,9 +145,8 @@ if ($Chosen -match '[\\/]') {
 $ArchiveDir = [System.IO.Path]::GetFullPath((Join-Path $ArchiveFolder $Chosen))
 $Destination = Join-Path $ArchiveDir "$Chosen.$Format"
 
-# The proposal above never lands on a taken name, so getting here means the
-# name was typed - and typing a name that exists is how you replace an archive.
-# Said out loud rather than done quietly.
+# The proposal never lands on a taken name, so this is a typed name - and
+# typing an existing name is how an archive is replaced. Said, not done quietly.
 if (Test-Path -Path $ArchiveDir) {
     Write-Host "  '$Chosen' exists: replacing its archive." -ForegroundColor (Get-MessageColour warning)
 }
@@ -162,9 +154,9 @@ if (-not (Test-Path -Path $ArchiveDir)) {
     New-Item -ItemType Directory -Path $ArchiveDir -Force | Out-Null
 }
 
-# 4. Say what it costs before it costs it. The archive only holds what the
-# instance actually uses, so it is usually smaller than the virtual disk -
-# but "usually" is not a guarantee, and a full drive stops the export.
+# 4. Say what it costs before it costs it: the archive holds used data, usually
+# much smaller than the disk - "usually" is not a guarantee, and a full drive
+# stops the export.
 $FreeBytes = (Get-PSDrive -Name (Split-Path -Qualifier $Destination).TrimEnd(':')).Free
 Write-Host ""
 Write-Host "==> Backing up '$DistroName'" -ForegroundColor (Get-MessageColour info)
@@ -174,9 +166,8 @@ Write-Host "  * Archive          : $Destination ($Format)" -ForegroundColor (Get
 
 if ($DiskBytes -gt 0 -and $FreeBytes -lt $DiskBytes) {
     Write-Host "  * Note             : less free space than the disk's size." -ForegroundColor (Get-MessageColour warning)
-    Write-Host "                       The archive is normally much smaller - it holds used" -ForegroundColor (Get-MessageColour muted)
-    Write-Host "                       data, not free blocks. If it does not fit, the export" -ForegroundColor (Get-MessageColour muted)
-    Write-Host "                       stops and leaves a partial file, which this script deletes." -ForegroundColor (Get-MessageColour muted)
+    Write-Host "                       The archive holds used data and is normally much smaller;" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "                       if it does not fit, the export stops and its partial file is deleted." -ForegroundColor (Get-MessageColour muted)
 }
 
 # 5. Export
@@ -202,8 +193,8 @@ Write-Host "============================================================" -Foreg
 Write-Host "       Backup of '$DistroName' written" -ForegroundColor (Get-MessageColour success)
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
-# The look goes next to the tar, once the export has succeeded: a folder half
-# written is worse than one that says what is missing from it.
+# The look goes next to the tar, once the export succeeded: a half-written
+# archive folder is worse than one missing the look.
 Save-InstanceState -Name $DistroName -Folder $ArchiveDir
 
 Write-Host "  * Archive          : " -NoNewline; Write-Host "$ArchiveDir" -ForegroundColor (Get-MessageColour info)
@@ -217,16 +208,12 @@ Write-Host "  .\wsl.ps1 restore        (it lists the archives, this one included
 Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
 
-# 6. What becomes of the instance now that its archive is on disk. All three
-# answers are reasonable - the copy exists either way - and only the user
-# knows which one they want. The default is the state it was found in.
+# 6. What becomes of the instance now that its archive is on disk. The copy
+# exists either way; only the user knows what they want.
 if ($AfterExport -eq "Ask") {
-    # All three answers are reasonable - the copy exists either way - and only
-    # the user knows which one they want. The default is the state the instance
-    # was found in, and it is where the cursor starts, marked in the list: Enter
-    # takes it, and so does an answer nobody could read (Escape, or an empty
-    # line where there is no console) - which is what the old prompt did with
-    # anything that was not a, b or c.
+    # The default is the state it was found in, marked in the list: Enter takes
+    # it, and so does a read nobody could make (Escape, no console) - what the
+    # old prompt did with anything that was not a, b or c.
     $Choices = @("Start", "Delete", "Leave")
     $Default = if ($StoppedByUs) { "Start" } else { "Leave" }
     $AfterExport = Select-FromList -Title "What should happen to '$DistroName' now?" `
@@ -254,9 +241,9 @@ if ($AfterExport -eq "Start") {
     }
     Write-Host ""
 } elseif ($AfterExport -eq "Delete") {
-    # The archive exists, so this is a decision and not an accident - but it
-    # still goes through unregister.ps1, whose typed-name confirmation is what
-    # this repository asks for before anything destroys an instance.
+    # The archive exists, so this is a decision, not an accident - but it still
+    # goes through unregister.ps1: the typed name is what this repository asks
+    # for before destroying anything.
     $UnregisterScript = Join-Path $PSScriptRoot "unregister.ps1"
     if (Test-Path $UnregisterScript) {
         # unregister.ps1 takes no name: it lists and the user picks again.

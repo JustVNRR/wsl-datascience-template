@@ -4,9 +4,9 @@
 # ==============================================================================
 # `wsl.ps1 remove_pack` runs this before deleting the pack's folder: what the
 # install added to the system leaves it, and only that. A package another
-# installed pack still claims stays where it is. No library is ever removed
-# (apt would take its dependents), and no autoremove here - remove_pack runs
-# the cleanup that follows, with its two questions.
+# installed pack still claims stays where it is. Never a library (apt would
+# take its dependents), and no autoremove here - remove_pack runs the cleanup
+# that follows.
 
 set -euo pipefail
 
@@ -65,11 +65,8 @@ echo "Removing the profile the pack generated..."
 sudo rm -f /etc/wireguard/vpn.conf
 
 echo "The tunnel and the browser are gone, and Mozilla's repository with them."
-echo "   Left alone, on purpose:"
-echo "     - your servers, ~/.config/vpn/servers.json - it carries your private keys"
-echo "     - the VPN_PROFILE, VPN_KILL_SWITCH, VPN_MTU and BASE_DNS lines of ~/.config/zsh/gmake/.env.global"
-echo "     - the profiles an older install left in /etc/wireguard, if any are still there"
-echo "     - generateResolvConf = false in /etc/wsl.conf - a setting of the machine, not the pack's"
-echo "     - your Firefox profile, ~/.mozilla - bookmarks, passwords, history"
-echo "   systemd-resolved was removed to make room for openresolv:"
-echo "     sudo apt install systemd-resolved    puts it back."
+echo "Left alone: your servers (~/.config/vpn), the VPN_* lines in .env.global,"
+echo "   the /etc/wireguard profiles an older install left, generateResolvConf in"
+echo "   /etc/wsl.conf, and your Firefox profile (~/.mozilla)."
+echo "systemd-resolved was removed to make room for openresolv:"
+echo "   sudo apt install systemd-resolved    puts it back."

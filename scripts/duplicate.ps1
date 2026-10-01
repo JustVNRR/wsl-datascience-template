@@ -7,13 +7,12 @@ param (
 
 $ErrorActionPreference = "Stop"
 
-# One working folder, no guessing: the copy is installed in <Root>\<name>,
-# the folder build.ps1 proposes when it asks where an instance should live.
+# One working folder, no guessing: the copy lands in <Root>\<name>, the folder
+# build.ps1 proposes.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one, and what Windows knows about its look - captured off the
-# source here, and re-applied to the copy after the import.
+# The family's shared half: the marker, and the Windows-side look - captured
+# off the source now, re-applied to the copy after the import.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -27,13 +26,12 @@ $AllDistros = Get-Distros
 $Source = Select-Distro
 $SourceDistro = $Source.Name
 
-# Captured now, while the source's profile is still the one it was built with:
-# a copy that comes out bare is not a copy.
-# Its file, recipe included: a copy comes out with everything a redraw needs.
+# Captured now, while the source still has it - recipe included, so the copy
+# can be redrawn: a copy that comes out bare is not a copy.
 $Look = New-InstanceLook -Name $SourceDistro -Icon (Get-IconRecipe -Name $SourceDistro)
 
-# 0-bis. The copy's name. Typed, because there is nothing to pick from - it
-# does not exist yet. The question comes back until the name is usable.
+# 0-bis. The copy's name: typed, because there is nothing to pick from. The
+# question comes back until the name is usable.
 while ($true) {
     $Answer = [string](Read-Host "Name of the copy")
     if ([string]::IsNullOrWhiteSpace($Answer)) {
@@ -48,8 +46,8 @@ while ($true) {
     Write-Host "  Letters, digits, '.', '_' and '-' only." -ForegroundColor (Get-MessageColour hint)
 }
 
-# The copy must not land on a name that exists: this script never unregisters
-# anything, so a name already taken is a dead end, not something to resolve.
+# This script never unregisters anything, so a name already taken is a dead
+# end, not something to resolve.
 if ($AllDistros | Where-Object { $_.Name -eq $NewDistroName }) {
     Write-Host ""
     Write-Host "[ABORT] An instance named '$NewDistroName' already exists." -ForegroundColor (Get-MessageColour error)
@@ -58,9 +56,8 @@ if ($AllDistros | Where-Object { $_.Name -eq $NewDistroName }) {
     exit 1
 }
 
-# The export stops the source: WSL terminates it to read a consistent disk,
-# and whatever a running program has not written yet is gone. Ask rather than
-# surprise - only the user knows what is open in there.
+# The export stops the source - WSL terminates it to read a consistent disk -
+# and unsaved work is gone: ask rather than surprise.
 $StoppedByUs = $false
 if ((Get-DistroNames -Running) -contains $SourceDistro) {
     Write-Host ""
@@ -77,21 +74,18 @@ if ((Get-DistroNames -Running) -contains $SourceDistro) {
     $StoppedByUs = $true
 }
 
-# 1. Install folder: <Root>\<name>, always. A name already taken has been
-# refused above, so this folder cannot be another instance's.
+# 1. Install folder: <Root>\<name>, always - a taken name was refused above,
+# so this folder cannot be another instance's.
 $FullDestination = [System.IO.Path]::GetFullPath((Join-Path $Root $NewDistroName))
 
-# 2. What it costs: the copy is made by reading the instance into an archive
-# and unpacking that archive into the new folder. Both exist at the same time.
-# The archive is compressed and holds only used data, so it is smaller than
-# the disk - but twice the disk is what the peak can reach, and that is the
-# number checked here.
+# 2. What it costs: the copy reads the instance into an archive and unpacks it
+# into the new folder, both at the same time - twice the disk is the peak
+# checked here.
 #
-# The archive route, rather than a raw disk copy (`--format vhd`): measured on
-# WSL 2.9.11, a vhd export is refused with ERROR_SHARING_VIOLATION while the
-# WSL virtual machine is up - `wsl --terminate` does not release it, only a
-# full `wsl --shutdown` does, and that stops every other instance on the
-# machine. The copy pays the compression instead.
+# The archive route rather than a raw disk copy (`--format vhd`): a vhd export
+# is refused with ERROR_SHARING_VIOLATION while the WSL virtual machine is up -
+# `--terminate` does not release it, only a full `--shutdown` does, and that
+# stops every other instance. The copy pays the compression instead.
 $VhdxPath = Join-Path $Source.BasePath "ext4.vhdx"
 $DiskBytes = if (Test-Path $VhdxPath) { (Get-Item $VhdxPath).Length } else { 0 }
 $NeededBytes = 2 * $DiskBytes
@@ -122,8 +116,8 @@ if (-not (Test-Path -Path $DestinationDir)) {
 }
 
 # 3. Copy: the source is only read. The temporary image is removed in all
-# cases - it is worth twice the instance's disk on a drive that has just been
-# checked for room, and leaving it behind would eat that room for nothing.
+# cases - it is worth twice the disk, and leaving it would eat the room just
+# checked for.
 try {
     Write-Host "==> 1. Reading the source (the source itself is not modified)..." -ForegroundColor (Get-MessageColour info)
     Invoke-External { wsl.exe --export $SourceDistro $TempArchive --format tar.gz } "The export failed."
@@ -151,9 +145,9 @@ $CopyBytes = if (Test-Path $CopyVhdx) { (Get-Item $CopyVhdx).Length } else { 0 }
 # Ours from here on, like the source it was copied from.
 New-InstanceMarker -Folder $FullDestination -By "duplicate"
 
-# The copy has its own profile now, and its own guid: the look is re-applied to
-# that one, from the values captured off the source before the export - and so
-# is Docker Desktop's knowledge of it, which is keyed by name.
+# The copy has its own profile and its own guid: the look is re-applied from
+# the values captured before the export - Docker Desktop's entry too, keyed by
+# name.
 Set-InstanceState -Name $NewDistroName -InstallPath $FullDestination -Appearance $Look
 
 Write-Host ""
@@ -169,9 +163,8 @@ Write-Host "  Windows Terminal: the copy gets a profile of its own, with the ico
 Write-Host "  the font and the colours of the source. Restart Terminal to see it." -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
 
-# The source was running when this started: leave it the way it was found.
-# `--exec` runs a command and returns, so it comes back up without this script
-# opening a shell in it.
+# Left the way it was found: `--exec` runs a command and returns, so it comes
+# back up without this script opening a shell.
 if ($StoppedByUs) {
     try {
         Invoke-External { wsl.exe -d $SourceDistro --exec /bin/true } "Could not restart '$SourceDistro'."

@@ -1,20 +1,16 @@
 [CmdletBinding()]
 param ()
 
-# No parameter on purpose: the instance comes from a list, and the pack comes
-# from a list too - the ones this repository carries and that instance does not
-# have yet. Typing either by heart is a name you can get wrong.
+# No parameter on purpose: the instance and the pack both come from lists -
+# typing either by heart is a name you can get wrong.
 #
-# What it does, in order: which instance, which pack, then the pack's folder is
-# copied into the instance and its install script runs there, in front of you.
-# That script may ask for your password - the packages belong to root - and the
-# prompt does travel through wsl.exe: nothing is carried around, and no sudoers
-# rule is written for it.
+# Then the pack's folder is copied into the instance and its install script runs
+# there, in front of you. It may ask for your password - the packages belong to
+# root - and the prompt does travel through wsl.exe: no sudoers rule is written.
 
 $ErrorActionPreference = "Stop"
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one.
+# The family's shared half: the marker.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -23,16 +19,16 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# What the checkout carries, what an instance has, and the moves that make a
-# pack travel all live in scripts\packs.ps1, loaded by instance.ps1 above. This
-# file is the flow: which instance, which pack, and what it says on the way.
+# The moves that make a pack travel live in scripts\packs.ps1, loaded above
+# with everything the commands share. This file is the flow: which instance,
+# which pack, and what it says on the way.
 
 # 1. Which instance the pack goes into
 $Distro = Select-Distro
 $DistroName = $Distro.Name
 
-# It may be stopped: the copy and the install happen inside it, so it has to be
-# up. WSL starts it on the way in and this call is what waits for it.
+# The copy and the install happen inside it, so it has to be up: WSL starts it
+# on the way in, and this call waits for it.
 Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."
 
 # Where its user's things live, asked of the instance itself.
@@ -54,8 +50,8 @@ if ($Available.Count -eq 0) {
 }
 
 $Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
-# Only the packs a user chooses: an invisible one is not offered, here any more
-# than in the checklist - it arrives with the pack that requires it.
+# Only the packs a user chooses: an invisible one arrives with the pack that
+# requires it, never offered.
 $Candidates = @($Available | Where-Object { $_.Visible -and $Installed -notcontains $_.Name })
 
 if ($Candidates.Count -eq 0) {
@@ -64,8 +60,8 @@ if ($Candidates.Count -eq 0) {
     exit 0
 }
 
-# Said before the list rather than after it: with the arrows the rows are
-# drawn in place, and anything printed under them gets painted over.
+# Said before the list, not after it: with the arrows the rows are drawn in
+# place, and anything under them gets painted over.
 if ($Installed.Count -gt 0) {
     Write-Host ""
     Write-Host ("       Already in '$DistroName': {0}" -f ($Installed -join ", ")) -ForegroundColor (Get-MessageColour muted)
@@ -84,17 +80,17 @@ if (-not $Pack) {
 
 $PackName = $Pack.Name
 
-# 3. What travels: the pack, and whatever it requires, the requirements first -
-# a pack lands on top of what it needs. Resolved here, by the same helper the
-# checklist uses, so that "what arrives" means the same thing in both commands.
+# 3. What travels: the pack and whatever it requires, requirements first - and
+# resolved by the same helper the checklist uses, so that "what arrives" means
+# the same thing in both commands.
 $ToInstall = @()
 foreach ($Name in @(Resolve-PackSelection -Available $Available -Names @($PackName) -Installed $Installed)) {
     $Entry = @($Available | Where-Object { $_.Name -eq $Name })[0]
     if ($null -ne $Entry) { $ToInstall += $Entry }
 }
 
-# 4. Each pack's folder, copied into the instance, then what the pack does to
-# install itself from inside its own folder. Both live in scripts\packs.ps1.
+# 4. Each pack's folder copied in, then what it does to install itself from
+# inside it - both in scripts\packs.ps1.
 foreach ($Entry in $ToInstall) {
     $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Entry.Name
 
@@ -115,11 +111,10 @@ foreach ($Entry in $ToInstall) {
     Invoke-PackScript -DistroName $DistroName -Target $Target -Script "install.sh" -ExitCode ([ref]$Code)
     $InstallCode = $Code
 
-    # Exit code 2: the pack asked a question and the answer was no - the claude
-    # pack asks before adding a second copy of a program that is already
-    # installed on Windows. Its folder goes back out here for the same reason as
-    # below, and this command ends on that: nothing is broken, there is nothing
-    # to run again, and exit 0 is how the run was meant to end.
+    # Exit code 2: the pack asked a question and the answer was no (the claude
+    # pack asks about a second copy installed on Windows). Its folder goes back
+    # out, and the command ends on exit 0: nothing is broken, nothing to run
+    # again.
     if ($InstallCode -eq 2) {
         Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
         Write-Host "       The pack's files were removed: it is not installed in '$DistroName'." -ForegroundColor (Get-MessageColour hint)
@@ -128,9 +123,8 @@ foreach ($Entry in $ToInstall) {
 
     # A half-installed pack is worse than none: the Makefile loads whatever
     # folder is there, so the menu would offer commands whose tool was never
-    # installed. The folder goes back out, and only it - what the install
-    # already wrote to the system stays, and running this again picks up where
-    # it stopped.
+    # installed. The folder goes back out - and only it: what the install
+    # already wrote stays, and running this again picks up there.
     if ($InstallCode -ne 0) {
         Write-Host ""
         Write-Host "[FAIL] The installation did not complete (exit code $InstallCode)." -ForegroundColor (Get-MessageColour error)
@@ -144,10 +138,9 @@ foreach ($Entry in $ToInstall) {
 Write-Host ""
 Write-Host "==> '$PackName' is installed in '$DistroName'." -ForegroundColor (Get-MessageColour success)
 Write-Host "    Open a shell in it to use it:  .\wsl.ps1 shell" -ForegroundColor (Get-MessageColour muted)
-# The pack's samples travelled with its folder, but nothing has merged them into
-# the user's own .env files - those are theirs, and no install writes into them.
-# Said here, once, because it is the one step an install leaves over - and only
-# when a sample travelled: a pack that ships none has nothing to merge.
+# The pack's samples travelled with its folder, but nothing merged them into
+# the user's .env files - those are theirs, and no install writes into them.
+# Said once, and only when a sample travelled.
 if (@($ToInstall | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
     Write-Host "    Then, in there:  gmake env_global_enable   (adds the pack's variables)" -ForegroundColor (Get-MessageColour muted)
 }

@@ -2,21 +2,15 @@
 # the numbered prompt, answers on standard input, no console anywhere.
 #
 # The instance it works on exists for the length of the test: a registry key of
-# its own, a folder carrying the marker, and the WSL fragment Windows Terminal
-# reads a profile from, so that the font has a profile to be applied to. All
-# three are taken back out at the end, whatever happens.
+# its own, a folder carrying the marker, and the WSL fragment Terminal reads a
+# profile from. All three are taken back out at the end.
 #
-# What is checked is what the command is for: the list it draws is the fonts that
-# carry the glyphs a prompt is drawn with - a monospaced font that carries none
-# is not in it, and the symbol fonts Windows ships are not either - the font in
-# use is marked, where to get more of them is said, and picking one writes it
-# into the profile this repository owns and into the instance's own file. The
-# list is read from a first run that cancels, so the number to give on the second
-# one is a number that was really there.
-#
-# It says nothing about how MANY fonts are listed: a machine with no Nerd Font
-# has a list of one - the font in use, which is always in it - and that is the
-# list it should draw there.
+# What is checked is what the command is for: the list is the fonts that carry
+# the glyphs a prompt is drawn with, the font in use is marked, and picking one
+# writes it into the profile this repository owns and into the instance's own
+# file. The list is read from a first run that cancels, so the number given to
+# the second was really there. A machine with no Nerd Font has a list of one -
+# the font in use - and that is the list it should draw there.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
@@ -34,8 +28,8 @@ $FakeFolder = Join-Path $Tmp "instance"
 $Recipe = Join-Path $FakeFolder "instance.json"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e5f}"
 
-# The profile Windows Terminal knows an instance by: a fragment WSL writes, and
-# the one thing this repository layers its own fragment over.
+# The profile Terminal knows an instance by - a fragment WSL writes, over which
+# this repository layers its own.
 $WslFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL\{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}.json"
 $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$FakeName.json"
 $OurFragmentExisted = Test-Path $OurFragment
@@ -65,12 +59,11 @@ function Invoke-Font {
 }
 
 # The rows of the numbered list, as the command drew them: the font names, in
-# order. The first column of each row is its number.
+# order, each row's first column being its number.
 #
-# Read from the title of the font menu down: the instance list the command asks
-# about first is drawn the same way - number, name, more - and its rows are not
-# fonts. (They were counted as fonts once, and the number given to the second run
-# then pointed at something else.)
+# Read from the title of the font menu down: the instance list drawn above it -
+# number, name, more - is not fonts (counted as fonts once, the number given to
+# the second run pointed at something else).
 function Get-ListedFonts {
     param([object[]]$Lines)
 
@@ -117,30 +110,26 @@ try {
     $Out = Invoke-Font @("$Pick", "0")
     $Fonts = @(Get-ListedFonts $Out)
     Check "the list is not empty" ($Fonts.Count -ge 1) $true
-    # What the list is for, checked with the font that shows it: Consolas is
-    # monospaced, it is on every Windows there is, and it carries none of the
-    # glyphs a prompt is drawn with.
+    # Checked with the font that shows it: Consolas is monospaced, on every
+    # Windows, and carries none of the glyphs a prompt is drawn with.
     Check "a font that carries no icons is not offered" ($Fonts -notcontains "Consolas") $true
     Check "and the symbol fonts are not" (@($Fonts | Where-Object { $_ -like "Wingdings*" }).Count) 0
     Check "the one in use is marked" (@($Out | Where-Object { "$_" -like "*(current)*" }).Count -gt 0) $true
     Check "it says where more of them come from" (@($Out | Where-Object { "$_" -like "*nerdfonts.com*" }).Count -gt 0) $true
     Check "cancelling applied nothing" (Test-Path $OurFragment) $OurFragmentExisted
 
-    # 2. Picking one: the number it had in that list, given to a second run. A
-    # font other than the one in use, whenever the machine has one to offer:
-    # picking the current one would be written the same way whether the choice
-    # was read or not.
+    # 2. Picking one: the number it had in that list, given to a second run - a
+    # font other than the one in use, or picking the current one would be
+    # written the same way whether the choice was read or not.
     $Current = (Get-InstanceAppearance -Name $FakeName).Font
     $Want = @($Fonts | Where-Object { $_ -ne $Current }) | Select-Object -First 1
     if (-not $Want) { $Want = $Fonts[0] }
     $Wanted = [array]::IndexOf($Fonts, $Want) + 1
     $null = Invoke-Font @("$Pick", "$Wanted")
 
-    # A rule, not a diagnosis: a byte-order mark is not part of JSON, the
-    # fragments that are known to work - WSL's own, Terminal's settings.json -
-    # begin with a brace, and PowerShell's -Encoding Utf8 writes a mark whether
-    # anyone asked for one. Whether Terminal refuses a marked file was never
-    # measured; what is written here has no mark.
+    # A rule, not a diagnosis: a mark is not part of JSON, the fragments known
+    # to work - WSL's own, Terminal's settings.json - begin with a brace, and
+    # PowerShell's -Encoding Utf8 writes a mark whether anyone asked or not.
     $Bytes = [System.IO.File]::ReadAllBytes($OurFragment)
     Check "the fragment starts with a brace, not a mark" ([char]$Bytes[0]) "{"
 
@@ -153,9 +142,9 @@ try {
     Check "and into the instance's own file" $Saved.Font "$Want"
     Check "which is still the instance's" $Saved.Name $FakeName
 
-    # 3. The way it is reached: the theme menu asks which instance, hands over to
-    # this command, and is drawn again when it is done. Answers: the instance,
-    # "font", Escape on the font list, Escape here.
+    # 3. The way in: the menu asks which instance, hands over, and is drawn
+    # again when done. Answers: the instance, "font", Escape on the list, Escape
+    # here.
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
@@ -165,16 +154,14 @@ try {
     }
     Check "theme hands over to the font command" (@($Themed | Where-Object { "$_".Contains("Font of '$FakeName'") }).Count -gt 0) $true
     # Twice: once to start with, and once more when the theme menu is left -
-    # Escape goes back up to the list, so that another instance can be picked.
+    # Escape goes back up to the list.
     Check "and the list comes back when the menu is left" (@($Themed | Where-Object { "$_".Contains("Our Instances") }).Count) 2
     Check "and the menu comes back when it is done" (@($Themed | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
 
-    # 4. And the other half of the rule: the font in use is in the list whatever
-    # it carries. The instance is put on a font that carries no icons - Consolas
-    # is the one on every Windows - and the list has to show it anyway, marked:
-    # it is the row that says where you are, and on a machine where no font
-    # carries icons it is the only row there is. Written through the profile
-    # writer the command reads, so this is the state the command would find.
+    # 4. The other half of the rule: the font in use is in the list whatever it
+    # carries. The instance is put on Consolas - monospaced, on every Windows,
+    # no icons - through the profile writer the command reads, and the list has
+    # to show it anyway, marked.
     Set-InstanceFragment -Name $FakeName -Guid "{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}" `
         -Font "Consolas" -ColorScheme "One Half Dark" -IconPath $null
     $Out2 = Invoke-Font @("$Pick", "0")

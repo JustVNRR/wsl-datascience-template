@@ -1,45 +1,35 @@
 # ============================================================
 # PROJECT SCAFFOLDING (FNEW)
 # ============================================================
-# This file is the pack's: the socle reads it where it lives
-# (~/.config/packs/scaffold/zsh/scaffold.zsh) and copies nothing anywhere. It
-# reads the catalogs of every installed pack, one per pack, and the folder that
-# holds them is resolved from this file rather than from a directory of the
-# socle's - `%x` is the file currently being read, which is also the right
-# answer from inside a function (there, `$0` is the function's own name).
+# The socle reads it where it lives; nothing is copied. `%x` is this file - the
+# catalogs are resolved from here, and it is also the right answer from inside
+# a function (there, `$0` is the function's name).
 
-# uv - and the tools `uvx` takes from its cache - live in ~/.local/bin. The pack
-# declares its own PATH rather than editing the shell's startup files, so a
-# removal has nothing to undo in yours; the python pack declares the same line,
-# both of them running uv.
+# uv and its tools live in ~/.local/bin; the pack declares its own PATH rather
+# than editing the startup files - the python pack declares the same line.
 export PATH="$HOME/.local/bin:$PATH"
 
-# Interactively fuzzy-select a project template from every installed pack's
-# catalog (packs/*/cheatsheets/templates.tsv) and print
-# "url<TAB>tool<TAB>version<TAB>pack" - the pack being the one whose after-copy
-# step runs once the template is in place.
+# Pick a template from every installed pack's catalog and print
+# "url<TAB>tool<TAB>version<TAB>pack" - the pack whose after-copy step runs.
 _ftemplate_select() {
-    # ...:A resolves the path (symlinks, `..`), :h three times climbs from
-    # zsh/scaffold.zsh to the folder of the packs - this one and its neighbours,
-    # each with its own catalog beside its own files.
+    # :A resolves the path; :h three times climbs from zsh/scaffold.zsh to the
+    # packs' folder.
     local packs="${${(%):-%x}:A:h:h:h}"
     local -a catalogs readable
     local skipped c
 
     catalogs=("$packs"/*/cheatsheets/templates.tsv(N))
-    # A pack that ships no catalog is not a failure, and neither is one whose
-    # catalog is empty: what the picker needs is a file to read somewhere.
-    # Nothing readable anywhere at all is the silent exit fnew relies on.
+    # A pack with no catalog, or an empty one, is not a failure; nothing
+    # readable anywhere is the silent exit fnew relies on.
     for c in "${catalogs[@]}"; do
         [[ -s "$c" ]] || continue
         readable+=("$c")
     done
     (( ${#readable} )) || return 1
 
-    # Rows the picker will skip, collected BEFORE it runs: the warning is printed
-    # once it closes. fzf owns the whole screen while it is open, so a message
-    # emitted before it would only flash. Each row is named with the catalog it
-    # was read from: there is more than one now.
+    # Rows the picker skips are collected BEFORE it runs: fzf owns the screen,
+    # and a message emitted before would only flash. Each row is named with its
+    # catalog.
     skipped=$(awk -F'\t' '
         /^[[:space:]]*(#|$)/ { next }
         NF < 4 { print FILENAME ": " $0 }
@@ -126,26 +116,21 @@ _ftemplate_select() {
     fi
 }
 
-# Scaffold a new project, from the packs' catalogs or from an explicit URL
-# 1. Fail fast: fnew only runs from ~/projects itself (before any input)
-# 2. Template: the first argument, or fuzzy-picked from the catalogs
-# 3. Enter the project name
-# 4. Delegate to the gmake Makefile (copier_project / cruft_project / ccds_project)
-#    to run the pack's after-copy step defined there
+# Scaffold a new project, from the packs' catalogs or from an explicit URL.
+# It runs from ~/projects itself only (before any input), then delegates to the
+# gmake target of the chosen tool (copier_project / cruft_project /
+# ccds_project), which runs the pack's after-copy step.
 #
 #   fnew                        # pick from the catalogs
-#   fnew gh:owner/repo          # try a template that is not in the catalog
-#   fnew gh:owner/repo cruft v1 # ...with the other tool (default: copier) and a pinned ref
+#   fnew gh:owner/repo [tool] [ref]
 #
-# The URL form reads and writes nothing: a template that turns out not to suit
-# costs only the project directory, and the catalogs stay the short list of
-# what was worth keeping.
+# The URL form reads and writes nothing: a template that does not suit costs
+# only the project directory.
 fnew() {
     local selection url tool version project_name pack remainder
     local -a make_args
 
-    # Destination guard: fail fast, before any interaction — projects are
-    # scaffolded from ~/projects itself (deeper would nest projects)
+    # ~/projects itself, before any interaction (deeper would nest projects)
     if [[ "$PWD" != "$HOME"/projects ]]; then
         echo "❌ fnew runs from ~/projects itself (current: $PWD)" >&2
         return 1
@@ -172,18 +157,11 @@ fnew() {
         return 1
     fi
 
-    # Copier is the only tool that requires an explicit destination path upfront;
-    # Cruft and CCDS ask for the project/repo name themselves inside their own
-    # prompts and create the directory on the fly. Asking beforehand for those
-    # two would ask the user twice.
-    #
-    # When asked, the name uses the Zsh line editor so arrows and backspace work
-    # naturally: plain `read` has no line editing, and raw terminal escape
-    # sequences (`^[[D`) would land straight in the variable. A shell with no
-    # terminal (pipes, CI) falls back to `read`. `vared -c` handles unset variables
-    # and keeps the text across validation attempts so a typo can be edited rather
-    # than retyped.
-    # `|| return` ensures a dry pipe or Ctrl-C breaks out cleanly.
+    # Only copier needs the destination path upfront; cruft and ccds ask the
+    # name themselves, and asking twice would. The name uses the line editor so
+    # arrows and backspace work - plain `read` has none, and escape bytes would
+    # land in the variable. `vared -c`: unset variables, text kept across
+    # attempts; a pipe or CI falls back to `read`.
 
     if [[ "$tool" == "copier" ]]; then
         while true; do
@@ -205,20 +183,17 @@ fnew() {
     if [[ -n "$version" ]]; then
         make_args+=("PROJECT_TEMPLATE_VERSION=$version")
     fi
-    # The pack the row came from decides what runs once the template is copied,
-    # and naming it on the make command line beats the .env.global default that
-    # a direct call reads. The URL form names none: it picked no row, so it
-    # keeps that default.
+    # The row's pack decides what runs after the copy, and naming it on the
+    # command line beats the .env.global default a direct call reads. The URL
+    # form picks no row and keeps the default.
     if [[ -n "$pack" ]]; then
         make_args+=("TEMPLATE_PACK=$pack")
     fi
 
-    # The makefile cannot move this shell: its recipes run in their own, and a
-    # process cannot change its parent's directory. fnew is a function, so it
-    # can — and it does it only when the scaffolding succeeded.
-    # Copier uses the pre-prompted destination folder, while Cruft and CCDS
-    # derive their own from the interactive prompts: resolve the newly created
-    # directory on the fly so the shell steps right into it.
+    # The Makefile cannot move this shell - recipes run in their own process;
+    # fnew is a function, so it can, and only when the scaffolding succeeded.
+    # Copier uses the destination it was given; cruft and ccds derive one, so
+    # the newest folder is found.
     if [[ "$tool" == "copier" ]]; then
         make -f "$ZDOTDIR/gmake/Makefile" "${make_args[@]}" && cd "$project_name"
     else

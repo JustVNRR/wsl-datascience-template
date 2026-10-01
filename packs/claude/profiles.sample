@@ -1,5 +1,5 @@
 {
-  "note": "One entry per provider, and an entry IS the environment Claude Code reads: the same names as in ~/.claude/settings.json, so a block you already have can be pasted here as it stands. \"id\" and \"note\" belong to this file - every other key is written into the settings when the entry is applied. An entry with nothing but an id is this instance's own login (your subscription), and choosing it takes back what another entry had put there. A base URL with no credential is refused: it would send your claude.ai login to that address. gmake claude_edit_profiles opens this file.",
+  "note": "One entry per provider. An entry IS the environment Claude Code reads: the same names as in ~/.claude/settings.json, so a block you already have can be pasted as it stands. \"id\" and \"note\" belong to this file; every other key is written into the settings when the entry is applied. An entry with nothing but an id is the instance's own login (your subscription), and choosing it takes back what another entry had put there. A base URL with no credential is refused: it would send your login to that address. gmake claude_edit_profiles opens this file.",
   "profiles": [
     {
       "id": "claude",

@@ -8,9 +8,8 @@ $ErrorActionPreference = "Stop"
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 $ArchiveFolder = Join-Path $Root "archives"
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one, and what Windows knows about its look - stored next to the
-# tar, and re-applied here.
+# The family's shared half: the marker, and the Windows-side look - stored next
+# to the tar, re-applied here.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -19,8 +18,8 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# 1. What is there to restore from. An empty folder is not an error to work
-# around: it is the answer, and it says how to fill it.
+# 1. What there is to restore from. An empty folder is not an error to work
+# around: it says how to fill it.
 if (-not (Test-Path $ArchiveFolder)) {
     Write-Host ""
     Write-Host "[ABORT] There are no archives: $ArchiveFolder does not exist." -ForegroundColor (Get-MessageColour error)
@@ -30,9 +29,8 @@ if (-not (Test-Path $ArchiveFolder)) {
     exit 1
 }
 
-# An archive is a folder - the tar, and the look of the instance it was taken
-# from - so what this lists is the folders that hold one. Most recent first:
-# the last archive taken is usually the one wanted back.
+# An archive is a folder - the tar, and the look it was taken with - so this
+# lists folders that hold one. Most recent first: usually the one wanted back.
 $Archives = @(Get-ChildItem -Path $ArchiveFolder -Directory |
     Where-Object { (Get-ChildItem -Path $_.FullName -Filter "*.tar*" -File).Count -gt 0 } |
     Sort-Object LastWriteTime -Descending)
@@ -46,8 +44,7 @@ if ($Archives.Count -eq 0) {
     exit 1
 }
 
-# 2. Pick one. An answer of nothing cancels, as everywhere else in this
-# repository.
+# 2. Pick one: nothing cancels, as everywhere else.
 $Chosen = Select-FromList -Title "Archives in $ArchiveFolder (most recent first):" -Items $Archives -Label {
     param($Entry)
     $Tar = Get-ChildItem -Path $Entry.FullName -Filter "*.tar*" -File |
@@ -81,9 +78,8 @@ if ($Name -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]*$') {
     exit 1
 }
 
-# An instance of that name has to go first, and removing an instance is
-# unregister.ps1's job - with its typed-name confirmation. This script does
-# not do it, and does not pretend to: it names the command.
+# Removing an instance is unregister.ps1's job, with its typed-name
+# confirmation: this script does not do it, it names the command.
 if ((Get-DistroNames) -contains $Name) {
     Write-Host ""
     Write-Host "[ABORT] An instance named '$Name' already exists." -ForegroundColor (Get-MessageColour error)
@@ -93,7 +89,7 @@ if ((Get-DistroNames) -contains $Name) {
 }
 
 # The install folder must be free too: a leftover folder of that name would
-# live inside the new instance's disk.
+# end up inside the new instance's disk.
 $InstallPath = [System.IO.Path]::GetFullPath((Join-Path $Root $Name))
 if (Test-Path $InstallPath) {
     Write-Host ""
@@ -103,8 +99,8 @@ if (Test-Path $InstallPath) {
     exit 1
 }
 
-# 4. Import. Version 2, like build.ps1: an archive does not carry the version
-# of the instance it came from, and WSL 1 is not what this repository builds.
+# 4. Import. Version 2, like build.ps1: a tar does not carry the version it
+# came from, and WSL 1 is not what this repository builds.
 $ChosenTar = Get-ChildItem -Path $Chosen.FullName -Filter "*.tar*" -File |
     Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
@@ -124,8 +120,8 @@ try {
     exit 1
 }
 
-# Our mark, so every other command sees the instance - then the look, and
-# Docker Desktop's knowledge of it, which a tar carries neither of.
+# Our mark, so every other command sees the instance - then the look and
+# Docker's entry, which a tar carries neither of.
 New-InstanceMarker -Folder $InstallPath -By "restore"
 
 Set-InstanceState -Name $Name -InstallPath $InstallPath -Folder $Chosen.FullName

@@ -3,13 +3,10 @@
 # requires: wg
 # ==========================================
 # The `web` pack's tunnel: your servers are in ~/.config/vpn/servers.json, its
-# settings (server, kill switch, MTU, resolver out of tunnel) in
-# ~/.config/zsh/gmake/.env.global, and /etc/wireguard/vpn.conf is written from
-# both before every mount - it is read, never edited. The pack installs from
-# Windows (`.\wsl.ps1 add_pack`), its page is packs/web/docs/vpn.md, and the
-# module behind these targets is make/vpn.mk.
-# Offered only while the tools are installed - the header above hides the sheet
-# when they were removed by hand.
+# settings in ~/.config/zsh/gmake/.env.global, and /etc/wireguard/vpn.conf is
+# written from both before every mount - read, never edited. Offered only while
+# the tools are installed: the `# requires:` line above hides the sheet once
+# they were removed by hand.
 
 # --- 1. THE TUNNEL (gmake) ---
 gmake vpn_status                               # Up or down, the server, the kill switch, the DNS, the exit IP

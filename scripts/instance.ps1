@@ -2,53 +2,34 @@
 # WHICH INSTANCES ARE OURS, AND WHAT WINDOWS KNOWS ABOUT THEM
 # ==============================================================================
 # The machine holds distributions that are not ours - Docker Desktop's own, or
-# the ones a colleague keeps for other projects - and they sit side by side
-# with ours in the same folders. The registry says what Windows knows; it does
-# not say what this repository built.
-#
-# So every instance we create carries a marker, in its own folder, next to
-# ext4.vhdx:
+# a colleague's. So every instance we create carries a marker in its own folder,
+# next to ext4.vhdx:
 #
 #   <install folder>\.wsl-stack
 #
 # It is written by the three commands that create an instance - build, restore,
-# duplicate - and looked for by every command that lists instances. There is no
-# list to keep up to date: the mark travels with the instance, wherever it
-# lives, and an instance that loses it simply leaves our lists. Nothing else
-# writes it - an instance is ours because one of those three made it, and there
-# is no way to mark somebody else's machine as ours.
+# duplicate - and looked for by every command that lists instances; nothing
+# else writes it.
 #
-# --------------------------------------------------------------------------
-# Two more things live on the Windows side of an instance, and both are lost
-# the same way - silently:
+# Two more things live on the Windows side, and both are lost silently:
+#   the look   icon, font, colour scheme - a Windows Terminal fragment that
+#              targets the guid of the WSL profile; a re-import gives a NEW
+#              guid, and the fragment stops matching.
+#   Docker     whether Docker Desktop knows the instance (its own settings
+#              file, by name).
 #
-#   the look     an icon, a font and a colour scheme, written by build.ps1 into
-#                a Windows Terminal fragment that targets the guid of that
-#                instance's WSL profile. A re-import gives it a NEW guid, so
-#                the fragment stops matching and the instance comes back bare.
-#   Docker       whether Docker Desktop knows the instance, which it records in
-#                its own settings file, by NAME.
+# Neither is inside the tar, so an archive captures them beside it
+# (instance.json, terminal-icon.png) and re-applies them after an import.
 #
-# Neither is inside the tar: they are Windows settings, not Linux ones. So they
-# are captured when an archive is taken, next to it:
-#
-#   archives\<name>\instance.json       the font, the colours, Docker's answer
-#   archives\<name>\terminal-icon.png   the icon, copied from the instance
-#
-# and re-applied after an import.
-#
-# This file defines functions; it is not a command. Every command of the family
-# loads it at the top - a missing instance.ps1 means the scripts\ folder is
-# incomplete, and the commands say so rather than run half blind.
+# This file defines functions; it is not a command.
 # ==============================================================================
 
 # ---------------------------------------------------------------------------
 # THE MESSAGES
 # ---------------------------------------------------------------------------
-# What a line says and the colour it takes. Loaded before everything else,
-# because every line below this one is a message - the guard right here
-# included, and that one prints uncoloured: the table it would ask is the file
-# that is missing.
+# What a line says and the colour it takes - loaded before everything, because
+# every line below is a message. The guard prints uncoloured: the table it
+# would ask is the file that is missing.
 $MessageLib = Join-Path $PSScriptRoot "message.ps1"
 if (-not (Test-Path $MessageLib)) {
     Write-Host ""
@@ -115,15 +96,10 @@ function Test-FontInstalled {
 # ---------------------------------------------------------------------------
 # THE LOOK OF AN INSTANCE
 # ---------------------------------------------------------------------------
-# One file per instance, in its own folder: instance.json. It says the name, the
-# font and the colour scheme the instance wears, where its icon is, what that
-# icon is made of, and whether Docker Desktop knows it. An archive carries that
-# very file beside the tar, so its shape is decided once, here - what an archive
-# writes is what the instance folder holds, and reading it back is the same
-# shape of file in both places.
-#
-# Nothing is stored beside the picture: an instance has a file, not one per
-# thing that can be changed.
+# One file per instance, in its own folder: instance.json - the name, the font,
+# the colour scheme, where the icon is and what it is made of, whether Docker
+# Desktop knows it. An archive carries that very file, so its shape is decided
+# once here.
 #
 #   {
 #       "Name":  "distro",
@@ -137,9 +113,9 @@ function Test-FontInstalled {
 #       "Docker":  "yes"
 #   }
 #
-# The four Icon* fields are the recipe of the icon: they are what lets one change
-# keep the others - other letters, same colours. An image of your own is not a
-# drawing and has no recipe, so they are simply absent.
+# The four Icon* fields are the recipe: they let one change keep the others -
+# other letters, same colours. An image of your own has no recipe, so they are
+# absent.
 
 # Where an instance lives, asked of the registry rather than guessed: the folder
 # holding its disk. $null when nothing registered here carries that name.
@@ -232,25 +208,14 @@ function Set-InstanceLook {
     $Look | ConvertTo-Json | Set-Content -Path (Join-Path $InstallPath "instance.json") -Encoding Utf8
 }
 
-# Ask Windows Terminal to re-read what is written for its profiles, without
-# closing anything - turning a distro's theme on or restarting it without closing
-# a window, which wt.exe has no option for.
+# Ask Windows Terminal to re-read its profiles without closing anything, by
+# touching its settings file - nothing is written in it, only its date, which is
+# all the watcher looks at.
 #
-# Its own settings file is what it watches. A change to that file makes Terminal
-# re-read the whole of its settings, the fragments this repository writes
-# included, and a tab already open changes colour on the spot. Nothing is written
-# INTO the file: only its date is set to now, which is all a watcher looks at.
-#
-# WHEN this is asked matters, and only one moment works:
-#
-#   - touched from inside a command, nothing happens, and nothing happens later
-#     either - even a second later, even twice;
-#   - the same touch, once the command has returned to the prompt, works at once.
-#
-# The reload has to land while the pane is idle at its prompt, not while a menu
-# is running in it. That is why the theme menu calls this when the visit is over,
-# and why the commands below it call it only when they are run on their own: a
-# change made inside the menu cannot be shown while the menu is still there.
+# WHEN matters, and only one moment works: touched from inside a command,
+# nothing happens; the same touch once the command has returned to the prompt
+# works at once. The reload lands while the pane is idle - hence the theme menu
+# calls this when the visit is over.
 function Update-TerminalSettings {
     foreach ($Path in @(
         "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
@@ -284,26 +249,14 @@ function Get-WslProfileGuid {
     return $null
 }
 
-# The Terminal profile of an instance, as this repository writes it: layered over
-# WSL's own profile via "updates", so the user's settings.json is never touched.
+# The Terminal profile as this repository writes it: layered over WSL's own via
+# "updates", so the user's settings.json is never touched. The icon line is left
+# out when there is no icon - Terminal shows its own.
 #
-# The icon line is left out when there is no icon to point at: Terminal then
-# shows its own, which is what the build promises when a drawing fails. The
-# variable sits at the start of its line - a here-string is literal, so the line
-# is written whole by it, spaces included.
-#
-# Written without a byte-order mark, and what is known and what is not is worth
-# keeping apart here.
-#
-# Known, measured: every fragment this repository wrote used to begin with EF BB
-# BF, because Set-Content -Encoding Utf8 writes one; the fragments that are known
-# to work - WSL's own, and Terminal's settings.json - begin with a brace; and a
-# mark is not part of JSON, whatever a reader does with it.
-#
-# Not known: whether Terminal refuses such a file. It was never seen alone - the
-# day the mark went, the reload changed too, and the reload is the half that was
-# measured (see Update-TerminalSettings). So this is a rule, not a diagnosis: the
-# file has no mark because a mark is not JSON.
+# Byte-order-mark-free: Set-Content -Encoding Utf8 writes one, and a mark is not
+# part of JSON. Whether Terminal refuses such a file was never seen alone - the
+# mark and the reload changed the same day - so this is a rule, not a
+# diagnosis.
 function Set-InstanceFragment {
     param([string]$Name, [string]$Guid, [string]$Font, [string]$ColorScheme, [string]$IconPath)
 
@@ -451,19 +404,17 @@ function Set-InstanceState {
 
     if (-not (Test-FontInstalled $Appearance.Font)) {
         Write-Host "                       Not installed on Windows: '$($Appearance.Font)'." -ForegroundColor (Get-MessageColour warning)
-        Write-Host "                       The profile points at it, but the prompt will show boxes" -ForegroundColor (Get-MessageColour warning)
-        Write-Host "                       until it is installed." -ForegroundColor (Get-MessageColour warning)
+        Write-Host "                       The prompt will show boxes until it is installed." -ForegroundColor (Get-MessageColour warning)
     }
 
-    # Docker Desktop keeps the distros it knows in its own settings file, by
-    # name, and reads that file only when it starts. If the archive says it knew
-    # the original, put the new one back - the restart is the price, so it is
-    # asked rather than paid quietly.
+    # Docker Desktop records the distros it knows by name, and reads that file
+    # only when it starts: if the archive says it knew the original, the new one
+    # is put back - the restart is the price, hence the [y/N] question.
     if ($Appearance.Docker -eq "yes" -and (Get-DockerState -Name $Name) -eq "no") {
         Write-Host ""
-        # [y/N], not [Y/n]: this question lands in the middle of a restore or a
-        # copy, where restarting Docker Desktop stops containers for a reason
-        # the user may not care about. Nothing happens unless it is asked for.
+        # [y/N], not [Y/n]: this lands in the middle of a restore or a copy,
+        # where the restart stops containers for a reason the user may not care
+        # about.
         $AddToDocker = [string](Read-Host "Add '$Name' to Docker Desktop? (it restarts Docker) [y/N]")
         if ($AddToDocker -match "^[yY]") {
             try {
@@ -527,13 +478,9 @@ function Set-DockerState {
 # ---------------------------------------------------------------------------
 # THE INSTANCES, AND WHAT EVERY COMMAND ASKS ABOUT THEM
 # ---------------------------------------------------------------------------
-# These five used to live in twelve copies across scripts\ - identical to the
-# byte, which is how they were found: one hash per function body, twelve files.
-# Not one of them was wrong; the cost was that a fix had twelve places to land
-# in, and eleven chances to be forgotten. They are here now, where the commands
-# already come for the marker and for Docker's answer.
-
-# Halts script execution if an external command (like wsl) fails
+# These five used to live in twelve identical copies across scripts\; they are
+# here now, where the commands already come for the marker and for Docker's
+# answer.
 function Invoke-External {
     param([scriptblock]$Command, [string]$ErrorMessage)
     & $Command
@@ -597,15 +544,12 @@ function Format-Size {
 # RUNNING THINGS IN AN INSTANCE
 # ---------------------------------------------------------------------------
 # Commands are passed one argument at a time and run without a shell: the only
-# string that ever travels through wsl.exe is a plain path. A bash script handed
-# over as text is what breaks quietly - the quotes do not survive the round trip,
-# and a command split in the wrong place fails in a way that looks like the
-# instance's fault.
+# string that ever travels through wsl.exe is a plain path - a bash script
+# handed over as text breaks quietly, the quotes not surviving the round trip.
 #
-# stderr is non-terminating for the duration of these calls: under
-# $ErrorActionPreference = "Stop" a redirection turns it into a TERMINATING
-# error, and WSL itself writes there (it warns about the proxy configuration,
-# for instance). The exit code is what says whether the command worked.
+# stderr is non-terminating for these calls: under EAP=Stop a redirection turns
+# it terminating, and WSL itself writes there (the proxy warning, for instance).
+# The exit code is what says whether the command worked.
 
 # Run a command in the instance. Its output is streamed - a pack's install.sh
 # may ask for a password - so the exit code cannot be the return value: a
@@ -657,10 +601,9 @@ function Get-InstanceHome {
 # ---------------------------------------------------------------------------
 # THE MENUS
 # ---------------------------------------------------------------------------
-# They live beside this file rather than inside it: what the commands share is
-# now two things - what this machine is (here) and how it is asked (menu.ps1).
-# Same rule as this file when a piece of it is missing: say so, rather than
-# die with a PowerShell error that reads like the machine's fault.
+# What the commands share: what this machine is (here) and how it is asked
+# (menu.ps1). Same rule when a piece is missing: say so, rather than die with a
+# PowerShell error that reads like the machine's fault.
 $MenuLib = Join-Path $PSScriptRoot "menu.ps1"
 if (-not (Test-Path $MenuLib)) {
     Write-Host ""
@@ -673,8 +616,8 @@ if (-not (Test-Path $MenuLib)) {
 # THE PACKS
 # ---------------------------------------------------------------------------
 # What this checkout carries, what an instance has, and the moves that make a
-# pack travel. Loaded here for the same reason as the menus: three commands ask,
-# and asking is written once.
+# pack travel - loaded here because three commands ask, and asking is written
+# once.
 $PacksLib = Join-Path $PSScriptRoot "packs.ps1"
 if (-not (Test-Path $PacksLib)) {
     Write-Host ""

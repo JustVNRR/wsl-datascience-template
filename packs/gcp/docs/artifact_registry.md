@@ -2,10 +2,6 @@
 
 [← Back to the README](../../../README.md#makefile-gmake)
 
-The Google half of the Docker workflow: the repository that stores the
-production image, the image itself, and what it takes to be allowed to push
-there.
-
 ## Targets
 
 | Target | Action | Confirmation |
@@ -16,13 +12,6 @@ there.
 | `artifact_registry_build` | Build the production image (`linux/amd64`) | — |
 | `artifact_registry_push` | Push the production image to Artifact Registry | ⚠️ |
 
-Nothing here runs without `gcloud`: three targets call it, and the two that call
-`docker` only tag and push to a path `gcloud auth configure-docker` unlocks. This
-module is loaded, and its targets are in the menu, when this pack's folder is in
-the instance — which is also when the CLI it installs is there. The local
-container ([`docker.md`](../../devops/docs/docker.md)) needs nothing else. See
-[what a pack is](../../../docs/packs.md#installed-or-not) for that rule.
-
 ## Variables
 
 | Variable | Example |
@@ -30,9 +19,6 @@ container ([`docker.md`](../../devops/docs/docker.md)) needs nothing else. See
 | `GCP_PROJECT` | `my-project-id` |
 | `GCP_REGION` | `europe-west1` |
 | `ARTIFACTSREPO` | `my-artifacts` |
-
-`artifact_registry_build` builds the same recipe as `docker_build_local`, so it
-reads the same three variables — see [`docker.md`](../../devops/docs/docker.md).
 
 ## Typical flow
 

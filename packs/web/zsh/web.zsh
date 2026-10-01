@@ -5,9 +5,8 @@
 # `fox` opens the light privacy profile, `pfox` the strict one in a private
 # window, with the check page first (docs/fox.md).
 
-# X11, not Wayland: WSLg announces Wayland, and that path misbehaves under WSL
-# (scrolling, menus that stop answering, dropped frames). Ask for it back for
-# one call: `MOZ_ENABLE_WAYLAND=1 fox`.
+# X11, not Wayland: WSLg announces Wayland, and that path misbehaves under WSL.
+# Ask for it back for one call: `MOZ_ENABLE_WAYLAND=1 fox`.
 export MOZ_ENABLE_WAYLAND=0
 
 # The pack's root, from this file's own path - %x is where a function here was
@@ -15,9 +14,8 @@ export MOZ_ENABLE_WAYLAND=0
 PACK=${${(%):-%x}:A:h:h}
 FOX_SH=$PACK/bin/fox.sh
 
-# What both launchers end on. The session bus: this image has none, and
-# Firefox's first window never opens without one - the first launch of a shell
-# starts it, the later ones find the variable set.
+# What both launchers end on. No session bus in the image, and Firefox's first
+# window never opens without one: the first launch of a shell starts it.
 _fox_launch() {
     if [[ -z "$DBUS_SESSION_BUS_ADDRESS" ]] && command -v dbus-launch >/dev/null 2>&1; then
         # dbus refuses WSLg's runtime directory (world-writable); give this
