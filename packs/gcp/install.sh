@@ -5,14 +5,12 @@
 # `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/gcp, then
 # runs this script from inside it, as the instance's own user.
 #
-# The package and the repository address are root's business: one sudo, asked
-# once, for a single root shell. Not several: `curl ... | sudo gpg` has no
-# terminal on its input, so sudo could not have asked for a password there and
-# would have failed whenever the ticket was not already open. One `sudo bash
-# -c` is asked at a point where the keyboard is still free.
+# One sudo for a single root shell: `curl ... | sudo gpg` has no terminal on
+# its input, so sudo could not have asked for a password there - and one `sudo
+# bash -c` is asked while the keyboard is still free.
 #
 # The image carries no trace of Google - no signing key, no APT address. This
-# script registers both, then installs the package. remove.sh undoes exactly
+# script registers both, then installs the package; remove.sh undoes exactly
 # that.
 
 set -euo pipefail

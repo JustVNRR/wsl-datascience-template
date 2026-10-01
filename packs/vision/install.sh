@@ -5,9 +5,9 @@
 # `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/vision, then
 # runs this script from inside it, as the instance's own user.
 #
-# Everything here belongs to root, so it takes one sudo, asked once. What it
-# installs is read from pack.conf - the same line remove.sh reads, so the two
-# cannot drift apart, and a neighbour can ask who claims what.
+# Everything here belongs to root: one sudo, asked once. What it installs is
+# read from pack.conf - the same line remove.sh reads, and a neighbour can ask
+# who claims what.
 
 set -euo pipefail
 
