@@ -34,12 +34,8 @@ endef
 
 # Macro 2: Print target variables and prompt for operator confirmation
 define confirm_action
-	@echo "\n======================================================="
-	@echo " ⚠️  TARGET ACTION: $(1)"
-	@echo "======================================================="
+	@echo "\n⚠️  TARGET ACTION: $(1)"
 	@$(foreach var,$(2),printf " 🔹 $(var) : $(C_HINT)%s$(C_RESET)\n" "$($(var))";)
-	@echo "======================================================="
 	@read -p "Confirm execution? [y/N] " ans; \
 	if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then echo "\n❌ Operation cancelled by user." >&2; exit 1; fi
-	@echo "✅ Operation confirmed.\n"
 endef

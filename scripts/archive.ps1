@@ -174,9 +174,8 @@ Write-Host "  * Archive          : $Destination ($Format)" -ForegroundColor (Get
 
 if ($DiskBytes -gt 0 -and $FreeBytes -lt $DiskBytes) {
     Write-Host "  * Note             : less free space than the disk's size." -ForegroundColor (Get-MessageColour warning)
-    Write-Host "                       The archive is normally much smaller - it holds used" -ForegroundColor (Get-MessageColour muted)
-    Write-Host "                       data, not free blocks. If it does not fit, the export" -ForegroundColor (Get-MessageColour muted)
-    Write-Host "                       stops and leaves a partial file, which this script deletes." -ForegroundColor (Get-MessageColour muted)
+    Write-Host "                       The archive holds used data and is normally much smaller;" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "                       if it does not fit, the export stops and its partial file is deleted." -ForegroundColor (Get-MessageColour muted)
 }
 
 # 5. Export

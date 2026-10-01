@@ -696,8 +696,8 @@ if ($Deployed) {
                     } else {
                         $DockerReport = @(
                             "Docker Desktop: 'docker' does not answer in this instance yet.",
-                            "  Run 'docker version' in there. If it names the socket's permissions, restart",
-                            "  Docker Desktop and open a new terminal - a session keeps the groups it started with."
+                            "  Run 'docker version' in there; if it names the socket's permissions, restart",
+                            "  Docker Desktop and open a new terminal."
                         )
                         $DockerReportColour = "Yellow"
                     }

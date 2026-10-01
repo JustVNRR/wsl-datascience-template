@@ -624,7 +624,7 @@ cmd_auto() {
     off)
         rm -f "$AUTO_FLAG"
         printf 'The distro will not bring the tunnel up.\n'
-        printf '   The hook stays (it puts the base resolver back); a tunnel that is up stays up.\n'
+        printf 'A tunnel that is up stays up - gmake vpn_down stops it.\n'
         ;;
     *)
         die "auto takes 'on' or 'off'"
@@ -666,7 +666,7 @@ status_body() {
     if is_up && conf_present; then
         printf '   Tunnel      : up (%s)\n' "$IFACE"
     elif is_up; then
-        printf '   Tunnel      : up (%s), no profile here - raised by another instance, or by an earlier start of this one\n' "$IFACE"
+        printf '   Tunnel      : up (%s), no profile here - raised by another instance or an earlier start\n' "$IFACE"
     else
         printf '   Tunnel      : down\n'
     fi

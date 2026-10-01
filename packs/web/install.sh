@@ -148,10 +148,9 @@ else
     if [ ! -f "$servers" ]; then
         install -d -m 0700 "$(dirname "$servers")"
         install -m 600 "$here/vpn.servers.sample" "$servers"
-        echo "$servers is waiting for your keys - the sample says where every"
-        echo "   value goes, from the WireGuard configuration your provider"
-        echo "   gives you (its DNS line with them)."
-        echo "   Then: gmake vpn_edit_profiles, and gmake vpn_up."
+        echo "$servers is waiting for your keys - the sample shows where each"
+        echo "   value goes (the WireGuard configuration from your provider)."
+        echo "   Then: gmake vpn_edit_profiles, gmake vpn_up."
     fi
 fi
 
@@ -162,9 +161,8 @@ if ! make -f "$HOME/.config/zsh/gmake/Makefile" env_global_enable; then
     echo "The variables were not merged - run 'gmake env_global_enable' yourself."
 fi
 
-echo "Firefox is installed, and 'fox' opens it - its commands are in the picker (fcheat)."
-echo "It starts on the light privacy settings; pfox opens the strict ones (docs/fox.md)."
-echo "WireGuard is installed: gmake vpn_status   (servers first, see docs/vpn.md)"
+echo "Firefox is installed: 'fox' opens it on the light privacy settings, 'pfox' on the strict ones."
+echo "WireGuard is installed: gmake vpn_status   (servers first: gmake vpn_edit_profiles)"
 if [ -L /etc/resolv.conf ] || grep -q 'generateResolvConf' /etc/wsl.conf 2>/dev/null; then
     echo "The DNS setting is read when the distro starts: restart it once"
     echo "   (.\wsl.ps1 restart, from Windows) before the tunnel manages /etc/resolv.conf."

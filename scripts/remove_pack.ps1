@@ -97,8 +97,7 @@ foreach ($Name in $ToRemove) {
 
 Write-Host ""
 Write-Host "==> Removing from '$DistroName': $($ToRemove -join ', ')" -ForegroundColor (Get-MessageColour info)
-Write-Host "    Each pack's own remove.sh runs first - what it installed leaves the system." -ForegroundColor (Get-MessageColour muted)
-Write-Host "    Then its folder leaves, and the gmake menu loses its commands." -ForegroundColor (Get-MessageColour muted)
+Write-Host "    What each pack installed leaves the system, and the gmake menu loses its commands." -ForegroundColor (Get-MessageColour muted)
 foreach ($Name in $Also) {
     Write-Host "    '$Name' goes with '$PackName': nothing installed requires it any more." -ForegroundColor (Get-MessageColour muted)
 }

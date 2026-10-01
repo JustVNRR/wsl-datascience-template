@@ -48,10 +48,8 @@ Write-Host ""
 Write-Host "==> Reclaiming space in '$DistroName'" -ForegroundColor (Get-MessageColour info)
 Write-Host "  * Disk file now    : $(Format-Size $BeforeBytes)" -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
-Write-Host "  This compacts the instance's virtual disk: the space its filesystem" -ForegroundColor (Get-MessageColour muted)
-Write-Host "  has freed over time comes back to Windows. Nothing inside is touched," -ForegroundColor (Get-MessageColour muted)
-Write-Host "  and it is the operation Windows ships without any warning - unlike the" -ForegroundColor (Get-MessageColour muted)
-Write-Host "  sparse flag, which it refuses by default as a corruption risk." -ForegroundColor (Get-MessageColour muted)
+Write-Host "  This compacts the instance's virtual disk: the space its filesystem has" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  freed over time comes back to Windows. Nothing inside is touched." -ForegroundColor (Get-MessageColour muted)
 
 # 2. A copy first, and the answer is yes by default: compacting rewrites the
 # disk's metadata, which is exactly what a backup taken a minute before turns

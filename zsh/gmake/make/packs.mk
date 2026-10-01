@@ -51,8 +51,8 @@ packs_list: ## List the packs this instance carries
 			chosen=$$((chosen + 1)); \
 		done; \
 		if [ $$chosen -eq 0 ]; then \
-			echo "  Nothing you chose: what is left is a pack another one required,"; \
-			echo "  and the pack that required it is gone."; \
+			echo "  Nothing you chose is left: these packs are dependencies, and the"; \
+			echo "  pack that required them is gone."; \
 		fi; \
 		echo ""; \
 		echo "A pack is added or removed from Windows:  .\wsl.ps1 add_pack  /  .\wsl.ps1 manage_packs"; \

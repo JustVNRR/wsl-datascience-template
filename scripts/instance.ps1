@@ -451,8 +451,7 @@ function Set-InstanceState {
 
     if (-not (Test-FontInstalled $Appearance.Font)) {
         Write-Host "                       Not installed on Windows: '$($Appearance.Font)'." -ForegroundColor (Get-MessageColour warning)
-        Write-Host "                       The profile points at it, but the prompt will show boxes" -ForegroundColor (Get-MessageColour warning)
-        Write-Host "                       until it is installed." -ForegroundColor (Get-MessageColour warning)
+        Write-Host "                       The prompt will show boxes until it is installed." -ForegroundColor (Get-MessageColour warning)
     }
 
     # Docker Desktop keeps the distros it knows in its own settings file, by

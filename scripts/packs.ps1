@@ -458,8 +458,7 @@ function Select-Packs {
             if ($Unticked -notcontains $Name) { $Because += ("{0}: nothing installed requires it any more" -f $Name) }
         }
         if ($Because.Count -gt 0) { Write-Host ("               (" + ($Because -join "; ") + ")") -ForegroundColor (Get-MessageColour muted) }
-        Write-Host "               Their tools leave the system, and with them the dependencies" -ForegroundColor (Get-MessageColour muted)
-        Write-Host "               nothing needs any more." -ForegroundColor (Get-MessageColour muted)
+        Write-Host "               Their tools leave, and the dependencies nothing needs any more." -ForegroundColor (Get-MessageColour muted)
     }
     Write-Host ""
 
@@ -502,8 +501,7 @@ function Invoke-PackApply {
         if (-not (Copy-PackIntoInstance -DistroName $DistroName -PackPath $Pack.Path -Target $Target -ExitCode ([ref]$Code))) {
             Write-Host ""
             Write-Host "[FAIL] Could not copy '$($Pack.Name)' into '$DistroName' (exit code $Code)." -ForegroundColor (Get-MessageColour error)
-            Write-Host "       Nothing was installed, and nothing was removed." -ForegroundColor (Get-MessageColour hint)
-            Write-Host "       A pack copied by this run before the failure is in place, waiting." -ForegroundColor (Get-MessageColour hint)
+            Write-Host "       Nothing was installed or removed; a pack copied before the failure is in place." -ForegroundColor (Get-MessageColour hint)
             Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
             return [PSCustomObject]@{ Pack = $Pack.Name; ExitCode = $Code }
         }
@@ -521,8 +519,7 @@ function Invoke-PackApply {
             if ($Code -ne 0) {
                 Write-Host ""
                 Write-Host "[FAIL] '$Name' could not remove itself (exit code $Code)." -ForegroundColor (Get-MessageColour error)
-                Write-Host "       It is still installed. The packs placed above are in place, and" -ForegroundColor (Get-MessageColour hint)
-                Write-Host "       none of them has been installed yet." -ForegroundColor (Get-MessageColour hint)
+                Write-Host "       It is still installed; the packs placed before it are in place but not installed." -ForegroundColor (Get-MessageColour hint)
                 Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
                 return [PSCustomObject]@{ Pack = $Name; ExitCode = $Code }
             }
