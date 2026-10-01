@@ -85,9 +85,19 @@ if [ ! -e "$home/.config/vpn/auto" ]; then
     exit 0
 fi
 
-# Already up: a session raised it, or this ran twice. Leave it alone.
+# Up already? It survived the last stop - the interface is a kernel object of
+# the shared network stack, and everything a mount needs around it died with
+# the previous start: the resolver registration lived in /run, which is empty
+# again, and the kill-switch rules carry that start's cgroup, which was
+# renumbered. A survivor carrying one of OUR keys is raised again below; one
+# carrying another instance's is not ours to take down, and is left alone -
+# said in the log, where vpn_status reads.
 if /usr/bin/wg show interfaces 2>/dev/null | grep -qx vpn; then
-    exit 0
+    if ! HOME="$home" "$home/.config/packs/web/bin/vpn.sh" owns; then
+        log "the vpn interface is up with another configuration - left alone."
+        exit 0
+    fi
+    log "the tunnel survived the last stop - raising it again for this start."
 fi
 
 try=1

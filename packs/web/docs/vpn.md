@@ -149,7 +149,10 @@ separate: it puts the **base resolver** back — `/etc/resolv.conf` is
 openresolv's symlink into `/run`, and `/run` is empty at each start, so without
 it a restarted instance would resolve nothing until a vpn target ran — and it
 raises the tunnel **only when the automatic start is on**, which is what
-`gmake vpn_auto_on` and `vpn_auto_off` switch. What it did goes to
+`gmake vpn_auto_on` and `vpn_auto_off` switch. An interface that survived the
+distro's stop is raised again — its DNS registration and its kill-switch rules
+died with the previous start; one raised by another instance is left alone, and
+the log says so. What it did goes to
 `/var/log/web-vpn.log`, and `vpn_status` shows the last line of it.
 
 WSL stops a distro shortly after its last session closes, so "with the distro"

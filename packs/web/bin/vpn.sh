@@ -352,6 +352,30 @@ server_in_use() {
     as_root sed -n 's/^# Server: \([^ ]*\).*/\1/p' "$CONF" 2>/dev/null | head -n 1 || true
 }
 
+# Is the interface up running one of OUR servers? Asked before anything takes
+# an up interface down. After a stop the interface survives - a kernel object
+# of the shared network stack - while what a mount needs around it died with
+# the previous start: the DNS registration lived in /run (empty at every
+# start) and the kill-switch rules carry that start's cgroup. A survivor of
+# our own must be raised again; one carrying a neighbour instance's
+# configuration is not ours to touch. The key tells them apart: the live
+# public key (wg show) against the public keys computed from the servers in
+# the JSON - the same private keys the profile is written from.
+owns() {
+    local live key ours
+    live=$(as_root wg show "$IFACE" public-key 2>/dev/null || true)
+    [ -n "$live" ] || return 1
+    [ -f "$SERVERS" ] || return 1
+    while read -r key; do
+        [ -n "$key" ] || continue
+        ours=$(printf '%s\n' "$key" | wg pubkey 2>/dev/null || true)
+        if [ "$ours" = "$live" ]; then
+            return 0
+        fi
+    done < <(jq -r '(.servers // [])[] | .private_key // empty' "$SERVERS" 2>/dev/null || true)
+    return 1
+}
+
 # The tunnel comes up before the server has answered anything: wg-quick sets the
 # interface and its routes, and the handshake happens afterwards. Asking the
 # exit IP in that instant answers "unreachable" about a tunnel that is perfectly
@@ -496,6 +520,13 @@ cmd_up() {
     fi
 
     if is_up; then
+        # Whose tunnel is it? A survivor of our own last start is raised
+        # again - its resolver registration and its rules died with the
+        # previous start. Another instance's is not ours to take down:
+        # wg-quick down would remove their interface, which is shared (one
+        # kernel, one network stack, for every distro of the box).
+        owns ||
+            die "the vpn interface is up with another instance's configuration - left alone. Take it down from there, or: sudo ip link delete $IFACE"
         run_quiet as_root wg-quick down "$IFACE" ||
             die "the tunnel was up and would not come down - the lines above are wg-quick's own."
     fi
@@ -588,7 +619,7 @@ cmd_server() {
     # Named explicitly, and not read back from the variable: the value this
     # process was started with is the one from before the line above.
     if is_up; then
-        printf 'Switching to %s now.\n' "$wanted"
+        printf '\nSwitching to %s now.\n' "$wanted"
         cmd_up "$wanted"
     else
         printf 'Run gmake vpn_up or restart your distro to use this profile.\n'
@@ -740,8 +771,7 @@ cmd_auto() {
         hook_on
         install -d -m 0700 "$(dirname "$AUTO_FLAG")"
         : > "$AUTO_FLAG"
-        printf 'The tunnel will come up with the distro, server %s.\n' "$(server_var)"
-        printf '   Nothing happens now: it is the next start of the distro that runs it.\n'
+        printf '\n\033[33mRestart your instance for the changes to take effect.\033[0m\n'
         ;;
     off)
         rm -f "$AUTO_FLAG"
@@ -780,7 +810,17 @@ cmd_base() {
     write_base_resolver
 }
 
-cmd_status() {
+# A line of $1 dashes: the frame's borders, and the two side pieces of the
+# title line.
+dashes() {
+    printf '%*s' "$1" '' | tr ' ' '-'
+}
+
+# The block's lines, one printf each, and nothing around them: cmd_status
+# captures all of it so the frame is drawn as wide as the widest line - a
+# fixed width holds until a line grows (the Tunnel line alone has three
+# shapes, the longest naming a neighbouring instance).
+status_body() {
     local id count in_use ns exit_ip last
 
     if is_up && conf_present; then
@@ -832,13 +872,34 @@ cmd_status() {
     printf '   Exit IP     : %s\n' "${exit_ip:-unreachable}"
 
     if auto_flag_present; then
-        printf '   Starts with : the distro\n'
+        printf '   Automatic launch : on\n'
     else
-        printf '   Starts with : nothing (gmake vpn_auto_on turns it on)\n'
+        printf '   Automatic launch : off (run gmake vpn_auto_on to turn it on)\n'
     fi
 
     last=$(as_root tail -n 1 "$BOOT_LOG" 2>/dev/null || true)
     [ -n "$last" ] && printf '   Last start  : %s\n' "$last"
+    return 0
+}
+
+# The frame, and the reason the body above was captured first: the borders
+# span the widest line, and the title sits centred on its own line of dashes.
+# It also stands the block apart from whatever the command printed before it -
+# vpn_up, vpn_down, vpn_server and the rest all end on this.
+cmd_status() {
+    local body width title='VPN status' left right
+
+    body=$(status_body)
+    width=$(printf '%s\n' "$body" | awk 'length > m { m = length } END { print m + 2 }')
+    left=$(((width - ${#title} - 2) / 2))
+    right=$((width - ${#title} - 2 - left))
+
+    printf '\n'
+    printf '%s\n' "$(dashes "$width")"
+    printf '%s %s %s\n' "$(dashes "$left")" "$title" "$(dashes "$right")"
+    printf '%s\n' "$(dashes "$width")"
+    printf '%s\n' "$body"
+    printf '%s\n\n' "$(dashes "$width")"
     return 0
 }
 
@@ -883,6 +944,10 @@ base)
     shift
     cmd_base "$@"
     ;;
+owns)
+    shift
+    owns "$@"
+    ;;
 *)
     cat <<'USAGE'
 usage: vpn.sh <command>
@@ -900,6 +965,8 @@ usage: vpn.sh <command>
   hook on|off           the boot hook itself - the installer and the removal
                         drive it
   base                  put the base resolver back (the boot hook's first move)
+  owns                  is the up interface running one of our servers? The
+                        boot hook asks before it raises a survivor again
   edit_profiles         open ~/.config/vpn/servers.json in the editor
 
 Every command is a gmake target of the same name: gmake vpn_status, vpn_up,
