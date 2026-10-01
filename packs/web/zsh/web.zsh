@@ -23,7 +23,13 @@ export MOZ_ENABLE_WAYLAND=0
 # set and runs the plain command.
 fox() {
     if [[ -z "$DBUS_SESSION_BUS_ADDRESS" ]] && command -v dbus-launch >/dev/null 2>&1; then
-        eval "$(dbus-launch --sh-syntax)"
+        # The bus refuses the runtime directory WSLg hands the shell -
+        # /mnt/wslg/runtime-dir is world-writable, and dbus says so at every
+        # first launch ("can be written by others"). It gets one of its own
+        # for this call; the shell keeps WSLg's, which Wayland and the sound
+        # reach through.
+        install -d -m 0700 "$HOME/.run"
+        eval "$(XDG_RUNTIME_DIR="$HOME/.run" dbus-launch --sh-syntax)"
     fi
     firefox "$@"
 }
