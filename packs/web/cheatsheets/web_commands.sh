@@ -13,6 +13,7 @@ fox                                            # Open Firefox (the pack's functi
 firefox                                        # ... the command itself
 fox https://example.com                        # Open a page
 fox --private-window                           # A private window
+pfox                                           # ... and the privacy defaults applied first
 fox --new-window                               # A new window, even if one is open
 fox https://example.com/report.pdf             # A URL with a query string, quoted if it has &
 

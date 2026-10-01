@@ -10,6 +10,7 @@ graphical application — nothing is displayed inside the terminal.
 | :--- | :--- | :--- |
 | Firefox | browsing, from inside the instance | `firefox` |
 | the pack's function | opening it with the session bus the image does not have | `fox` |
+| the private launcher | a private window, the defaults applied first | `pfox` |
 | the privacy defaults | hardening, when you want it, and reversible | `fox_tweak_on`, `fox_tweak_off` |
 | the tunnel | the traffic, through your own WireGuard profile | [the tunnel's page](vpn.md) |
 
@@ -105,6 +106,10 @@ file beside the sound preference —
 takes it back to the browser's own defaults. They are *defaults*: every
 profile, no name to guess, and `about:config` still wins. What they set, and
 what it changes while browsing: [the privacy page](fox.md).
+
+**`pfox` is the pair in one word**: it applies the defaults (writing nothing
+when they are already the pack's copy, so it asks for no password), then opens
+a private window — one command for "the hardened browser, in private".
 
 Your profile (`~/.mozilla`: bookmarks, passwords, history) is yours: removing
 the pack does not delete it.

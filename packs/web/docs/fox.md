@@ -16,6 +16,11 @@ gmake fox_tweak_off                          # the browser's own defaults again
 Close and reopen Firefox for either to take effect — preferences are read at
 startup, like the sound one.
 
+`pfox` — the shell function beside `fox` — is the pair in one word: it applies
+the defaults first (an identical file is left alone, so the call costs nothing
+and asks for no password), then opens a private window. `fox_tweak_off` still
+takes them away; the next `pfox` puts them back.
+
 ## The file
 
 `/usr/lib/firefox/defaults/pref/fox-privacy.js`, beside the sound preference

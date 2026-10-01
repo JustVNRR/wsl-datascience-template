@@ -20,6 +20,10 @@
 # editing prefs.js by hand. All of that for a strength this file does not need:
 # there is one user here, and about:config is theirs to use.
 #
+# `on` compares before it writes: identical file, nothing done, no password
+# asked. That is what lets `pfox` - the shell function beside `fox` in
+# web.zsh - run this first at every launch and stay a one-word command.
+#
 # What is being set, and why each of it, is the pack's page (docs/fox.md).
 
 set -euo pipefail
@@ -45,10 +49,11 @@ as_root() {
     fi
 }
 
-# The file, whole, on every call: it is the pack's copy, and the header says so
-# where someone opening it would look.
-write_prefs() {
-    as_root tee "$PREF_FILE" > /dev/null <<'PREF'
+# The file's content, whole, in one place: read twice - compared before
+# writing, then written. It is the pack's copy, and the header says so where
+# someone opening it would look.
+prefs_body() {
+    cat <<'PREF'
 // Set by the web pack - `gmake fox_tweak_on` wrote it, `gmake fox_tweak_off`
 // takes it back. These are DEFAULT values, not orders: they apply to every
 // profile, and a value set in about:config wins over them. What each one does,
@@ -107,27 +112,39 @@ pref("privacy.resistFingerprinting.letterboxing", true);
 // in-browser call is a leak this browser does not need.
 pref("media.peerconnection.enabled", false);
 PREF
+}
+
+write_prefs() {
+    prefs_body | as_root tee "$PREF_FILE" > /dev/null
     # Readable by every user, writable by root: the shape the sound preference
     # has, and what Firefox expects of a defaults file.
     as_root chmod 0644 "$PREF_FILE"
+}
+
+# Is the file already exactly the pack's copy? The file is mode 644, so the
+# question is answered as the user - and answered before any sudo. This is
+# what makes an `on` that has nothing to do cost nothing.
+prefs_are_current() {
+    local tmp rc=0
+    tmp=$(mktemp)
+    prefs_body > "$tmp"
+    cmp -s "$tmp" "$PREF_FILE" || rc=1
+    rm -f "$tmp"
+    return "$rc"
 }
 
 cmd_on() {
     [ -d "$PREF_DIR" ] ||
         die "no $PREF_DIR: Firefox is not installed here - it arrives from Windows (.\wsl.ps1 add_pack)."
 
-    local was=no
-    if [ -f "$PREF_FILE" ]; then
-        was=yes
+    if [ -f "$PREF_FILE" ] && prefs_are_current; then
+        printf 'The privacy defaults are in place.\n'
+        return 0
     fi
 
     write_prefs
 
-    if [ "$was" = yes ]; then
-        printf 'The privacy defaults were already in place - the file is written again from the pack copy.\n'
-    else
-        printf 'The privacy defaults are in place: %s\n' "$PREF_FILE"
-    fi
+    printf 'The privacy defaults are in place: %s\n' "$PREF_FILE"
     printf '   Defaults, not orders: a value set in about:config wins over them.\n'
     printf '   Close and reopen Firefox for them to apply.\n'
     printf '   Sites will see en-US and UTC, and pages are letterboxed - the anti-fingerprinting trade, in docs/fox.md.\n'
@@ -159,10 +176,12 @@ off)
 usage: fox.sh <command>
 
   on                    write the pack's privacy defaults, where Firefox reads
-                        its own - every profile, and about:config still wins
+                        its own - every profile, and about:config still wins.
+                        An identical file is left alone, no password asked
   off                   take the file back - the browser's own defaults again
 
 Both are gmake targets of the same name: gmake fox_tweak_on, fox_tweak_off.
+pfox, in web.zsh, runs `on` and then opens a private window.
 USAGE
     exit 2
     ;;

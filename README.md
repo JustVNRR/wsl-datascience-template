@@ -118,7 +118,7 @@ it grows, and a pack leaves with its folder:
 | `python` | [Python](packs/python/docs/python.md) | `lint*`, `test*` |
 | `scaffold` | [Project scaffolding, the pack](packs/scaffold/docs/scaffold.md) | `fnew`, `copier_project`, `cruft_project`, `ccds_project` |
 | `vision` | [Vision & OCR](packs/vision/docs/vision.md) | — |
-| `web` | [Web browser and tunnel](packs/web/docs/web.md) | `fox`, `fox_tweak_*`, `vpn_*` |
+| `web` | [Web browser and tunnel](packs/web/docs/web.md) | `fox`, `pfox`, `fox_tweak_*`, `vpn_*` |
 
 The pack table is a pack's extremes: `devops` brings targets and no tool, `vision`
 brings a tool and no target — it installs ffmpeg, ImageMagick and Tesseract, and

@@ -27,3 +27,13 @@ fox() {
     fi
     firefox "$@"
 }
+
+# One word for the browser the pack hardens, in private: the privacy defaults
+# first, the private window after. The defaults are only written when they are
+# not already the pack's copy (fox.sh compares before it writes), so the usual
+# call asks for no password and answers one line - and `gmake fox_tweak_off`
+# still takes the file away, the next `pfox` putting it back.
+pfox() {
+    gmake fox_tweak_on || return
+    fox --private-window "$@"
+}
