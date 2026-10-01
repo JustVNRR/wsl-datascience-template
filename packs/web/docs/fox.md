@@ -41,13 +41,17 @@ gmake fox_tweak_off                          # everything out - the browser stoc
 `pfox` opens the pack's `privacy-check.html` in the window it launches. A page
 cannot read Firefox's preferences — that is what the browser keeps to itself —
 so the page measures the **effects**, live, against what the strict set
-expects: the time zone (UTC), the language (en-US), the user-agent (generic),
-WebRTC (absent), the canvas (one flat colour), a geolocation request (refused),
-and a real tracker's site (blocked). It also shows what the internet sees right
-now — the exit IP, its city and country — and the DNS resolver the launcher
-read from the instance when the window opened. The one thing it cannot do is
-test DNS leaks on its own; for the raw values, `about:config` stays the
-reference.
+expects: the time zone Reykjavik/UTC+0 (RFP's spoof, since Firefox 128), the
+language (en-US), the user-agent (the plain Firefox one, nothing custom), the
+window a site sees (rounded to 200 × 100), WebRTC (absent), the canvas read
+twice (random both times — RFP's poison pill), a geolocation request
+(refused), and a tracker's site against a control request (doubleclick.net
+blocked while example.com loads; when a local page is not where the shield
+acts, the line says so instead of guessing). It also shows what the internet
+sees right now — the exit IP, its city and country — and the DNS resolver the
+launcher read from the instance when the window opened. The one thing it
+cannot do is test DNS leaks on its own; for the raw values, `about:config`
+stays the reference.
 
 ## What changes while you browse
 
