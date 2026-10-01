@@ -5,22 +5,16 @@
 # A dependency only goes when nothing can still need it, and the question is
 # asked twice:
 #
-#   1. does any package apt knows about depend on it? apt answers that itself,
-#      in `apt-get -s autoremove` - the packages it lists are the automatic ones
-#      no installed package depends on any more;
+#   1. does any package apt knows about depend on it? `apt-get -s autoremove`
+#      answers that - the packages it lists have no dependant left;
 #
-#   2. does anything OUTSIDE apt's graph link its libraries? apt cannot answer
-#      that one, but `ldd` can: every executable and shared object living
-#      outside apt (a venv, a tool under /usr/local, a hand-built binary) is
-#      asked what it links, and `dpkg -S` says which package owns each answer.
+#   2. does anything OUTSIDE apt's graph link its libraries? apt cannot see
+#      that, but `ldd` can: every executable and shared object living outside
+#      apt (a venv, a tool under /usr/local, a hand-built binary) is asked what
+#      it links, and `dpkg -S` says which package owns each answer.
 #
 # A hit on the second question changes everything: nothing is removed, and the
-# file that would have broken is named. That is the one case apt's own
-# computation cannot see, and the only one worth refusing for.
-#
-# Otherwise the libraries go. Keeping what nothing uses costs every user of the
-# instance, every time; a package removed one step too early costs one
-# `apt-get install` to whoever needs it later.
+# file that would have broken is named.
 
 set -uo pipefail
 
@@ -28,10 +22,9 @@ ORPHANS=/tmp/pack-orphans.txt
 LINKS=/tmp/pack-links.txt
 
 # --- 1. what apt itself would take ------------------------------------------
-# apt prints the name WITH its architecture (`libtesseract5:amd64`) while
-# `dpkg -S` gives it without - the two are compared below, so the architecture
-# is dropped here, once, rather than argued about at every comparison. Cut at
-# the colon, not at the space: the architecture suffix is part of the name.
+# apt prints the name WITH its architecture (`libtesseract5:amd64`) where
+# `dpkg -S` gives it without: dropped here, once. Cut at the colon, not at the
+# space - the suffix is glued to the name with a colon.
 apt-get -s autoremove 2>/dev/null | sed -n 's/^Remv \([^ :]*\).*/\1/p' | sort -u > "$ORPHANS"
 COUNT=$(wc -l < "$ORPHANS")
 
@@ -51,12 +44,11 @@ while read -r file; do
         while read -r lib; do echo "$file $lib"; done
 done | sort -u > "$LINKS"
 
-# ldd answers with the path the loader used (`/lib/x86_64-linux-gnu/...`) while
-# dpkg records what it installed (`/usr/lib/...`) - on Ubuntu /lib is a symlink
-# to /usr/lib, and `dpkg -S` does not follow it. Hence three attempts, in this
-# order: the path as given, its resolved path, then its file name alone. Without
-# them the owner comes back empty on every library, and a check that finds
-# nothing looks exactly like a check that has nothing to find.
+# ldd answers with the loader's path (`/lib/...`), dpkg records what it
+# installed (`/usr/lib/...`), and `dpkg -S` does not follow the /lib symlink
+# between them. Hence three attempts: the path as given, its resolved path,
+# then the file name alone - without them an empty owner and a nothing-to-find
+# look identical.
 owners_of() {
     local lib owners
     lib=$1
@@ -70,8 +62,7 @@ owners_of() {
     printf '%s\n' "$owners"
 }
 
-# One line per file, not per library: a single binary links a dozen libraries
-# of the same package tree, and the useful sentence is "this file is what stops
+# One line per file, not per library: the useful sentence is "this file stops
 # the removal", not the twelve paths that prove it.
 BROKEN=""
 current=""

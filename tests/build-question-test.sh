@@ -3,10 +3,9 @@
 # Desktop and no instance.
 #
 # fake-docker-run.ps1 puts a stand-in docker on the PATH: it answers the
-# preflight and the first steps, and hands the import a file that is not a tar,
-# so the run always stops on the deployment-error path with the packs already
-# chosen. That is the only path where the packs can be observed without a real
-# build.
+# preflight and the first steps, then hands the import a file that is not a tar
+# - so every run stops on the deployment-error path with the packs already
+# chosen, the only path where the packs show without a real build.
 #
 # What it proves:
 #   - the pack checklist is asked after the name and the folder, and before
@@ -21,15 +20,14 @@ set -u
 
 TestsDir=$(cd "$(dirname "$0")" && pwd)
 RepoTemplate=$(cd "$TestsDir/.." && pwd)
-# powershell -File wants the Windows form of the path; the file may live in a
-# checkout anywhere, under a Git Bash that spells it /d/...
+# powershell -File wants the Windows form of the path: the checkout may live
+# anywhere, under a Git Bash that spells it /d/...
 Run=$(cygpath -w "$TestsDir/fake-docker-run.ps1")
 
 Failures=0
 Out=$(mktemp)
-# Where the checkout stands before the runs, to compare with where it stands
-# after them: the runs write nothing, and this is what says so - whether the
-# tree is clean or carries work in progress.
+# Where the checkout stands before the runs: they write nothing, and this is
+# what says so - whether the tree is clean or carries work in progress.
 Before=$(git -C "$RepoTemplate" status --short)
 
 run_build() {
@@ -48,10 +46,9 @@ check() {
 
 contains() { if grep -aqF "$1" "$Out"; then echo yes; else echo no; fi; }
 line_of()  { grep -anF "$1" "$Out" | head -1 | cut -d: -f1; }
-# Both lines must be there before their order means anything: a check that
-# compares two empty strings, or an empty one with a number, answers yes and
-# proves nothing. This is the shape of the mistake that made an earlier check
-# unable to fail.
+# Both lines must be there before their order means anything: a check comparing
+# two empty strings answers yes and proves nothing - the shape of the mistake
+# that once made a check unable to fail.
 before() {
     local a b
     a=$(line_of "$1"); b=$(line_of "$2")

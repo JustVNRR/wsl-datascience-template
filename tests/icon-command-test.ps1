@@ -1,19 +1,14 @@
 # Drives `icon` the way a script would: the numbered prompt, answers on standard
-# input, no console anywhere. It is the command behind `.\wsl.ps1 theme`, which
-# is why the file it drives is not the one the menu names.
+# input, no console anywhere - it is the command behind `.\wsl.ps1 theme`.
 #
-# The instance it works on exists for the length of the test - a registry key of
+# The instance it works on exists for the length of the test: a registry key of
 # this test's own, a folder carrying the marker, a name of its own. The answers
-# are numbers, so the one to give is worked out from the same list the command
-# shows, with the same code: whatever else is on the machine, the number points
-# at ours and the test never touches another instance. The key is taken back out
-# at the end, whatever happens.
+# are numbers, worked out from the same list the command shows, so the number
+# points at ours whatever else is installed; the key is taken back out at the
+# end.
 #
-# What is checked is what the command is for: one change keeps the others. Other
-# letters, and the colours stay; other colours, and the letters stay - each pair
-# shown with those letters on it; Enter takes the letters already offered; an
-# image of your own is copied in place and leaves the recipe where it is, so
-# changing your mind starts from it again.
+# What is checked is what the command is for: one change keeps the others, Enter
+# takes the letters offered, an image of your own leaves the recipe in place.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
@@ -64,9 +59,8 @@ function Get-Recipe {
     return (Get-Content $Recipe -Raw | ConvertFrom-Json)
 }
 
-# The way in: `.\wsl.ps1 theme` names the two commands, and the one it names is
-# the one that runs. Driven from here because it is the only door - a menu that
-# dispatches nowhere leaves both commands unreachable.
+# `.\wsl.ps1 theme` names the commands, and the one it names is the one that
+# runs - the only door, driven from here.
 function Invoke-Theme {
     param([string[]]$Answers)
 
@@ -89,7 +83,7 @@ try {
     Set-ItemProperty -Path $Key -Name DistributionName -Value $FakeName
     Set-ItemProperty -Path $Key -Name BasePath -Value $FakeFolder
 
-    # Which number our instance is, in the list the command draws - worked out
+    # Which number our instance is in the list the command draws - worked out
     # with the same code, so the answer is right whatever else is installed.
     $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
     $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
@@ -174,13 +168,10 @@ try {
 
     # 11. The way in: the instance is asked once, the menu holds both commands,
     # and it is drawn again once the command it handed over to is done. Answers:
-    # the instance, "icon", "By Default" (which changes something), Escape on the
-    # icon menu, Escape here.
-    #
-    # And Terminal is asked to look again on this path too. That was missing
-    # once: the reload lived in the block only a command run on its own reaches,
-    # and the report was exact - "it works when I run the command, not through
-    # the menu". The file Terminal watches is the proof, when it is there.
+    # the instance, "icon", "By Default" (which changes something), Escape on
+    # the icon menu, Escape here. The reload is asked on this path too - it once
+    # lived only in a command run on its own - and the file Terminal watches is
+    # the proof, when it is there.
     $Settings = "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
     $Before = if (Test-Path $Settings) { (Get-Item $Settings).LastWriteTime } else { $null }
 
@@ -189,7 +180,7 @@ try {
     Check "theme offers both commands" (@($Out | Where-Object { "$_".Contains("what the whole terminal is written in") }).Count -gt 0) $true
     Check "hands over to the icon command" (@($Out | Where-Object { "$_".Contains("Icon of '$FakeName'") }).Count -gt 0) $true
     # Twice: once to start with, and once more when the theme menu is left -
-    # Escape goes back up to the list, so that another instance can be picked.
+    # Escape goes back up to the list.
     Check "and the list comes back when the menu is left" (@($Out | Where-Object { "$_".Contains("Our Instances") }).Count) 2
     Check "and the menu comes back when it is done" (@($Out | Where-Object { "$_".Contains("Theme of '$FakeName'") }).Count) 2
     if ($Before) {

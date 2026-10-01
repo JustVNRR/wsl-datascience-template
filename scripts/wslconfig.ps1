@@ -6,8 +6,8 @@ param ()
 
 $ErrorActionPreference = "Stop"
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one, and the colours every line is written in.
+# The family's shared half: the marker, and the colours every line is written
+# in.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -16,16 +16,15 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# The file WSL reads before it starts the virtual machine: the memory cap, the
-# processors, the DNS tunnel, the networking mode. Not the instance's own
-# /etc/wsl.conf - that one is per distro, and the gmake side opens it (gmake
-# wsl_config, from inside).
+# The file WSL reads before it starts the virtual machine - the memory cap, the
+# processors, the DNS tunnel, the networking mode. Per machine, not per distro:
+# the instance's own wsl.conf is gmake's (wsl_config, from inside).
 $Path = Join-Path $env:USERPROFILE ".wslconfig"
 
 Write-Host ""
 if (-not (Test-Path $Path)) {
-    # Created commented, so the file documents itself and WSL reads no setting
-    # nobody asked for - the rule the instance's own files follow too.
+    # Created commented: it documents itself, and WSL reads no setting nobody
+    # asked for.
     @'
 # WSL's Windows-wide settings. Read when the WSL machine starts: `wsl --shutdown`
 # then a new start applies a change.

@@ -1,14 +1,12 @@
 [CmdletBinding()]
 param ()
 
-# No parameter on purpose: the instance comes from a list - the ones that are
-# stopped - never from the command line. Typing a name by heart is a name you
-# can get wrong.
+# No parameter on purpose: the instance comes from the list of stopped ones - a
+# name typed by heart is a name you can get wrong.
 
 $ErrorActionPreference = "Stop"
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one.
+# The family's shared half: the marker.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -17,10 +15,9 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# 1. Who can be started: our instances that are stopped, and only those - one
-# already running has nothing to do here, and offering it would be a choice
-# with no effect. Sorted by name, like every list in this family: a menu whose
-# numbers move is a menu you cannot trust twice.
+# 1. Who can be started: our stopped instances, and only those - offering a
+# running one is a choice with no effect. Sorted by name, like every list in
+# this family.
 $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
 if ($All.Count -eq 0) {
     Write-Host ""
@@ -52,8 +49,8 @@ if (-not $Distro) {
 
 $DistroName = $Distro.Name
 
-# 2. Start it. `--exec` runs a command and returns, so the instance comes back
-# up without this script opening a shell in it.
+# 2. Start it: `--exec` runs a command and returns, so it comes back up without
+# this script opening a shell.
 Write-Host ""
 Write-Host "==> Starting '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 try {

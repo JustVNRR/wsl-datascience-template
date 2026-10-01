@@ -7,10 +7,8 @@ echo "            Welcome to your WSL Stack environment"
 echo "============================================================"
 echo ""
 
-# Prompt for a valid Linux username (lowercase letters, digits, underscores,
-# dashes) that no account uses yet. adduser fails on a name that is already
-# taken - root, daemon, www-data, _apt - and set -e would then abort the whole
-# onboarding on adduser's raw error.
+# A name no account uses yet: adduser fails on a taken one (root, daemon,
+# www-data...), and set -e would abort the whole onboarding on its raw error.
 while true; do
     read -rp "Enter your username: " NEW_USER
     if [[ ! "$NEW_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
@@ -27,33 +25,29 @@ echo "Creating user account $NEW_USER..."
 # Create user silently (skips Full Name, Room Number, etc.)
 adduser --disabled-password --gecos "" --shell /usr/bin/zsh "$NEW_USER"
 
-# The trigger in /root/.bashrc runs this script again on every root shell, and
-# the account exists from here: a re-run could only fail on adduser. Disarm it
-# now rather than at the end, where a failure above would leave that loop
-# running.
+# The trigger in /root/.bashrc runs this again on every root shell, and the
+# account exists from here: a re-run could only fail on adduser. Disarmed now,
+# not at the end - a failure above would leave that loop running.
 sed -i '/first_boot\.sh/d' /root/.bashrc 2>/dev/null || true
 
 echo ""
-# The account was created with no password of its own (adduser
-# --disabled-password): inside WSL nobody logs in with one, so the password's
-# only job is sudo. The question is about sudo, then, and it defaults to the
-# password - NOPASSWD means anything running as this user can become root with
-# no prompt at all, which is a real trade and not a default to fall into.
+# The account was created with no password of its own (--disabled-password):
+# inside WSL nobody logs in with one, so the password's only job is sudo. Hence
+# the question, defaulting to no - NOPASSWD lets anything running as this user
+# become root with no prompt at all.
 read -rp "Run sudo without a password (passwordless)? [y/N] " PASSWORDLESS
 echo ""
 
-# Administrative privileges first: the group is what makes the account able to
-# use sudo at all, and both paths below need it.
+# The group is what makes sudo possible at all - both paths below need it.
 usermod -aG sudo "$NEW_USER"
 
 PASSWORDLESS_OK=no
 if [[ "$PASSWORDLESS" =~ ^[Yy]$ ]]; then
-    # The drop-in that makes sudo stop asking. No dot in the file name: sudo
-    # ignores any file in sudoers.d whose name contains one, or ends in ~.
-    # 0440 is what sudo requires, and the syntax is checked before the file is
-    # left in place - an invalid file there takes sudo away entirely. If the
-    # check fails, the password path below runs instead: an account with
-    # neither a password nor a rule would have no sudo at all.
+    # The drop-in that makes sudo stop asking. No dot in the name and 0440:
+    # sudo ignores a file whose name contains one or ends in ~, and refuses any
+    # other mode. The syntax is checked before the file stays - an invalid file
+    # in sudoers.d takes sudo away entirely - and on a failed check the
+    # password path below runs.
     SUDOERS_FILE="/etc/sudoers.d/010-$NEW_USER-nopasswd"
     echo "$NEW_USER ALL=(ALL) NOPASSWD: ALL" > "$SUDOERS_FILE"
     chmod 0440 "$SUDOERS_FILE"
@@ -68,20 +62,15 @@ fi
 
 if [[ "$PASSWORDLESS_OK" == no ]]; then
     echo "Please set a password for $NEW_USER:"
-    # Loop until the password is successfully set
     while ! passwd "$NEW_USER"; do
         echo ""
         echo "[ERROR] Password setup failed (mismatch or empty). Let's try again."
     done
 fi
 
-# The docker client Docker Desktop injects is only usable through a group: the
-# socket it creates is writable by root and by that group, and by nothing else.
-# Created here, with the account, so the very first session has the right to
-# use docker. Left to Docker Desktop, the group only arrives when it next
-# restarts - and a session keeps the groups it started with, so the user is
-# told to close a terminal and open a new one for something that should have
-# worked from the start.
+# The docker socket Docker Desktop creates is writable by root and by this
+# group only, so the group is created with the account: the very first session
+# can use docker. Left to Docker Desktop, it only arrives at its next restart.
 # --force, not a plain groupadd: the group may already exist, and set -e would
 # abort the whole onboarding on that.
 groupadd --force docker
@@ -92,12 +81,10 @@ echo "Configuring timezone..."
 dpkg-reconfigure -f readline tzdata
 clear
 
-# Write the WSL configuration the onboarding knows. No [boot] block: it used to
-# carry systemd=true, but the image ships no /sbin/init, so the line never did
-# anything - systemd comes to the instance that asks for it, with
-# `gmake systemd_up`, and that is what writes the line. mountFsTab=false for
-# the same reason: the instance carries no /etc/fstab lines, and `gmake
-# fstab_up` is what applies them the day there are some.
+# The WSL configuration the onboarding knows. No [boot] block: the image ships
+# no /sbin/init, so systemd=true would do nothing - `gmake systemd_up` writes
+# it on the instance that asks. mountFsTab=false likewise: no /etc/fstab lines
+# yet, and `gmake fstab_up` is what applies them.
 cat << WSLCONF > /etc/wsl.conf
 [user]
 default=$NEW_USER
@@ -111,18 +98,15 @@ enabled=true
 appendWindowsPath=true
 WSLCONF
 
-# No Python here, and that is deliberate: `uv python install 3` and the
-# scaffolding tools used to run at this point. They come with the packs now - uv
-# and the interpreter with `python`, the tools with `scaffold` - and they arrive
-# on the instance that asks for them, with `.\wsl.ps1 add_pack` or by being
-# chosen while the instance is built.
+# No Python here: uv and the interpreter come with the `python` pack, the
+# scaffolding tools with `scaffold` - they arrive on the instance that asks,
+# with `.\wsl.ps1 add_pack` or by being chosen while the instance is built.
 
 # Export username for build script display
 echo -n "$NEW_USER" > /tmp/installed_user
 
-# The trigger is gone already. The pages cache is a convenience, so a machine
-# without network must not lose the rest of the run - and the script deletes
-# itself last, once nothing below it can fail.
+# The pages cache is a convenience: a machine without network must not lose the
+# run - and the script deletes itself last, once nothing below can fail.
 su - "$NEW_USER" -c "tldr --update" || echo "  (tldr cache left as it was)"
 rm -f /root/first_boot.sh
 exit 0

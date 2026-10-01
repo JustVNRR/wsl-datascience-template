@@ -1,16 +1,15 @@
-# Drives `color` - the command behind `.\wsl.ps1 theme` - the way a script would:
-# the numbered prompt, answers on standard input, no console anywhere.
+# Drives `color` - the command behind `.\wsl.ps1 theme` - the way a script
+# would: the numbered prompt, answers on standard input, no console anywhere.
 #
 # The instance it works on exists for the length of the test: a registry key of
 # its own, a folder carrying the marker, the WSL fragment a profile is looked up
-# by, and the profile this repository writes, naming a scheme of the test's own -
-# so that one name in the list is certainly there, whatever the machine has.
+# by, and the profile this repository writes, naming a scheme of the test's own
+# - so one name in the list is certainly there, whatever the machine has.
 #
-# What is checked is what the command is for: the schemes this machine can wear
-# are listed - the one an instance is already using among them - the scheme in
-# use is marked, and picking one writes it into the profile this repository owns
-# and into the instance's own file. The list is read from a first run that
-# cancels, so the number given to the second one was really in it.
+# What is checked: the schemes this machine can wear are listed, the one in use
+# is marked, and picking one writes it into the profile this repository owns and
+# into the instance's own file. The list is read from a first run that cancels,
+# so the number given to the second was really in it.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
@@ -32,8 +31,8 @@ $WslFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments
 $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$FakeName.json"
 $OurFragmentExisted = Test-Path $OurFragment
 
-# The scheme the test puts in the instance's profile before it starts: whatever
-# else the machine offers, this one is in the list.
+# Put in the profile before the test starts: whatever else the machine offers,
+# this one is in the list.
 $Planted = "Test Scheme Alpha"
 
 $Failures = 0
@@ -60,9 +59,8 @@ function Invoke-Color {
     return $Lines
 }
 
-# The rows of the numbered list, read from the title of the colour menu down: the
-# instance list the command asks about first is drawn the same way, and its rows
-# are not schemes.
+# The rows of the numbered list, from the title of the colour menu down: the
+# instance list above it is drawn the same way, and its rows are not schemes.
 function Get-ListedSchemes {
     param([object[]]$Lines)
 
@@ -121,10 +119,8 @@ try {
     $Schemes = @(Get-ListedSchemes $Out)
     Check "the schemes are listed" ($Schemes.Count -ge 1) $true
 
-    # And every row has the same width, the mark's column included. The names are
-    # padded inside the colours, so the painted block of each row ends at the same
-    # column; without it the list is bars of different lengths - a barcode, not a
-    # list.
+    # Every row has the same width, the mark's column included: the names are
+    # padded inside the colours, or the list is bars of different lengths.
     $Widths = @()
     $Inside = $false
     foreach ($Line in $Out) {
@@ -138,9 +134,9 @@ try {
     Check "and it is marked as the one in use" (@($Out | Where-Object { "$_" -like "*(current)*" }).Count -gt 0) $true
     Check "cancelling applied nothing" ((Get-Content $OurFragment -Raw | ConvertFrom-Json).profiles[0].colorScheme) $Planted
 
-    # 2. Picking one: the number it had in that list, given to a second run. The
-    # list is the machine's, so the scheme picked is whichever is number one -
-    # and the run says so either way.
+    # 2. Picking one: the number it had in that list, given to a second run -
+    # the list is the machine's, so the scheme picked is whichever is number
+    # one.
     $null = Invoke-Color @("$Pick", "1")
 
     $Written = Get-Content $OurFragment -Raw | ConvertFrom-Json

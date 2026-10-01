@@ -1,16 +1,12 @@
 # Drives scripts\menu.ps1 with a scripted keyboard: the arrow loop runs with no
-# terminal in sight, which is the only way to test it - and it is what caught
-# the bug that made every arrow stack one more copy of the list.
-#
-# It needs no console. The last checks use no -KeyReader at all, which is the
-# no-console case: they read the numbered prompt's answers from standard input.
+# terminal in sight, which is the only way to test it.
 #
 # Usage:  powershell -File tests\menu-test.ps1 < tests\menu-test.answers
 #
-# tests\menu-test.answers holds them, one per line, in the order they are read:
-# 2, (empty), 1, 2, v, v, v, (empty). It is the ONLY copy - the CI redirects the
-# same file rather than spelling the answers out again. A second copy is a copy
-# that drifts, and that is exactly what happened once.
+# The last checks use no -KeyReader at all - the no-console case: they read the
+# numbered prompt's answers from standard input. The .answers file is the ONLY
+# copy of them; a second copy is a copy that drifts, and that is exactly what
+# happened once.
 #
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\scripts\menu.ps1")
@@ -69,14 +65,10 @@ Check "default = last, Down     -> wraps to the first" `
 Write-Output ""
 Write-Output "--- a row is one line, box or no box ---"
 
-# The menu repaints its rows in place, and that only works while every row is
-# exactly one line: a row wider than the window wraps, the block is then taller
-# than the arithmetic assumes, and the next keypress paints the choice one line
-# off - the row it replaced keeps its old marker, so the same row appears twice.
-# That is what happened on a real console in the checklist, where a row carries
-# four more characters than a plain one (the "[x] " box) and the cut did not
-# know it. These checks are the invariant itself: marker, box and label
-# together, whatever the label, never exceed the width the console gave.
+# The repaint only works while every row is exactly one line: a wrapped row
+# makes the block taller than the arithmetic assumes, and the next keypress
+# paints one line off. These checks are the invariant itself: marker, box and
+# label together never exceed the width the console gave.
 $Wide = @(("x" * 400 -join ""), ("y" * 400 -join ""))
 $Cut = Format-MenuLabels -Labels $Wide -Width 40
 Check "a plain row fits the width          " `
@@ -110,8 +102,7 @@ Write-Output ""
 Write-Output "--- the drawing: the top of the block is read back AFTER it is drawn ---"
 # A console that scrolls while the block is written: it answers 20 before the
 # rows are drawn and 40 after. Read before drawing, 20 puts every row 20 lines
-# too high - the bug that showed up as one more copy of the list per arrow. The
-# stand-in for Write-MenuRow is what tells the two moments apart.
+# too high - the stand-in for Write-MenuRow tells the two moments apart.
 $script:Drawing = $false
 $script:Moves = @()
 function Write-MenuRow { param([int]$Index, [int]$Current, [string[]]$Labels) $script:Drawing = $true }
@@ -129,12 +120,10 @@ Check "and the choice is still right" $Picked "b"
 
 Write-Output ""
 Write-Output "--- -Note: one more line of the same block ---"
-# A line of the block the arithmetic does not count is a line the rows are
-# painted off by - the shape of every bug this file has had. The note is one, and
-# it is counted everywhere: where the rows start, how many fit, and the line the
-# cursor is left on. Widened on purpose here (20 lines for five rows) so the two
-# halves read apart: without the note the rows would start at 34 and the way out
-# would be 40.
+# The note is one more line of the block, counted everywhere: where the rows
+# start, how many fit, and the line the cursor leaves on. Widened on purpose (20
+# lines for five rows) so the two halves read apart: without the note, rows at
+# 34 and the way out at 40.
 function Get-ConsoleSize { return @(40, 20) }
 $script:Moves = @()
 $script:Queue = New-Object System.Collections.Queue
@@ -146,8 +135,7 @@ $Noted = Select-FromList -Title "T" -Items @("a", "b", "c", "d", "e") -KeyReader
 Check "the rows (33..37) and the way out (40) count it" ($script:Moves -join ",") "33,34,35,36,37,40"
 Check "  ... and the choice is still right" $Noted "b"
 
-# And it is really drawn, not only counted: written under the list, where the
-# eye has finished reading the rows.
+# And it is really drawn: written under the list.
 $script:Queue = New-Object System.Collections.Queue
 $script:Queue.Enqueue([ConsoleKey]::Escape)
 $Reader = { $script:Queue.Dequeue() }
@@ -179,8 +167,8 @@ Check "already checked: move down and uncheck" `
     ((Run-Multi @([ConsoleKey]::DownArrow, [ConsoleKey]::Spacebar, [ConsoleKey]::Enter) $PackItems @(1, 2)) -join ",") "python"
 Check "a digit toggles instead of leaving" `
     ((Run-Multi @([ConsoleKey]::D2, [ConsoleKey]::Enter) $PackItems) -join ",") "vision"
-# $null -eq is the sharp test here: .Count on $null answers 0 as well, so a
-# check written that way would pass whether the list came back or not.
+# $null -eq is the sharp test: .Count on $null answers 0 as well, so a check
+# written that way would pass whether the list came back or not.
 Check "Enter with nothing checked  -> an empty list, not a cancellation" `
     ($null -eq (Run-Multi @([ConsoleKey]::Enter) $PackItems)) "False"
 Check "  ... and that list is really empty" `
@@ -194,9 +182,8 @@ Check "the box shows in the row" `
 
 Write-Output ""
 Write-Output "--- the window: rows are cut, a tall list scrolls ---"
-# An 80-column window and a 6-line one, and the menu must still work: the long
-# label is cut rather than wrapping (a wrapped row is a row the arithmetic no
-# longer counts), and the list scrolls instead of refusing to draw.
+# A tiny window, and the menu must still work: the long label is cut rather
+# than wrapping, and the list scrolls instead of refusing to draw.
 $script:Drawn = @()
 function Write-MenuRow {
     param([int]$Index, [int]$Current, [string[]]$Labels)
@@ -207,8 +194,7 @@ function Get-ConsoleSize { return @(40, 6) }
 
 $Long = "remove_pack  uninstall optional tooling from an instance, dependencies included"
 # @() around each: a one-element list unrolls to its element, and [0] on a
-# string is its first LETTER - the trap the scripts themselves carry a comment
-# about, met again in the test that checks them.
+# string is its first LETTER - the same trap, met again in the test.
 $Cut = @(Format-MenuLabels -Labels @($Long) -Width 40)[0]
 $Short = @(Format-MenuLabels -Labels @("short") -Width 40)[0]
 $NoWidth = @(Format-MenuLabels -Labels @($Long) -Width 0)[0]
@@ -230,12 +216,9 @@ Check "and the choice is still right" $Picked "i6"
 
 Write-Output ""
 Write-Output "--- a clean screen between levels ---"
-# What a command calls going down a level and coming back up. It is one call, and
-# that is the point: the version before it remembered, for every menu, the row it
-# started on and how many lines it took, and blanked exactly those rows. A row
-# number is absolute and the console moves - one scroll, and the next menu was
-# drawn over the prompt while the one before it stayed where it was. Replaced by
-# this.
+# One call, and that is the point: the version before remembered each menu's
+# rows and blanked exactly those - a row number is absolute and the console
+# moves, so one scroll drew the next menu over the prompt. Replaced by this.
 Check "clearing the screen is safe without one" (& { Clear-MenuScreen; "survived" }) "survived"
 
 Write-Output ""

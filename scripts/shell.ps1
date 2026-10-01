@@ -1,14 +1,12 @@
 [CmdletBinding()]
 param ()
 
-# No parameter on purpose: the instance comes from the list, like everywhere
-# else in this family. This is the one command that does not act on an
-# instance - it opens a session in it and steps aside.
+# No parameter on purpose: the instance comes from the list. The one command
+# that does not act on an instance - it opens a session and steps aside.
 
 $ErrorActionPreference = "Stop"
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one.
+# The family's shared half: the marker.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -27,13 +25,13 @@ if ((Get-DistroNames -Running) -notcontains $DistroName) {
     Write-Host "  It was stopped: WSL starts it on the way in, which takes a moment." -ForegroundColor (Get-MessageColour muted)
 }
 
-# 2. The shell itself. `--cd ~` lands in the instance's home rather than in the
-# Windows folder this script was launched from, which WSL would otherwise map
-# into the session - the same reason build.ps1 ends with it. Nothing is
-# captured from wsl.exe here: it owns the terminal until the user leaves it.
+# 2. The shell itself. `--cd ~` lands in the instance's home, not the Windows
+# folder this script was launched from (which WSL would map into the session) -
+# build.ps1 ends the same way. Nothing is captured from wsl.exe: it owns the
+# terminal until the user leaves.
 wsl.exe -d $DistroName --cd ~
 
-# The exit code is the shell's own. A session that ended with `exit 1` in it is
-# not a failure of this command, and a shell that could not start must not look
-# like a success - so it is handed over rather than interpreted.
+# The exit code is the shell's own - `exit 1` typed in there is not a failure
+# of this command - and a shell that could not start must not look like a
+# success: handed over, not interpreted.
 exit $LASTEXITCODE

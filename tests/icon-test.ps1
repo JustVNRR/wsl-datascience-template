@@ -1,13 +1,11 @@
 # Draws icons the way the build draws them, and reads back what was drawn.
 #
-# Two things are checked, and the second one is why every drawing here is a
-# PowerShell process of its own:
 #   - the letters: what a name turns into (wagon -> WA, my-project -> MP), and
 #     that a piece opening on a digit is not a word (Ubuntu-22.04 -> UB),
 #   - the colours: a name always draws the same file. A hash seeded per process
-#     would answer the same twice INSIDE one process and differently in the
-#     next - the icon would change colour at every build - so the two drawings
-#     below are made by two processes, and their bytes are compared.
+#     answers the same twice inside one process and differently in the next -
+#     the icon would change colour at every build - so every drawing here is a
+#     PowerShell process of its own, and two of them have their bytes compared.
 #
 # It needs no instance, no console and no Docker.
 #
@@ -17,8 +15,8 @@ $ErrorActionPreference = "Stop"
 
 $IconScript = Join-Path $PSScriptRoot "..\assets\make-icon.ps1"
 # The script writes terminal-icon.png into the current folder when -Out is not
-# given. Every drawing below names its file, and this is the check that says so:
-# a suite that drops an image in the checkout is a suite that gets committed.
+# given: every drawing below names its file, and the check at the end says so.
+# A suite that drops an image in the checkout is a suite that gets committed.
 $StrayAtStart = Test-Path (Join-Path (Get-Location) "terminal-icon.png")
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("icon-test-" + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $Tmp -Force | Out-Null
@@ -36,15 +34,15 @@ function Check {
 
 # One drawing, in a process of its own. Returns what it printed, or $null when
 # it failed: a drawing that cannot be made must say so, not write an empty file.
-# (Write-Host for the same reason - Write-Output would travel back with the
-# return value, which is how a captured result swallows what it captured.)
+# Write-Host, or Write-Output would travel back with the return value - a
+# captured result swallows what it captured.
 function Invoke-Icon {
     param([string[]]$Arguments)
 
-    # The child's error output is read, not thrown: what a drawing that failed
-    # has to give us is its message and its exit code. Left at "Stop", the
-    # redirection below turns one line of stderr into a terminating error here,
-    # which would end the suite instead of failing one check.
+    # The child's error output is read, not thrown: a failed drawing owes us
+    # its message and exit code, and at "Stop" the redirection below turns one
+    # line of stderr into a terminating error that would end the suite instead
+    # of failing one check.
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
@@ -55,8 +53,8 @@ function Invoke-Icon {
     }
 
     if ($Code -ne 0) {
-        # Its first line only: the rest of a PowerShell error block is the same
-        # sentence again, in the language of whoever's Windows answers.
+        # Its first line only - the rest of a PowerShell error block repeats it
+        # in the language of whoever's Windows answers.
         Write-Host ("      (the drawing failed: " + @($Lines)[0] + ")")
         return $null
     }
@@ -122,9 +120,7 @@ Check "every row is a name and three colours" (@($Pairs | Where-Object { ($_ -sp
 Check "the first pair is the orange of this repository" ($Pairs[0] -split "`t")[0] "orange"
 
 # A colour given by hand wins over the name's own - what `icon` relies on when
-# a pair is picked from that table, and the letters stay the name's. Every
-# drawing here names its file: the script's own default would put one in
-# whatever folder the suite was started from.
+# a pair is picked from that table - and the letters stay the name's.
 $Line = Get-DrawnLine @("-Name", "wagon", "-Top", "#000000", "-Bottom", "#111111", "-TextColor", "#FFFFFF",
                         "-Out", (Join-Path $Tmp "colours-by-hand.png"))
 Check "a colour given by hand is used as given" ("$Line".Contains("#000000 -> #111111")) $true
@@ -132,18 +128,14 @@ Check "and the letters still come from the name" `
     (Get-DrawnLetters @("-Name", "wagon", "-Out", (Join-Path $Tmp "name-only.png"))) "WA"
 
 # The call `icon` makes: the drawing script in the same process, told what to
-# draw through a table of parameters held in a variable.
+# draw through a table of parameters held in a variable. Both halves were
+# learned the day the command was first run: a LIST is handed over in order, not
+# by name - "-Text" lands where a colour belongs - and an inline @{...} is not a
+# splat at all, just one value handed over as the first argument (it drew
+# System.Collections.Hashtable, which reads 'SC' and comes out teal).
 #
-# Both halves of that sentence were learned the hard way, the day the command was
-# first run. A LIST is handed over in order and not by name - "-Text" lands where
-# a colour belongs, and the drawing dies on a colour that is not one. And an
-# inline @{...} is not a splat at all: it is one value, handed over as the first
-# argument - asked to draw "wagon", it drew System.Collections.Hashtable, which
-# reads 'SC' and comes out teal.
-#
-# So the shape of the call is checked, and not only that it runs: the file has to
-# be the same one a child process draws when asked the same thing in the ordinary
-# way.
+# So the shape of the call is checked, not only that it runs: the file has to
+# be the same one a child process draws when asked the same thing.
 $InProcess = Join-Path $Tmp "in-process.png"
 $ViaChild = Join-Path $Tmp "via-child.png"
 $Draw = @{ Name = "wagon"; Text = "ABC" }
@@ -158,11 +150,9 @@ $null = Invoke-Icon @("-Name", "wagon", "-Text", "ABC", "-Out", $ViaChild, "-Qui
 Check "in this process, told by name" $Drawn $true
 Check "and the same file as the same call made by a child" (Get-FileHash $InProcess).Hash (Get-FileHash $ViaChild).Hash
 
-# What the icon is made of is said on the output stream when -What is asked for:
-# one line of JSON, the letters and the three colours, for a caller that has to
-# note them somewhere. The file they go in belongs to the caller - one per
-# instance, not one per thing that can be changed - and nothing is dropped beside
-# the picture.
+# -What says what was drawn on the output stream: one line of JSON, the letters
+# and the three colours, for a caller that has to note them somewhere. The file
+# they go in belongs to the caller, and nothing is dropped beside the picture.
 $Noted = Join-Path $Tmp "noted.png"
 $Told = @(Invoke-Icon @("-Name", "wagon", "-Text", "ABC", "-Top", "#3B82F6", "-Bottom", "#2563EB", "-Out", $Noted, "-What"))
 $Said = $Told[-1] | ConvertFrom-Json

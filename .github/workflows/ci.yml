@@ -1,78 +1,32 @@
 # ==============================================================================
 # CHECKS
 # ==============================================================================
-# This repo is shell / zsh / make, not Python: no unit-test framework - the
-# workflow runs static checks over the files, and three suites that run the code
-# itself, on every push.
-#   - shellcheck on real shell scripts (cheatsheets/*.sh are fcheat data files
-#     parsed by awk, not executable shell — excluded, the socle's and the
-#     packs' alike)
+# This repo is shell / zsh / make: no unit-test framework - the workflow runs
+# static checks over the files, then the suites that run the code itself, on
+# every push.
+#
+#   - shellcheck on real shell scripts (cheatsheets/*.sh are fcheat data files,
+#     not executable shell - excluded, the socle's and the packs' alike)
 #   - zsh -n on all zsh config files (syntax only, nothing is executed)
-#   - .ps1 files stay 100% ASCII: PowerShell 5.1 reads a BOM-less script as
-#     Windows-1252, where one non-ASCII byte (an em-dash) becomes a string
-#     delimiter and breaks the whole file's parse
-#   - make on the gmake Makefile: reading it parses every include — the
-#     socle's make/*.mk and every pack's make/*.mk — then the help menu is
-#     asserted (expected targets present, no doc drift between the
-#     *_commands.sh cheatsheets and gmake help). The same menu is then read
-#     with PACKS_DIR pointing at an empty folder, which is what an instance
-#     without the pack looks like: its targets are gone, and nothing offers
-#     to install it — a pack arrives from Windows, by `.\wsl.ps1 add_pack` or
-#     by being chosen while the instance is built
-#   - documentation coverage: every make/*.mk module must have a doc page — in
-#     docs/make/ for the socle, inside its own pack for a pack module — linked
-#     from the README index and listed in the README project tree; every gmake
-#     target must appear in a cheatsheet; every .github/workflows/*.yml must be
-#     named in the README
-#   - templates.tsv format: every row must have 4 tab-separated columns and a
-#     known tool (copier/cruft/ccds), in every pack that ships a catalog - the
-#     picker reads them all. The picker skips a malformed row and warns on
-#     stderr, but only when someone runs fnew - this check never misses one
-#   - the docs and the menu say the same words (tests/doc-drift.sh): every
-#     command wsl.ps1 knows, looked for in the README table, the commands page
-#     and its sample menu. It found five drifted rows the day it was written
+#   - .ps1 files stay 100% ASCII - PowerShell 5.1 reads a BOM-less script as
+#     Windows-1252, where one non-ASCII byte becomes a string delimiter and
+#     breaks the whole file's parse
+#   - the colour codes stay in their files: a `\033[` anywhere else is a call
+#     site that went back to writing the codes itself
+#   - make reads the Makefile and every include; the help menu is asserted with
+#     and without the packs' folders, and the *_commands.sh cheatsheets are
+#     compared against it, both ways
+#   - documentation coverage: every make/*.mk has its doc page, linked from the
+#     README; every workflow is named there; every target is in a cheatsheet;
+#     templates.tsv is four columns ending in a known tool
+#   - the docs and the menu say the same words (tests/doc-drift.sh)
 #
 # The second job, on windows-latest, is the one that RUNS the code instead of
-# reading it, because that is where PowerShell and wsl.exe are. It opens with a
-# read of its own: every .ps1 must parse, under 5.1 - the ASCII rule checks the
-# bytes, not the shape, and a half-closed brace would ship in silence. Then
-# eight suites, none of which needs an instance, a console or Docker Desktop:
-#   - tests/menu-test.ps1        the arrow menu, driven by a scripted keyboard:
-#                                wrapping, Escape, digits, the cursor read back
-#                                after the block is drawn (the bug that made
-#                                every arrow stack one more copy of the list)
-#   - tests/packs-select-test.ps1  the checklist and what it applies: what
-#                                adding, removing, cancelling and an empty list
-#                                mean, the order the packs move in, where a
-#                                failure stops, and that a value handed back
-#                                does not carry the output of what produced it
-#   - tests/build-question-test.sh  build's questions and its failure path, with
-#                                a stand-in docker on the PATH (tests/fake-docker/)
-#                                that hands the import a file which is not a tar
-#   - tests/icon-test.ps1        the icon an instance is given: the letters a
-#                                name turns into, and the same name drawing the
-#                                same file in two separate processes
-#   - tests/icon-command-test.ps1  the icon command, behind `.\wsl.ps1 theme`,
-#                                on an instance it makes for itself (a registry
-#                                key of its own, taken back out): other letters
-#                                keep the colours, other colours keep the letters
-#   - tests/font-command-test.ps1  the font command, on the same kind of
-#                                instance: the list is the fonts that carry a
-#                                prompt's icons, one that carries none is not in
-#                                it, and picking one writes it into the profile
-#                                and the instance
-#   - tests/color-command-test.ps1  the colour command, on the same kind of
-#                                instance: the schemes are listed, the one in
-#                                use is marked, and picking one writes it into
-#                                the profile and the instance
-#   - tests/message-test.ps1     the colour a message takes, on schemes written
-#                                out in the test: the version of each colour
-#                                that is read on a dark scheme and on a light
-#                                one, the scheme's own text colour where it
-#                                offers nothing readable, and the names a
-#                                console gives when there is nothing to read
-# Every bug the scripts themselves have had was caught here, and none of these
-# checks can be replaced by reading the files.
+# reading it, because that is where PowerShell and wsl.exe are: every .ps1 must
+# parse under 5.1 first, then eight suites, none of which needs an instance, a
+# console or Docker Desktop. Every bug the scripts themselves have had was
+# caught there, and none of these checks can be replaced by reading the files.
+# ==============================================================================
 
 name: Checks
 
@@ -101,17 +55,17 @@ jobs:
 
       - name: Zsh syntax (zsh -n, no execution)
         run: |
-          # packs/ too: a pack may ship zsh files of its own (the shell face of
-          # what it installs), and nothing else would read them.
+          # packs/ too: a pack may ship zsh files of its own, and nothing else
+          # would read them.
           find zsh packs -type f \( -name '*.zsh' -o -name '.zshrc' \) -print0 |
             xargs -0 -r -n1 zsh -n
 
       - name: PowerShell scripts (ASCII only)
         run: |
-          # tr deletes every ASCII byte: whatever is left is not ASCII. A BOM
-          # would be flagged too, which is the intended reading of the rule.
-          # find, not a ./*.ps1 glob: the rule must cover the whole tree, and a
-          # root glob would silently stop checking anything below it.
+          # tr deletes every ASCII byte: whatever is left is not ASCII - a BOM
+          # included, which is the intended reading of the rule.
+          # find, not a ./*.ps1 glob: a root glob would silently stop checking
+          # anything below it.
           bad=0
           while IFS= read -r -d '' f; do
             if [ -n "$(LC_ALL=C tr -d '\000-\177' < "$f")" ]; then
@@ -125,10 +79,9 @@ jobs:
         run: |
           # A message names a kind, and a code is written once per world:
           # zsh/lib/colours.sh for the shell, zsh/gmake/make/colours.mk for
-          # make. The claude status line is the one exception - its block is
-          # shared, byte for byte, with the Windows copy. Anywhere else a
-          # `\033[` is a call site that went back to writing the code itself,
-          # and a comment cannot notice that.
+          # make. The claude status line is the exception - shared byte for
+          # byte with the Windows copy. Anywhere else, a call site went back to
+          # writing the code itself, and a comment cannot notice that.
           bad=0
           while IFS= read -r hit; do
             case "$hit" in
@@ -146,8 +99,8 @@ jobs:
       - name: Makefile parse + help menu
         run: |
           # The menu is what the repository carries: the socle's targets and
-          # every pack's, since a pack's folder is right there in packs/. The
-          # steps below compare the cheatsheets against it.
+          # every pack's, since packs/ is right there. The steps below compare
+          # the cheatsheets against it.
           make -f zsh/gmake/Makefile help |
             sed 's/\x1b\[[0-9;]*m//g' > help.txt
           missing=0
@@ -165,10 +118,9 @@ jobs:
 
       - name: A pack's targets follow its folder
         run: |
-          # What an instance without the pack looks like. The folder is the
-          # whole switch, so pointing PACKS_DIR at an empty one is the same
-          # thing as a machine where no pack was ever added: no gate to force,
-          # no variable to set, nothing to keep in step by hand.
+          # What an instance without the pack looks like: the folder is the
+          # whole switch, so PACKS_DIR at an empty one is the same thing - no
+          # gate to force, nothing to keep in step by hand.
           mkdir -p /tmp/no-packs
           make -f zsh/gmake/Makefile PACKS_DIR=/tmp/no-packs help |
             sed 's/\x1b\[[0-9;]*m//g' > help-bare.txt
@@ -183,28 +135,24 @@ jobs:
             echo "::error::gcp_install/gcp_uninstall are gone - a pack arrives from Windows"
             bad=1
           fi
-          # A pack's targets go with its folder, the scaffolding ones as much as
-          # the python ones: lint and the test lanes live in
-          # packs/python/make/*.mk, the three *_project targets in
-          # packs/scaffold/make/*.mk. Their absence here is what an instance
-          # without the packs looks like - and scaffold comes with python, so a
-          # bare instance has neither.
+          # A pack's targets go with its folder, scaffolding as much as python:
+          # lint and the test lanes live in packs/python/make/*.mk, the three
+          # *_project targets in packs/scaffold/make/*.mk - and scaffold comes
+          # with python, so a bare instance has neither.
           if grep -qE '^  (lint|lint-py|lint-sh|lint-format|test|test-fast|test-functional|test-gcp|copier_project|cruft_project|ccds_project)[[:space:]]' help-bare.txt; then
             echo "::error::a scaffolding or python pack target is in the menu without the pack's folder"
             bad=1
           fi
-          # The project targets came out of the socle with the devops pack - they
-          # build and push ONE project, and an instance whose folders are empty
-          # has none. Nothing of them may stay behind here. The .env targets
-          # are not on this list any more: they went back to the socle, and the
-          # loop below is what keeps them there.
+          # The devops targets build and push ONE project, and an instance
+          # whose folders are empty has none. The .env targets are not on this
+          # list: they went back to the socle, and the loop below keeps them
+          # there.
           if grep -qE '^  (docker_build_local|docker_run_local|gh_pr_create|gh_pr_toreview|gh_pr_wip|gh_pr_ls)[[:space:]]' help-bare.txt; then
             echo "::error::a devops pack target is in the menu without the pack's folder"
             bad=1
           fi
-          # The claude pack's target, for the same reason: what an instance has
-          # installed is its own folder's business, and a folder that is not
-          # there puts no line in the menu.
+          # The claude pack's target, same reason: a folder that is not there
+          # puts no line in the menu.
           if grep -qE '^  claude_[a-z_]+[[:space:]]' help-bare.txt; then
             echo "::error::a claude pack target is in the menu without the pack's folder"
             bad=1
@@ -223,10 +171,9 @@ jobs:
 
       - name: No pack redefines a socle macro
         run: |
-          # The socle's modules are read first and the packs' after, so a pack's
-          # own `define check_vars` would win in silence and every target that
-          # calls it - its neighbours' included - would lose its check. A comment
-          # cannot notice that; this can.
+          # The socle's modules are read first and the packs' after, so a
+          # pack's own `define check_vars` would win in silence and every
+          # caller - its neighbours' included - would lose its check.
           bad=0
           for macro in check_vars confirm_action merge_env_samples; do
             if grep -rln "^define $macro$" packs/*/make/*.mk 2>/dev/null | grep -q .; then
@@ -240,8 +187,8 @@ jobs:
         run: |
           # A pack marked invisible is in no list, this one included: it is a
           # shared dependency, and the command answers "what did I ask for?".
-          # Played on a folder of its own, so that the repository's own packs
-          # cannot make the check pass by accident.
+          # Played on a folder of its own, so the repo's own packs cannot make
+          # the check pass by accident.
           mkdir -p /tmp/packs-list/asked /tmp/packs-list/hidden
           printf 'PACK_DESCRIPTION := The one the user chose\n' > /tmp/packs-list/asked/pack.conf
           printf 'PACK_DESCRIPTION := The one nobody chooses\nPACK_VISIBLE := no\n' > /tmp/packs-list/hidden/pack.conf
@@ -249,9 +196,8 @@ jobs:
           bad=0
           grep -q "asked" list.txt || { echo "::error::packs_list dropped a pack the user chose"; bad=1; }
           grep -q "hidden" list.txt && { echo "::error::packs_list listed a pack marked PACK_VISIBLE := no"; bad=1; }
-          # And the other state, reachable when a removal stopped half way: a
-          # dependency left alone. It says so rather than print the header over
-          # nothing, which would read as a command that found no pack at all.
+          # And the other state, when a removal stopped half way: a dependency
+          # left alone. It says so rather than print the header over nothing.
           rm -rf /tmp/packs-list/asked
           make -f zsh/gmake/Makefile PACKS_DIR=/tmp/packs-list packs_list > list-only.txt
           grep -q "Nothing you chose" list-only.txt || {
@@ -262,9 +208,9 @@ jobs:
 
       - name: Cheatsheet doc drift (*_commands.sh vs gmake help)
         run: |
-          # Comment lines are skipped, as the picker itself does: a sheet's
-          # header documents nothing, and prose in it can name a target without
-          # offering it - `# requires: gcloud`, or a sentence about the menu.
+          # Comment lines are skipped, as the picker itself does: prose can
+          # name a target without offering it - `# requires: gcloud`, or a
+          # sentence about the menu.
           grep -hvE '^[[:space:]]*#' zsh/cheatsheets/*_commands.sh \
                                        packs/*/cheatsheets/*_commands.sh |
             grep -oE 'gmake [a-zA-Z_-]+' |
@@ -306,14 +252,14 @@ jobs:
               missing=1
             }
           done
-          # A pack documents itself inside the pack, so that it stays one
-          # folder that moves as a whole. The README links the pack, not each
-          # of its pages - but a page that documents no module still has to be
-          # reachable, or it is a page nobody will ever open.
+          # A pack documents itself inside the pack, so it stays one folder
+          # that moves as a whole; the README links the pack, not each page.
+          # A page that documents no module still has to be reachable, or it is
+          # a page nobody will ever open.
           for pack_dir in packs/*/; do
             pack=$(basename "$pack_dir")
             # A pack's modules, and only those: the way in is a script at the
-            # root now, not a module, so make/ is the whole of what it offers.
+            # root, so make/ is the whole of what it offers.
             for mk in "$pack_dir"make/*.mk; do
               [ -f "$mk" ] || continue
               name=$(basename "$mk" .mk)
@@ -330,9 +276,9 @@ jobs:
               }
             done
           done
-          # Every docs/ folder the README names must exist: a renamed directory
-          # used to survive unnoticed (docs/gcp/ stayed named in the README
-          # long after its page had moved out of it)
+          # Every docs/ folder the README names must exist - a renamed
+          # directory used to survive unnoticed (docs/gcp/ stayed named long
+          # after its page had moved out of it)
           grep -oE 'docs/[a-z_]+/' README.md | sort -u > readme_docs.txt
           while read -r d; do
             [ -d "$d" ] || {
@@ -354,7 +300,7 @@ jobs:
             }
           done < help_targets.txt
           # Every workflow must be named in the README, so the CI section there
-          # cannot silently lose one (same rule as the make/*.mk modules)
+          # cannot silently lose one - the make/*.mk rule, again.
           for wf in .github/workflows/*.yml; do
             name=$(basename "$wf")
             grep -q "$name" README.md || {
@@ -369,12 +315,10 @@ jobs:
 
       - name: Template catalog integrity (templates.tsv)
         run: |
-          # Every pack that curates templates ships its own catalog, and the
-          # picker reads them all: one per pack, four tab-separated columns, and
-          # a tool this repository knows how to run. A catalog is not required -
-          # a pack whose projects need no template ships none - but one must
-          # exist somewhere, or the picker would have nothing to read and a glob
-          # that matches nothing would let the check pass in silence.
+          # The picker reads every pack's catalog: four tab-separated columns,
+          # and a tool this repository knows how to run. A pack may ship none,
+          # but one must exist somewhere - a glob that matches nothing would
+          # let the check pass in silence.
           catalogs=$(ls packs/*/cheatsheets/templates.tsv 2>/dev/null)
           if [ -z "$catalogs" ]; then
             echo "::error::no pack ships a template catalog - fnew would have nothing to read"
@@ -395,10 +339,8 @@ jobs:
             END { exit bad }
           ' $catalogs
 
-  # The suites that run the code. They are the only checks here that have ever
-  # caught a bug in the scripts themselves - a menu that stacked copies of
-  # itself, a value that swallowed what the instance printed, an exit code that
-  # said 0 on a failure - and none of them needs an instance, a console or
+  # The suites that run the code - the only checks here that have ever caught a
+  # bug in the scripts themselves - and none needs an instance, a console or
   # Docker Desktop, so they are free to run on every push.
   tests-windows:
     runs-on: windows-latest
@@ -410,10 +352,9 @@ jobs:
         shell: powershell
         run: |
           # [Parser]::ParseFile is the reader PowerShell itself uses before it
-          # runs a file. Under `shell: powershell` that is 5.1 - the engine
-          # these files must satisfy, and the one the suites below run under.
-          # A file that does not parse here would otherwise surface the day a
-          # command runs - build.ps1's, one rebuild too late.
+          # runs a file; under `shell: powershell` that is 5.1, the engine
+          # these files must satisfy and the suites below run under. A parse
+          # error left here surfaces the day a command runs.
           $files = Get-ChildItem -Recurse -Filter *.ps1
           $bad = 0
           foreach ($f in $files) {
@@ -428,11 +369,10 @@ jobs:
           Write-Host "$($files.Count) .ps1 file(s) read, $bad failure(s)."
           exit $bad
 
-      # The answers come from the .answers file beside each suite, not from a
-      # copy spelled out here: the numbered prompt reads them when there is no
-      # console, which is what a runner is, and a second copy of the list is a
-      # copy that drifts. It did - this step still listed the answers of the day
-      # it was written, and went on passing while the suite grew a scenario.
+      # The answers come from the .answers file beside each suite, never a copy
+      # spelled out here: the numbered prompt reads them when there is no
+      # console, and a second copy drifts - this file listed the answers of the
+      # day it was written while the suite grew.
 
       - name: The arrow menu, driven by a scripted keyboard
         shell: bash

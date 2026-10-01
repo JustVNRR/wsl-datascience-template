@@ -2,17 +2,16 @@
 param ()
 
 # No parameter on purpose: the instance comes from the list, never from the
-# command line, and the removal still asks for the name to be typed before
-# anything happens. This script never chooses its own target.
+# command line, and the removal asks for the name to be typed before anything
+# happens. This script never chooses its own target.
 
 $ErrorActionPreference = "Stop"
 
 # Where the instances live, for the one case the list cannot serve.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
-# What the whole family shares: how to tell one of our instances from any other
-# registered one. A removal that cannot tell them apart is a removal aimed at
-# whatever the registry happens to hold.
+# The family's shared half: the marker that tells our instances from any other -
+# a removal that cannot tell them apart targets whatever the registry holds.
 $InstanceLib = Join-Path $PSScriptRoot "instance.ps1"
 if (-not (Test-Path $InstanceLib)) {
     Write-Host ""
@@ -29,9 +28,8 @@ function Get-Distro {
 # ==============================================================================
 # 1. WHICH DISTRO (from the list, always)
 # ==============================================================================
-# The list is the only way in. With nothing registered there is nothing to
-# remove - and a folder left behind by an earlier removal is deleted by hand,
-# not by naming it.
+# The list is the only way in. A folder left behind by an earlier removal is
+# deleted by hand, not by naming it here.
 $Ours = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath })
 if ($Ours.Count -eq 0) {
     Write-Host ""
@@ -80,9 +78,8 @@ if ($Distro) {
         exit 0
     }
 
-    # What is about to be destroyed is worth a copy, and this is the last
-    # moment to take one. archive.ps1 writes it to <Root>\archives, asks to
-    # stop the instance if it is still running, and leaves it stopped.
+    # The last moment to take a copy. archive.ps1 writes it to <Root>\archives,
+    # stops the instance if needed, and leaves it stopped.
     Write-Host ""
     $ArchiveIt = [string](Read-Host "Archive it before deleting? [y/N]")
     if ($ArchiveIt -match "^[yY]") {
@@ -114,9 +111,8 @@ if ($Distro) {
 # ==============================================================================
 # 3. INSTALLATION FOLDER (registry BasePath, or the default location)
 # ==============================================================================
-# wsl --unregister removes the install folder with the distribution, so
-# anything left here is the exception. The cases are told apart: a folder WSL
-# removed with the distribution is not a folder that was never there.
+# wsl --unregister removes the install folder with the distribution: anything
+# left here is the exception, and "removed by WSL" is not "never there".
 if (Test-Path $InstallPath) {
     Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor (Get-MessageColour info)
     Remove-Item -Recurse -Force $InstallPath
@@ -206,9 +202,8 @@ if ($FragmentsRemoved -gt 0) {
 # ==============================================================================
 # 5. DOCKER DESKTOP (its own list of integrated distros)
 # ==============================================================================
-# Docker Desktop injects its client into the distros it lists, and reads that
-# list when it starts. build.ps1 offers to add the name there; a removal that
-# left it behind would keep a name pointing at nothing.
+# Docker Desktop reads its integrated-distros list at start; build.ps1 adds the
+# name there, so a removal takes it back out - a name pointing at nothing.
 $DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
 if (Test-Path $DockerSettings) {
     try {
@@ -216,9 +211,8 @@ if (Test-Path $DockerSettings) {
         if ($DockerConfig.IntegratedWslDistros -contains $DistroName) {
             Copy-Item $DockerSettings "$DockerSettings.bak" -Force
             $DockerConfig.IntegratedWslDistros = @($DockerConfig.IntegratedWslDistros | Where-Object { $_ -and $_ -ne $DistroName })
-            # Written beside the file and swapped in, and with WriteAllText
-            # rather than Set-Content: Docker Desktop's file carries no
-            # byte-order mark, and PowerShell's -Encoding Utf8 adds one.
+            # WriteAllText rather than Set-Content: Docker Desktop's file
+            # carries no BOM, and PowerShell's -Encoding Utf8 adds one.
             $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
             [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
             Move-Item "$DockerSettings.tmp" $DockerSettings -Force

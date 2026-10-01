@@ -1,26 +1,21 @@
 # The colour of a message, on schemes written out here: no terminal window, no
 # settings file, no instance, no console.
 #
-# What it checks is the rule that replaced the colours this project used to
-# name. A scheme keeps two versions of each colour, the one read on its own
-# background is the one used, and where a scheme offers nothing readable - a
-# light scheme whose white is its own background - that kind is written in the
-# scheme's own text colour. Both halves matter: on a dark scheme the answer is
-# the one this project always gave, and on a light one it is not.
+# The rule it checks: a scheme keeps two versions of each colour, the one read
+# on its own background is the one used, and where a scheme offers nothing
+# readable - a light scheme whose white is its own background - that kind is
+# written in the scheme's own text colour.
 #
-# The colours below are the real values of three schemes Windows Terminal
-# ships, so that a change in the rule shows up as a changed name here. The
-# fourth is written as a list, which is the other way a scheme may be written,
-# and where red sits in the second row and the ninth place - not the fourth,
-# which is where a console keeps it.
+# The colours below are the real values of schemes Windows Terminal ships,
+# except the fourth, written as a list - the other way a scheme may be written.
 #
 # Usage:  powershell -NoProfile -File tests\message-test.ps1
 
 $ErrorActionPreference = "Stop"
 
-# Read out of the terminal like the commands read it, so that a run inside a
-# Windows Terminal window - where WT_PROFILE_ID is set - answers what a run
-# anywhere else answers, and the theme below is the only one in play.
+# Read out of the terminal like the commands read it: a run inside a Windows
+# Terminal window (WT_PROFILE_ID set) must answer like one anywhere else, so
+# the theme below is the only one in play.
 Remove-Item Env:\WT_PROFILE_ID -ErrorAction SilentlyContinue
 . (Join-Path $PSScriptRoot "..\scripts\message.ps1")
 
@@ -35,8 +30,8 @@ function Check {
     }
 }
 
-# The scheme a command resolved for the window it is in. Set here rather than
-# read: there is no window to be in.
+# The scheme a command resolved for its window - set rather than read: there is
+# no window to be in.
 function Use-Theme {
     param($Scheme)
     $script:MessageThemeRead = $true
@@ -74,8 +69,8 @@ $SolarizedDark = [PSCustomObject]@{
 }
 
 Write-Output "--- nothing to read: the names every console has always had ---"
-# A console window, VS Code, a terminal that is not Windows Terminal, CI: the
-# names this project used before any of this existed.
+# A console window, VS Code, CI: the names this project used before this file
+# existed.
 Check "error   -> Red" (Get-MessageColour error) "Red"
 Check "warning -> Yellow" (Get-MessageColour warning) "Yellow"
 Check "success -> Green" (Get-MessageColour success) "Green"
@@ -87,9 +82,8 @@ Check "and it is a colour a console takes" ((Get-MessageColour error).GetType().
 
 Write-Output ""
 Write-Output "--- a dark scheme: what this project has always written in ---"
-# One Half Dark keeps the same value for both versions of a colour, so the
-# choice between them cannot be seen here - and that is the point: the scheme
-# this project has been read in comes out unchanged.
+# The same value for both versions of each colour here - and that is the point:
+# the scheme this project has been read in comes out unchanged.
 Use-Theme $OneHalfDark
 Check "error   -> Red" (Get-MessageColour error) "Red"
 Check "warning -> Yellow" (Get-MessageColour warning) "Yellow"
@@ -100,10 +94,9 @@ Check "hint    -> White" (Get-MessageColour hint) "White"
 
 Write-Output ""
 Write-Output "--- a light scheme: the version that is read on it ---"
-# One Half Light paints its bright half in pastels, and measures - white on it
-# is its own background (1.04), yellow 1.66, green 1.93, cyan 2.29. Its normal
-# half reads at 3.0 and above, which is what a warning, a success and an info
-# line ask for.
+# One Half Light paints its bright half in pastels - white on it is its own
+# background, and yellow, green and cyan all stay under 3. Its normal half
+# reads at 3.0 and above, which is what these lines ask for.
 Use-Theme $OneHalfLight
 Check "error   -> DarkRed    (3.51, against 3.08)" (Get-MessageColour error) "DarkRed"
 Check "warning -> DarkYellow (3.09, against 1.66)" (Get-MessageColour warning) "DarkYellow"
@@ -115,19 +108,17 @@ Check "  ... which is its foreground, #383A42" (Get-SchemeColour -Scheme $OneHal
 
 Write-Output ""
 Write-Output "--- a quiet colour that cannot be read is not used ---"
-# Solarized Dark's bright black sits on its own background (1.03): a footnote
-# written in it would not be seen. Its text colour is used instead, and that
-# colour is one of its sixteen - its bright blue.
+# Its bright black sits on its own background: a footnote written in it would
+# not be seen, so its text colour - one of its sixteen - is used instead.
 Use-Theme $SolarizedDark
 Check "muted -> Blue (its text colour), not DarkGray" (Get-MessageColour muted) "Blue"
 Check "  ... which is its foreground, #839496" (Get-SchemeColour -Scheme $SolarizedDark -Name "Blue") "#839496"
 
 Write-Output ""
 Write-Output "--- a scheme written as a list ---"
-# Sixteen rows in ANSI order: black, red, green, yellow, blue, magenta, cyan,
-# white, then the bright eight. Red is the second row there and the fourth
-# value of [ConsoleColor]; read by console number, every error would come out
-# green.
+# Sixteen rows in ANSI order, not console order: red is the second row here and
+# the fourth value of [ConsoleColor] - read by console number, every error
+# would come out green.
 $AsList = [PSCustomObject]@{
     name = "Written as a list"; background = "#000000"; foreground = "#FFFFFF"
     palette = @(
@@ -147,8 +138,8 @@ Check "an unknown kind is refused, not guessed" $Refused $true
 
 Write-Output ""
 Write-Output "--- the DANGER banner ---"
-# A box has two colours to be read together, so it is drawn rather than asked
-# for: its background is the scheme's red, and its text is read on that red.
+# Two colours read together, so it is drawn rather than asked for: the scheme's
+# red as background, and its text read on that red.
 $Box = Get-MessageColour danger
 Check "the box is one of the scheme's two reds" (@("DarkRed", "Red") -contains $Box) $true
 $Lines = @(Write-DangerBanner 6>&1)
