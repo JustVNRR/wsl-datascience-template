@@ -273,7 +273,7 @@ the repository at runtime.
 │       ├── env.global.sample   # VPN_PROFILE and VPN_KILL_SWITCH, for .env.global
 │       ├── bin/             # the two scripts: the tunnel's, the browser's - and the boot hook's
 │       ├── make/            # its gmake modules: the vpn_* and the fox_tweak_* targets
-│       ├── zsh/             # its shell files: the `fox` function
+│       ├── zsh/             # its shell files: the `fox` and `pfox` functions
 │       ├── cheatsheets/     # its fcheat sheets: the browser and the tunnel
 │       └── docs/            # the pack's pages, one per module
 ├── scripts/                 # Instance administration, one file per command
