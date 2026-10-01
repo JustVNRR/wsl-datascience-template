@@ -7,6 +7,7 @@
 source "$ZDOTDIR/exports.zsh"
 source "$ZDOTDIR/fzf.zsh"          # Defines preview templates and underlying fuzzy commands
 source "$ZDOTDIR/history.zsh"      # History size, file path, and shell persistence options
+source "$ZDOTDIR/lib/colours.sh"   # The shell colours, written once - read by the modules and the packs
 
 # --- 2. OH-MY-ZSH CORE CONFIGURATION ---
 export ZSH="$HOME/.local/share/oh-my-zsh"

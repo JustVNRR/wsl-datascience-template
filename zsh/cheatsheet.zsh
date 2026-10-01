@@ -42,7 +42,7 @@ _fcheat_select() {
     [[ -z "$raw" ]] && return 1
     sheets=("${(@f)raw}")
 
-    awk -F'#' '
+    awk -F'#' -v c="$C_CYAN" -v m="$C_GREY" -v r="$C_RESET" '
         /^[[:space:]]*#/ || /^[[:space:]]*$/ {
             next
         }
@@ -54,8 +54,8 @@ _fcheat_select() {
             sub(/[[:space:]]+$/, "", command)
             sub(/^[[:space:]]+/, "", description)
 
-            printf "%s\t\033[36m%-40s\033[90m | \033[0m%s\n",
-                command, command, description
+            printf "%s\t%s%-40s%s | %s%s\n",
+                command, c, command, m, r, description
         }
     ' "${sheets[@]}" 2>/dev/null |
         sort -f -t $'\t' -k1,1V |

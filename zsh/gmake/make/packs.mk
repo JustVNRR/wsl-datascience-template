@@ -47,7 +47,7 @@ packs_list: ## List the packs this instance carries
 			[ "$$visible" = "no" ] && continue; \
 			name=$$(basename "$$dir"); \
 			desc=$$(sed -n 's/^PACK_DESCRIPTION *:=[[:space:]]*//p' "$${dir}pack.conf"); \
-			printf "  \033[36m%-10s\033[0m %s\n" "$$name" "$$desc"; \
+			printf "  $(C_TITLE)%-10s$(C_RESET) %s\n" "$$name" "$$desc"; \
 			chosen=$$((chosen + 1)); \
 		done; \
 		if [ $$chosen -eq 0 ]; then \

@@ -65,6 +65,14 @@ die() {
     exit 1
 }
 
+# The messages: the shared library, when the image carries it, replaces this
+# fallback - an instance built before it keeps a plain sentence.
+hint() { printf '%s\n' "$*"; }
+if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/zsh/lib/message.sh" || true
+fi
+
 # Just root? sudo would be an indirection too many (the boot hook runs as root).
 as_root() {
     if [ "$(id -u)" -eq 0 ]; then
@@ -610,7 +618,8 @@ cmd_auto() {
         hook_on
         install -d -m 0700 "$(dirname "$AUTO_FLAG")"
         : > "$AUTO_FLAG"
-        printf '\n\033[33mRestart your instance for the changes to take effect.\033[0m\n'
+        printf '\n'
+        hint "Restart your instance for the changes to take effect."
         ;;
     off)
         rm -f "$AUTO_FLAG"

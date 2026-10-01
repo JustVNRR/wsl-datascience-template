@@ -111,8 +111,8 @@ endif
 # prefix - and a target only appears when the tool behind it is installed, so
 # its neighbours are the ones it actually belongs with.
 help: ## Show this help menu
-	@awk 'BEGIN { printf "\nUsage:\n  make \033[36m<target>\033[0m\n\nTargets:\n" }'
-	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | sort -f
+	@awk 'BEGIN { printf "\nUsage:\n  make $(C_TITLE)<target>$(C_RESET)\n\nTargets:\n" }'
+	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*?##/ { printf "  $(C_TITLE)%-30s$(C_RESET) %s\n", $$1, $$2 }' $(MAKEFILE_LIST) | sort -f
 
 # ==============================================================================
 # WHAT A TARGET CALLS

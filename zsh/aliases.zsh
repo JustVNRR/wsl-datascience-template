@@ -64,8 +64,8 @@ alias grep='grep --color=auto'
 # Interactively fuzzy-select an alias using fzf and return only its identifier
 _falias_select() {
     alias |
-        awk -F'=' '{
-            printf "%-25s \033[90m->\033[0m %s\n", $1, $2
+        awk -F'=' -v m="$C_GREY" -v r="$C_RESET" '{
+            printf "%-25s %s->%s %s\n", $1, m, r, $2
         }' |
         fzf \
             --ansi \
