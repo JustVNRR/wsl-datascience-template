@@ -2,9 +2,6 @@
 
 [← Back to the README](../../README.md#makefile-gmake)
 
-The two files every gmake target reads, and the commands that build them from
-the samples — and open them in the editor.
-
 ## Targets
 
 | Target | Action | Confirmation |
@@ -20,22 +17,6 @@ the samples — and open them in the editor.
 | :--- | :--- | :--- |
 | `~/.config/zsh/gmake/.env.global` | the values shared by every project | make, for every project |
 | `<project>/.env` | what identifies this project | make, and the Python code (`load_dotenv`) |
-
-make loads the first, then the second: a variable set in the project's `.env`
-wins. A sample is never read — it is a template, and the filled copy is what
-gets loaded.
-
-## The samples
-
-Both files are assembled from samples, and the socle owns the two that open
-them: `zsh/gmake/env.global.sample` and `zsh/gmake/env.project.sample`. Each pack
-ships its block beside the modules that read it — `packs/gcp/env.project.sample`
-for the Google Cloud variables, `packs/devops/env.project.sample` for the docker
-ones. A pack with nothing of its own to declare ships no sample.
-
-The socle's two come first, and they carry the header: the rule, and what
-belongs in the file. Then every installed pack's, in the order their folders
-sort.
 
 ## What the two `_enable` commands do
 
@@ -58,25 +39,6 @@ in the sample it ships, and never re-explained in your own file.
 
 With no readable sample at all, the command says so and writes nothing: an
 empty `.env` would look like an answer.
-
-## The editor
-
-The two `_manage` targets are their `_enable` twins with the editor on the end:
-create or complete the file, then open it in `$EDITOR` — nano when the shell
-exports none. The merge runs first on purpose: a file that is not there yet is
-created whole from the samples, header included, so the editor never opens on
-an empty one.
-
-## Variables
-
-The commands have none of their own. A pack's variables are documented with the
-module that reads them — the devops pack's three, on its
-[Docker page](../../packs/devops/docs/docker.md).
-
-One of them, `DOCKER_LOCAL_IMAGE`, is refused in `.env.global`: it names a
-project. Each pack lists the variables that identify one in its `pack.conf`, and
-the socle's gate refuses those at load time, with an explicit error, from
-wherever the file is read.
 
 ## Where the commands live
 

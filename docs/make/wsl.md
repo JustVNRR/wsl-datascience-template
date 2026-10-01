@@ -2,10 +2,6 @@
 
 [← Back to the README](../../README.md#makefile-gmake)
 
-What is the machine's and not a project's: the three files the instance keeps,
-the ten switches that turn WSL's features on and off, and the command that
-reports what the instance runs on.
-
 ## Targets
 
 | Target | Action |
@@ -87,24 +83,11 @@ see [the status command](#the-status-command).
 Turning the drives off does not cut an instance off from its packs:
 `.\wsl.ps1 add_pack` travels through Windows' own share when nothing is mounted.
 
-### What systemd brings
-
-The image ships none: nothing it starts is a service, and the `systemd` package
-alone never boots anything — WSL runs its distribution's `/sbin/init`, which
-`systemd-sysv` poses. `systemd_up` installs it with `libpam-systemd` and
-`dbus-user-session` (the user session needs them) and writes the line;
-`systemd_down` puts the line back to `false` and leaves the packages. It also
-masks the two units WSL cannot use — `kmod-static-nodes` (WSL owns `/dev`),
-`systemd-binfmt` (no `binfmt_misc` here) — so `systemctl is-system-running`
-says `running`, not `degraded`, and installs nothing recommended:
-`systemd-resolved` stays out — a rival of the resolver the [web
-pack](../../packs/web/docs/vpn.md) installs.
-
 When it is on: services started with the instance, `journalctl`, timers.
 
 ## The status command
 
-`wsl_status` changes nothing: it reads the instance and prints five blocks.
+`wsl_status` reads the instance and prints five blocks.
 
 | Block | Shows |
 | :--- | :--- |
@@ -120,14 +103,3 @@ state the line declares, `# NOK` that it is not — most often a switch just
 thrown whose restart has not happened yet (`.\wsl.ps1 restart`, from Windows).
 The other lines are printed as they are.
 
-## The editors
-
-`wsl_config`, `dns_resolve` and `fstab_config` open their file in nano, under
-sudo — the files belong to root. nano, not `$EDITOR`: at these commands
-`$EDITOR` is `code --wait`, the Windows one, which saves as the Windows user
-and cannot write root's files. An edit takes effect at the next start:
-`.\wsl.ps1 restart`, from Windows.
-
-## Variables
-
-None of its own.

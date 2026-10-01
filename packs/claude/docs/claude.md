@@ -2,10 +2,6 @@
 
 [← Back to the README](../../../README.md#optional-tooling)
 
-Anthropic's agentic CLI, inside the instance. It is a terminal program — no
-window, nothing on the Windows desktop — and it installs itself under your own
-`~/.local`: no apt package, no root, and no Node, which the image does not carry.
-
 | Piece | For | Commands |
 | :--- | :--- | :--- |
 | the program | a session, in a project or anywhere | `claude` |
@@ -19,46 +15,15 @@ window, nothing on the Windows desktop — and it installs itself under your own
 .\wsl.ps1 remove_pack   # the reverse
 ```
 
-If Claude Code is already installed on Windows, the instance sees it — WSL puts
-the Windows folders on the PATH — and the install says so before adding a second
-copy here. It goes ahead unless you answer `n`: a bare Enter, or no one to ask,
-both mean yes, and only an explicit no installs nothing.
-
-Removing the pack takes the program, the versions it keeps, the provider keys it
-wrote in the settings, and the little desktop entry — `claude-code-url-handler`,
-in `~/.local/share/applications/` — that the CLI drops for its `claude-cli://`
-links. Your data stays: `~/.claude` — settings, credentials, history, sessions —
-and your dictionary, like `~/.mozilla` when the `web` pack goes. Before it
-finishes, the removal asks once: keeping everything is the default, and only `n`
-takes it all — dictionary, sessions, and the pack's block in `.env.global`
-included.
-
-## What it costs
-
-One version on disk is about 230 MB. `gmake claude_status` shows what is there,
-and the last lines of the
-[cheatsheet](../cheatsheets/claude_commands.sh) show how to reclaim it.
-
 ## Getting in
 
-Claude Code needs one thing to talk to a model: a credential. There are two
-kinds, and a key needs no login at all.
+Claude Code needs a credential to talk to a model. There are two
+kinds.
 
 | Route | What it is | What you do |
 | :--- | :--- | :--- |
-| a key | an API key — from the Console, a gateway, or a provider that speaks the same API | keep it in the dictionary, and apply it — [which provider](#which-provider) |
-| a login | a Pro, Max, Team, Enterprise or Console subscription — there is no key to copy | let `claude` open the authorisation page once |
-
-`ANTHROPIC_AUTH_TOKEN` is used as it stands, with nothing to approve.
-(`ANTHROPIC_API_KEY` works too, but the first interactive session asks you to
-approve it once.) Either one outranks a stored login, so a key is the whole
-configuration.
-
-The login is a web page: the CLI opens a browser and waits for the page to hand
-the code back. An instance carries no browser, so the CLI prints the URL — open
-it in your own browser on Windows, and paste back the code the page shows you.
-If the paste does not take, `claude auth login` reads the code from your input
-instead.
+| a key | an API key | keep it in the dictionary, and apply it — [which provider](#which-provider) |
+| a login | a subscription | let `claude` open the authorisation page once |
 
 ## Which provider
 
@@ -77,65 +42,19 @@ An entry is the environment Claude Code reads — the same names as in
 `settings.json`, so a block you already have goes in as it stands:
 
 ```json
-{ "id": "deepseek",
-  "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+{ "id": "...",
+  "ANTHROPIC_BASE_URL": "...",
   "ANTHROPIC_AUTH_TOKEN": "…",
-  "ANTHROPIC_MODEL": "deepseek-chat" }
+  "ANTHROPIC_MODEL": "..." }
 ```
 
-`id` and `note` belong to the file; every other key is the provider's. An entry
-with only an `id` is this instance's own login — the subscription route — and
-choosing it takes back what another entry had written.
+`id` and `note` belong to the file; every other key is the provider's.
 
-**Where it lands**: the `env` block of `~/.claude/settings.json`, the file the
-CLI reads for itself — so the choice holds however you start Claude Code: from
-the prompt, in a pipe, or from what the CLI starts itself.
+**Where it lands**: the `env` block of `~/.claude/settings.json`.
 
 **What the pack owns there**: every key any of your entries names, plus
 `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_API_KEY` and
-`ANTHROPIC_MODEL`. Loading an entry writes its keys; switching to one that does
-not carry a key takes it out. Everything else is untouched — your `statusLine`,
-your permissions, and any variable no entry names. Removing the pack takes those
-keys back out.
-
-**A base URL always comes with a token.** The CLI sends whatever credential it
-has to the address you name, and the one it always has is your claude.ai login —
-the header leaves with the OAuth in it. A profile carrying a URL and no token is
-refused rather than applied.
-
-`gmake claude_status` says which entry is in force and whether what the settings
-hold is what that entry says — which is how a token rotated in the file and not
-applied gets noticed.
-
-Third-party endpoints are the *gateway* mechanism Anthropic documents — "a proxy
-your organization runs" — pointed elsewhere, and some of what Claude Code does
-depends on Anthropic's own API and stops behind one: the tool search, Remote
-Control, the dictation, and prompt caching unless the endpoint forwards
-`cache_control`.
-
-## Your projects
-
-Claude Code keeps one history per folder it has run in. `gmake claude_project`
-turns that into two menus: this instance's projects, the most recently used
-first, each with the date of its last session — then, for the project chosen,
-its sessions.
-
-```text
-> 2026-09-28 18:04  fix the parser bug
-  2026-09-12 09:21  explain the deploy
-  start a new session
-```
-
-Each session line carries the first words you typed in it, and the menu starts
-on the most recent — Enter there reopens it. The last line starts a fresh
-session, in the same folder: nothing to `cd` into, nothing to remember.
-
-A folder that has been deleted is not offered, and a folder no session has run
-in is not in the list either: there would be nothing to continue. On an instance
-that has never run a session, the target says so and stops.
-
-From inside a folder, the same thing is the CLI's own `claude --continue` (the
-most recent session) or `claude --resume` (one of the others).
+`ANTHROPIC_MODEL`.
 
 ## The status line
 
@@ -146,20 +65,6 @@ rows:
  Opus 5.5 |  max |  ctx 86k/200k (43%)
  glm |  py: .venv |  main |  #12 pending |  ~/projects/demo
 ```
-
-Row 1 is what is running: the model, the effort, how full the context is. Row 2
-is where: which provider the pack has in force, the python environment, the
-branch, the pull request when the branch has one, and the folder last — the one
-value whose length nobody controls, so being cut is the right job for it.
-
-The script is the pack's, `bin/statusline.sh`, declared in
-`~/.claude/settings.json` as the `statusLine` — **only when you have none**: a
-status line of your own is yours, and the pack leaves it alone. Removing the pack
-takes back the one it wrote, and only while it is still that one.
-
-The icons are Nerd Font glyphs, which the font this template asks for carries; a
-font that does not shows a box, and each icon is one line at the top of the
-script.
 
 ## Where things live
 
@@ -174,10 +79,3 @@ script.
 `~/.local/bin` is already on the PATH — the socle exports it — and the installer
 runs with it there, so its leave-me-in-your-PATH note never appears.
 
-## The one on Windows is not this one
-
-WSL puts the Windows folders on the instance's PATH, so a Claude Code installed
-on Windows answers from inside the instance: `claude` works, and it is running on
-the other side of the wall — Windows paths, Windows files, and not the program
-this pack installed. `gmake claude_status` reads the pack's own launcher, at
-`~/.local/bin/claude`, and names the foreign one when it is all there is.

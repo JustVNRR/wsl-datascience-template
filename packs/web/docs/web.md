@@ -2,9 +2,6 @@
 
 [← Back to the README](../../../README.md#optional-tooling)
 
-A browser inside the instance — its window lands on the Windows desktop through
-WSLg — and the tunnel its traffic can go through.
-
 | Piece | For | Commands |
 | :--- | :--- | :--- |
 | Firefox | browsing, from inside the instance | `firefox` |
@@ -25,45 +22,17 @@ in place.
 
 ## Firefox
 
-**From Mozilla's repository**, not Ubuntu's archive: 24.04's `firefox` package
-installs the snap. The pack registers Mozilla's key (fingerprint checked),
-their source, and a pin that keeps the stub out; removal takes it all back.
-
 **`fox` and `pfox` open it with a session bus.** The image has no dbus, and
 Firefox without one never opens its first window. The first launch of a shell
 starts the bus; plain `firefox` works afterwards too.
 
-**X11, not Wayland**: WSLg announces Wayland, and that path misbehaves under
-WSL (scrolling, menus that stop answering, dropped frames).
-`MOZ_ENABLE_WAYLAND=1 fox` asks for it back for one call. Which one is in use:
-`about:support`, *Window Protocol*.
+**The privacy profiles** come in two, and the launcher picks:
 
-**The sound goes through PulseAudio** — how WSLg carries a Linux window's audio
-to Windows: the client library the browser loads at runtime (`libpulse0`), and
-a default letting it reach the socket WSLg serves (`media.cubeb.sandbox=false`,
-in `/usr/lib/firefox/defaults/pref/wslg-audio.js`). `about:config` wins over
-the default; removal takes it back.
+- `fox` light,
+- `pfox` strict, with the check page first.
 
-The volume is the instance's own, not Windows': `sudo apt install
-pulseaudio-utils`, then
+`pfox` refuses while Firefox is running.
 
-| Command | What it does |
-| :--- | :--- |
-| `pactl get-sink-volume @DEFAULT_SINK@` | The level |
-| `pactl set-sink-volume @DEFAULT_SINK@ 50%` | Set it (`+10%` / `-10%` steps) |
-| `pactl set-sink-mute @DEFAULT_SINK@ toggle` | Cut it, and bring it back |
-| `pactl list sinks short` | What WSLg offers (one output) |
-
-The output device is chosen in Windows — Settings → System → Sound, before the
-distro starts.
-
-**A live stream answers "your browser can't play this video"?** Live streams
-arrive in H.264/AAC, which the browser asks the system for; the pack installs
-that decoder (`libavcodec60`). Ordinary videos (VP9/AV1) never need it.
-
-**The privacy profiles** come in two, and the launcher picks: `fox` light,
-`pfox` strict, with the check page first. A switch costs no password; `pfox`
-refuses while Firefox is running (the profile is read when Firefox starts).
 `fox_tweak_on` / `fox_tweak_off` are the manual switches. What each profile
 holds: [the privacy page](fox.md).
 

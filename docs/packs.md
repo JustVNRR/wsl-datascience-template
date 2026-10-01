@@ -26,31 +26,11 @@ packs/<name>/
 └── docs/*.md              # its pages: one per module, and whatever else it needs
 ```
 
-Only the first three are always there; the rest is what the pack needs. `vision`
-is a `pack.conf`, two scripts, a sheet and a page — no target, no variable of
-its own. `devops` is the other extreme: modules and pages, no package to
-install. `scaffold` is both at once — one package (uv), targets and pages.
-
-An `install.sh` ends with one of three answers, and the third is the user's:
-
 | Code | What it says | What happens |
 | :--- | :--- | :--- |
 | `0` | what the pack carries is installed | its folder stays, and the pack is installed |
 | `1` | the installation failed | its folder goes back out — the folder is what the menu reads, and a pack with no tool behind it is a menu that lies |
 | `2` | **the user was asked something and said no** | the same, but nothing failed: the run goes on, and no caller reports anything |
-
-The `claude` pack is the case: it warns before adding a second copy of a program
-already installed on Windows and visible through `/mnt/c`. Yes is the default; a
-decline is an explicit `n` — an answer like any other.
-
-**A pack that asks must be able to be answered** — the install script's
-business, not the socle's. A pack arrives because it was chosen, so with no
-answer to read an `install.sh` must not decline: it installs. A choice is an
-answer.
-
-The same holds at the other end — a `remove.sh` may ask too — and with no answer
-to read, the default must destroy nothing. Removing an instance never goes
-through a `remove.sh` at all: the distro is unregistered whole.
 
 ## `pack.conf`
 
