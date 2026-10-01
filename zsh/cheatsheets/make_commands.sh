@@ -1,7 +1,7 @@
 # ==========================================
 # MAKEFILE CHEATSHEET (the gmake targets)
 # ==========================================
-# The socle's gmake targets: the ones that need no pack, which today is twenty-two. A
+# The socle's gmake targets: the ones that need no pack, which today is nineteen. A
 # pack brings its targets and its sheet together, in its own folder: the project
 # targets (Docker, GitHub) are in the devops pack's sheet, the lint and test
 # lanes in the python pack's, the Google Cloud ones in gcp_commands.sh, offered
@@ -27,12 +27,9 @@ gmake systemd_up                             # Install systemd and turn it on fo
 gmake systemd_down                           # Stop booting systemd (the packages stay installed)
 gmake automount_up                           # Mount the Windows drives under /mnt at every start (the default)
 gmake automount_down                         # Stop mounting the Windows drives (no more /mnt/c)
-gmake automount_check                        # Say whether the Windows drives are mounted under /mnt
 gmake interop_up                             # Let the instance run Windows programs (the default)
 gmake interop_down                           # Stop running Windows programs from the instance
-gmake interop_check                          # Say whether Windows programs can be run from this instance
 gmake windows_path_up                        # Add the Windows PATH to this instance's PATH (the default)
 gmake windows_path_down                      # Keep the Windows PATH out of this instance's PATH (interop stays on)
-gmake windows_path_check                     # Say whether the Windows PATH is in this instance's PATH
 gmake fstab_up                               # Apply /etc/fstab at every start (off until you say so)
 gmake fstab_down                             # Leave /etc/fstab alone at start (the default)
