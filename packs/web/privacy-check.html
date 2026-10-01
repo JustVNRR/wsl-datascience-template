@@ -19,19 +19,17 @@
 </head>
 <body>
 <h1>What this browser actually does</h1>
-<p class="note">
-A web page cannot read Firefox's preferences — that is what the browser keeps to itself.
-What follows is the <em>effects</em>, measured live in this window, against what the
-<strong id="set-name">current</strong> privacy set expects. For the raw values, open
-<code>about:config</code>. The last rows look at the network: what the internet sees right now.
-</p>
+<p class="note">Open <code>about:config</code> to consult Firefox's preferences.</p>
 <table>
   <thead>
     <tr><th>Measured live</th><th>Value</th><th>Expected</th><th></th></tr>
   </thead>
   <tbody id="rows"></tbody>
 </table>
-<footer id="footer"></footer>
+<footer>
+  <span id="exit-ip">Exit IP: asking…</span><br>
+  <span id="dns-line">DNS: …</span>
+</footer>
 
 <script>
 "use strict";
@@ -42,7 +40,7 @@ const parts = decodeURIComponent(location.hash.slice(1)).split(";");
 const set = parts[0] || "";
 const dns = (parts.find(p => p.startsWith("dns=")) || "dns=").slice(4);
 const strict = set === "strict";
-document.getElementById("set-name").textContent = strict ? "strict" : (set ? "light" : "current");
+document.title += set ? " - " + set : "";
 
 const rows = document.getElementById("rows");
 
@@ -159,29 +157,25 @@ Promise.all([probe("https://www.doubleclick.net/"), probe("https://example.com/"
   }
 );
 
-// --- what the internet sees right now: the exit IP, and where it points -------
-const ipRow = add("Exit IP", "asking…", "the tunnel's, when it is up", null);
+// --- what the internet sees right now, and the resolver: the footer -----------
+const ipLine = document.getElementById("exit-ip");
 fetch("https://ipinfo.io/json")
   .then(r => r.json())
   .then(j => {
     const place = [j.city, j.region, j.country].filter(Boolean).join(", ");
-    later(ipRow, (j.ip || "?") + (place ? "  -  " + place : "") + (j.org ? "  (" + j.org + ")" : ""), null);
+    ipLine.textContent = "Exit IP: " + (j.ip || "?") + (place ? " - " + place : "") + (j.org ? " (" + j.org + ")" : "");
   })
   .catch(() => {
     // ipinfo may not answer (or not allow a page opened from a file): the IP
     // alone still comes from ipify, which does.
     fetch("https://api.ipify.org?format=json")
       .then(r => r.json())
-      .then(j => later(ipRow, j.ip + "  (location service unavailable)", null))
-      .catch(() => later(ipRow, "unreachable", null));
+      .then(j => { ipLine.textContent = "Exit IP: " + j.ip + " (location service unavailable)"; })
+      .catch(() => { ipLine.textContent = "Exit IP: unreachable"; });
   });
 
-// --- the DNS resolver pfox read from the instance -----------------------------
-add("DNS resolver (read by pfox)", dns, "the tunnel's, when it is up", null);
+document.getElementById("dns-line").textContent = "DNS: " + (dns || "(not passed by the launcher)");
 
-document.getElementById("footer").textContent =
-  "A page can prove these effects, not the preferences themselves - and it cannot test DNS leaks " +
-  "on its own: the DNS line is what the instance resolved with when pfox ran. For the rest: about:config.";
 </script>
 </body>
 </html>

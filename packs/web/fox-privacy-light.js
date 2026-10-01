@@ -45,3 +45,9 @@ pref("permissions.default.geo", 2);
 pref("datareporting.healthreport.uploadEnabled", false);
 pref("app.shield.optoutstudies.enabled", false);
 pref("privacy.globalprivacycontrol.enabled", true);
+
+// --- A dark interface, whatever the system prefers ---
+// The browser's own chrome and the colour scheme announced to sites, both
+// dark, whichever theme the machine has.
+pref("ui.systemUsesDarkTheme", 1);
+pref("layout.css.prefers-color-scheme.content-override", 0);

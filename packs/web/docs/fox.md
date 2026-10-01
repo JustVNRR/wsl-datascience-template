@@ -18,7 +18,7 @@ gmake fox_tweak_off                          # everything out - the browser stoc
 
 |  | The light set | The strict set |
 | :--- | :--- | :--- |
-| What it holds | tracking protection, URL cleaning, pings and prefetch off, HTTPS-only, DoH off, telemetry off, geolocation denied | the light set **plus** anti-fingerprinting and WebRTC off |
+| What it holds | tracking protection, URL cleaning, pings and prefetch off, HTTPS-only, DoH off, telemetry off, geolocation denied, a dark interface | the light set **plus** anti-fingerprinting and WebRTC off |
 | What you notice | nothing | English pages, UTC hours, grey margins, no calls in the browser |
 
 ## How the switch works
@@ -47,11 +47,11 @@ window a site sees (rounded to 200 × 100), WebRTC (absent), the canvas read
 twice (random both times — RFP's poison pill), a geolocation request
 (refused), and a tracker's site against a control request (doubleclick.net
 blocked while example.com loads; when a local page is not where the shield
-acts, the line says so instead of guessing). It also shows what the internet
-sees right now — the exit IP, its city and country — and the DNS resolver the
-launcher read from the instance when the window opened. The one thing it
-cannot do is test DNS leaks on its own; for the raw values, `about:config`
-stays the reference.
+acts, the line says so instead of guessing). The footer of the page shows what
+the internet sees right now — the exit IP, its city and country — and the DNS
+resolver the launcher read from the instance when the window opened. The one
+thing it cannot do is test DNS leaks on its own; for the raw values,
+`about:config` stays the reference.
 
 ## What changes while you browse
 
@@ -76,7 +76,9 @@ tracking parameters (`fbclid`, `utm_*`…) stripped in every window, private or
 not; pings and the Beacon API off; no prefetch or DNS pre-resolution;
 HTTPS-only in every window; DoH off; no camera/microphone enumeration;
 geolocation denied by default (one site can still be allowed through the
-padlock); telemetry and studies off; the do-not-sell signal on.
+padlock); telemetry and studies off; the do-not-sell signal on; a dark
+interface — the browser's chrome and the colour scheme announced to sites,
+both dark, whatever the system prefers.
 
 **The strict set adds** — `privacy.resistFingerprinting` with
 `privacy.resistFingerprinting.letterboxing`: the UTC/en-US trade, a generic

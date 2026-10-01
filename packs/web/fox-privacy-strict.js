@@ -57,3 +57,9 @@ pref("privacy.resistFingerprinting.letterboxing", true);
 // No real-time connections from a page: this instance has no camera, and an
 // in-browser call is a leak this browser does not need.
 pref("media.peerconnection.enabled", false);
+
+// --- A dark interface, whatever the system prefers ---
+// The browser's own chrome and the colour scheme announced to sites, both
+// dark, whichever theme the machine has.
+pref("ui.systemUsesDarkTheme", 1);
+pref("layout.css.prefers-color-scheme.content-override", 0);
