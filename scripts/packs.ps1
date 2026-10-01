@@ -1,19 +1,15 @@
 # ==============================================================================
 # PACKS: WHAT THE CHECKOUT CARRIES, WHAT AN INSTANCE HAS, HOW ONE TRAVELS
 # ==============================================================================
-# A pack is a folder. It is installed when its folder is in ~/.config/packs, and
-# its folder is the only thing that travels: add_pack copies it from this
-# checkout into the instance and runs the pack's own install.sh there, as the
-# user; remove_pack runs remove.sh, takes the folder back out, and then asks
-# what the pack left on the system side.
+# A pack is a folder, installed when its folder is in ~/.config/packs, and its
+# folder is the only thing that travels: add_pack copies it in and runs its
+# install.sh there; remove_pack runs remove.sh, takes the folder back out, and
+# the pack's leftovers on the system side are cleaned up after.
 #
-# Add, remove, and the bulk command that manages several at once all need the
-# same moves. They are here, once, for the same reason the instance helpers are
-# in instance.ps1: a second copy is how the copies start.
-#
-# Nothing here sends a bash script as text through wsl.exe. Only plain paths
-# travel, one argument at a time - a script handed over as text loses its quotes
-# on the way, and the failure reads like the instance's fault.
+# Add, remove, and the bulk command share these moves - they are here once, for
+# the same reason the instance helpers are in instance.ps1: a second copy is how
+# the copies start. Nothing here sends a bash script as text through wsl.exe:
+# only plain paths, one argument at a time.
 # ==============================================================================
 
 # Where the packs live, and the cleanup that travels with a removal. Read here,
@@ -22,16 +18,13 @@
 $PacksRoot = Join-Path (Split-Path $PSScriptRoot -Parent) "packs"
 $OrphanCleanupScript = Join-Path $PSScriptRoot "cleanup_orphans.sh"
 
-# Every pack this checkout carries, with the line the menu shows, the folder to
-# copy from, and the two declarations the checklist reads: what it requires, and
-# whether it is offered at all. Sorted by name: a menu whose numbers move is a
-# menu you cannot trust twice.
+# Every pack this checkout carries: the line the menu shows, the folder to copy
+# from, and the two declarations the checklist reads. Sorted by name: a menu
+# whose numbers move is a menu you cannot trust twice.
 #
-# Both declarations are optional, and absent means the ordinary case: a pack
-# that requires nothing, and one the user chooses. Only `PACK_VISIBLE := no`
-# hides a pack - a value that is neither yes nor no leaves it visible, which is
-# where a typo should land: a pack that never appears is a pack nobody can
-# report.
+# Both declarations are optional, and absent means the ordinary case; only
+# `PACK_VISIBLE := no` hides a pack - a value that is neither yes nor no leaves
+# it visible, where a typo should land.
 function Get-AvailablePacks {
     param([string]$Root = $PacksRoot)
 
@@ -64,21 +57,16 @@ function Get-AvailablePacks {
     return @($Found)
 }
 
-# Does this pack bring anything for the user's own .env files? Read from the
-# folder, like everything else here: a sample is a file, and a pack that ships
-# none has nothing to merge. It decides whether a command ends by pointing at
-# `gmake env_global_enable` - the target itself is the socle's, so it is there
-# whether or not a pack is.
+# A sample is a file, and a pack that ships none has nothing to merge: this
+# decides whether a command ends by pointing at `gmake env_global_enable`.
 function Test-PackShipsSamples {
     param([string]$Path)
 
     return (Test-Path (Join-Path $Path "env.global.sample")) -or (Test-Path (Join-Path $Path "env.project.sample"))
 }
 
-# What a pack needs, added to what was chosen. A pack is installed ON TOP of
-# what it requires - its install.sh may call a macro or read a variable the
-# other one brought - so the order is the whole point of this one: what a pack
-# requires is placed before it, and a requirement two levels down before both.
+# What a pack requires is placed before it, and a requirement two levels down
+# before both: a pack is installed ON TOP of what it requires.
 function Add-PackRequires {
     param(
         [object[]]$Available,
@@ -102,19 +90,13 @@ function Add-PackRequires {
         Add-PackRequires -Available $Available -Name $Need -Installed $Installed -Seen $Seen -Ordered $Ordered
     }
 
-    # And it is not placed a second time. A pack the instance already carries is
-    # not copied over and its install.sh does not run again - the arrival of gcp
-    # on an instance that has carried python all along must not touch devops, whose
-    # folder is right there and whose install would be an install on top of
-    # itself. It is the same move in every command: what travels is what is
-    # missing.
+    # Not placed twice: a pack the instance already carries is not copied over
+    # and its install.sh does not run again - what travels is what is missing.
     if ($Installed -notcontains $Name) { [void]$Ordered.Add($Name) }
 }
 
-# The list to install, in the order to install it: what was chosen and is not
-# there yet, each one after what it requires. One place resolves it so that
-# add_pack, the checklist and the run itself cannot disagree about what travels
-# with what.
+# The list to install, in order - resolved in one place, so add_pack, the
+# checklist and the run cannot disagree about what travels with what.
 function Resolve-PackSelection {
     param([object[]]$Available, [string[]]$Names, [string[]]$Installed = @())
 
@@ -126,13 +108,12 @@ function Resolve-PackSelection {
     return @($Ordered)
 }
 
-# What leaves, with what has to leave with it. A pack that is not visible is
-# never in the checklist, so nobody can untick it - it is not offered. It leaves
-# when the last pack that requires it does, and $Leaving is what the user let go
-# of: the two together, in that order, are what a removal takes out.
+# What leaves, with what has to leave with it. An invisible pack is never in the
+# checklist - it leaves when the last pack that requires it does, and $Leaving
+# is what the user let go of.
 #
-# Repeated until nothing changes, because an invisible pack may itself require
-# another one, and the second loses its claimant the moment the first does.
+# Repeated until nothing changes: an invisible pack may itself require another,
+# and the second loses its claimant the moment the first does.
 function Resolve-PackRemoval {
     param([object[]]$Available, [string[]]$Installed, [string[]]$Leaving, [string[]]$Arriving = @())
 
@@ -172,19 +153,14 @@ function Resolve-PackRemoval {
     return @($Gone)
 }
 
-# Which packs an instance already has. A pack is its folder WITH ITS pack.conf:
-# that is what the gmake side counts (packs_list prints one line per pack.conf,
-# and the module loading looks beside it), and the two sides must answer the
-# same thing. They did not, once: a copy that failed left its empty folder
-# behind, this function read `ls`, and the pack was "installed" here while
-# packs_list called it absent - so add_pack stopped offering a pack that was
-# not in. The empty folder is taken back at the end of a failed copy now, and
-# this definition makes any older one harmless too.
+# A pack is its folder WITH its pack.conf: that is what the gmake side counts
+# (packs_list), and the two sides must answer the same thing. A copy that failed
+# once left its empty folder behind and they disagreed; the folder is taken back
+# now, and this definition makes older ones harmless too.
 #
 # Wrap the call in @(): PowerShell unrolls a one-element list into its element,
 # and the caller then holds a string - where [0] is its first LETTER, not the
-# pack. Cost of finding out the other way: a menu that offers 'g', and a
-# deletion aimed at a folder of that name.
+# pack. Cost of the other way: a menu that offers 'g'.
 function Get-InstalledPacks {
     param([string]$DistroName, [string]$PacksDirectory)
     $Found = Get-InInstanceOutput -DistroName $DistroName -Command @("find", $PacksDirectory, "-mindepth", "2", "-maxdepth", "2", "-name", "pack.conf")
@@ -208,26 +184,18 @@ function Test-PackScript {
     return ($ExitCode.Value -eq 0)
 }
 
-# Copy a pack's folder into the instance - the whole of what "travelling" means.
-# Two ways in, and which one is used is decided by asking the instance, before
-# anything is attempted:
+# Copy a pack's folder into the instance - the whole of what "travelling"
+# means. Two ways in, decided by asking the instance first:
+#   - the usual one: the pack's Windows folder becomes the working directory
+#     (`--cd` has WSL translate it through the mounted drives), and `.` is all
+#     there is to name - no wslpath, which the instance does not carry;
+#   - with the drives unmounted, `--cd` cannot be honoured and the first way
+#     ends on "cannot copy a directory into itself": Windows' own share into
+#     the running distro, \\wsl.localhost\<distro>, needs no drive.
 #
-#   - the usual one, the one every pack so far has travelled by: the pack's own
-#     Windows folder becomes the working directory - `--cd` has WSL translate it
-#     through the mounted drives - and `.` is then all there is to name. No path
-#     translation on purpose: the obvious candidate is `wslpath`, which the
-#     instance does not carry at all.
-#   - with the Windows drives unmounted - `gmake automount_down` - nothing
-#     under /mnt exists, `--cd` cannot be honoured, and the first way's copy
-#     ends on "cannot copy a directory into itself": WSL stayed in the home and
-#     the destination is inside it. The second way is Windows' own share into
-#     the running distro, \\wsl.localhost\<distro>: no drive needed, no interop,
-#     no password.
-#
-# The test is the very path's presence under /mnt, so the drive letter of the
-# pack decides, not a guess about the instance's settings. And whichever way it
-# travelled, the pack's scripts are made executable: the Windows side has no
-# Unix bit to carry, so the share route would arrive without one.
+# The test is the path's presence under /mnt, so the drive letter decides.
+# Whichever way it travelled, the scripts are made executable: the Windows side
+# has no Unix bit to carry.
 function Copy-PackIntoInstance {
     param([string]$DistroName, [string]$PackPath, [string]$Target, [ref]$ExitCode)
 
@@ -256,12 +224,10 @@ function Copy-PackIntoInstance {
     }
 
     if ($Copied) {
-        # The scripts are made executable, and the globs travel single-quoted
-        # inside a `sh -c`: passed as bare arguments they are at the mercy of
-        # how wsl.exe hands the command over, and one of the ways globs them -
-        # where nothing matches, the shell stops, and the pack arrives with
-        # every script unexecutable without a word. That is how the web pack
-        # landed on his instance.
+        # The globs travel single-quoted inside a `sh -c`: bare arguments are
+        # at the mercy of how wsl.exe hands the command over, and one of the
+        # ways globs them - where nothing matches, the shell stops, and the
+        # pack arrives with every script unexecutable without a word.
         Invoke-InInstance -DistroName $DistroName -Command @("sh", "-c", "find '$Target' -name '*.sh' -exec chmod +x {} +") -ExitCode $ExitCode -Quiet
         # And it is checked rather than trusted: a script that cannot run is a
         # pack that fails on its first target, far from where it went wrong.
@@ -271,11 +237,9 @@ function Copy-PackIntoInstance {
             Write-Host "                 find ~/.config/packs -name '*.sh' -exec chmod +x {} +" -ForegroundColor (Get-MessageColour hint)
         }
     } else {
-        # A copy that failed leaves nothing behind. The folder was created
-        # before the copy, and a folder is what "installed" means on this side:
-        # left there, an empty one made add_pack call the pack present while
-        # the gmake side, which asks for its pack.conf, called it absent. The
-        # copy's own exit code is what the caller reports, so it is kept.
+        # A failed copy leaves nothing behind: the empty folder would make
+        # add_pack call the pack present while the gmake side calls it absent.
+        # The copy's own exit code is what the caller reports, so it is kept.
         $CopyCode = $ExitCode.Value
         Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode $ExitCode
         $ExitCode.Value = $CopyCode
@@ -283,19 +247,13 @@ function Copy-PackIntoInstance {
     return $Copied
 }
 
-# Run one of the pack's own scripts from inside its folder. Output streaming on
-# purpose: it is what tells the user how far along it is, and it may ask for a
-# password.
-#
-# Streaming to the HOST, and that word is the whole point of the line. The
-# callers of this function hand something back - a folder placed, a pack that
-# failed - so they write that result into a variable or read it in a condition;
-# and a function whose output is captured captures whatever its own calls print
-# as well. That is how a pack's install went SILENT: apt's lines, the pack's
-# progress, everything the script said, went into the variable that was holding
-# the answer and never reached the screen - while apt's own errors, which travel
-# on the error stream, still showed. Out-Host writes the text to the screen and
-# leaves the value where it was.
+# Run one of the pack's own scripts from inside its folder. Output streams to
+# the HOST, and that word is the point: the callers write this function's result
+# into a variable, and a captured function captures whatever its own calls print
+# too - that is how a pack's install went SILENT, everything the script said
+# going into the variable that held the answer. Out-Host writes to the screen
+# and leaves the value where it was. (It may ask for a password - another
+# reason the lines must reach the console.)
 function Invoke-PackScript {
     param([string]$DistroName, [string]$Target, [string]$Script, [ref]$ExitCode)
     Invoke-InInstance -DistroName $DistroName -Command @("bash", $Script) -WorkingDirectory $Target -ExitCode $ExitCode | Out-Host
@@ -308,12 +266,9 @@ function Remove-PackFolder {
     Invoke-InInstance -DistroName $DistroName -Command @("rm", "-rf", $Target) -ExitCode $ExitCode -Quiet
 }
 
-# What the pack left on the system side. Its remove.sh took back what it had
-# named; what stays is what arrived as a DEPENDENCY - nobody's to name, and
-# heavy: the vision pack leaves 203 packages and 462 MB behind. The script asks
-# apt (no installed package needs them any more) and ldd (nothing outside apt
-# links them), and only then removes. It travels the way a pack does - a copy,
-# then a plain path, never as text.
+# What the pack left on the system side: what its remove.sh did not name - the
+# DEPENDENCIES nobody owns. The script asks apt and ldd, and only then removes;
+# it travels the way a pack does - a copy, then a plain path.
 function Invoke-PackOrphanCleanup {
     param([string]$DistroName, [ref]$ExitCode)
 
@@ -343,20 +298,14 @@ function Invoke-PackOrphanCleanup {
 # exists, and build, about one that is about to. It is asked here, once, like
 # the moves above, so that the two commands cannot drift apart.
 
-# The checklist, the two lists, and the one question that carries them. What
-# comes back:
+# The checklist, the two lists, and the one question that carries them. $null
+# means the user backed out (Escape, or "n" to the confirmation); otherwise
+# { ToAdd; ToRemove }, either possibly empty - empty is an answer, not a
+# cancellation.
 #
-#   $null               the user backed out - Escape, or "n" to the confirmation
-#   { ToAdd; ToRemove } the answer, either list possibly empty. Empty is an
-#                       answer ("nothing"), not a cancellation: the two callers
-#                       do different things with it.
-#
-# -Installed and -Checked are two different facts, and they differ at build
-# time: a rebuilt instance has no pack yet, so there is nothing to remove, while
-# the boxes a user expects ticked are the ones its predecessor carried.
-#
-# The two lists come back ready to apply: a pack's requirements are already in
-# them, in the order they have to leave or arrive in.
+# -Installed and -Checked differ at build time: a rebuilt instance has no pack
+# yet, while the boxes expected ticked are the ones its predecessor carried.
+# The lists come back ready to apply, requirements already in, in order.
 function Select-Packs {
     param(
         [string]$Title,
@@ -386,20 +335,17 @@ function Select-Packs {
 
     if ($null -eq $Chosen) { return $null }
 
-    # Two lists, and each one is read from a different side: what is checked and
-    # is not installed goes in, what is installed and is not checked comes out.
-    # Reading the first one off the available packs instead - everything not
-    # checked - is how a first run installed the pack nobody had asked for.
+    # Each list is read from a different side: checked and not installed goes
+    # in, installed and not checked comes out. Reading the first off the
+    # available packs instead is how a first run installed the pack nobody had
+    # asked for.
     $Chosen = @($Chosen)
     $Kept = @($Chosen | ForEach-Object { $_.Name })
     $Carried = @($Available | ForEach-Object { $_.Name })
 
-    # What leaves is what the checklist showed and the user unchecked - and only
-    # that. A folder installed in the instance that this checkout does not carry
-    # - another checkout's pack, one copied in by hand, one since removed from
-    # the repository - is not in the checklist at all, so nobody can have
-    # unchecked it, and taking it away would be taking away something that was
-    # never shown. It is named instead, in grey, before the list.
+    # What leaves is what the checklist showed and the user unchecked - and
+    # only that. A folder this checkout does not carry was never shown, so
+    # nobody can have unchecked it; it is named in grey instead.
     $Unticked = @($Installed | Where-Object { $OfferedNames -contains $_ -and $Kept -notcontains $_ })
     $NotCarried = @($Installed | Where-Object { $Carried -notcontains $_ })
     if ($NotCarried.Count -gt 0) {
@@ -408,13 +354,11 @@ function Select-Packs {
     }
 
     # What a pack requires travels with it, and what nothing requires any more
-    # leaves with it. Both additions are made here, once, so that the lines
-    # below, the question and the run all read the same two lists.
+    # leaves with it - both resolved here, so the lines below, the question and
+    # the run read the same lists.
     #
-    # Ticked and installed is not added: the resolver is given what the instance
-    # already has, and answers what is missing - a whole list of ticked boxes on
-    # an instance that carries them all comes back empty, which is exactly what
-    # the caller must do about it, nothing.
+    # Ticked and installed is not added: the resolver is given what the
+    # instance already has, and answers what is missing.
     $ToAdd = @()
     foreach ($Name in @(Resolve-PackSelection -Available $Available -Names $Kept -Installed $Installed)) {
         $Pack = @($Available | Where-Object { $_.Name -eq $Name })[0]
@@ -429,14 +373,10 @@ function Select-Packs {
         return [PSCustomObject]@{ ToAdd = @(); ToRemove = @() }
     }
 
-    # Both lists, and one question. One confirmation, not one per pack: the
-    # checklist above was the choice, and asking again pack by pack would only
-    # be reading it out loud. A list with nothing in it gets no line - at build
-    # time the second one is always empty.
-    #
-    # A pack the user did not tick is named with its reason under the list: it
-    # arrives because something requires it, or leaves because nothing does, and
-    # a pack that comes or goes without that line reads like a mistake.
+    # Both lists, one question - the checklist was the choice, and asking again
+    # pack by pack would only read it out loud. A list with nothing in it gets
+    # no line. A pack the user did not tick is named with its reason under the
+    # list: a pack that comes or goes without that line reads like a mistake.
     Write-Host ""
     if ($ToAdd.Count -gt 0) {
         Write-Host "Will install : " -NoNewline
@@ -468,16 +408,13 @@ function Select-Packs {
     return [PSCustomObject]@{ ToAdd = $ToAdd; ToRemove = $ToRemove }
 }
 
-# Do what the two lists say, in the one order that works: the newcomers' folders
-# are copied FIRST, before anything is removed, so that a remove.sh asking which
-# installed pack still claims a package sees them and leaves a shared package
-# where it is; then what leaves; then the installs; and last the dependencies
-# the removals left behind.
+# Do what the two lists say, in the one order that works: newcomers' folders
+# first (a remove.sh asking which installed pack claims a package must see
+# them), then what leaves, then the installs, then the dependencies the
+# removals left behind.
 #
-# It prints as it goes - a pack's install.sh may ask for a password - and it
-# hands back $null when everything landed, or the pack that stopped the run.
-# What that means is the caller's sentence, not this one's: "run this again" and
-# "the build went through, finish later" are not the same news.
+# It prints as it goes, and hands back $null or the pack that stopped the run -
+# what that means is the caller's sentence.
 function Invoke-PackApply {
     param(
         [string]$DistroName,
@@ -489,11 +426,8 @@ function Invoke-PackApply {
 
     $Code = 0
 
-    # 1. The newcomers' folders first, before anything leaves. This is the step
-    # that makes the shared package stay: the remove.sh scripts below ask which
-    # packs are installed, and these count from here on. A pack whose folder is
-    # there but whose install.sh has not run yet is a pack with nothing in it - a
-    # few seconds, inside this one call.
+    # 1. Folders first, before anything leaves: the remove.sh scripts below ask
+    # which packs are installed, and these count from here on.
     Write-Host ""
     foreach ($Pack in $ToAdd) {
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Pack.Name
@@ -507,9 +441,8 @@ function Invoke-PackApply {
         }
     }
 
-    # 2. What leaves. A pack without a remove.sh is one installed before packs
-    # had one: its folder leaves, nothing of it is undone, and that is said
-    # rather than discovered later.
+    # 2. What leaves. A pack without a remove.sh was installed before packs had
+    # one: its folder leaves, nothing is undone, and that is said.
     foreach ($Name in $ToRemove) {
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Name
         Write-Host ""

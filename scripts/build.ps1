@@ -1,10 +1,8 @@
 [CmdletBinding()]
 param (
-    # This command took -DistroName and -InstallPath until 2026-09-24. Both are
-    # gone: it asks for the name, then for the folder, and creates nothing
-    # outside that answer. What lands here is an old command line, kept only so
-    # the refusal below can say so - PowerShell's own binding error would name
-    # a parameter and explain nothing.
+    # An old command line lands in -Ignored, kept only so the refusal below can
+    # say so: PowerShell's own binding error would name a parameter and explain
+    # nothing.
     [Parameter(ValueFromRemainingArguments = $true)]
     [object[]]$Ignored
 )
@@ -30,17 +28,15 @@ if ($Ignored) {
     exit 1
 }
 
-# Detects and silently installs a compatible Nerd Font (MesloLGS NF) for the current user.
-# Uses CurrentUser scope (HKCU and LocalAppData) to completely bypass the need for Administrator privileges.
-# Returns $true if the font is already configured, or $false if user action is required.
+# Nerd Font (MesloLGS NF), per-user (HKCU, LocalAppData): no admin needed, and
+# the function never throws - the prompt looks worse without the font, and that
+# is not a failed deployment.
 function Install-NerdFont {
     $FontName = "MesloLGS NF"
     $FontFile = "MesloLGS NF Regular.ttf"
-    
-    # 1. Check HKCU (Current User Registry) instead of HKLM (System Registry)
+
     $FontRegPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
-    
-    # Ensure registry path exists just in case
+
     if (-not (Test-Path $FontRegPath)) {
         New-Item -Path $FontRegPath -Force | Out-Null
     }
@@ -64,10 +60,8 @@ function Install-NerdFont {
 
     Write-Host "==> Starship prompt requires a Nerd Font. Downloading $FontName..." -ForegroundColor (Get-MessageColour info)
 
-    # 2. Download, then install the font PER-USER (no admin required). Both are
-    # best effort: the prompt looks worse without the font, but neither a download
-    # that fails nor a registry that refuses may turn a finished deployment into
-    # a failed one - this function never throws.
+    # Best effort: neither a download that fails nor a registry that refuses may
+    # turn a finished deployment into a failed one.
     try {
         $FontUrl = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
         $TempFontPath = Join-Path $env:TEMP $FontFile
@@ -75,7 +69,6 @@ function Install-NerdFont {
 
         $UserFontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
 
-        # Create user fonts directory if it doesn't exist
         if (-not (Test-Path $UserFontsDir)) {
             New-Item -ItemType Directory -Path $UserFontsDir -Force | Out-Null
         }
@@ -108,12 +101,10 @@ Set-Location -Path $RepoRoot
 $ImageTag = "wsl-stack:latest"
 $ContainerName = "wsl-temp-export-$([guid]::NewGuid().ToString().Substring(0, 8))"
 
-# 0. Preflight: Docker must answer BEFORE the destructive confirmation below,
-# which asks the user to type the distro name. Failing here aborts cleanly,
-# with nothing confirmed and nothing touched.
-# "Continue" + "*> $null" is deliberate: under $ErrorActionPreference = "Stop",
-# docker's stderr becomes a TERMINATING error, and a plain 2>$null does not
-# silence it - the user would see a raw daemon error instead of this message.
+# 0. Preflight: Docker must answer BEFORE the destructive confirmation below -
+# failing here aborts with nothing confirmed and nothing touched.
+# "Continue" + "*> $null": under EAP=Stop docker's stderr is a TERMINATING
+# error, and a plain 2>$null does not silence it.
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Write-Host ""
     Write-Host "[ABORT] Docker is not installed, or not on the PATH." -ForegroundColor (Get-MessageColour error)
@@ -135,10 +126,9 @@ if ($DockerExitCode -ne 0) {
     exit 1
 }
 
-# 0-bis. What is being built, asked. The name and the folder come from two
-# questions, and both answers are checked here - before the banner below and
-# before anything is created. The checks hold on a first build too, where no
-# distro exists yet and the banner never shows.
+# 0-bis. What is being built, asked: both answers checked here - before the
+# banner and before anything is created. The checks hold on a first build too,
+# where no distro exists yet and the banner never shows.
 Write-Host ""
 Write-Host "==> Creating a new instance" -ForegroundColor (Get-MessageColour info)
 
@@ -159,15 +149,13 @@ while (-not $DistroName) {
 }
 
 # Where it will live. The proposal is the folder every command of this family
-# writes to, and it is shown and confirmed rather than typed: the common answer
-# is yes, and the folder question is there for the other case - a second drive,
-# or a folder of your own.
+# writes to, shown and confirmed rather than typed: the folder question is
+# there for a second drive, or a folder of your own.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
-# What Windows already knows, read once: the checks below ask it two things -
-# whether this path is another instance's folder, and whether it is the folder
-# of the instance of that very name, which is the one case where the build is
-# allowed to erase what it finds there.
+# What Windows already knows, read once: whether this path is another
+# instance's folder, and whether it is this name's own folder - the one case
+# where the build may erase what it finds.
 $Registered = @()
 foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
     $Props = Get-ItemProperty $Key.PSPath
@@ -182,15 +170,14 @@ foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\L
 $Folder = $Root
 $InstallPath = $null
 while (-not $InstallPath) {
-    # A path Windows refuses is a typo, not a reason to stop: it is reported
-    # with the others rather than letting the exception end the run.
+    # A path Windows refuses is a typo, not a reason to stop.
     $Full = $null
     try {
         $Full = [System.IO.Path]::GetFullPath((Join-Path $Folder $DistroName)).TrimEnd('\')
     } catch { }
 
-    # Nothing there but our own build: step 4 erases this path recursively, so
-    # a folder holding another instance would take that instance with it.
+    # Step 4 erases this path recursively: a folder holding another instance
+    # would take that instance with it.
     $Elsewhere = $null
     if ($Full) {
         $Elsewhere = $Registered | Where-Object {
@@ -199,10 +186,8 @@ while (-not $InstallPath) {
         } | Select-Object -First 1
     }
 
-    # Something is already there, and it is not this instance's folder: the
-    # rebuild is the only case where this folder is ours to erase, and it is
-    # the instance's own name that says so. Anything else is somebody's, and
-    # step 4 erases what it finds there.
+    # The rebuild is the only case where this folder is ours to erase, and the
+    # instance's own name is what says so.
     $ItsOwn = $Registered | Where-Object { $_.Name -eq $DistroName -and $_.Path -eq $Full } | Select-Object -First 1
     $Occupied = $false
     if ($Full -and (Test-Path $Full) -and (-not $ItsOwn)) {
@@ -217,9 +202,8 @@ while (-not $InstallPath) {
     } elseif ($Occupied) {
         Write-Host "  $Full already exists, please choose another location." -ForegroundColor (Get-MessageColour warning)
     } else {
-        # Shown before it is created, and confirmed: the common answer is yes,
-        # and a no is a change of mind about the location, not about anything
-        # this script has done - nothing has been written yet.
+        # Shown before it is created; a no is a change of mind about the
+        # location - nothing has been written yet.
         $Answer = [string](Read-Host "Create [$Full]? [Y/n]")
         if ($Answer -notmatch "^[nN]") {
             $InstallPath = $Full
@@ -227,9 +211,7 @@ while (-not $InstallPath) {
         }
     }
 
-    # Another folder, then - asked the same way whether the path was refused or
-    # simply not wanted. An empty answer cancels, like every question that has
-    # nothing to propose.
+    # Another folder, asked the same way; an empty answer cancels.
     $Answer = [string](Read-Host "Folder for '$DistroName' (or Enter to cancel)")
     if ([string]::IsNullOrWhiteSpace($Answer)) {
         Write-Host ""
@@ -239,7 +221,7 @@ while (-not $InstallPath) {
     $Folder = $Answer.Trim()
 }
 
-# 1. Place temporary export tar next to InstallPath to prevent filling drive C:
+# 1. The export tar lands beside the install path - never on C:.
 $ParentInstallDir = Split-Path -Path $InstallPath -Parent
 if (-not (Test-Path -Path $ParentInstallDir)) {
     New-Item -ItemType Directory -Path $ParentInstallDir -Force | Out-Null
@@ -281,16 +263,14 @@ if ($ExistingDistros -contains $DistroName) {
     }
 }
 
-# 0-ter. The packs, asked here with everything else: the machine has not been
-# touched yet, and nothing asks again once it starts working - the answer waits
-# in a variable and is applied below, after the deployment. An empty checklist,
-# or Escape, means none of them, and the build goes on either way.
+# 0-ter. The packs, asked here with everything else: nothing asks again once
+# the machine starts working - the answer waits in a variable and is applied
+# below. Empty, or Escape, means none, and the build goes on either way.
 $PackSelection = $null
 $AvailablePacks = @(Get-AvailablePacks)
 if ($AvailablePacks.Count -gt 0) {
-    # The instance being replaced still exists here, and what it carries is what
-    # the boxes should show. A first build has nothing to read and opens on an
-    # empty checklist.
+    # The instance being replaced still exists here: what it carries is what
+    # the boxes show. A first build opens on an empty checklist.
     $PreChecked = @()
     if ($ExistingDistros -contains $DistroName) {
         $PreviousHome = Get-InstanceHome -DistroName $DistroName
@@ -301,9 +281,8 @@ if ($AvailablePacks.Count -gt 0) {
         }
     }
 
-    # -Installed is left at its default on purpose: the instance this build
-    # makes carries nothing yet, so nothing can be taken out of it - there are
-    # boxes to tick, and no removal to compute.
+    # -Installed stays at its default: the instance this build makes carries
+    # nothing yet - boxes to tick, no removal to compute.
     $PackSelection = Select-Packs -Title "Packs for '$DistroName'" -Available $AvailablePacks -Checked $PreChecked
 
     if ($null -eq $PackSelection -or $PackSelection.ToAdd.Count -eq 0) {
@@ -313,8 +292,8 @@ if ($AvailablePacks.Count -gt 0) {
     }
 }
 
-# Set once the distro is registered. The finally block reads it to tell a
-# deployment from a failure, and the exit code below is derived from it.
+# Set once the distro is registered: the finally block reads it, and the exit
+# code below is derived from it.
 $Deployed = $false
 
 try {
@@ -345,9 +324,8 @@ try {
     Invoke-External { wsl.exe --import $DistroName $InstallPath $TarPath --version 2 } "WSL import failed."
 
     # Marked the moment it is registered, before the steps that can still fail:
-    # from here on the instance exists and is ours, and the other commands have
-    # to be able to see it - a build that stops at the font step leaves a real
-    # instance behind, not an invisible one.
+    # a build that stops at the font step leaves a real instance behind, not an
+    # invisible one.
     New-InstanceMarker -Folder $InstallPath -By "build"
 
     Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor (Get-MessageColour info)
@@ -361,27 +339,20 @@ try {
     wsl.exe --terminate $DistroName
 
     Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor (Get-MessageColour info)
-    # The function prints its own status line; discard the boolean it returns
-    # (a bare call would print True/False to the console).
+    # The function prints its status line; the boolean would print True/False.
     Install-NerdFont | Out-Null
 
     Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
 
-    # The icon is drawn from the instance's own name - the letters and the
-    # colours both come from it, so the same name always draws the same icon.
-    # Nothing is said about a drawing that worked: the icon is there because
-    # there has to be one, not because it is worth announcing.
-    #
-    # It is decoration, though, and a build already finished does not die for
-    # it: a drawing that fails is reported, leaves no file, and the fragment
-    # below drops the icon line, so the profile keeps Terminal's own icon.
+    # The icon is drawn from the instance's own name, letters and colours both.
+    # Nothing is said about a drawing that worked. It is decoration: a failure
+    # is reported, leaves no file, and the fragment below drops the icon line.
     $IconPath = Join-Path $InstallPath "terminal-icon.png"
     $IconDrawn = $false
     $Icon = @{}
     try {
-        # -What: the letters and the colours it settled on are read back, and go
-        # into the instance's own file below, so that a later change of one keeps
-        # the other.
+        # -What: the letters and colours read back into the instance's file, so
+        # a later change of one keeps the other.
         $Drawn = & "$RepoRoot\assets\make-icon.ps1" -Name $DistroName -Out $IconPath -Quiet -What | ConvertFrom-Json
         $IconDrawn = $true
         $Icon = @{ Text = $Drawn.Text; Top = $Drawn.Top; Bottom = $Drawn.Bottom; TextColor = $Drawn.TextColor }
@@ -390,10 +361,9 @@ try {
         Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
     }
 
-    # Find the distro's Terminal profile GUID: WSL writes one fragment file per
-    # import under Fragments\Microsoft.WSL (named {guid}.json, containing the
-    # profile) - the guid changes on every rebuild. Scan newest-first and keep
-    # the full set of live guids for the ghost pruning below.
+    # WSL writes one fragment per import under Fragments\Microsoft.WSL - the
+    # guid changes on every rebuild. Newest-first scan, and the full set of
+    # live guids is kept for the ghost pruning below.
     $WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
     $ProfileGuid = $null
     $LiveGuids = @()
@@ -412,9 +382,8 @@ try {
     $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
 
     # Prune ghost profiles: every rebuild orphans the previous profile into the
-    # user's settings.json (Terminal persists it when its source disappears).
-    # Remove this distro's entries that match no live WSL fragment. If Terminal
-    # writes the newest orphan after this point, the next build cleans it up.
+    # user's settings.json. This distro's entries matching no live fragment go;
+    # an orphan Terminal writes after this point waits for the next build.
     if ($LiveGuids.Count -gt 0) {
         foreach ($SettingsPath in @(
             "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
@@ -439,9 +408,8 @@ try {
         }
     }
 
-    # Prune our own fragment files whose distro no longer exists (same rule:
-    # the target guid must be live). One file per distro, named <DistroName>.json,
-    # so several distros can carry the template appearance side by side.
+    # Our own fragment files whose distro no longer exists go too - one file
+    # per distro, named <DistroName>.json.
     if ((Test-Path $OurFragmentDir) -and ($LiveGuids.Count -gt 0)) {
         foreach ($File in (Get-ChildItem $OurFragmentDir -Filter *.json)) {
             try {
@@ -456,8 +424,7 @@ try {
     }
 
     if ($ProfileGuid) {
-        # No icon drawn, no icon line: Terminal then shows its own, which is what
-        # step 9 said when the drawing failed.
+        # No icon drawn, no icon line: Terminal shows its own.
         Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Font "MesloLGS NF" `
             -ColorScheme "One Half Dark" -IconPath $(if ($IconDrawn) { $IconPath } else { "" })
         Write-Host "  * Terminal profile : icon + font + color scheme + tab title applied (profile $ProfileGuid)" -ForegroundColor (Get-MessageColour success)
@@ -467,32 +434,26 @@ try {
         $TerminalProfileOk = $false
     }
 
-    # What this instance looks like, written in its own folder - the file an
-    # archive carries. Written here, the fragment in place, so the font and the
-    # colours it reads are the ones just applied, and with the icon's recipe: a
-    # later change of letters or colours keeps the other half.
+    # What this instance looks like, in its own folder - the file an archive
+    # carries. Written here, the fragment in place, so the font and colours it
+    # reads are the ones just applied, icon recipe included.
     Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
 
-    # And Terminal is asked to look again: the profile of an instance that did
-    # not exist a minute ago appears without closing it.
+    # Terminal is asked to look again: the new profile appears without closing.
     Update-TerminalSettings
 
-    # The packs, before the screen that says the instance is done - and in a try
-    # of their own. Their own try is the point: a pack that fails must not reach
-    # the catch above, which would announce "[ERROR] DURING DEPLOYMENT" for an
-    # instance that is built, registered and usable. The build went through, and
-    # the packs are a step of its own, with its own report: one line in the
-    # summary below, and the same news kept for the screen the shell opens on.
+    # The packs, before the done screen and in a try of their own: a pack that
+    # fails must not reach the catch above, which would announce "[ERROR]
+    # DURING DEPLOYMENT" for an instance that is built, registered and usable.
+    # Its news lands in the summary below and on the screen the shell opens on.
     $PackLine = "none"
     $PackLineColour = "DarkGray"
     $PackReport = @()
     $PackReportColour = "Green"
     if ($null -ne $PackSelection) {
         try {
-            # Asked of the instance, like everywhere else, and asked again after
-            # the install rather than trusted from the answer: the folder is the
-            # state, and a pack whose install failed took its folder back out on
-            # the way.
+            # Asked of the instance after the install rather than trusted from
+            # the answer: a pack whose install failed took its folder back out.
             $NewHome = Get-InstanceHome -DistroName $DistroName
             if (-not $NewHome) { throw "'$DistroName' did not say where its user's home is." }
             $PacksDirectory = "$NewHome/.config/packs"
@@ -514,13 +475,9 @@ try {
                 )
                 $PackReportColour = "Red"
             } else {
-                # What is there now, and nothing else. The line used to fall back
-                # on the names that were asked for when the list came back empty,
-                # which is how a fresh build ended up announcing "Packs: claude
-                # installed." over an instance that had none - the pack had been
-                # asked for, its install declined (an install.sh that answered 2),
-                # and its folder taken back out. A welcome screen states what
-                # happened, not what was intended.
+                # What is there now, and nothing else: falling back on the
+                # names asked for is how a fresh build announced "Packs: claude
+                # installed." over an instance whose install had declined.
                 $Landed = $PacksNow
                 if ($Landed.Count -eq 0) {
                     $PackLine = "none"
@@ -576,9 +533,8 @@ catch {
 finally {
     Write-Host "==> Cleaning up temporary build artifacts..." -ForegroundColor (Get-MessageColour info)
 
-    # The trap of step 0 again: under $ErrorActionPreference = "Stop" docker
-    # writes its errors as TERMINATING ones, and one raised here would bury the
-    # message the catch block has just printed.
+    # Step 0's trap again: a docker error raised here would bury the message
+    # the catch block has just printed.
     $PreviousEAP = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     docker rm -f $ContainerName *> $null
@@ -589,7 +545,6 @@ finally {
     }
 
     if ($Deployed) {
-        # Prompt whether to retain or purge the local Docker image
         Write-Host ""
         Write-Host ("-" * 60) -ForegroundColor (Get-MessageColour muted)
         $KeepDockerImage = Read-Host "Keep Docker image [Y/n]?"
@@ -712,19 +667,13 @@ if ($Deployed) {
         }
     }
 
-    # The distro is built and registered: clear the run's output and hand the
-    # user a shell in it, which is what they came for. --cd ~ lands in their
-    # home rather than in the Windows folder the script was launched from -
-    # which it would otherwise map into the fresh distro.
-    # Two lines are printed first, so the shell opens on the answer to "who am
-    # I, where, and what now" instead of on an anonymous prompt. ~/projects
-    # comes from /etc/skel, and fnew refuses to run from anywhere else.
+    # The shell the user came for, in the fresh instance: --cd ~ lands in their
+    # home rather than the Windows folder the script was launched from. Two
+    # lines first, so it opens on "who am I, where, and what now" instead of an
+    # anonymous prompt.
     #
-    # A pack may have something to say here - scaffold's line points at fnew,
-    # the command it brings - and it says it in its own pack.conf. So no sentence of
-    # this script names a pack or a command: a pack whose folder is not in the
-    # instance prints nothing, which is what a missing command should say. The
-    # packs line just below says what is in place.
+    # A pack's welcome line (scaffold's points at fnew) comes from its own
+    # pack.conf: no sentence of this script names a pack or a command.
     Clear-Host
     Write-Host "Welcome, $ConfiguredUser." -ForegroundColor (Get-MessageColour success)
     Write-Host "You are now logged in to $DistroName." -ForegroundColor (Get-MessageColour success)
