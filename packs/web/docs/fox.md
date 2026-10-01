@@ -3,8 +3,8 @@
 [← Back to the README](../../../README.md#optional-tooling)
 
 ```bash
-fox # opens Firefox on the **light** privacy profile.
-pfox # opens a private window on the **strict** privacy profile.
+fox # opens Firefox on the light privacy profile.
+pfox # opens a private window on the strict privacy profile.
 gmake fox_tweak_on    # the strict profile, by hand
 gmake fox_tweak_off   # everything out - stock browser
 ```
