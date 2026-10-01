@@ -14,9 +14,19 @@ gmake fox_tweak_off   # everything out - stock browser
 ## The two sets
 
 |  | Light | Strict |
-| :--- | :--- | :--- |
-| In it | tracking protection, URL cleaning, pings and prefetch off, HTTPS-only, DoH off, telemetry off, geolocation denied, dark interface | light **plus** anti-fingerprinting and WebRTC off |
-| You notice | nothing | [the table below](#the-strict-set-day-to-day) |
+| :--- | :---: | :---: |
+| Strict tracking protection — trackers, fingerprinters, cryptominers, social trackers, email pixels | ✓ | ✓ |
+| URL tracking parameters stripped (`fbclid`, `utm_*`…), every window | ✓ | ✓ |
+| Pings and Beacon off | ✓ | ✓ |
+| No prefetch, no DNS pre-resolution | ✓ | ✓ |
+| HTTPS-only | ✓ | ✓ |
+| DoH off — the DNS is the tunnel's | ✓ | ✓ |
+| No camera/microphone enumeration | ✓ | ✓ |
+| Geolocation denied by default | ✓ | ✓ |
+| Telemetry and studies off, GPC on | ✓ | ✓ |
+| Dark interface | ✓ | ✓ |
+| Anti-fingerprinting — RFP + letterboxing (UTC/en-US, generic UA, canvas noise, standard window sizes) | — | ✓ |
+| WebRTC off — no calls in the browser | — | ✓ |
 
 ## How the switch works
 
@@ -58,28 +68,6 @@ when the window opened. DNS leaks are not testable from a page; raw values:
 | No calls (Jitsi, Meet) | `media.peerconnection.enabled` |
 
 Firefox's own DoH is off: the DNS is the tunnel's ([the tunnel's page](vpn.md)).
-
-## The preferences
-
-**Light set** — the Strict tracking preset (trackers, fingerprinters,
-cryptominers, social trackers, email pixels), URL tracking parameters stripped
-in every window, pings and Beacon off, no prefetch, HTTPS-only, DoH off, no
-camera/microphone enumeration, geolocation denied by default, telemetry and
-studies off, GPC on, dark interface.
-
-**Strict set adds** — `privacy.resistFingerprinting` with
-`privacy.resistFingerprinting.letterboxing` (UTC/en-US, generic user-agent,
-canvas noise, standard window sizes), and `media.peerconnection.enabled`
-false.
-
-## uBlock Origin
-
-Not in the sets. Two clicks from
-[addons.mozilla.org](https://addons.mozilla.org/firefox/addon/ublock-origin/);
-then in its dashboard: *AdGuard Tracking Protection*, the malware/phishing
-lists, *uBlock filters - Annoyances*, *AdGuard - Cookie Notices*, *Fanboy's
-Social Blocking List*, and *Settings → Uncloak canonical names*. With
-Firefox's URL cleaner, that covers what ClearURLs did.
 
 ## Removing the pack
 
