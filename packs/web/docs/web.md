@@ -8,8 +8,8 @@ WSLg — and the tunnel its traffic can go through.
 | Piece | For | Commands |
 | :--- | :--- | :--- |
 | Firefox | browsing, from inside the instance | `firefox` |
-| the launchers | the session bus the image lacks; light set with `fox`, strict with `pfox` | `fox`, `pfox` |
-| the privacy sets | switchable by hand too | `fox_tweak_on`, `fox_tweak_off` |
+| the launchers | the session bus the image lacks; light profile with `fox`, strict with `pfox` | `fox`, `pfox` |
+| the privacy profiles | switchable by hand too | `fox_tweak_on`, `fox_tweak_off` |
 | the tunnel | the traffic, through your own WireGuard server | [the tunnel's page](vpn.md) |
 
 ## Installing and removing it
@@ -62,11 +62,11 @@ distro starts.
 arrive in H.264/AAC, which the browser asks the system for; the pack installs
 that decoder (`libavcodec60`). Ordinary videos (VP9/AV1) never need it.
 
-**The privacy settings** come in two sets, and the launcher picks: `fox` light,
+**The privacy profiles** come in two, and the launcher picks: `fox` light,
 `pfox` strict, with the check page first. A switch costs no password; `pfox`
-refuses while Firefox is running (the settings count at the next start).
-`fox_tweak_on` / `fox_tweak_off` are the manual switches. What each set holds:
-[the privacy page](fox.md).
+refuses while Firefox is running (the profile is read when Firefox starts).
+`fox_tweak_on` / `fox_tweak_off` are the manual switches. What each profile
+holds: [the privacy page](fox.md).
 
 Your profile (`~/.mozilla`) is yours: removal does not delete it.
 

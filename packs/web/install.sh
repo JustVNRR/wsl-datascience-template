@@ -121,9 +121,10 @@ else
     echo "No /usr/lib/firefox/defaults/pref: the sound was left alone."
 fi
 
-# The privacy link, and the light set in place: one link in the browser's
-# directory, pointing at a file of the user's own - the launchers switch sets
-# through it with no password (docs/fox.md). Best-effort, like the hook.
+# The privacy link, and the light profile in place: one link in the browser's
+# directory, pointing at a file of the user's own - the launchers switch
+# profiles through it with no password (docs/fox.md). Best-effort, like the
+# hook.
 if ! bash "$here/bin/fox.sh" light; then
     echo "The privacy link was not set up - run it by hand:"
     echo "   bash ~/.config/packs/web/bin/fox.sh light"

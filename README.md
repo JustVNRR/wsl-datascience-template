@@ -18,7 +18,7 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
 - **Data Science ready** — the `python` pack brings `uv`, Python 3 and the C build toolchain most wheels are compiled with; `vision` brings the media and OCR tools.
 - **Project scaffolding** — `fnew` fuzzy-picks a template from the catalogs the installed packs curate, or takes one by URL, and the pack the row came from finishes the job: a Python project gets its virtual environment and direnv.
 - **Modular targets** — `gmake` exposes its targets, and the packs add their own: the project targets with `devops` (Docker, GitHub PRs), GCP, BigQuery, Cloud Run and the VMs with `gcp`, the lint and test lanes with `python`, the PDF build with `pandoc`. They appear as the packs do ([the gmake Makefile](#makefile-gmake), [optional tooling](#optional-tooling)).
-- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`, on its light privacy settings, with `pfox` for the strict ones in private; its `vpn_*` targets connect the instance to your WireGuard server — the servers live in one JSON, the settings in `.env.global` — and bring it up with the distro.
+- **A browser, and a tunnel** — the `web` pack installs Firefox from Mozilla's own repository and opens it with `fox`, on its light privacy profile, with `pfox` for the strict one in private; its `vpn_*` targets connect the instance to your WireGuard server — the servers live in one JSON, the settings in `.env.global` — and bring it up with the distro.
 
 ---
 
@@ -269,7 +269,7 @@ the repository at runtime.
 │       ├── pack.conf        # what it installs, and the line `add_pack` shows
 │       ├── install.sh       # what `wsl.ps1 add_pack` runs inside the instance
 │       ├── remove.sh        # what `wsl.ps1 remove_pack` runs before the folder goes
-│       ├── fox-privacy-*.js # the two privacy sets (light, strict) the launchers choose
+│       ├── fox-privacy-*.js # the two privacy profiles (light, strict) the launchers choose
 │       ├── privacy-check.html  # the live check page pfox opens
 │       ├── vpn.servers.sample  # the servers, in JSON, waiting for your keys
 │       ├── env.global.sample   # VPN_PROFILE and VPN_KILL_SWITCH, for .env.global

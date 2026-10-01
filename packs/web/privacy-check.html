@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>What this browser actually does</title>
+<title>Undercover Browser</title>
 <style>
   /* One Half Dark, the scheme the terminal wears: the white was violent. */
   :root { color-scheme: dark; }
@@ -20,7 +20,7 @@
 </style>
 </head>
 <body>
-<h1>What this browser actually does</h1>
+<h1>Undercover Browser</h1>
 <p class="note">Open <code>about:config</code> to consult Firefox's preferences.</p>
 <table>
   <thead>
@@ -36,13 +36,13 @@
 <script>
 "use strict";
 
-// The launcher puts the set and the resolver in the fragment:
+// The launcher puts the profile and the resolver in the fragment:
 // #strict;dns=10.2.0.1
 const parts = decodeURIComponent(location.hash.slice(1)).split(";");
-const set = parts[0] || "";
+const profile = parts[0] || "";
 const dns = (parts.find(p => p.startsWith("dns=")) || "dns=").slice(4);
-const strict = set === "strict";
-document.title += set ? " - " + set : "";
+const strict = profile === "strict";
+document.title += profile ? " - " + profile : "";
 
 const rows = document.getElementById("rows");
 
@@ -93,7 +93,7 @@ add(
   window.innerWidth % 200 === 0 && window.innerHeight % 100 === 0
 );
 
-// --- WebRTC: gone with the strict set ----------------------------------------
+// --- WebRTC: gone with the strict profile -------------------------------------
 const rtc = typeof RTCPeerConnection;
 add("RTCPeerConnection", rtc, "undefined", rtc === "undefined");
 

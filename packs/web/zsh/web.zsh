@@ -2,8 +2,8 @@
 # THE BROWSER
 # ============================================================
 # The pack's shell file, read where it lives (~/.config/packs/web/zsh/web.zsh).
-# `fox` opens the light privacy set, `pfox` the strict one in a private window,
-# with the check page first (docs/fox.md).
+# `fox` opens the light privacy profile, `pfox` the strict one in a private
+# window, with the check page first (docs/fox.md).
 
 # X11, not Wayland: WSLg announces Wayland, and that path misbehaves under WSL
 # (scrolling, menus that stop answering, dropped frames). Ask for it back for
@@ -29,18 +29,18 @@ _fox_launch() {
     firefox "$@"
 }
 
-# fox opens on the light set - and puts it back after a strict visit.
+# fox opens on the light profile - and puts it back after a strict visit.
 fox() {
     "$FOX_SH" light || return
     _fox_launch "$@"
 }
 
-# pfox opens the private window on the strict set, check page first (the set
-# and the resolver travel in its fragment). The switch counts at the next
-# start: with Firefox already running it would be silently wrong - refused.
+# pfox opens the private window on the strict profile, check page first (the
+# profile and the resolver travel in its fragment). The switch counts at the
+# next start: with Firefox already running it would be silently wrong - refused.
 pfox() {
     if pgrep -x firefox >/dev/null 2>&1; then
-        print -u2 "Firefox is already running - close it, then run pfox again (the settings count at its next start)."
+        print -u2 "Firefox is already running - close it, then run pfox again (the profile is read when Firefox starts)."
         return 1
     fi
     "$FOX_SH" strict || return

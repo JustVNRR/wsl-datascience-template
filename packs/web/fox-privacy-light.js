@@ -1,7 +1,7 @@
-// The web pack's LIGHT privacy settings - what `fox` puts in place, and what
+// The web pack's LIGHT privacy profile - what `fox` puts in place, and what
 // the install leaves there. Nothing here is noticed day to day; the strict
-// set adds anti-fingerprinting and WebRTC off. Defaults: about:config wins.
-// What each line does: docs/fox.md.
+// profile adds anti-fingerprinting and WebRTC off. Defaults: about:config
+// wins. What each line does: docs/fox.md.
 
 // --- Tracking protection: the Strict preset, named pref by pref ---
 // (the category line is what the Settings page shows; the engines read the

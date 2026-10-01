@@ -1,17 +1,15 @@
-# Firefox, the privacy settings
+# Firefox privacy settings
 
 [← Back to the README](../../../README.md#optional-tooling)
 
-`fox` opens Firefox on the **light** set. `pfox` opens a private window on the
-**strict** set, with the check page first. The install leaves the light set in
-place; the rest of the pack is [the browser and the tunnel](web.md).
-
 ```bash
-gmake fox_tweak_on    # the strict set, by hand
+fox # opens Firefox on the **light** privacy profile.
+pfox # opens a private window on the **strict** privacy profile.
+gmake fox_tweak_on    # the strict profile, by hand
 gmake fox_tweak_off   # everything out - stock browser
 ```
 
-## The two sets
+## The two profiles
 
 |  | Light | Strict |
 | :--- | :---: | :---: |
@@ -28,19 +26,10 @@ gmake fox_tweak_off   # everything out - stock browser
 | Anti-fingerprinting — RFP + letterboxing (UTC/en-US, generic UA, canvas noise, standard window sizes) | — | ✓ |
 | WebRTC off — no calls in the browser | — | ✓ |
 
-## How the switch works
-
-- `/usr/lib/firefox/defaults/pref/fox-privacy.js` is a link to
-  `~/.config/fox-privacy.js`. Choosing a set replaces that file: written once
-  (the install, or the first launch), no password afterwards.
-- `fox` writes the light set; `pfox` the strict set. `pfox` refuses while
-  Firefox runs: the settings count at the next start.
-- Both sets are defaults: `about:config` wins.
-
 ## The check page
 
 `pfox` opens `privacy-check.html` first. A page cannot read the preferences,
-so it measures the effects. Expected, strict set:
+so it measures the effects. Expected, strict profile:
 
 | Measured | Expected |
 | :--- | :--- |
@@ -57,7 +46,7 @@ The footer shows the exit IP, its city and country, and the DNS resolver read
 when the window opened. DNS leaks are not testable from a page; raw values:
 `about:config`.
 
-## The strict set, day to day
+## The strict profile, day to day
 
 | You will notice | Preference |
 | :--- | :--- |
@@ -68,8 +57,3 @@ when the window opened. DNS leaks are not testable from a page; raw values:
 | No calls (Jitsi, Meet) | `media.peerconnection.enabled` |
 
 Firefox's own DoH is off: the DNS is the tunnel's ([the tunnel's page](vpn.md)).
-
-## Removing the pack
-
-`remove_pack` takes the link, the file it points at and the sound preference
-back. `~/.mozilla` stays.

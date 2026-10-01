@@ -1,5 +1,5 @@
-// The web pack's STRICT privacy settings - what `pfox` (and gmake
-// fox_tweak_on) puts in place: the light set, plus anti-fingerprinting
+// The web pack's STRICT privacy profile - what `pfox` (and gmake
+// fox_tweak_on) puts in place: the light profile, plus anti-fingerprinting
 // (English pages, UTC hours, letterboxing) and WebRTC off. `fox` puts the
 // light one back. Defaults: about:config wins. What each line does:
 // docs/fox.md.
