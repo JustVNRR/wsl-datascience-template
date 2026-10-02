@@ -1,6 +1,15 @@
 #!/bin/bash
 set -e
 
+# The socle's colours, read from the skeleton the image carries them in - the
+# instance has no account yet. A missing library leaves the questions plain
+# rather than stopping the onboarding.
+C_YELLOW= C_RESET=
+if [ -r /etc/skel/.config/zsh/lib/colours.sh ]; then
+    # shellcheck source=/dev/null
+    . /etc/skel/.config/zsh/lib/colours.sh || true
+fi
+
 clear
 echo "============================================================"
 echo "            Welcome to your WSL Stack environment"
@@ -10,7 +19,7 @@ echo ""
 # A name no account uses yet: adduser fails on a taken one (root, daemon,
 # www-data...), and set -e would abort the whole onboarding on its raw error.
 while true; do
-    read -rp "Enter your username: " NEW_USER
+    read -rp "${C_YELLOW}Enter your username: ${C_RESET}" NEW_USER
     if [[ ! "$NEW_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
         echo "Invalid username (use lowercase letters, numbers, underscores, and dashes only)."
     elif id "$NEW_USER" >/dev/null 2>&1; then
@@ -35,7 +44,7 @@ echo ""
 # inside WSL nobody logs in with one, so the password's only job is sudo. Hence
 # the question, defaulting to no - NOPASSWD lets anything running as this user
 # become root with no prompt at all.
-read -rp "Run sudo without a password (passwordless)? [y/N] " PASSWORDLESS
+read -rp "${C_YELLOW}Run sudo without a password (passwordless)? [y/N] ${C_RESET}" PASSWORDLESS
 echo ""
 
 # The group is what makes sudo possible at all - both paths below need it.
