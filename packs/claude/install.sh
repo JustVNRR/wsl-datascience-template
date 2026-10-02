@@ -5,20 +5,16 @@
 # `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/claude, then
 # runs this script from inside it, as the instance's own user.
 #
-# One tool, and it asks for no password: Anthropic's own installer unpacks a
-# single binary under ~/.local - the launcher at ~/.local/bin/claude, the
-# versions under ~/.local/share/claude/versions/<version>.
-#
 # Everything this script PRINTS is plain ASCII: it travels through wsl.exe to
 # the Windows console, which reads those bytes in its own code page - an emoji
-# or an em dash arrives there as garbage. The targets' output stays inside the
-# instance and is not bound by that.
+# or an em dash arrives there as garbage. 
 
 set -euo pipefail
 
 # The messages: the shared library replaces this fallback when the image
 # carries it; an instance built before it prints a plain sentence.
 hint() { printf '%s\n' "$*"; }
+success() { printf '%s\n' "$*"; }
 if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
     # shellcheck source=/dev/null
     . "$HOME/.config/zsh/lib/message.sh" || true
@@ -32,35 +28,16 @@ here=$(cd "$(dirname "$0")" && pwd)
 # its PATH yet, and the check below needs it there.
 export PATH="$HOME/.local/bin:$PATH"
 
-# The pack's own path, never what `claude` on the PATH resolves to: WSL appends
-# the Windows directories, so a Windows Claude Code is found from inside - the
-# PATH would answer "already installed" and this would install nothing.
 launcher=$HOME/.local/bin/claude
 
 if [ -x "$launcher" ]; then
     echo "Claude Code is already installed ($("$launcher" --version)) - nothing to do."
 else
-    # A Windows Claude Code is visible from here and really works - on Windows
-    # paths, Windows files, the Windows copy of your settings. This pack's copy
-    # runs on the instance's own files.
-    #
-    # So it is said, and one line is asked: a warning, not a gate. Yes is the
-    # default, and only an explicit `n` refuses; declining is an ANSWER, not a
-    # failure - exit code 2, which the socle reports as "not installed" rather
-    # than as a broken installation.
-    #
-    # The question is yellow (lib/message.sh's hint): it travels to a Windows
-    # console in a stream of other lines, where a bare sentence reads as one
-    # more log line.
-    #
-    # No answer at all - a silent build - agrees with the default: the pack was
-    # CHOSEN before the run started. What counts as an answer is whether a line
-    # comes back, not whether stdin is a terminal.
     foreign=$(command -v claude 2>/dev/null || true)
     if [ -n "$foreign" ]; then
         echo ""
         hint "Claude Code is already installed on Windows."
-        hint "Install a copy in this instance too? [Y/n]"
+        hint "Install a local version too? [Y/n]"
         if read -r answer; then
             case "$answer" in
                 [nN]*)
@@ -72,26 +49,6 @@ else
     fi
 
     echo "Installing Claude Code from Anthropic's own script (a few minutes)..."
-    # A PATH with no Windows in it, and that is the fix for a bug that cost
-    # something real: WSL appends the Windows directories, so inside an instance
-    # `npm` IS the Windows npm - and the installer's migration step followed it
-    # through the wall, uninstalling Claude Code from Windows while installing
-    # its own copy here. With no /mnt/c on the PATH no Windows program of any
-    # name can be reached; everything the installer needs lives under /usr.
-    #
-    # $HOME/.local/bin is in it on purpose: without it the installer misses its
-    # own directory and prints a setup note that is false here (the socle
-    # exports it - zsh/exports.zsh).
-    #
-    # No sudo either: everything lands under $HOME, and under sudo that $HOME is
-    # root's, where nobody would find the launcher.
-    #
-    # pipefail (set at the top) is what makes the pipe safe: a failed curl would
-    # feed the installer an empty script, which exits 0.
-    #
-    # The installer's output is thinned to ASCII on its way through: it prints
-    # bytes above 0x7F that a Windows console reads as garbage. Only those bytes
-    # are dropped; the sentences stay.
     clean_path=$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     PATH=$clean_path curl -fsSL https://claude.ai/install.sh | PATH=$clean_path bash 2>&1 |
         LC_ALL=C tr -d '\200-\377'
@@ -154,4 +111,4 @@ else
     fi
 fi
 
-echo "Claude Code is ready."
+success "Claude Code is ready."

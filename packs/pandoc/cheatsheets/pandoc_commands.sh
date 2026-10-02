@@ -2,8 +2,8 @@
 # PANDOC / PDF CHEATSHEET
 # requires: pandoc
 # ==========================================
-# Pandoc, the LaTeX engine, the Windows Arial copy and the PDF tools the
-# `pandoc` pack installs (`.\wsl.ps1 add_pack`), and the seven targets it adds.
+# Pandoc, the LaTeX engine and the PDF tools the `pandoc` pack installs
+# (`.\wsl.ps1 add_pack`), and the seven targets it adds.
 # The pack is removed the same way; its page is packs/pandoc/docs/pandoc.md.
 # Offered only while pandoc is installed - the header above is what hides the
 # sheet when it was removed by hand.
@@ -48,4 +48,4 @@ pdfunite rapport.pdf annexes.pdf envoi.pdf    # Merge PDFs: the document and its
 # --- 6. WHEN THE BUILD STOPS ---
 ls *.md *.bib *.csl                           # What the command needs, beside the document
 pandoc -D latex | less                        # The template pandoc ships (for the CSLReferences block)
-fc-list Arial                                 # The Windows Arial copy: four faces, or nothing
+fc-list Arial                                 # The family on this machine: one line per face, or nothing

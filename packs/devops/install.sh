@@ -4,15 +4,15 @@
 # ==============================================================================
 # `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/devops, then
 # runs this script from inside it, as the instance's own user.
-#
-# It installs nothing, and that is the pack: what it brings is gmake modules -
-# text, loaded from its folder. The two tools its targets drive are on the
-# machine before any pack arrives: docker from Docker Desktop, gh from the
-# image. The file exists so that a pack stays a pack - same folder, same two
-# scripts, same lifecycle as the others.
 
 set -euo pipefail
 
-echo "Nothing to install: this pack is gmake modules, and its two tools"
-echo "   (docker, gh) are already on this machine."
-echo "   Its targets appear in:  gmake help"
+# The messages: the shared library replaces this fallback when the image
+# carries it; an instance built before it prints a plain sentence.
+success() { printf '%s\n' "$*"; }
+if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/zsh/lib/message.sh" || true
+fi
+
+success "devops's tools installed."

@@ -5,28 +5,22 @@
 # `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/vision, then
 # runs this script from inside it, as the instance's own user.
 #
-# Everything here belongs to root: one sudo, asked once. What it installs is
-# read from pack.conf - the same line remove.sh reads, and a neighbour can ask
-# who claims what.
+# Everything the pack needs root for is in install_root.sh, beside this file:
+# one sudo, asked once.
 
 set -euo pipefail
 
-here=$(cd "$(dirname "$0")" && pwd)
-packages=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
-
-if [ -z "$packages" ]; then
-    echo "No PACK_PACKAGES found in $here/pack.conf" >&2
-    exit 1
+# The messages: the shared library replaces this fallback when the image
+# carries it; an instance built before it prints a plain sentence.
+success() { printf '%s\n' "$*"; }
+if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/zsh/lib/message.sh" || true
 fi
 
-echo "Installing the vision and OCR tools (your password will be asked)..."
-# DEBIAN_FRONTEND, so that a package reconfigured on the way never stops the
-# install to ask a question. set -o pipefail is not needed here - nothing is
-# piped - but the install is one command, so a failure stops at it.
-sudo bash -c "set -eo pipefail
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y --no-install-recommends $packages"
+here=$(cd "$(dirname "$0")" && pwd)
 
-echo "ffmpeg, ImageMagick and Tesseract are installed."
+sudo bash "$here/install_root.sh"
+
+success "ffmpeg, ImageMagick and Tesseract are installed."
 echo "   Their commands are in the cheatsheet picker (fcheat)."

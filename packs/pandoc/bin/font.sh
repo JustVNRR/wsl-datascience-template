@@ -2,23 +2,22 @@
 # ==============================================================================
 # THE PANDOC PACK - `font_from_windows`: A FONT FAMILY, FROM THE WINDOWS SIDE
 # ==============================================================================
-# The pack copies Arial at install because the template asks for it, and brings
-# no other font. A document that asks for Times New Roman or another Windows
-# font gets it here, one family at a time. Nothing comes from the network:
-# these are the fonts this machine owns, copied into
+# The pack brings no font of its own. A document that asks for Arial, Times New
+# Roman or another Windows font gets it here, one family at a time. Nothing
+# comes from the network: these are the fonts this machine owns, copied into
 # ~/.local/share/fonts/<family>/, where fc-cache registers them at once.
 #
 # A font cannot be aliased into place: XeTeX ignores fontconfig substitutions -
-# fc-match resolves Arial while XeLaTeX stops on "The font Arial cannot be
-# found" - so the file itself has to arrive.
+# fc-match answers where XeLaTeX stops on "The font ... cannot be found" - so
+# the file itself has to arrive.
 #
 # FONT names a family and a part of one is enough (`FONT=times` takes Times New
 # Roman). Unnamed, a menu asks: the families are read out of the Windows files
 # themselves (fc-scan), so the menu offers the names a template writes -
 # \setmainfont{Times New Roman} - and not file names.
 #
-# These files are the user's: remove.sh takes back the Arial copy the install
-# wrote and leaves what this fetched where it is - one rm away.
+# These files are the user's: remove.sh leaves what this fetched where it is -
+# one rm away.
 set -euo pipefail
 
 die() {
@@ -73,9 +72,8 @@ fi
 selected=$(printf '%s\n' "$match" | cut -f1)
 landed=$(printf '%s\n' "$match" | cut -f2 | sort -u | paste -sd', ')
 
-# The directory is named after the first family, the way install.sh names
-# ms-arial: lower case, non-alphanumerics to dashes ([:alnum:] in brackets, so
-# an accented name keeps its letters).
+# The directory is named after the first family: lower case, non-alphanumerics
+# to dashes ([:alnum:] in brackets, so an accented name keeps its letters).
 slug=$(printf '%s\n' "$match" | cut -f2 | sort -u | head -n 1 |
     tr '[:upper:]' '[:lower:]' | tr -cs '[:alnum:]' '-' | sed 's/^-//; s/-$//')
 dest=$HOME/.local/share/fonts/$slug

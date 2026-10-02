@@ -4,16 +4,16 @@
 # ==============================================================================
 # `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/python, then
 # runs this script from inside it, as the instance's own user.
-#
-# Two halves: the compiler and the headers are root's business, asked once in a
-# single sudo; Python and its tools are the user's - uv installs them under
-# ~/.local, so removing them never asks for a password.
-#
-# The tools that create a project (copier, cruft, ccds) belong to the scaffold
-# pack. This one installs what a project's environment needs: an interpreter,
-# and ruff to lint it.
 
 set -euo pipefail
+
+# The messages: the shared library replaces this fallback when the image
+# carries it; an instance built before it prints a plain sentence.
+success() { printf '%s\n' "$*"; }
+if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/zsh/lib/message.sh" || true
+fi
 
 # The PATH is built here, not inherited: the shell this script runs from
 # carries WSL's Windows directories, and a name resolved through them can be a
@@ -27,20 +27,8 @@ clean_path=$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/s
 export PATH=$clean_path
 
 here=$(cd "$(dirname "$0")" && pwd)
-packages=$(sed -n 's/^PACK_PACKAGES *:=[[:space:]]*//p' "$here/pack.conf")
 
-if [ -z "$packages" ]; then
-    echo "No PACK_PACKAGES found in $here/pack.conf" >&2
-    exit 1
-fi
-
-echo "Installing the compilation tools (your password will be asked)..."
-# DEBIAN_FRONTEND, so that a package reconfigured on the way (tzdata and its
-# continent question) never stops the install to ask something.
-sudo bash -c "set -eo pipefail
-export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y --no-install-recommends $packages"
+sudo bash "$here/install_root.sh"
 
 # uv may already be there: this pack requires the scaffold pack, which installs
 # it and comes first. Asking the machine rather than installing a second time
@@ -63,7 +51,4 @@ uv python install 3
 # by hand never finishes.
 uv tool install --force ruff
 
-echo "Python 3, uv and ruff are installed."
-echo "   The commands are in the cheatsheet picker (fcheat)."
-echo "   Next: fnew makes a project (it comes with the scaffold pack);"
-echo "   add the gcp pack for the GCP targets."
+success "Python 3, uv and ruff are installed."

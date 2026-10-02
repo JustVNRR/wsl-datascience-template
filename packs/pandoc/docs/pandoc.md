@@ -15,7 +15,6 @@ result, `gmake csl_from_catalog` fetches a citation style, and the three
 | Pandoc | converting markdown; `--citeproc` handles the bibliography | `pandoc` |
 | XeLaTeX | the PDF engine a template with its own fonts asks for | `xelatex` |
 | PDF tools | checking and assembling the results | `pdftotext`, `pdfinfo`, `pdftoppm`, `pdfunite` |
-| Arial | the font the templates ask for, copied from Windows | — |
 
 ## Installing and removing it
 
@@ -63,7 +62,7 @@ asks for the family's name. Four ways to one:
 
 | Source | Target | What it brings |
 | :--- | :--- | :--- |
-| The Windows side | `font_from_windows` | the fonts this machine already owns — Arial came with the install |
+| The Windows side | `font_from_windows` | the fonts this machine already owns — Arial is one of them |
 | Google Fonts | `font_from_google` | ~1 800 free families, into `~/.local/share/fonts/google/<family>/` |
 | The Ubuntu archive | `font_from_ubuntu` | ~200 `fonts-` packages, installed by apt |
 | Anywhere | — | a `.ttf` dropped into `~/.local/share/fonts/` is one `fc-cache -f` away |
@@ -73,9 +72,9 @@ The first two copy into `~/.local/share/fonts/`, the third installs a package
 leaves them where they are.
 
 A font that must travel **with the project** goes in it, and the template
-names the file: `\setmainfont{arial.ttf}[Path=fonts/]`. The pack installs a
-family once, for the machine, and leaves the templates as they are
-(`\setmainfont{Arial}`).
+names the file: `\setmainfont{arial.ttf}[Path=fonts/]`. The `font_from_*`
+targets put a family on the machine once, and leave the templates that name it
+as they are (`\setmainfont{Arial}`).
 
 Any of pandoc's other outputs is one flag away, with no LaTeX involved:
 `-o rapport.html`, `-o rapport.epub`.
@@ -88,5 +87,5 @@ Any of pandoc's other outputs is one flag away, with no LaTeX involved:
 | `No PDF in this folder - gmake pdf_from_md builds one.` | `pdf_open` found no `.pdf` here |
 | `File <name>.csl not found in resource path` | the CSL style named in the YAML is not beside the document |
 | `Unable to load picture or PDF file '<name>'` | an image the document calls is missing |
-| `The font Arial cannot be found` | the Arial copy is absent — `.\wsl.ps1 add_pack` again, and see `/mnt/c/Windows/Fonts` |
+| `The font Arial cannot be found` | the family is not on this machine — `gmake font_from_windows FONT=Arial` |
 | `Something's wrong--perhaps a missing \item`, at `\end{CSLReferences}` | the template's `$if(csl-refs)$` block is from an older pandoc: `pandoc -D latex` prints the block of the installed one |

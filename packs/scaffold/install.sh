@@ -12,6 +12,14 @@
 
 set -euo pipefail
 
+# The messages: the shared library replaces this fallback when the image
+# carries it; an instance built before it prints a plain sentence.
+success() { printf '%s\n' "$*"; }
+if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/zsh/lib/message.sh" || true
+fi
+
 # The same clean_path the claude and python packs use: the shell this script
 # runs from carries WSL's Windows directories, and `command -v uv` could be
 # answered by a Windows one - this script would conclude "already installed"
@@ -32,6 +40,4 @@ else
     curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
 fi
 
-echo "The scaffolding is ready."
-echo "   The template tools are fetched on the first fnew, one at a time."
-echo "   Next: cd projects, then type fnew."
+success "The scaffolding is ready."

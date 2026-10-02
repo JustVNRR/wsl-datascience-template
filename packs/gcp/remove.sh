@@ -10,11 +10,10 @@
 
 set -euo pipefail
 
+here=$(cd "$(dirname "$0")" && pwd)
+
 echo "Removing the Google APT repository..."
-sudo bash -c 'set -eo pipefail
-export DEBIAN_FRONTEND=noninteractive
-apt-get remove -y google-cloud-cli
-rm -f /etc/apt/keyrings/cloud.google.gpg /etc/apt/sources.list.d/google-cloud-sdk.list'
+sudo bash "$here/remove_root.sh"
 
 echo "Google Cloud CLI removed."
 echo "   Your logins (~/.config/gcloud) were left alone - delete that directory to forget them."

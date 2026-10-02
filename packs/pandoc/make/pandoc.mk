@@ -48,7 +48,7 @@ docx_from_md: ## Build the project's markdown in Word format (.docx) - Word is n
 csl_from_catalog: ## Fetch a citation style from the official CSL catalog, into this project
 	@$(CSL_FROM_CATALOG)
 
-font_from_windows: ## Copy a font family from the Windows side (Arial came with the install)
+font_from_windows: ## Copy a font family from the Windows side
 	@$(FONT_FROM_WINDOWS)
 
 font_from_google: ## Copy a font family from Google Fonts (~1 800 free families - menu, or FONT=)

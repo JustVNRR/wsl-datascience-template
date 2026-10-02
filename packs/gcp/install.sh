@@ -5,9 +5,8 @@
 # `wsl.ps1 add_pack` copies this pack's folder into ~/.config/packs/gcp, then
 # runs this script from inside it, as the instance's own user.
 #
-# One sudo for a single root shell: `curl ... | sudo gpg` has no terminal on
-# its input, so sudo could not have asked for a password there - and one `sudo
-# bash -c` is asked while the keyboard is still free.
+# The root half - the repository, the key, the package - is in install_root.sh,
+# beside this file: one sudo, asked once.
 #
 # The image carries no trace of Google - no signing key, no APT address. This
 # script registers both, then installs the package; remove.sh undoes exactly
@@ -15,25 +14,16 @@
 
 set -euo pipefail
 
-echo "Registering the Google APT repository..."
-# set -o pipefail inside, because a pipe reports the exit code of its last
-# command only: a curl that fails feeds gpg an empty input, and the failure
-# must stop the install here rather than surface three steps later.
-# DEBIAN_FRONTEND, so that a package reconfigured on the way never stops the
-# install to ask a question.
-#
-# --batch --yes: gpg refuses to overwrite an existing output file without it,
-# and the key file survives a removal that stopped halfway.
-sudo bash -c 'set -eo pipefail
-export DEBIAN_FRONTEND=noninteractive
-mkdir -p -m 755 /etc/apt/keyrings
-curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-	| gpg --batch --yes --dearmor -o /etc/apt/keyrings/cloud.google.gpg
-chmod go+r /etc/apt/keyrings/cloud.google.gpg
-echo "deb [signed-by=/etc/apt/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
-	> /etc/apt/sources.list.d/google-cloud-sdk.list
-apt-get update
-apt-get install -y --no-install-recommends google-cloud-cli'
+# The messages: the shared library replaces this fallback when the image
+# carries it; an instance built before it prints a plain sentence.
+success() { printf '%s\n' "$*"; }
+if [ -r "$HOME/.config/zsh/lib/message.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$HOME/.config/zsh/lib/message.sh" || true
+fi
 
-echo "Google Cloud CLI installed."
-echo "   Next: gmake gcp_auth_cli (signs the CLI in to your Google account)."
+here=$(cd "$(dirname "$0")" && pwd)
+
+sudo bash "$here/install_root.sh"
+
+success "Google Cloud CLI installed."
