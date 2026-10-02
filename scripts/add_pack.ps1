@@ -129,7 +129,7 @@ foreach ($Entry in $ToInstall) {
         Write-Host ""
         Write-Host "[FAIL] The installation did not complete (exit code $InstallCode)." -ForegroundColor (Get-MessageColour error)
         Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
-        Write-Host "       The pack's files were removed: nothing of it stays in the instance." -ForegroundColor (Get-MessageColour hint)
+        Write-Host "       The pack's files were removed." -ForegroundColor (Get-MessageColour hint)
         Write-Host "       Whatever the install had already put in place is still there - run this again to finish." -ForegroundColor (Get-MessageColour hint)
         exit $InstallCode
     }
@@ -137,7 +137,6 @@ foreach ($Entry in $ToInstall) {
 
 Write-Host ""
 Write-Host "==> '$PackName' is installed in '$DistroName'." -ForegroundColor (Get-MessageColour success)
-Write-Host "    Open a shell in it to use it:  .\wsl.ps1 shell" -ForegroundColor (Get-MessageColour muted)
 # The pack's samples travelled with its folder, but nothing merged them into
 # the user's .env files - those are theirs, and no install writes into them.
 # Said once, and only when a sample travelled.

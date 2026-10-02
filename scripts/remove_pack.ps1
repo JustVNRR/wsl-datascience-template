@@ -158,5 +158,4 @@ if (-not (Invoke-PackOrphanCleanup -DistroName $DistroName -ExitCode ([ref]$Clea
 
 Write-Host ""
 Write-Host "==> Removed from '$DistroName': $($ToRemove -join ', ')." -ForegroundColor (Get-MessageColour success)
-Write-Host "    Open a shell in it: the gmake menu no longer offers their commands." -ForegroundColor (Get-MessageColour muted)
 exit 0

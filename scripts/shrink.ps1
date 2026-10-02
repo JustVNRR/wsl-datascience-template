@@ -104,10 +104,6 @@ if ($FreedBytes -gt 0) {
     Write-Host "  * Reclaimed        : " -NoNewline
     Write-Host "nothing - the disk held no space to give back" -ForegroundColor (Get-MessageColour muted)
 }
-Write-Host ""
-Write-Host "  The virtual disk's size does not change, only what it occupies on" -ForegroundColor (Get-MessageColour muted)
-Write-Host "  Windows. Nothing inside the instance was touched." -ForegroundColor (Get-MessageColour muted)
-Write-Host ""
 
 # 4. Left the way it was found: `--exec` runs a command and returns, so it
 # comes back up without a shell.
