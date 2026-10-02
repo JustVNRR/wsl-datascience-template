@@ -200,7 +200,7 @@ jobs:
           # left alone. It says so rather than print the header over nothing.
           rm -rf /tmp/packs-list/asked
           make -f zsh/gmake/Makefile PACKS_DIR=/tmp/packs-list packs_list > list-only.txt
-          grep -q "Nothing you chose" list-only.txt || {
+          grep -q "These packs are dependencies" list-only.txt || {
             echo "::error::packs_list does not say what is left when only a dependency is installed"
             bad=1
           }

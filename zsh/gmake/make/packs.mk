@@ -14,12 +14,12 @@
 packs_list: ## List the packs this instance carries
 	@if [ ! -d "$(PACKS_DIR)" ] || [ -z "$$(ls -A "$(PACKS_DIR)" 2>/dev/null)" ]; then \
 		echo ""; \
-		echo "No pack is installed in this instance."; \
+		echo "No pack currently installed."; \
 		echo ""; \
-		echo "A pack is added from Windows:  .\wsl.ps1 add_pack"; \
+		echo "Packs are managed from Windows (.\wsl.ps1)"; \
 	else \
 		echo ""; \
-		echo "Packs installed in this instance:"; \
+		echo "Packs currently installed:"; \
 		echo ""; \
 		chosen=0; \
 		for dir in "$(PACKS_DIR)"/*/; do \
@@ -32,9 +32,9 @@ packs_list: ## List the packs this instance carries
 			chosen=$$((chosen + 1)); \
 		done; \
 		if [ $$chosen -eq 0 ]; then \
-			echo "  Nothing you chose is left: these packs are dependencies, and the"; \
-			echo "  pack that required them is gone."; \
+			echo "  These packs are dependencies."; \
+			echo "  Packs that required them are gone."; \
 		fi; \
 		echo ""; \
-		echo "A pack is added or removed from Windows:  .\wsl.ps1 add_pack  /  .\wsl.ps1 manage_packs"; \
+		echo "Packs are managed from Windows (.\wsl.ps1)"; \
 	fi
