@@ -80,6 +80,26 @@ function Install-NerdFont {
     }
 }
 
+# Step 0, as a piece of its own: Docker answers before the questions, and a
+# docker that does not aborts with nothing confirmed and nothing touched. It
+# exits rather than throws - there is nothing to catch above it.
+function Assert-DockerReady {
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        Write-Host ""
+        Write-Host "[ABORT] Docker is not installed, or not on the PATH." -ForegroundColor (Get-MessageColour error)
+        Write-Host "        Install Docker Desktop (see Prerequisites in the README), then run this script again." -ForegroundColor (Get-MessageColour hint)
+        exit 1
+    }
+
+    if (-not (Test-NativeCommand { docker info })) {
+        Write-Host ""
+        Write-Host "[ABORT] Docker is not responding." -ForegroundColor (Get-MessageColour error)
+        Write-Host "        Start Docker Desktop, wait for it to finish starting, then run this script again." -ForegroundColor (Get-MessageColour hint)
+        Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
+        exit 1
+    }
+}
+
 # Windows' own list of what is registered, where every decision to erase comes
 # from. Its failure is kept apart from its answer: a list that cannot be read
 # is not an empty machine. A missing key is not a failure - it is WSL never
@@ -462,20 +482,7 @@ if (-not $MutexHeld) {
 
 # 0. Preflight: Docker must answer BEFORE the destructive confirmation below -
 # failing here aborts with nothing confirmed and nothing touched.
-if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-    Write-Host ""
-    Write-Host "[ABORT] Docker is not installed, or not on the PATH." -ForegroundColor (Get-MessageColour error)
-    Write-Host "        Install Docker Desktop (see Prerequisites in the README), then run this script again." -ForegroundColor (Get-MessageColour hint)
-    exit 1
-}
-
-if (-not (Test-NativeCommand { docker info })) {
-    Write-Host ""
-    Write-Host "[ABORT] Docker is not responding." -ForegroundColor (Get-MessageColour error)
-    Write-Host "        Start Docker Desktop, wait for it to finish starting, then run this script again." -ForegroundColor (Get-MessageColour hint)
-    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
-    exit 1
-}
+Assert-DockerReady
 
 # 0-bis. What is being built, asked: both answers checked here - before the
 # banner and before anything is created. The checks hold on a first build too,
