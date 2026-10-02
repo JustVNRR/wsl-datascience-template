@@ -163,6 +163,9 @@ asked again:
 
 Docker Desktop must be running: the script checks before asking anything.
 
+One build at a time: started while another build is still working, it stops
+before asking anything and says so.
+
 If an instance already carries the name, it shows the red warning and asks you
 to **type the exact name**: a rebuild erases that instance and everything in it.
 

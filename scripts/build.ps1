@@ -185,6 +185,247 @@ function Get-ConfiguredWslUser {
     return $User
 }
 
+# Best effort, and nothing here may raise: the finally block calls this after a
+# failure, and an error raised here would bury the message the catch has
+# printed. The container may never have existed - removing nothing succeeds.
+function Remove-DeploymentArtifacts {
+    param([string]$ContainerName, [string]$TarPath)
+
+    $null = Test-NativeCommand { docker rm -f $ContainerName }
+
+    if (Test-Path -Path $TarPath) {
+        Remove-Item -Path $TarPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# Step 9 in one place: the icon drawn from the instance's own name, the ghost
+# profiles a rebuild orphaned, the fragment this instance is given, and the
+# look left in its folder - the file an archive carries. Answers whether a
+# profile could be applied at all.
+function Configure-TerminalProfile {
+    param([string]$DistroName, [string]$InstallPath)
+
+    # The icon is drawn from the instance's own name, letters and colours both.
+    # Nothing is said about a drawing that worked. It is decoration: a failure
+    # is reported, leaves no file, and the fragment below drops the icon line.
+    $IconPath = Join-Path $InstallPath "terminal-icon.png"
+    $IconDrawn = $false
+    $Icon = @{}
+    try {
+        # -What: the letters and colours read back into the instance's file, so
+        # a later change of one keeps the other.
+        $Drawn = & "$RepoRoot\assets\make-icon.ps1" -Name $DistroName -Out $IconPath -Quiet -What | ConvertFrom-Json
+        $IconDrawn = $true
+        $Icon = @{ Text = $Drawn.Text; Top = $Drawn.Top; Bottom = $Drawn.Bottom; TextColor = $Drawn.TextColor }
+    } catch {
+        Remove-Item $IconPath -Force -ErrorAction SilentlyContinue
+        Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
+    }
+
+    # WSL writes one fragment per import under Fragments\Microsoft.WSL - the
+    # guid changes on every rebuild. Newest-first scan, and the full set of
+    # live guids is kept for the ghost pruning below.
+    $WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
+    $ProfileGuid = $null
+    $LiveGuids = @()
+    if (Test-Path $WslFragmentsDir) {
+        foreach ($File in (Get-ChildItem $WslFragmentsDir -Filter *.json | Sort-Object LastWriteTime -Descending)) {
+            try {
+                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
+                foreach ($Entry in $Fragment.profiles) {
+                    if ($Entry.guid) { $LiveGuids += $Entry.guid }
+                    if (-not $ProfileGuid -and $Entry.name -eq $DistroName -and $Entry.guid) { $ProfileGuid = $Entry.guid }
+                }
+            } catch { }
+        }
+    }
+
+    $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
+
+    # Prune ghost profiles: every rebuild orphans the previous profile into the
+    # user's settings.json. This distro's entries matching no live fragment go;
+    # an orphan Terminal writes after this point waits for the next build.
+    if ($LiveGuids.Count -gt 0) {
+        foreach ($SettingsPath in @(
+            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
+            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
+            "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+        )) {
+            if (-not (Test-Path $SettingsPath)) { continue }
+            try {
+                $Settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
+                $All = @($Settings.profiles.list)
+                $Kept = @($All | Where-Object { -not ($_.source -eq "Microsoft.WSL" -and $_.name -eq $DistroName -and $LiveGuids -notcontains $_.guid) })
+                if ($Kept.Count -ne $All.Count) {
+                    Copy-Item $SettingsPath "$SettingsPath.bak" -Force
+                    $Settings.profiles.list = $Kept
+                    $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding Utf8
+                    Write-Host "  * Terminal profile : pruned $($All.Count - $Kept.Count) ghost '$DistroName' entries from settings.json" -ForegroundColor (Get-MessageColour success)
+                }
+            } catch {
+                Write-Host "  * Terminal profile : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
+                Write-Host "                       (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
+            }
+        }
+    }
+
+    # Our own fragment files whose distro no longer exists go too - one file
+    # per distro, named <DistroName>.json.
+    if ((Test-Path $OurFragmentDir) -and ($LiveGuids.Count -gt 0)) {
+        foreach ($File in (Get-ChildItem $OurFragmentDir -Filter *.json)) {
+            try {
+                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
+                $Target = ($Fragment.profiles | Where-Object { $_.updates } | Select-Object -First 1).updates
+                if ($Target -and ($LiveGuids -notcontains $Target)) {
+                    Remove-Item $File.FullName -Force
+                    Write-Host "  * Terminal profile : removed stale fragment $($File.Name)" -ForegroundColor (Get-MessageColour success)
+                }
+            } catch { }
+        }
+    }
+
+    if ($ProfileGuid) {
+        # No icon drawn, no icon line: Terminal shows its own.
+        Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Font "MesloLGS NF" `
+            -ColorScheme "One Half Dark" -IconPath $(if ($IconDrawn) { $IconPath } else { "" })
+        Write-Host "  * Terminal profile applied" -ForegroundColor (Get-MessageColour success)
+        $TerminalProfileOk = $true
+    } else {
+        Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor (Get-MessageColour warning)
+        $TerminalProfileOk = $false
+    }
+
+    # What this instance looks like, in its own folder - the file an archive
+    # carries. Written here, the fragment in place, so the font and colours it
+    # reads are the ones just applied, icon recipe included.
+    Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
+
+    return $TerminalProfileOk
+}
+
+# The packs, asked earlier and installed now - in a try of their own, because a
+# pack that fails must not reach the deployment's catch, which would announce
+# "[ERROR] DURING DEPLOYMENT" for an instance that is built, registered and
+# usable. Answers the lines to print and the colour they take.
+function Install-SelectedPacks {
+    param([string]$DistroName, [object]$PackSelection)
+
+    $Report = @()
+    $Colour = "Green"
+    if ($null -eq $PackSelection) { return @{ Report = $Report; Colour = $Colour } }
+
+    try {
+        # Asked of the instance after the install rather than trusted from the
+        # answer: a pack whose install failed took its folder back out.
+        $NewHome = Get-InstanceHome -DistroName $DistroName
+        if (-not $NewHome) { throw "'$DistroName' did not say where its user's home is." }
+        $PacksDirectory = "$NewHome/.config/packs"
+
+        Write-Host ""
+        Write-Host "==> Installing the packs..." -ForegroundColor (Get-MessageColour info)
+        $PackFailure = Invoke-PackApply -DistroName $DistroName -PacksDirectory $PacksDirectory `
+            -ToAdd $PackSelection.ToAdd -ResumeHint "Run .\wsl.ps1 manage_packs to finish."
+
+        $PacksNow = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
+        if ($null -ne $PackFailure) {
+            # Three facts, each only when it has something to say: what is
+            # really installed, the pack that stopped the run, and the packs
+            # that never ran - their folders went back out with it, so they
+            # cannot be read as installed anywhere (packs.ps1).
+            $Skipped = @($PackSelection.ToAdd |
+                Where-Object { $_.Name -ne $PackFailure.Pack -and $PacksNow -notcontains $_.Name } |
+                ForEach-Object { $_.Name })
+
+            $Report = @()
+            if ($PacksNow.Count -gt 0) {
+                $Report += "$($PacksNow -join ', ') successfully installed."
+            }
+            $Report += "'$($PackFailure.Pack)' installation failed."
+            if ($Skipped.Count -gt 0) {
+                $Report += "$($Skipped -join ', ') installation skipped."
+            }
+            $Report += "Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
+            $Colour = "Red"
+        } else {
+            # What is there now, and nothing else: falling back on the names
+            # asked for is how a fresh build announced "Packs: claude
+            # installed." over an instance whose install had declined.
+            $Landed = $PacksNow
+            if ($Landed.Count -eq 0) {
+                $Report = @("none installed.")
+            } else {
+                $Report = @("$($Landed -join ', ') installed.")
+            }
+        }
+    } catch {
+        $Report = @("not installed - $($_.Exception.Message)")
+        $Colour = "Red"
+    }
+    return @{ Report = $Report; Colour = $Colour }
+}
+
+# The Docker Desktop question, moved whole: Docker Desktop injects its docker
+# client into the distros it lists and reads that list only when it starts, so
+# being in the settings file proves nothing and the question is asked every
+# time - it restarts Docker Desktop, so it defaults to yes. Answers the lines
+# to print once the shell is open and their colour, or nothing when the user
+# said no and there is nothing to say.
+function Configure-DockerDesktopIntegration {
+    param([string]$DistroName)
+
+    $DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
+    if (-not (Test-Path $DockerSettings)) { return $null }
+
+    try {
+        Write-Host ""
+        $AddToDocker = Read-Host "Restart Docker Desktop to add support for '$DistroName'? [Y/n]"
+        if ($AddToDocker -match "^[nN]$") { return $null }
+
+        $DockerConfig = Get-Content $DockerSettings -Raw | ConvertFrom-Json
+        Copy-Item $DockerSettings "$DockerSettings.bak" -Force
+        # Rebuilt without this distro and without empty entries, then appended
+        # once: a name already there would be added twice.
+        $DockerConfig.IntegratedWslDistros =
+            @($DockerConfig.IntegratedWslDistros | Where-Object { $_ -and $_ -ne $DistroName }) + $DistroName
+        # Written beside the file and swapped in, so an interrupted write cannot
+        # leave Docker Desktop with half a JSON - and with WriteAllText rather
+        # than Set-Content, because PowerShell's -Encoding Utf8 prepends a
+        # byte-order mark that this file, written by Docker Desktop, does not
+        # carry.
+        $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
+        [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
+        Move-Item "$DockerSettings.tmp" $DockerSettings -Force
+
+        if (Test-NativeCommand { docker desktop restart }) {
+            # The restart says nothing about what happened inside: the client is
+            # injected at Docker Desktop's own pace, and the user can be left
+            # without the right to use it - which only shows up in the session
+            # this build is about to open. So the thing itself is asked, as the
+            # default user and never as root, which would pass whatever the
+            # answer is.
+            $DockerUsable = $false
+            for ($Attempt = 1; $Attempt -le 5 -and -not $DockerUsable; $Attempt++) {
+                $DockerUsable = Test-NativeCommand { wsl.exe -d $DistroName -- docker version }
+                if (-not $DockerUsable) { Start-Sleep -Seconds 2 }
+            }
+            if ($DockerUsable) {
+                return @{ Lines = @("Docker Desktop: ready - 'docker' works in this instance."); Colour = "Green" }
+            }
+            return @{
+                Lines  = @(
+                    "Docker Desktop: 'docker' does not answer in this instance yet.",
+                    "  Run 'docker version' in there; if it names the socket's permissions, restart",
+                    "  Docker Desktop and open a new terminal."
+                )
+                Colour = "Yellow"
+            }
+        }
+        return @{ Lines = @("Docker Desktop: not restarted - 'docker' will not work in this instance yet."); Colour = "Yellow" }
+    } catch {
+        return @{ Lines = @("Docker Desktop: settings not updated - $($_.Exception.Message)"); Colour = "Yellow" }
+    }
+}
+
 # The repository root, one level above this script: it holds the Dockerfile,
 # and that is the context the build below must run in - not this folder.
 $RepoRoot = Split-Path -Path $PSScriptRoot -Parent
@@ -466,160 +707,16 @@ try {
     Install-NerdFont | Out-Null
 
     Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
-
-    # The icon is drawn from the instance's own name, letters and colours both.
-    # Nothing is said about a drawing that worked. It is decoration: a failure
-    # is reported, leaves no file, and the fragment below drops the icon line.
-    $IconPath = Join-Path $InstallPath "terminal-icon.png"
-    $IconDrawn = $false
-    $Icon = @{}
-    try {
-        # -What: the letters and colours read back into the instance's file, so
-        # a later change of one keeps the other.
-        $Drawn = & "$RepoRoot\assets\make-icon.ps1" -Name $DistroName -Out $IconPath -Quiet -What | ConvertFrom-Json
-        $IconDrawn = $true
-        $Icon = @{ Text = $Drawn.Text; Top = $Drawn.Top; Bottom = $Drawn.Bottom; TextColor = $Drawn.TextColor }
-    } catch {
-        Remove-Item $IconPath -Force -ErrorAction SilentlyContinue
-        Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
-    }
-
-    # WSL writes one fragment per import under Fragments\Microsoft.WSL - the
-    # guid changes on every rebuild. Newest-first scan, and the full set of
-    # live guids is kept for the ghost pruning below.
-    $WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
-    $ProfileGuid = $null
-    $LiveGuids = @()
-    if (Test-Path $WslFragmentsDir) {
-        foreach ($File in (Get-ChildItem $WslFragmentsDir -Filter *.json | Sort-Object LastWriteTime -Descending)) {
-            try {
-                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
-                foreach ($Entry in $Fragment.profiles) {
-                    if ($Entry.guid) { $LiveGuids += $Entry.guid }
-                    if (-not $ProfileGuid -and $Entry.name -eq $DistroName -and $Entry.guid) { $ProfileGuid = $Entry.guid }
-                }
-            } catch { }
-        }
-    }
-
-    $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
-
-    # Prune ghost profiles: every rebuild orphans the previous profile into the
-    # user's settings.json. This distro's entries matching no live fragment go;
-    # an orphan Terminal writes after this point waits for the next build.
-    if ($LiveGuids.Count -gt 0) {
-        foreach ($SettingsPath in @(
-            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
-            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
-            "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
-        )) {
-            if (-not (Test-Path $SettingsPath)) { continue }
-            try {
-                $Settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
-                $All = @($Settings.profiles.list)
-                $Kept = @($All | Where-Object { -not ($_.source -eq "Microsoft.WSL" -and $_.name -eq $DistroName -and $LiveGuids -notcontains $_.guid) })
-                if ($Kept.Count -ne $All.Count) {
-                    Copy-Item $SettingsPath "$SettingsPath.bak" -Force
-                    $Settings.profiles.list = $Kept
-                    $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding Utf8
-                    Write-Host "  * Terminal profile : pruned $($All.Count - $Kept.Count) ghost '$DistroName' entries from settings.json" -ForegroundColor (Get-MessageColour success)
-                }
-            } catch {
-                Write-Host "  * Terminal profile : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
-                Write-Host "                       (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
-            }
-        }
-    }
-
-    # Our own fragment files whose distro no longer exists go too - one file
-    # per distro, named <DistroName>.json.
-    if ((Test-Path $OurFragmentDir) -and ($LiveGuids.Count -gt 0)) {
-        foreach ($File in (Get-ChildItem $OurFragmentDir -Filter *.json)) {
-            try {
-                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
-                $Target = ($Fragment.profiles | Where-Object { $_.updates } | Select-Object -First 1).updates
-                if ($Target -and ($LiveGuids -notcontains $Target)) {
-                    Remove-Item $File.FullName -Force
-                    Write-Host "  * Terminal profile : removed stale fragment $($File.Name)" -ForegroundColor (Get-MessageColour success)
-                }
-            } catch { }
-        }
-    }
-
-    if ($ProfileGuid) {
-        # No icon drawn, no icon line: Terminal shows its own.
-        Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Font "MesloLGS NF" `
-            -ColorScheme "One Half Dark" -IconPath $(if ($IconDrawn) { $IconPath } else { "" })
-        Write-Host "  * Terminal profile applied" -ForegroundColor (Get-MessageColour success)
-        $TerminalProfileOk = $true
-    } else {
-        Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor (Get-MessageColour warning)
-        $TerminalProfileOk = $false
-    }
-
-    # What this instance looks like, in its own folder - the file an archive
-    # carries. Written here, the fragment in place, so the font and colours it
-    # reads are the ones just applied, icon recipe included.
-    Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
+    $TerminalProfileOk = Configure-TerminalProfile -DistroName $DistroName -InstallPath $InstallPath
 
     # Terminal is asked to look again: the new profile appears without closing.
     Update-TerminalSettings
 
-    # The packs, before the done screen and in a try of their own: a pack that
-    # fails must not reach the catch above, which would announce "[ERROR]
-    # DURING DEPLOYMENT" for an instance that is built, registered and usable.
-    # Its news lands in the summary below and on the screen the shell opens on.
-    $PackReport = @()
-    $PackReportColour = "Green"
-    if ($null -ne $PackSelection) {
-        try {
-            # Asked of the instance after the install rather than trusted from
-            # the answer: a pack whose install failed took its folder back out.
-            $NewHome = Get-InstanceHome -DistroName $DistroName
-            if (-not $NewHome) { throw "'$DistroName' did not say where its user's home is." }
-            $PacksDirectory = "$NewHome/.config/packs"
-
-            Write-Host ""
-            Write-Host "==> Installing the packs..." -ForegroundColor (Get-MessageColour info)
-            $PackFailure = Invoke-PackApply -DistroName $DistroName -PacksDirectory $PacksDirectory `
-                -ToAdd $PackSelection.ToAdd -ResumeHint "Run .\wsl.ps1 manage_packs to finish."
-
-            $PacksNow = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
-            if ($null -ne $PackFailure) {
-                # Three facts, each only when it has something to say: what is
-                # really installed, the pack that stopped the run, and the packs
-                # that never ran - their folders went back out with it, so they
-                # cannot be read as installed anywhere (packs.ps1).
-                $Skipped = @($PackSelection.ToAdd |
-                    Where-Object { $_.Name -ne $PackFailure.Pack -and $PacksNow -notcontains $_.Name } |
-                    ForEach-Object { $_.Name })
-
-                $PackReport = @()
-                if ($PacksNow.Count -gt 0) {
-                    $PackReport += "$($PacksNow -join ', ') successfully installed."
-                }
-                $PackReport += "'$($PackFailure.Pack)' installation failed."
-                if ($Skipped.Count -gt 0) {
-                    $PackReport += "$($Skipped -join ', ') installation skipped."
-                }
-                $PackReport += "Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
-                $PackReportColour = "Red"
-            } else {
-                # What is there now, and nothing else: falling back on the
-                # names asked for is how a fresh build announced "Packs: claude
-                # installed." over an instance whose install had declined.
-                $Landed = $PacksNow
-                if ($Landed.Count -eq 0) {
-                    $PackReport = @("none installed.")
-                } else {
-                    $PackReport = @("$($Landed -join ', ') installed.")
-                }
-            }
-        } catch {
-            $PackReport = @("not installed - $($_.Exception.Message)")
-            $PackReportColour = "Red"
-        }
-    }
+    # Installed after the instance exists; the news lands in the summary below
+    # and on the screen the shell opens on.
+    $PackResult = Install-SelectedPacks -DistroName $DistroName -PackSelection $PackSelection
+    $PackReport = $PackResult.Report
+    $PackReportColour = $PackResult.Colour
 
     Clear-Host
     Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
@@ -665,14 +762,7 @@ catch {
 finally {
     Write-Host "==> Cleaning up temporary build artifacts..." -ForegroundColor (Get-MessageColour info)
 
-    # Step 0's trap again: a docker error raised here would bury the message
-    # the catch block has just printed. Whether the container ever existed is
-    # not asked - removing nothing succeeds.
-    $null = Test-NativeCommand { docker rm -f $ContainerName }
-
-    if (Test-Path -Path $TarPath) {
-        Remove-Item -Path $TarPath -Force -ErrorAction SilentlyContinue
-    }
+    Remove-DeploymentArtifacts -ContainerName $ContainerName -TarPath $TarPath
 
     if ($Deployed) {
         Write-Host ""
@@ -723,70 +813,16 @@ finally {
     $BuildMutex.Dispose()
 }
 
-# Docker Desktop injects its docker client into the distros it lists, and reads
-# that list only when it starts. Being in that list proves nothing: a rebuild
-# takes the client away and leaves the name behind. So the question is asked
-# every time rather than answered from the file - and it belongs to another
-# program, which is why it is asked rather than assumed. It restarts Docker
-# Desktop, so it defaults to yes and Enter carries through.
 if ($Deployed) {
-    $DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
-    if (Test-Path $DockerSettings) {
-        try {
-            Write-Host ""
-            $AddToDocker = Read-Host "Restart Docker Desktop to add support for '$DistroName'? [Y/n]"
-            if ($AddToDocker -notmatch "^[nN]$") {
-                $DockerConfig = Get-Content $DockerSettings -Raw | ConvertFrom-Json
-                Copy-Item $DockerSettings "$DockerSettings.bak" -Force
-                # Rebuilt without this distro and without empty entries, then
-                # appended once: a name already there would be added twice.
-                $DockerConfig.IntegratedWslDistros =
-                    @($DockerConfig.IntegratedWslDistros | Where-Object { $_ -and $_ -ne $DistroName }) + $DistroName
-                # Written beside the file and swapped in, so an interrupted
-                # write cannot leave Docker Desktop with half a JSON - and with
-                # WriteAllText rather than Set-Content, because PowerShell's
-                # -Encoding Utf8 prepends a byte-order mark that this file,
-                # written by Docker Desktop, does not carry.
-                $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
-                [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
-                Move-Item "$DockerSettings.tmp" $DockerSettings -Force
-
-                if (Test-NativeCommand { docker desktop restart }) {
-                    # The restart says nothing about what happened inside: the
-                    # client is injected at Docker Desktop's own pace, and the
-                    # user can be left without the right to use it - which only
-                    # shows up in the session this build is about to open. So
-                    # the thing itself is asked, as the default user and never
-                    # as root, which would pass whatever the answer is.
-                    $DockerUsable = $false
-                    for ($Attempt = 1; $Attempt -le 5 -and -not $DockerUsable; $Attempt++) {
-                        $DockerUsable = Test-NativeCommand { wsl.exe -d $DistroName -- docker version }
-                        if (-not $DockerUsable) { Start-Sleep -Seconds 2 }
-                    }
-
-                    # Kept for the screen the shell opens on, and not printed
-                    # here: the Clear-Host below wipes everything written before
-                    # it, and an answer nobody reads is not an answer.
-                    if ($DockerUsable) {
-                        $DockerReport = @("Docker Desktop: ready - 'docker' works in this instance.")
-                        $DockerReportColour = "Green"
-                    } else {
-                        $DockerReport = @(
-                            "Docker Desktop: 'docker' does not answer in this instance yet.",
-                            "  Run 'docker version' in there; if it names the socket's permissions, restart",
-                            "  Docker Desktop and open a new terminal."
-                        )
-                        $DockerReportColour = "Yellow"
-                    }
-                } else {
-                    $DockerReport = @("Docker Desktop: not restarted - 'docker' will not work in this instance yet.")
-                    $DockerReportColour = "Yellow"
-                }
-            }
-        } catch {
-            $DockerReport = @("Docker Desktop: settings not updated - $($_.Exception.Message)")
-            $DockerReportColour = "Yellow"
-        }
+    # The report waits for the screen the shell opens on: the Clear-Host below
+    # wipes everything written before it, and an answer nobody reads is not an
+    # answer.
+    $DockerReport = $null
+    $DockerReportColour = "Yellow"
+    $Docker = Configure-DockerDesktopIntegration -DistroName $DistroName
+    if ($Docker) {
+        $DockerReport = $Docker.Lines
+        $DockerReportColour = $Docker.Colour
     }
 
     # The shell the user came for, in the fresh instance: --cd ~ lands in their
