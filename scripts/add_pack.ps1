@@ -99,7 +99,7 @@ foreach ($Entry in $ToInstall) {
     if ($Entry.Name -ne $PackName) {
         Write-Host "    It comes with '$PackName', which requires it." -ForegroundColor (Get-MessageColour muted)
     }
-    Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor (Get-MessageColour muted)
+    Write-Host "    Your password may be asked." -ForegroundColor (Get-MessageColour muted)
 
     $Code = 0
     if (-not (Copy-PackIntoInstance -DistroName $DistroName -PackPath $Entry.Path -Target $Target -ExitCode ([ref]$Code))) {

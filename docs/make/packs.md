@@ -17,13 +17,13 @@ to test. The command reads those folders and prints one line per pack — its
 name, and the description from its own `pack.conf`:
 
 ```text
-Packs installed in this instance:
+Packs currently installed:
 
   gcp       The Google Cloud CLI (about 409 MB installed)
   python    Python 3, uv, ruff and the compilation tools (about 530 MB installed)
   vision    ffmpeg, ImageMagick and Tesseract OCR (about 500 MB installed)
 
-A pack is added or removed from Windows:  .\wsl.ps1 add_pack  /  .\wsl.ps1 manage_packs
+Packs are managed from Windows (.\wsl.ps1)
 ```
 
 A pack marked `PACK_VISIBLE := no` in its `pack.conf` has no line here either.

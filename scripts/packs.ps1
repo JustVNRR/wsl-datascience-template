@@ -500,7 +500,7 @@ function Invoke-PackApply {
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Pack.Name
         Write-Host ""
         Write-Host "==> Installing '$($Pack.Name)' in '$DistroName'..." -ForegroundColor (Get-MessageColour info)
-        Write-Host "    Your password may be asked: the packages belong to root." -ForegroundColor (Get-MessageColour muted)
+        Write-Host "    Your password may be asked." -ForegroundColor (Get-MessageColour muted)
         Invoke-PackScript -DistroName $DistroName -Target $Target -Script "install.sh" -ExitCode ([ref]$Code)
 
         # Exit code 2 is the pack's way of saying it asked a question and the

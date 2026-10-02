@@ -315,7 +315,7 @@ Packs available for 'ubuntu-template':
 Which one? (0 to cancel) 1
 
 ==> Installing 'gcp' in 'ubuntu-template'...
-    Your password may be asked: the packages belong to root.
+    Your password may be asked.
 ```
 
 Only the packs the instance does not have yet are offered. The packs are the
@@ -335,10 +335,10 @@ it, before it, in the same run:
 ```text
 ==> Installing 'devops' in 'ubuntu-template'...
     It comes with 'gcp', which requires it.
-    Your password may be asked: the packages belong to root.
+    Your password may be asked.
 
 ==> Installing 'gcp' in 'ubuntu-template'...
-    Your password may be asked: the packages belong to root.
+    Your password may be asked.
 ```
 
 **It asks for your password.** The packages and the APT address belong to root;
