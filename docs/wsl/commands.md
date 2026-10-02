@@ -163,6 +163,9 @@ asked again:
 
 Docker Desktop must be running: the script checks before asking anything.
 
+One build at a time: started while another build is still working, it stops
+before asking anything and says so.
+
 If an instance already carries the name, it shows the red warning and asks you
 to **type the exact name**: a rebuild erases that instance and everything in it.
 
@@ -312,7 +315,7 @@ Packs available for 'ubuntu-template':
 Which one? (0 to cancel) 1
 
 ==> Installing 'gcp' in 'ubuntu-template'...
-    Your password may be asked: the packages belong to root.
+    Your password may be asked.
 ```
 
 Only the packs the instance does not have yet are offered. The packs are the
@@ -332,10 +335,10 @@ it, before it, in the same run:
 ```text
 ==> Installing 'devops' in 'ubuntu-template'...
     It comes with 'gcp', which requires it.
-    Your password may be asked: the packages belong to root.
+    Your password may be asked.
 
 ==> Installing 'gcp' in 'ubuntu-template'...
-    Your password may be asked: the packages belong to root.
+    Your password may be asked.
 ```
 
 **It asks for your password.** The packages and the APT address belong to root;
