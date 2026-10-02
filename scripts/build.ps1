@@ -151,6 +151,68 @@ function Assert-DestructionStillMatches {
     return $Here
 }
 
+# The folder question, whole: the proposal, the three refusals, the folder
+# asked again, and the two checks the erasing below depends on. An empty answer
+# cancels the run, like the question it replaces.
+function Resolve-InstallPath {
+    param([string]$DistroName, [string]$Root, [object[]]$Registered)
+
+    $Folder = $Root
+    $InstallPath = $null
+    while (-not $InstallPath) {
+        # A path Windows refuses is a typo, not a reason to stop.
+        $Full = $null
+        try {
+            $Full = [System.IO.Path]::GetFullPath((Join-Path $Folder $DistroName)).TrimEnd('\')
+        } catch { }
+
+        # Step 4 erases this path recursively: a folder holding another instance
+        # would take that instance with it.
+        $Elsewhere = $null
+        if ($Full) {
+            $Elsewhere = $Registered | Where-Object {
+                $_.Name -ne $DistroName -and
+                ($_.Path -eq $Full -or $_.Path.StartsWith("$Full\", [System.StringComparison]::OrdinalIgnoreCase))
+            } | Select-Object -First 1
+        }
+
+        # The rebuild is the only case where this folder is ours to erase, and
+        # the instance's own name is what says so.
+        $ItsOwn = $Registered | Where-Object { $_.Name -eq $DistroName -and $_.Path -eq $Full } | Select-Object -First 1
+        $Occupied = $false
+        if ($Full -and (Test-Path $Full) -and (-not $ItsOwn)) {
+            $Occupied = @(Get-ChildItem -Path $Full -Force -ErrorAction SilentlyContinue).Count -gt 0
+        }
+
+        if (-not $Full) {
+            Write-Host "  '$Folder' is not a usable path." -ForegroundColor (Get-MessageColour warning)
+        } elseif ($Elsewhere) {
+            Write-Host "  $Full is, or holds, the folder of '$($Elsewhere.Name)'." -ForegroundColor (Get-MessageColour warning)
+            Write-Host "  Erasing it would take that instance with it." -ForegroundColor (Get-MessageColour warning)
+        } elseif ($Occupied) {
+            Write-Host "  $Full already exists, please choose another location." -ForegroundColor (Get-MessageColour warning)
+        } else {
+            # Shown before it is created; a no is a change of mind about the
+            # location - nothing has been written yet.
+            $Answer = [string](Read-Host "Create [$Full]? [Y/n]")
+            if ($Answer -notmatch "^[nN]") {
+                $InstallPath = $Full
+                continue
+            }
+        }
+
+        # Another folder, asked the same way; an empty answer cancels.
+        $Answer = [string](Read-Host "Folder for '$DistroName' (or Enter to cancel)")
+        if ([string]::IsNullOrWhiteSpace($Answer)) {
+            Write-Host ""
+            Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
+            exit 0
+        }
+        $Folder = $Answer.Trim()
+    }
+    return $InstallPath
+}
+
 # The deployment's steps, named one by one: each goes through the checked
 # wrapper, so a program that fails stops the run instead of writing a line the
 # script walks past.
@@ -526,59 +588,7 @@ try {
 }
 $WasRegistered = [bool]($Registered | Where-Object { $_.Name -eq $DistroName } | Select-Object -First 1)
 
-$Folder = $Root
-$InstallPath = $null
-while (-not $InstallPath) {
-    # A path Windows refuses is a typo, not a reason to stop.
-    $Full = $null
-    try {
-        $Full = [System.IO.Path]::GetFullPath((Join-Path $Folder $DistroName)).TrimEnd('\')
-    } catch { }
-
-    # Step 4 erases this path recursively: a folder holding another instance
-    # would take that instance with it.
-    $Elsewhere = $null
-    if ($Full) {
-        $Elsewhere = $Registered | Where-Object {
-            $_.Name -ne $DistroName -and
-            ($_.Path -eq $Full -or $_.Path.StartsWith("$Full\", [System.StringComparison]::OrdinalIgnoreCase))
-        } | Select-Object -First 1
-    }
-
-    # The rebuild is the only case where this folder is ours to erase, and the
-    # instance's own name is what says so.
-    $ItsOwn = $Registered | Where-Object { $_.Name -eq $DistroName -and $_.Path -eq $Full } | Select-Object -First 1
-    $Occupied = $false
-    if ($Full -and (Test-Path $Full) -and (-not $ItsOwn)) {
-        $Occupied = @(Get-ChildItem -Path $Full -Force -ErrorAction SilentlyContinue).Count -gt 0
-    }
-
-    if (-not $Full) {
-        Write-Host "  '$Folder' is not a usable path." -ForegroundColor (Get-MessageColour warning)
-    } elseif ($Elsewhere) {
-        Write-Host "  $Full is, or holds, the folder of '$($Elsewhere.Name)'." -ForegroundColor (Get-MessageColour warning)
-        Write-Host "  Erasing it would take that instance with it." -ForegroundColor (Get-MessageColour warning)
-    } elseif ($Occupied) {
-        Write-Host "  $Full already exists, please choose another location." -ForegroundColor (Get-MessageColour warning)
-    } else {
-        # Shown before it is created; a no is a change of mind about the
-        # location - nothing has been written yet.
-        $Answer = [string](Read-Host "Create [$Full]? [Y/n]")
-        if ($Answer -notmatch "^[nN]") {
-            $InstallPath = $Full
-            continue
-        }
-    }
-
-    # Another folder, asked the same way; an empty answer cancels.
-    $Answer = [string](Read-Host "Folder for '$DistroName' (or Enter to cancel)")
-    if ([string]::IsNullOrWhiteSpace($Answer)) {
-        Write-Host ""
-        Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
-        exit 0
-    }
-    $Folder = $Answer.Trim()
-}
+$InstallPath = Resolve-InstallPath -DistroName $DistroName -Root $Root -Registered $Registered
 
 # 1. The export tar lands beside the install path - never on C:.
 $ParentInstallDir = Split-Path -Path $InstallPath -Parent

@@ -85,6 +85,14 @@ check "the failure names the pack it could not install" \
 check "exit code 1" "$Code" "1"
 
 echo ""
+echo "--- the folder question's other answers: n, an unusable path, cancel"
+run_build 'path-qtest-1\nn\nx<y\n\n'
+check "says the path is unusable" "$(contains "'x<y' is not a usable path.")" "yes"
+check "and cancels on the empty answer" "$(contains '[ABORT] Operation cancelled by user. Nothing was modified.')" "yes"
+check "nothing is built"                "$(contains '==> 1. Building Docker')" "no"
+check "exit code 0"                     "$Code" "0"
+
+echo ""
 echo "--- a build started while another holds the lock"
 # Another build is a small PowerShell holding the same named lock; it says so
 # by writing a file, so the test knows the lock is taken before running the
