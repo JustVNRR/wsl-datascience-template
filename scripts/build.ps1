@@ -36,24 +36,18 @@ function Install-NerdFont {
     $FontFile = "MesloLGS NF Regular.ttf"
 
     $FontRegPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+    $UserFontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+    $DestFontPath = Join-Path $UserFontsDir $FontFile
 
     if (-not (Test-Path $FontRegPath)) {
         New-Item -Path $FontRegPath -Force | Out-Null
     }
-    
-    $FontsInReg = Get-ItemProperty -Path $FontRegPath -ErrorAction SilentlyContinue | Select-Object -Property *
-    
-    $IsFontInstalled = $false
-    if ($FontsInReg) {
-        foreach ($Property in $FontsInReg.psobject.properties) {
-            if ($Property.Name -match $FontName) {
-                $IsFontInstalled = $true
-                break
-            }
-        }
-    }
 
-    if ($IsFontInstalled) {
+    # The file and its registry entry are two separate facts, and the font is
+    # there only when both are: one without the other means an interrupted run,
+    # and the install below repairs it.
+    if ((Get-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -ErrorAction SilentlyContinue) -and
+        (Test-Path $DestFontPath)) {
         Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected ($FontName)." -ForegroundColor (Get-MessageColour success)
         return $true
     }
@@ -61,24 +55,16 @@ function Install-NerdFont {
     Write-Host "==> Starship prompt requires a Nerd Font. Downloading $FontName..." -ForegroundColor (Get-MessageColour info)
 
     # Best effort: neither a download that fails nor a registry that refuses may
-    # turn a finished deployment into a failed one.
+    # turn a finished deployment into a failed one. The temporary file belongs
+    # to this run alone and is taken away in the finally either way.
+    $TempFontPath = Join-Path $env:TEMP "$([guid]::NewGuid().ToString('N')).ttf"
     try {
         $FontUrl = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
-        $TempFontPath = Join-Path $env:TEMP $FontFile
         Invoke-WebRequest -Uri $FontUrl -OutFile $TempFontPath -UseBasicParsing
-
-        $UserFontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
 
         if (-not (Test-Path $UserFontsDir)) {
             New-Item -ItemType Directory -Path $UserFontsDir -Force | Out-Null
         }
-
-        $DestFontPath = Join-Path $UserFontsDir $FontFile
-
-        # The file and its registry entry are two separate facts: an interrupted
-        # run leaves one without the other. Guarding both with the same test
-        # skipped the registration, and Windows Terminal then asked for a font
-        # Windows did not know about - boxes in the prompt, and no message.
         if (-not (Test-Path $DestFontPath)) {
             Copy-Item -Path $TempFontPath -Destination $DestFontPath -Force
         }
@@ -90,6 +76,8 @@ function Install-NerdFont {
     } catch {
         Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $_" -ForegroundColor (Get-MessageColour error)
         return $false
+    } finally {
+        Remove-Item -Path $TempFontPath -Force -ErrorAction SilentlyContinue
     }
 }
 
