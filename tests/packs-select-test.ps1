@@ -153,19 +153,25 @@ Write-Output "--- Invoke-PackApply: the order, and where a failure stops ---"
 $script:Calls = @()
 $script:FailCommand = ""
 $script:FailCode = 1
+$script:FailAfter = 1
+$script:FailSeen = 0
 function Invoke-InInstance {
     param([string]$DistroName, [string[]]$Command, [string]$WorkingDirectory, [ref]$ExitCode, [switch]$Quiet)
     $Line = ($Command -join " ")
     $Where = if ($WorkingDirectory) { $WorkingDirectory } else { "~" }
     $script:Calls += "$Where :: $Line"
     if (-not $Quiet) { Write-Output "INSTANCE-SAYS: $Line" }
-    if ($script:FailCommand -and $Line -like "$($script:FailCommand)*") { $ExitCode.Value = $script:FailCode }
-    else { $ExitCode.Value = 0 }
+    if ($script:FailCommand -and $Line -like "$($script:FailCommand)*") {
+        $script:FailSeen++
+        if ($script:FailSeen -ge $script:FailAfter) { $ExitCode.Value = $script:FailCode } else { $ExitCode.Value = 0 }
+    } else { $ExitCode.Value = 0 }
 }
 # What the forced failure answers: 1 for a broken install, 2 for a pack that
 # asked and was told no - the first takes the pack back out as a failure, the
-# second as an answer, and the stand-in has to be able to say both.
-function Reset { $script:Calls = @(); $script:FailCommand = ""; $script:FailCode = 1 }
+# second as an answer, and the stand-in has to be able to say both. FailAfter:
+# the first (N-1) matching calls pass, so a pack before the failing one is
+# placed cleanly first.
+function Reset { $script:Calls = @(); $script:FailCommand = ""; $script:FailCode = 1; $script:FailAfter = 1; $script:FailSeen = 0 }
 function Commands { return @($script:Calls | ForEach-Object { ($_ -split " :: ", 2)[1] }) }
 
 $Add = @([PSCustomObject]@{ Name = "fake-a"; Path = "X:\packs\fake-a"; Description = "d" })
@@ -231,7 +237,38 @@ Check "a failed remove.sh names that pack" "$($Result.Pack)" "fake-b"
 Check "  ... and nothing is installed after it" `
     (@($script:Calls | Where-Object { $_ -like "*bash install.sh*" }).Count) "0"
 Check "  ... and its folder stays, it is still installed" `
-    (@($script:Calls | Where-Object { $_ -like "*rm -rf*" }).Count) "0"
+    (@($script:Calls | Where-Object { $_ -like "*rm -rf $Directory/fake-b*" }).Count) "0"
+Check "  ... and the placed pack, never run, loses its folder" `
+    (@($script:Calls | Where-Object { $_ -like "*rm -rf $Directory/fake-a*" }).Count) "1"
+
+# The packs after a failure were placed but never ran: their folders go back
+# out with the one that stopped the run, or the menu reads them as
+# installations that never happened. The queue is ordered, so the position is
+# what says which ones never ran.
+Reset
+$AddTwo = @(
+    [PSCustomObject]@{ Name = "fake-a"; Path = "X:\packs\fake-a"; Description = "d" },
+    [PSCustomObject]@{ Name = "fake-b"; Path = "X:\packs\fake-b"; Description = "d" }
+)
+$script:FailCommand = "bash install.sh"
+$Result = Invoke-PackApply -DistroName "test" -PacksDirectory $Directory -ToAdd $AddTwo
+Check "a failed install takes the tail's folders back out too" `
+    ((@($script:Calls | Where-Object { $_ -like "*rm -rf*" }) | ForEach-Object { ($_ -split " :: ", 2)[1] }) -join " | ") `
+    "rm -rf $Directory/fake-a | rm -rf $Directory/fake-b"
+Check "  ... and the pack after it never ran" `
+    (@($script:Calls | Where-Object { $_ -like "*fake-b :: bash install.sh*" }).Count) "0"
+Check "  ... and the run names the pack that stopped it" "$($Result.Pack)/$($Result.ExitCode)" "fake-a/1"
+
+# A copy that fails takes the folders placed before it back out: nothing was
+# installed, and a folder left behind would pass for an installation.
+Reset
+$script:FailCommand = "cp -r ."
+$script:FailAfter = 2
+$Result = Invoke-PackApply -DistroName "test" -PacksDirectory $Directory -ToAdd $AddTwo
+Check "a failed copy takes the earlier placed folder back out" `
+    ((@($script:Calls | Where-Object { $_ -like "*rm -rf*" }) | ForEach-Object { ($_ -split " :: ", 2)[1] }) -join " | ") `
+    "rm -rf $Directory/fake-b | rm -rf $Directory/fake-a"
+Check "  ... and the run names the pack that stopped it" "$($Result.Pack)/$($Result.ExitCode)" "fake-b/1"
 
 Write-Output ""
 Write-Output ("failures: " + $Failures)

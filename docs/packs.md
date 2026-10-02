@@ -17,7 +17,9 @@ targets, a tool, or both — `devops` is targets only, `vision` a tool only.
 packs/<name>/
 ├── pack.conf              # what the socle and the installer read
 ├── install.sh             # what `.\wsl.ps1 add_pack` runs inside the instance
+├── install_root.sh        # what needs root, run by install.sh as one sudo
 ├── remove.sh              # what `.\wsl.ps1 remove_pack` runs before the folder goes
+├── remove_root.sh         # what needs root, run by remove.sh as one sudo
 ├── make/*.mk              # its targets, loaded as soon as the folder is there
 ├── zsh/*.zsh              # its shell files, read where they live (never copied)
 ├── env.global.sample      # its share of the shared defaults
@@ -29,7 +31,7 @@ packs/<name>/
 | Code | What it says | What happens |
 | :--- | :--- | :--- |
 | `0` | what the pack carries is installed | its folder stays, and the pack is installed |
-| `1` | the installation failed | its folder goes back out — the folder is what the menu reads, and a pack with no tool behind it is a menu that lies |
+| `1` | the installation failed | its folder goes back out, and so do the folders of the packs that had not run yet — the folder is what the menu reads, and one left behind is a menu that lies |
 | `2` | **the user was asked something and said no** | the same, but nothing failed: the run goes on, and no caller reports anything |
 
 ## `pack.conf`
@@ -162,8 +164,8 @@ A library a program loads **at runtime** is a third case, and the one the two
 rules above do not cover: apt cannot see the need (the program asks for it by
 name when it starts, so nothing declares it), which is exactly why a pack cannot
 name it either — removing it would take a neighbour's program along. The pack
-installs it in its `install.sh`, beside the program that wants it, and never in
-`PACK_PACKAGES`; its `remove.sh` marks it automatic on the way out
+installs it beside the program that wants it, and never in `PACK_PACKAGES`;
+its `remove.sh` marks it automatic on the way out
 (`apt-mark auto`), which makes it an orphan the moment the pack is gone, and the
 cleanup `remove_pack` runs afterwards takes it back. `web` is the case that
 exists: Firefox loads `libavcodec60` for H.264 and `libpulse0` for the sound,

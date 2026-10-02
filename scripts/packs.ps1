@@ -266,6 +266,20 @@ function Remove-PackFolder {
     Invoke-InInstance -DistroName $DistroName -Command @("rm", "-rf", $Target) -ExitCode $ExitCode -Quiet
 }
 
+# Folders this run placed but never installed - taken back out with the failure
+# that stopped the run, because the folder is what the menu reads: one left
+# behind passes for an installation that never happened. The folder alone,
+# never remove.sh: nothing of the pack reached the system, so there is nothing
+# to undo.
+function Remove-PlacedFolders {
+    param([string]$DistroName, [string]$PacksDirectory, [object[]]$Packs, [ref]$ExitCode)
+    foreach ($Pack in $Packs) {
+        if ($null -eq $Pack) { continue }
+        $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Pack.Name
+        Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode $ExitCode
+    }
+}
+
 # What the pack left on the system side: what its remove.sh did not name - the
 # DEPENDENCIES nobody owns. The script asks apt and ldd, and only then removes;
 # it travels the way a pack does - a copy, then a plain path.
@@ -427,18 +441,23 @@ function Invoke-PackApply {
     $Code = 0
 
     # 1. Folders first, before anything leaves: the remove.sh scripts below ask
-    # which packs are installed, and these count from here on.
+    # which packs are installed, and these count from here on. What was placed
+    # and never installed is remembered: a failure takes those folders back out.
     Write-Host ""
+    $Placed = @()
     foreach ($Pack in $ToAdd) {
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Pack.Name
         Write-Host "==> Placing '$($Pack.Name)'..." -ForegroundColor (Get-MessageColour info)
         if (-not (Copy-PackIntoInstance -DistroName $DistroName -PackPath $Pack.Path -Target $Target -ExitCode ([ref]$Code))) {
+            $CopyCode = $Code
+            Remove-PlacedFolders -DistroName $DistroName -PacksDirectory $PacksDirectory -Packs $Placed -ExitCode ([ref]$Code)
             Write-Host ""
-            Write-Host "[FAIL] Could not copy '$($Pack.Name)' into '$DistroName' (exit code $Code)." -ForegroundColor (Get-MessageColour error)
-            Write-Host "       Nothing was installed or removed; a pack copied before the failure is in place." -ForegroundColor (Get-MessageColour hint)
+            Write-Host "[FAIL] Could not copy '$($Pack.Name)' into '$DistroName' (exit code $CopyCode)." -ForegroundColor (Get-MessageColour error)
+            Write-Host "       Nothing was installed or removed; the folders already placed were taken back out." -ForegroundColor (Get-MessageColour hint)
             Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
-            return [PSCustomObject]@{ Pack = $Pack.Name; ExitCode = $Code }
+            return [PSCustomObject]@{ Pack = $Pack.Name; ExitCode = $CopyCode }
         }
+        $Placed += $Pack
     }
 
     # 2. What leaves. A pack without a remove.sh was installed before packs had
@@ -450,11 +469,13 @@ function Invoke-PackApply {
             Write-Host "==> Removing '$Name'..." -ForegroundColor (Get-MessageColour info)
             Invoke-PackScript -DistroName $DistroName -Target $Target -Script "remove.sh" -ExitCode ([ref]$Code)
             if ($Code -ne 0) {
+                $RemoveCode = $Code
+                Remove-PlacedFolders -DistroName $DistroName -PacksDirectory $PacksDirectory -Packs $Placed -ExitCode ([ref]$Code)
                 Write-Host ""
-                Write-Host "[FAIL] '$Name' could not remove itself (exit code $Code)." -ForegroundColor (Get-MessageColour error)
-                Write-Host "       It is still installed; the packs placed before it are in place but not installed." -ForegroundColor (Get-MessageColour hint)
+                Write-Host "[FAIL] '$Name' could not remove itself (exit code $RemoveCode)." -ForegroundColor (Get-MessageColour error)
+                Write-Host "       It is still installed; the new packs had not run yet, and their folders were taken back out." -ForegroundColor (Get-MessageColour hint)
                 Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
-                return [PSCustomObject]@{ Pack = $Name; ExitCode = $Code }
+                return [PSCustomObject]@{ Pack = $Name; ExitCode = $RemoveCode }
             }
         } else {
             Write-Host "==> '$Name' carries no remove.sh: only its files leave." -ForegroundColor (Get-MessageColour info)
@@ -463,16 +484,19 @@ function Invoke-PackApply {
 
         Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
         if ($Code -ne 0) {
+            $FolderCode = $Code
+            Remove-PlacedFolders -DistroName $DistroName -PacksDirectory $PacksDirectory -Packs $Placed -ExitCode ([ref]$Code)
             Write-Host ""
-            Write-Host "[FAIL] The folder of '$Name' could not be deleted (exit code $Code)." -ForegroundColor (Get-MessageColour error)
-            Write-Host "       The instance is half way through." -ForegroundColor (Get-MessageColour warning)
+            Write-Host "[FAIL] The folder of '$Name' could not be deleted (exit code $FolderCode)." -ForegroundColor (Get-MessageColour error)
+            Write-Host "       The instance is half way through; the new packs were taken back out - none had run." -ForegroundColor (Get-MessageColour warning)
             Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
-            return [PSCustomObject]@{ Pack = $Name; ExitCode = $Code }
+            return [PSCustomObject]@{ Pack = $Name; ExitCode = $FolderCode }
         }
     }
 
     # 3. What arrives: the folders are already there, so this is their install.sh.
-    foreach ($Pack in $ToAdd) {
+    for ($Index = 0; $Index -lt $ToAdd.Count; $Index++) {
+        $Pack = $ToAdd[$Index]
         $Target = Get-PackFolder -PacksDirectory $PacksDirectory -Name $Pack.Name
         Write-Host ""
         Write-Host "==> Installing '$($Pack.Name)' in '$DistroName'..." -ForegroundColor (Get-MessageColour info)
@@ -507,7 +531,12 @@ function Invoke-PackApply {
             Write-Host ""
             Write-Host "[FAIL] The installation of '$($Pack.Name)' did not complete (exit code $InstallCode)." -ForegroundColor (Get-MessageColour error)
             Remove-PackFolder -DistroName $DistroName -Target $Target -ExitCode ([ref]$Code)
-            Write-Host "       Its files were removed. The packs before it are installed." -ForegroundColor (Get-MessageColour hint)
+            # The packs after it were placed but never ran: their folders go
+            # back out too, or the menu reads them as installations that never
+            # were. The queue is ordered, so the position says as much.
+            Remove-PlacedFolders -DistroName $DistroName -PacksDirectory $PacksDirectory -Packs @($ToAdd | Select-Object -Skip ($Index + 1)) -ExitCode ([ref]$Code)
+            Write-Host "       Its files were removed, and the folders of the packs that had not run yet." -ForegroundColor (Get-MessageColour hint)
+            Write-Host "       The packs before it are installed." -ForegroundColor (Get-MessageColour hint)
             Write-Host "       $ResumeHint" -ForegroundColor (Get-MessageColour hint)
             return [PSCustomObject]@{ Pack = $Pack.Name; ExitCode = $InstallCode }
         }
