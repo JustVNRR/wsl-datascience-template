@@ -93,6 +93,59 @@ function Install-NerdFont {
     }
 }
 
+# The deployment's steps, named one by one: each goes through the checked
+# wrapper, so a program that fails stops the run instead of writing a line the
+# script walks past.
+function Invoke-DockerBuild {
+    param([string]$Tag)
+    Invoke-NativeCommand { docker build -t $Tag . } "Docker build failed."
+}
+
+function New-DockerContainer {
+    param([string]$Name, [string]$Image)
+    Invoke-NativeCommand { docker create --name $Name $Image } "Container creation failed."
+}
+
+function Export-DockerContainer {
+    param([string]$Container, [string]$OutputPath)
+    Invoke-NativeCommand { docker export -o $OutputPath $Container } "Docker export failed."
+}
+
+function Import-WslDistro {
+    param([string]$Name, [string]$InstallPath, [string]$TarPath)
+    Invoke-NativeCommand { wsl.exe --import $Name $InstallPath $TarPath --version 2 } "WSL import failed."
+}
+
+function Stop-WslDistro {
+    param([string]$Name)
+    Invoke-NativeCommand { wsl.exe --terminate $Name } "Could not stop '$Name'." -SuppressOutput
+}
+
+function Invoke-WslFirstBoot {
+    param([string]$DistroName)
+    Invoke-NativeCommand { wsl.exe -d $DistroName -u root /root/first_boot.sh } "The first_boot.sh configuration script failed."
+}
+
+# The user the instance will open as: read from the file the bootstrap wrote,
+# the file then taken away - the answer and the cleanup both read, not assumed.
+function Get-ConfiguredWslUser {
+    param([string]$DistroName)
+
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $Answer = wsl.exe -d $DistroName -u root cat /tmp/installed_user 2>$null
+    $ExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $PreviousEAP
+
+    $User = "$Answer".Trim()
+    if ($ExitCode -ne 0 -or -not $User) {
+        throw "The onboarding script did not say which user it configured."
+    }
+    Invoke-NativeCommand { wsl.exe -d $DistroName -u root rm -f /tmp/installed_user } `
+        "Could not remove the temporary file in '$DistroName'." -SuppressOutput
+    return $User
+}
+
 # The repository root, one level above this script: it holds the Dockerfile,
 # and that is the context the build below must run in - not this folder.
 $RepoRoot = Split-Path -Path $PSScriptRoot -Parent
@@ -103,8 +156,6 @@ $ContainerName = "wsl-temp-export-$([guid]::NewGuid().ToString().Substring(0, 8)
 
 # 0. Preflight: Docker must answer BEFORE the destructive confirmation below -
 # failing here aborts with nothing confirmed and nothing touched.
-# "Continue" + "*> $null": under EAP=Stop docker's stderr is a TERMINATING
-# error, and a plain 2>$null does not silence it.
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     Write-Host ""
     Write-Host "[ABORT] Docker is not installed, or not on the PATH." -ForegroundColor (Get-MessageColour error)
@@ -112,13 +163,7 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-$PreviousEAP = $ErrorActionPreference
-$ErrorActionPreference = "Continue"
-$null = docker info *> $null
-$DockerExitCode = $LASTEXITCODE
-$ErrorActionPreference = $PreviousEAP
-
-if ($DockerExitCode -ne 0) {
+if (-not (Test-NativeCommand { docker info })) {
     Write-Host ""
     Write-Host "[ABORT] Docker is not responding." -ForegroundColor (Get-MessageColour error)
     Write-Host "        Start Docker Desktop, wait for it to finish starting, then run this script again." -ForegroundColor (Get-MessageColour hint)
@@ -298,13 +343,13 @@ $Deployed = $false
 
 try {
     Write-Host "==> 1. Building Docker rootfs image..." -ForegroundColor (Get-MessageColour info)
-    Invoke-External { docker build -t $ImageTag . } "Docker build failed."
+    Invoke-DockerBuild -Tag $ImageTag
 
     Write-Host "==> 2. Creating temporary export container..." -ForegroundColor (Get-MessageColour info)
-    Invoke-External { docker create --name $ContainerName $ImageTag } "Container creation failed."
+    New-DockerContainer -Name $ContainerName -Image $ImageTag
 
     Write-Host "==> 3. Exporting filesystem to temporary archive ($TarPath)..." -ForegroundColor (Get-MessageColour info)
-    Invoke-External { docker export -o $TarPath $ContainerName } "Docker export failed."
+    Export-DockerContainer -Container $ContainerName -OutputPath $TarPath
 
     Write-Host "==> 4. Preparing installation folder: $InstallPath" -ForegroundColor (Get-MessageColour info)
     
@@ -321,7 +366,7 @@ try {
     New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
 
     Write-Host "==> 5. Importing into WSL ($DistroName)..." -ForegroundColor (Get-MessageColour info)
-    Invoke-External { wsl.exe --import $DistroName $InstallPath $TarPath --version 2 } "WSL import failed."
+    Import-WslDistro -Name $DistroName -InstallPath $InstallPath -TarPath $TarPath
 
     # Marked the moment it is registered, before the steps that can still fail:
     # a build that stops at the font step leaves a real instance behind, not an
@@ -329,14 +374,11 @@ try {
     New-InstanceMarker -Folder $InstallPath -By "build"
 
     Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor (Get-MessageColour info)
-    Invoke-External { wsl.exe -d $DistroName -u root /root/first_boot.sh } "The first_boot.sh configuration script failed."
-
-    # Retrieve configured username from temporary file
-    $ConfiguredUser = (wsl.exe -d $DistroName -u root cat /tmp/installed_user).Trim()
-    wsl.exe -d $DistroName -u root rm -f /tmp/installed_user
+    Invoke-WslFirstBoot -DistroName $DistroName
+    $ConfiguredUser = Get-ConfiguredWslUser -DistroName $DistroName
 
     Write-Host "==> 7. Shutting down distro to persist systemd and user configuration..." -ForegroundColor (Get-MessageColour info)
-    wsl.exe --terminate $DistroName
+    Stop-WslDistro -Name $DistroName
 
     Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor (Get-MessageColour info)
     # The function prints its status line; the boolean would print True/False.
@@ -543,11 +585,9 @@ finally {
     Write-Host "==> Cleaning up temporary build artifacts..." -ForegroundColor (Get-MessageColour info)
 
     # Step 0's trap again: a docker error raised here would bury the message
-    # the catch block has just printed.
-    $PreviousEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    docker rm -f $ContainerName *> $null
-    $ErrorActionPreference = $PreviousEAP
+    # the catch block has just printed. Whether the container ever existed is
+    # not asked - removing nothing succeeds.
+    $null = Test-NativeCommand { docker rm -f $ContainerName }
 
     if (Test-Path -Path $TarPath) {
         Remove-Item -Path $TarPath -Force -ErrorAction SilentlyContinue
@@ -560,12 +600,7 @@ finally {
 
         if ($KeepDockerImage -match "^[nN]$") {
             Write-Host "==> Removing Docker image '$ImageTag'..." -ForegroundColor (Get-MessageColour info)
-            $PreviousEAP = $ErrorActionPreference
-            $ErrorActionPreference = "Continue"
-            docker rmi -f $ImageTag *> $null
-            $RemoveExitCode = $LASTEXITCODE
-            $ErrorActionPreference = $PreviousEAP
-            if ($RemoveExitCode -eq 0) {
+            if (Test-NativeCommand { docker rmi -f $ImageTag }) {
                 Write-Host "Docker image removed." -ForegroundColor (Get-MessageColour success)
             } else {
                 Write-Host "The image could not be removed - a container is probably using it. It stays on disk." -ForegroundColor (Get-MessageColour warning)
@@ -628,13 +663,7 @@ if ($Deployed) {
                 [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
                 Move-Item "$DockerSettings.tmp" $DockerSettings -Force
 
-                $PreviousEAP = $ErrorActionPreference
-                $ErrorActionPreference = "Continue"
-                $null = docker desktop restart *> $null
-                $DockerExitCode = $LASTEXITCODE
-                $ErrorActionPreference = $PreviousEAP
-
-                if ($DockerExitCode -eq 0) {
+                if (Test-NativeCommand { docker desktop restart }) {
                     # The restart says nothing about what happened inside: the
                     # client is injected at Docker Desktop's own pace, and the
                     # user can be left without the right to use it - which only
@@ -643,11 +672,7 @@ if ($Deployed) {
                     # as root, which would pass whatever the answer is.
                     $DockerUsable = $false
                     for ($Attempt = 1; $Attempt -le 5 -and -not $DockerUsable; $Attempt++) {
-                        $PreviousEAP = $ErrorActionPreference
-                        $ErrorActionPreference = "Continue"
-                        $null = wsl.exe -d $DistroName -- docker version *> $null
-                        $DockerUsable = ($LASTEXITCODE -eq 0)
-                        $ErrorActionPreference = $PreviousEAP
+                        $DockerUsable = Test-NativeCommand { wsl.exe -d $DistroName -- docker version }
                         if (-not $DockerUsable) { Start-Sleep -Seconds 2 }
                     }
 

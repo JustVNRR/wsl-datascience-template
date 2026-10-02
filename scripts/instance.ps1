@@ -489,6 +489,41 @@ function Invoke-External {
     }
 }
 
+# The wrapper the strictest commands run their natives through: under EAP=Stop
+# a program's stderr raises before its exit code can be read, and a code nobody
+# reads is a failure that looks like a success. The answer is the code, and a
+# code that is not zero stops the command.
+function Invoke-NativeCommand {
+    param([scriptblock]$Command, [string]$ErrorMessage, [switch]$SuppressOutput)
+
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        if ($SuppressOutput) { $null = & $Command *> $null } else { & $Command }
+        $ExitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $PreviousEAP
+    }
+    if ($ExitCode -ne 0) {
+        throw "$ErrorMessage (Exit code: $ExitCode)"
+    }
+}
+
+# And the same call when the failure IS the answer - a question asked of
+# docker, where "no" must come back as $false and not as an exception.
+function Test-NativeCommand {
+    param([scriptblock]$Command)
+
+    $PreviousEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $null = & $Command *> $null
+        return ($LASTEXITCODE -eq 0)
+    } finally {
+        $ErrorActionPreference = $PreviousEAP
+    }
+}
+
 # Every registered instance, with its folder and its WSL version (1 or 2).
 # The registry says what Windows knows; it does not say which of them are ours -
 # Test-TemplateInstance answers that, on the folder's marker.
