@@ -427,7 +427,7 @@ try {
         # No icon drawn, no icon line: Terminal shows its own.
         Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Font "MesloLGS NF" `
             -ColorScheme "One Half Dark" -IconPath $(if ($IconDrawn) { $IconPath } else { "" })
-        Write-Host "  * Terminal profile : icon + font + color scheme + tab title applied (profile $ProfileGuid)" -ForegroundColor (Get-MessageColour success)
+        Write-Host "  * Terminal profile applied" -ForegroundColor (Get-MessageColour success)
         $TerminalProfileOk = $true
     } else {
         Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor (Get-MessageColour warning)
@@ -446,8 +446,6 @@ try {
     # fails must not reach the catch above, which would announce "[ERROR]
     # DURING DEPLOYMENT" for an instance that is built, registered and usable.
     # Its news lands in the summary below and on the screen the shell opens on.
-    $PackLine = "none"
-    $PackLineColour = "DarkGray"
     $PackReport = @()
     $PackReportColour = "Green"
     if ($null -ne $PackSelection) {
@@ -465,14 +463,23 @@ try {
 
             $PacksNow = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
             if ($null -ne $PackFailure) {
-                $Where = "none is in place"
-                if ($PacksNow.Count -gt 0) { $Where = "the others are in place ($($PacksNow -join ', '))" }
-                $PackLine = "'$($PackFailure.Pack)' did not install - $Where"
-                $PackLineColour = "Red"
-                $PackReport = @(
-                    "Packs: '$($PackFailure.Pack)' did not install - $Where.",
-                    "  Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
-                )
+                # Three facts, each only when it has something to say: what is
+                # really installed, the pack that stopped the run, and the packs
+                # that never ran - their folders went back out with it, so they
+                # cannot be read as installed anywhere (packs.ps1).
+                $Skipped = @($PackSelection.ToAdd |
+                    Where-Object { $_.Name -ne $PackFailure.Pack -and $PacksNow -notcontains $_.Name } |
+                    ForEach-Object { $_.Name })
+
+                $PackReport = @()
+                if ($PacksNow.Count -gt 0) {
+                    $PackReport += "$($PacksNow -join ', ') successfully installed."
+                }
+                $PackReport += "'$($PackFailure.Pack)' installation failed."
+                if ($Skipped.Count -gt 0) {
+                    $PackReport += "$($Skipped -join ', ') installation skipped."
+                }
+                $PackReport += "Run .\wsl.ps1 manage_packs on '$DistroName' to finish."
                 $PackReportColour = "Red"
             } else {
                 # What is there now, and nothing else: falling back on the
@@ -480,19 +487,13 @@ try {
                 # installed." over an instance whose install had declined.
                 $Landed = $PacksNow
                 if ($Landed.Count -eq 0) {
-                    $PackLine = "none"
-                    $PackLineColour = "Yellow"
-                    $PackReport = @("Packs: none installed.")
+                    $PackReport = @("none installed.")
                 } else {
-                    $PackLine = ($Landed -join ", ")
-                    $PackLineColour = "Green"
-                    $PackReport = @("Packs: $($Landed -join ', ') installed.")
+                    $PackReport = @("$($Landed -join ', ') installed.")
                 }
             }
         } catch {
-            $PackLine = "not installed - $($_.Exception.Message)"
-            $PackLineColour = "Red"
-            $PackReport = @("Packs: not installed - $($_.Exception.Message)")
+            $PackReport = @("not installed - $($_.Exception.Message)")
             $PackReportColour = "Red"
         }
     }
@@ -511,7 +512,15 @@ try {
     } else {
         Write-Host "not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor (Get-MessageColour hint)
     }
-    Write-Host "  * Packs             : " -NoNewline; Write-Host "$PackLine" -ForegroundColor $PackLineColour
+    Write-Host "  * Packs             : " -NoNewline
+    if ($PackReport.Count -eq 0) {
+        Write-Host "none" -ForegroundColor "DarkGray"
+    } else {
+        Write-Host "$($PackReport[0])" -ForegroundColor $PackReportColour
+        foreach ($Line in @($PackReport | Select-Object -Skip 1)) {
+            Write-Host "$(' ' * 24)$Line" -ForegroundColor $PackReportColour
+        }
+    }
     Write-Host ""
 
     Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
@@ -683,7 +692,10 @@ if ($Deployed) {
         }
     }
     if ($PackReport) {
-        foreach ($Line in $PackReport) { Write-Host $Line -ForegroundColor $PackReportColour }
+        Write-Host "Packs: $($PackReport[0])" -ForegroundColor $PackReportColour
+        foreach ($Line in @($PackReport | Select-Object -Skip 1)) {
+            Write-Host "       $Line" -ForegroundColor $PackReportColour
+        }
     }
     if ($DockerReport) {
         foreach ($Line in $DockerReport) { Write-Host $Line -ForegroundColor $DockerReportColour }
