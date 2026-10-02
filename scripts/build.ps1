@@ -642,17 +642,15 @@ if ($AvailablePacks.Count -gt 0) {
     }
 }
 
-# Set once the distro is registered: the finally block reads it, and the exit
-# code below is derived from it.
-$Deployed = $false
-
-# What this run has done, for the finally block to read: whether the instance
-# that was there went away, and whether this run registered one. Read from the
-# run rather than asked of WSL again - a list that fails to come back must
-# never read as "no distribution".
+# What this run has done, for the finally block and the exit code to read:
+# whether the instance that was there went away, whether this run registered
+# one, and whether it reached the end. Read from the run rather than asked of
+# WSL again - a list that fails to come back must never read as "no
+# distribution".
 $Deployment = [ordered]@{
     OldDistroRemoved = $false
     DistroRegistered = $false
+    Succeeded        = $false
 }
 
 try {
@@ -748,7 +746,7 @@ try {
     Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
     Write-Host ""
 
-    $Deployed = $true
+    $Deployment.Succeeded = $true
 }
 catch {
     Write-Host ""
@@ -763,7 +761,7 @@ finally {
 
     Remove-DeploymentArtifacts -ContainerName $ContainerName -TarPath $TarPath
 
-    if ($Deployed) {
+    if ($Deployment.Succeeded) {
         Write-Host ""
         Write-Host ("-" * 60) -ForegroundColor (Get-MessageColour muted)
         $KeepDockerImage = Read-Host "Keep Docker image [Y/n]?"
@@ -812,7 +810,7 @@ finally {
     $BuildMutex.Dispose()
 }
 
-if ($Deployed) {
+if ($Deployment.Succeeded) {
     # The report waits for the screen the shell opens on: the Clear-Host below
     # wipes everything written before it, and an answer nobody reads is not an
     # answer.
@@ -854,4 +852,4 @@ if ($Deployed) {
 
 # A failed deployment must not look like a success to whatever called this
 # script - a shortcut, a wrapper, a future CI job.
-if (-not $Deployed) { exit 1 }
+if (-not $Deployment.Succeeded) { exit 1 }
