@@ -22,9 +22,8 @@ if (-not (Test-Path $InstanceLib)) {
 
 if ($Ignored) {
     Write-Host ""
-    Write-Host "[ABORT] This command takes no options any more: it asks for the name." -ForegroundColor (Get-MessageColour error)
+    Write-Host "[ABORT] This command takes no options." -ForegroundColor (Get-MessageColour error)
     Write-Host "        Run it on its own:  .\wsl.ps1 build" -ForegroundColor (Get-MessageColour hint)
-    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
     exit 1
 }
 

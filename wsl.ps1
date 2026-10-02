@@ -91,7 +91,7 @@ $Chosen = $Commands | Where-Object { $_.Name -eq $Verb } | Select-Object -First 
 
 if (-not $Chosen) {
     Write-Host ""
-    Write-Host "[ABORT] '$($args[0])' is not one of the commands." -ForegroundColor (Get-MessageColour error)
+    Write-Host "[ABORT] Invalid command '$($args[0])'. Available commands :" -ForegroundColor (Get-MessageColour error)
     Write-Host "        Known:" -ForegroundColor (Get-MessageColour hint)
     foreach ($Command in $Commands) {
         Write-Host "          $($Command.Name)" -ForegroundColor (Get-MessageColour hint)
