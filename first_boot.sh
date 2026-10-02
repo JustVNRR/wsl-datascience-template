@@ -4,8 +4,12 @@ set -e
 # The socle's colours, read from the skeleton the image carries them in - the
 # instance has no account yet. A missing library leaves the questions plain
 # rather than stopping the onboarding.
-C_YELLOW=''
 C_RESET=''
+C_RED=''
+C_GREEN=''
+C_YELLOW=''
+C_CYAN=''
+C_GREY=''
 if [ -r /etc/skel/.config/zsh/lib/colours.sh ]; then
     # shellcheck source=/dev/null
     . /etc/skel/.config/zsh/lib/colours.sh || true
@@ -22,16 +26,16 @@ echo ""
 while true; do
     read -rp "${C_YELLOW}Enter your username: ${C_RESET}" NEW_USER
     if [[ ! "$NEW_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]; then
-        echo "Invalid username (use lowercase letters, numbers, underscores, and dashes only)."
+        echo "${C_YELLOW}Invalid username (use lowercase letters, numbers, underscores, and dashes only).${C_RESET}"
     elif id "$NEW_USER" >/dev/null 2>&1; then
-        echo "The account '$NEW_USER' already exists - pick another name."
+        echo "${C_YELLOW}The account '$NEW_USER' already exists - pick another name.${C_RESET}"
     else
         break
     fi
 done
 
 echo ""
-echo "Creating user account $NEW_USER..."
+echo "${C_CYAN}Creating user account $NEW_USER...${C_RESET}"
 # Create user silently (skips Full Name, Room Number, etc.)
 adduser --disabled-password --gecos "" --shell /usr/bin/zsh "$NEW_USER"
 
@@ -63,18 +67,18 @@ if [[ "$PASSWORDLESS" =~ ^[Yy]$ ]]; then
     chmod 0440 "$SUDOERS_FILE"
     if visudo -cf "$SUDOERS_FILE" >/dev/null 2>&1; then
         PASSWORDLESS_OK=yes
-        echo "sudo will not ask for a password."
+        echo "${C_GREEN}sudo will not ask for a password.${C_RESET}"
     else
         rm -f "$SUDOERS_FILE"
-        echo "[WARNING] The sudo rule could not be written - falling back to a password."
+        echo "${C_YELLOW}[WARNING] The sudo rule could not be written - falling back to a password.${C_RESET}"
     fi
 fi
 
 if [[ "$PASSWORDLESS_OK" == no ]]; then
-    echo "Please set a password for $NEW_USER:"
+    echo "${C_YELLOW}Please set a password for $NEW_USER:${C_RESET}"
     while ! passwd "$NEW_USER"; do
         echo ""
-        echo "[ERROR] Password setup failed (mismatch or empty). Let's try again."
+        echo "${C_RED}[ERROR] Password setup failed (mismatch or empty). Let's try again.${C_RESET}"
     done
 fi
 
@@ -87,7 +91,7 @@ groupadd --force docker
 usermod -aG docker "$NEW_USER"
 
 echo ""
-echo "Configuring timezone..."
+echo "${C_CYAN}Configuring timezone...${C_RESET}"
 dpkg-reconfigure -f readline tzdata
 clear
 
@@ -117,6 +121,6 @@ echo -n "$NEW_USER" > /tmp/installed_user
 
 # The pages cache is a convenience: a machine without network must not lose the
 # run - and the script deletes itself last, once nothing below can fail.
-su - "$NEW_USER" -c "tldr --update" || echo "  (tldr cache left as it was)"
+su - "$NEW_USER" -c "tldr --update" || echo "${C_GREY}  (tldr cache left as it was)${C_RESET}"
 rm -f /root/first_boot.sh
 exit 0
