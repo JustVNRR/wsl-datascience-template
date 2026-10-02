@@ -476,8 +476,9 @@ place. There is no list of packages compared anywhere: the packs say what they
 claim, and the question is asked of the instance.
 
 `add_pack` and `remove_pack` stay what they were, for one pack at a time. A
-failure here stops the run where it stands and says what is in place — what was
-removed, what was placed, what was never touched.
+failure here stops the run where it stands: the pack that failed and the packs
+that had not run yet lose their folder, and the command says what was installed,
+what failed, what was skipped.
 
 ---
 
