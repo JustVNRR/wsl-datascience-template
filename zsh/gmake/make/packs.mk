@@ -16,7 +16,7 @@ packs_list: ## List the packs this instance carries
 		echo ""; \
 		echo "No pack currently installed."; \
 		echo ""; \
-		echo "Packs are managed from Windows (.\wsl.ps1)"; \
+		printf '$(C_MUTED)Packs are managed from Windows (.\\wsl.ps1)$(C_RESET)\n'; \
 	else \
 		echo ""; \
 		echo "Packs currently installed:"; \
@@ -36,5 +36,5 @@ packs_list: ## List the packs this instance carries
 			echo "  Packs that required them are gone."; \
 		fi; \
 		echo ""; \
-		echo "Packs are managed from Windows (.\wsl.ps1)"; \
+		printf '$(C_MUTED)Packs are managed from Windows (.\\wsl.ps1)$(C_RESET)\n'; \
 	fi

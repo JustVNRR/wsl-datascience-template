@@ -11,6 +11,7 @@
 C_TITLE := \033[36m
 C_COMMAND := \033[32m
 C_HINT := \033[33m
+C_MUTED := \033[90m
 C_RESET := \033[0m
 
 # A block title - the `=== ... ===` lines of wsl_status: a blank line, the
