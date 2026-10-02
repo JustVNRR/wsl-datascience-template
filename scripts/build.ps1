@@ -93,6 +93,57 @@ function Install-NerdFont {
     }
 }
 
+# Windows' own list of what is registered, where every decision to erase comes
+# from. Its failure is kept apart from its answer: a list that cannot be read
+# is not an empty machine. A missing key is not a failure - it is WSL never
+# having registered anything here.
+function Get-RegisteredDistros {
+    $Lxss = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss"
+    if (-not (Test-Path $Lxss)) { return @() }
+
+    $Found = @()
+    foreach ($Key in Get-ChildItem $Lxss -ErrorAction Stop) {
+        $Props = Get-ItemProperty $Key.PSPath -ErrorAction Stop
+        if ($Props.DistributionName) {
+            $Found += [PSCustomObject]@{
+                Name = $Props.DistributionName
+                Path = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+            }
+        }
+    }
+    return @($Found)
+}
+
+# The last look before erasing: the image was built in between, and the machine
+# may have moved. A distribution that was never confirmed must not be destroyed,
+# a folder that has become another instance's must not be taken with it, and a
+# list that cannot be read is a refusal - not an absence. Answers with the
+# registration found now, or nothing when the name is free.
+function Assert-DestructionStillMatches {
+    param([string]$DistroName, [string]$InstallPath, [bool]$ConfirmedDestruction)
+
+    try {
+        $Now = @(Get-RegisteredDistros)
+    } catch {
+        throw "The list of registered WSL distributions cannot be read: refusing to erase anything."
+    }
+
+    $Here = $Now | Where-Object { $_.Name -eq $DistroName } | Select-Object -First 1
+    if ($Here -and -not $ConfirmedDestruction) {
+        throw "'$DistroName' is registered now and was not when the questions were asked: it was never confirmed for destruction."
+    }
+
+    $Invader = $Now | Where-Object {
+        $_.Name -ne $DistroName -and
+        ($_.Path -eq $InstallPath -or $_.Path.StartsWith("$InstallPath\", [System.StringComparison]::OrdinalIgnoreCase))
+    } | Select-Object -First 1
+    if ($Invader) {
+        throw "$InstallPath is now, or holds, the folder of '$($Invader.Name)': erasing it would take that instance with it."
+    }
+
+    return $Here
+}
+
 # The deployment's steps, named one by one: each goes through the checked
 # wrapper, so a program that fails stops the run instead of writing a line the
 # script walks past.
@@ -154,6 +205,33 @@ Set-Location -Path $RepoRoot
 $ImageTag = "wsl-stack:latest"
 $ContainerName = "wsl-temp-export-$([guid]::NewGuid().ToString().Substring(0, 8))"
 
+# One build at a time: two runs would fight over the same image tag, container,
+# tar and distribution name. Taken before anything is asked or created, and let
+# go when the deployment ends. A run that stops before that closes it with its
+# process; a run already waiting when its holder dies reads it as abandoned and
+# takes it (the catch below).
+$BuildMutex = [System.Threading.Mutex]::new($false, "Global\wsl-stack-build")
+$MutexHeld = $false
+try {
+    $MutexHeld = $BuildMutex.WaitOne(0)
+} catch [System.Threading.AbandonedMutexException] {
+    $MutexHeld = $true
+} catch {
+    Write-Host ""
+    Write-Host "[ABORT] The build lock cannot be taken - another session may be holding it." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
+    $BuildMutex.Dispose()
+    exit 1
+}
+if (-not $MutexHeld) {
+    Write-Host ""
+    Write-Host "[ABORT] Another build is already running." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        Let it finish, then run this one again." -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
+    $BuildMutex.Dispose()
+    exit 1
+}
+
 # 0. Preflight: Docker must answer BEFORE the destructive confirmation below -
 # failing here aborts with nothing confirmed and nothing touched.
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -198,19 +276,20 @@ while (-not $DistroName) {
 # there for a second drive, or a folder of your own.
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { "$env:USERPROFILE\WSL" }
 
-# What Windows already knows, read once: whether this path is another
-# instance's folder, and whether it is this name's own folder - the one case
-# where the build may erase what it finds.
-$Registered = @()
-foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-    $Props = Get-ItemProperty $Key.PSPath
-    if ($Props.DistributionName) {
-        $Registered += [PSCustomObject]@{
-            Name = $Props.DistributionName
-            Path = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-        }
-    }
+# What Windows already knows, read once and read strictly: this one list
+# answers "is this path another instance's folder" below, "is this name taken"
+# for the banner, and "may this still be erased" just before the erasing. A
+# list that cannot be read stops the run rather than passing for an empty one.
+try {
+    $Registered = @(Get-RegisteredDistros)
+} catch {
+    Write-Host ""
+    Write-Host "[ABORT] The list of registered WSL distributions cannot be read." -ForegroundColor (Get-MessageColour error)
+    Write-Host "        See what 'wsl --list --verbose' says, then run this script again." -ForegroundColor (Get-MessageColour hint)
+    Write-Host "        Nothing was modified." -ForegroundColor (Get-MessageColour muted)
+    exit 1
 }
+$WasRegistered = [bool]($Registered | Where-Object { $_.Name -eq $DistroName } | Select-Object -First 1)
 
 $Folder = $Root
 $InstallPath = $null
@@ -273,11 +352,9 @@ if (-not (Test-Path -Path $ParentInstallDir)) {
 }
 $TarPath = Join-Path -Path $ParentInstallDir -ChildPath "$DistroName-rootfs.tar"
 
-# 2. Safety check: prevent accidental deletion of existing distro
-# Strip out potential UTF-16 null characters (`0) returned by wsl.exe
-$ExistingDistros = (wsl.exe --list --quiet 2>$null) | ForEach-Object { ($_ -replace "`0", "").Trim() }
-
-if ($ExistingDistros -contains $DistroName) {
+# 2. Safety check: prevent accidental deletion of an existing distribution -
+# the list read above already answers it.
+if ($WasRegistered) {
     [Console]::Beep(1000, 400)
     Write-Host ""
     Write-DangerBanner
@@ -317,7 +394,7 @@ if ($AvailablePacks.Count -gt 0) {
     # The instance being replaced still exists here: what it carries is what
     # the boxes show. A first build opens on an empty checklist.
     $PreChecked = @()
-    if ($ExistingDistros -contains $DistroName) {
+    if ($WasRegistered) {
         $PreviousHome = Get-InstanceHome -DistroName $DistroName
         if ($PreviousHome) {
             $PreChecked = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory "$PreviousHome/.config/packs")
@@ -341,6 +418,15 @@ if ($AvailablePacks.Count -gt 0) {
 # code below is derived from it.
 $Deployed = $false
 
+# What this run has done, for the finally block to read: whether the instance
+# that was there went away, and whether this run registered one. Read from the
+# run rather than asked of WSL again - a list that fails to come back must
+# never read as "no distribution".
+$Deployment = [ordered]@{
+    OldDistroRemoved = $false
+    DistroRegistered = $false
+}
+
 try {
     Write-Host "==> 1. Building Docker rootfs image..." -ForegroundColor (Get-MessageColour info)
     Invoke-DockerBuild -Tag $ImageTag
@@ -353,13 +439,19 @@ try {
 
     Write-Host "==> 4. Preparing installation folder: $InstallPath" -ForegroundColor (Get-MessageColour info)
     
-    $PreviousEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    $null = wsl.exe --terminate $DistroName *> $null
-    Start-Sleep -Seconds 1
+    # The image was built and exported in between: the machine may have moved.
+    # The last look before anything is erased - an answer that cannot be
+    # trusted stops the run.
+    $StillRegistered = Assert-DestructionStillMatches -DistroName $DistroName `
+        -InstallPath $InstallPath -ConfirmedDestruction $WasRegistered
 
-    $null = wsl.exe --unregister $DistroName *> $null
-    $ErrorActionPreference = $PreviousEAP
+    if ($StillRegistered) {
+        Stop-WslDistro -Name $DistroName
+        Start-Sleep -Seconds 1
+        Invoke-NativeCommand { wsl.exe --unregister $DistroName } "Could not unregister '$DistroName'." -SuppressOutput
+        $Deployment.OldDistroRemoved = $true
+    }
+
     if (Test-Path -Path $InstallPath) {
         Remove-Item -Recurse -Force $InstallPath
     }
@@ -367,6 +459,7 @@ try {
 
     Write-Host "==> 5. Importing into WSL ($DistroName)..." -ForegroundColor (Get-MessageColour info)
     Import-WslDistro -Name $DistroName -InstallPath $InstallPath -TarPath $TarPath
+    $Deployment.DistroRegistered = $true
 
     # Marked the moment it is registered, before the steps that can still fail:
     # a build that stops at the font step leaves a real instance behind, not an
@@ -615,8 +708,10 @@ finally {
         # next run opens on the destruction prompt instead.
         Write-Host ""
         Write-Host ("-" * 60) -ForegroundColor (Get-MessageColour muted)
-        $StillRegistered = (wsl.exe --list --quiet 2>$null) | ForEach-Object { ($_ -replace "`0", "").Trim() }
-        if ($StillRegistered -contains $DistroName) {
+        # Read off the run rather than asked of WSL again: a list that fails to
+        # come back must never read as "no distribution".
+        $RegisteredNow = $Deployment.DistroRegistered -or ($WasRegistered -and (-not $Deployment.OldDistroRemoved))
+        if ($RegisteredNow) {
             Write-Host "A distribution named '$DistroName' is registered: the next run will offer to destroy and rebuild it." -ForegroundColor (Get-MessageColour warning)
         } else {
             Write-Host "The Docker image was kept: the next run reuses it and rebuilds only what changed." -ForegroundColor (Get-MessageColour muted)
@@ -628,11 +723,16 @@ finally {
         if ($null -ne $PackSelection) {
             $WantedPacks = ($PackSelection.ToAdd | ForEach-Object { $_.Name }) -join ", "
             Write-Host "The packs chosen earlier ($WantedPacks) were not installed: the build stopped before them." -ForegroundColor (Get-MessageColour warning)
-            if ($StillRegistered -contains $DistroName) {
+            if ($RegisteredNow) {
                 Write-Host "Once it is usable, .\wsl.ps1 manage_packs installs them in it." -ForegroundColor (Get-MessageColour muted)
             }
         }
     }
+
+    if ($MutexHeld) {
+        $BuildMutex.ReleaseMutex()
+    }
+    $BuildMutex.Dispose()
 }
 
 # Docker Desktop injects its docker client into the distros it lists, and reads
