@@ -3,8 +3,8 @@
 # ==============================================================================
 # One distribution: registered, or left as an archive. Its folder, its user,
 # its WSL version, the look Windows Terminal gives it, the packs it carries -
-# and the gestures: start, stop, restart, shrink, archive, restore, duplicate,
-# unregister.
+# and the gestures: start, stop, restart, shell, shrink, archive, restore,
+# duplicate, unregister.
 class WslInstance {
     [string]$Name
     [string]$Path
@@ -92,6 +92,18 @@ class WslInstance {
     [void] Restart() {
         $this.Stop()
         $this.Start()
+    }
+
+    # Opens a shell on the caller's console and steps aside: the terminal
+    # belongs to it until the user leaves. A process of its own (Start-Process),
+    # because run from here the session's output would fall under the method's
+    # own rule - swallowed. `--cd "~"` opens it in the instance's home, and the
+    # `~` rides inside the argument string, where nothing expands it. The
+    # shell's own exit code comes back - handed over, not read.
+    [int] Shell() {
+        $Arguments = '-d "{0}" --cd ~' -f $this.Name
+        $Process = Start-Process wsl.exe -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
+        return $Process.ExitCode
     }
 
     # The .vhdx's size on disk, not what its filesystem holds.
