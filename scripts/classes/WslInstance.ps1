@@ -98,8 +98,10 @@ class WslInstance {
 
     # Opens a shell and steps aside: the terminal belongs to it until the user
     # leaves. Returns the shell's own exit code - handed over, not interpreted.
+    # The tilde is quoted: PowerShell expands a bare one into the Windows home
+    # before wsl.exe sees it.
     [int] Shell() {
-        & wsl.exe -d $this.Name --cd ~
+        & wsl.exe -d $this.Name --cd "~"
         return $LASTEXITCODE
     }
 

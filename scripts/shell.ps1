@@ -25,11 +25,12 @@ if ((Get-DistroNames -Running) -notcontains $DistroName) {
     Write-Host "  It was stopped: WSL starts it on the way in, which takes a moment." -ForegroundColor (Get-MessageColour muted)
 }
 
-# 2. The shell itself. `--cd ~` lands in the instance's home, not the Windows
+# 2. The shell itself. `--cd "~"` lands in the instance's home, not the Windows
 # folder this script was launched from (which WSL would map into the session) -
-# build.ps1 ends the same way. Nothing is captured from wsl.exe: it owns the
-# terminal until the user leaves.
-wsl.exe -d $DistroName --cd ~
+# build.ps1 ends the same way. The tilde is quoted because PowerShell expands a
+# bare one into the Windows home before wsl.exe ever sees it. Nothing is
+# captured from wsl.exe: it owns the terminal until the user leaves.
+wsl.exe -d $DistroName --cd "~"
 
 # The exit code is the shell's own - `exit 1` typed in there is not a failure
 # of this command - and a shell that could not start must not look like a

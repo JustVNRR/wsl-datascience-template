@@ -844,10 +844,11 @@ if ($Deployment.Succeeded) {
         $DockerReportColour = $Docker.Colour
     }
 
-    # The shell the user came for, in the fresh instance: --cd ~ lands in their
-    # home rather than the Windows folder the script was launched from. Two
-    # lines first, so it opens on "who am I, where, and what now" instead of an
-    # anonymous prompt.
+    # The shell the user came for, in the fresh instance: --cd "~" lands in
+    # their home rather than the Windows folder the script was launched from -
+    # the tilde is quoted, or PowerShell expands it into the Windows home
+    # before wsl.exe sees it. Two lines first, so it opens on "who am I, where,
+    # and what now" instead of an anonymous prompt.
     #
     # A pack's welcome line (scaffold's points at fnew) comes from its own
     # pack.conf: no sentence of this script names a pack or a command.
@@ -869,7 +870,7 @@ if ($Deployment.Succeeded) {
         foreach ($Line in $DockerReport) { Write-Host $Line -ForegroundColor $DockerReportColour }
     }
     Write-Host ""
-    wsl.exe -d $DistroName --cd ~
+    wsl.exe -d $DistroName --cd "~"
 }
 
 # A failed deployment must not look like a success to whatever called this
