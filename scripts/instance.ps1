@@ -43,20 +43,18 @@ if (-not (Test-Path $MessageLib)) {
 # ---------------------------------------------------------------------------
 # The classes, in the order they must be read: a class settles the types it
 # names the moment its file is parsed, so each file comes after the ones it
-# names. Loaded once - the menu dot-sources this file, and the command it then
-# runs dot-sources it again.
+# names. Read again on every run - a terminal can outlive a pull, and what must
+# run is the code on disk; pwsh 7 replaces a class it already held cleanly.
 $ClassLibs = @("WslState.ps1", "WslTheme.ps1", "WslPack.ps1", "WslInstance.ps1", "WslPackCatalog.ps1", "WslInstanceManager.ps1")
-if (-not ("WslInstance" -as [type])) {
-    $ClassesDir = Join-Path $PSScriptRoot "classes"
-    foreach ($ClassLib in $ClassLibs) {
-        $ClassPath = Join-Path $ClassesDir $ClassLib
-        if (-not (Test-Path $ClassPath)) {
-            Write-Host ""
-            Write-Host "[ABORT] scripts\classes\$ClassLib is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
-            exit 1
-        }
-        . $ClassPath
+$ClassesDir = Join-Path $PSScriptRoot "classes"
+foreach ($ClassLib in $ClassLibs) {
+    $ClassPath = Join-Path $ClassesDir $ClassLib
+    if (-not (Test-Path $ClassPath)) {
+        Write-Host ""
+        Write-Host "[ABORT] scripts\classes\$ClassLib is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
+        exit 1
     }
+    . $ClassPath
 }
 
 # The marker's name, kept here so that one file knows it and the others ask.
