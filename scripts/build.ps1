@@ -160,11 +160,16 @@ function Resolve-InstallPath {
     $Folder = $Root
     $InstallPath = $null
     while (-not $InstallPath) {
-        # A path Windows refuses is a typo, not a reason to stop.
+        # A path Windows refuses is a typo, not a reason to stop. The refused
+        # characters are spelled out: .NET Framework - 5.1 - threw on them from
+        # inside GetFullPath, .NET Core - 7 - walks past them.
         $Full = $null
-        try {
-            $Full = [System.IO.Path]::GetFullPath((Join-Path $Folder $DistroName)).TrimEnd('\')
-        } catch { }
+        $Refused = ($Folder.IndexOfAny([char[]]'"<>|') -ge 0) -or ($Folder -match '[\x00-\x1f]')
+        if (-not $Refused) {
+            try {
+                $Full = [System.IO.Path]::GetFullPath((Join-Path $Folder $DistroName)).TrimEnd('\')
+            } catch { }
+        }
 
         # Step 4 erases this path recursively: a folder holding another instance
         # would take that instance with it.
