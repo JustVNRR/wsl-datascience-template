@@ -90,7 +90,6 @@ if ($HandedOver) {
     $Distro = Select-Distro
     $DistroName = $Distro.Name
 }
-$IconPath = Join-Path $Distro.Path "terminal-icon.png"
 
 Clear-MenuScreen
 
@@ -175,9 +174,9 @@ while ($true) {
         exit 1
     }
 
-    $Appearance = Get-InstanceAppearance -Name $DistroName
-    Set-InstanceFragment -Name $DistroName -Guid $Guid -Font $Appearance.Font `
-        -ColorScheme $Picked -IconPath $IconPath
+    $Theme = Get-InstanceAppearance -Name $DistroName
+    $Theme.ColorScheme = $Picked
+    Set-InstanceFragment -Name $DistroName -Guid $Guid -Theme $Theme
     Set-InstanceLook -InstallPath $Distro.Path -Look (New-InstanceLook -Name $DistroName)
 
     Clear-MenuScreen

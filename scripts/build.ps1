@@ -372,8 +372,8 @@ function Configure-TerminalProfile {
 
     if ($ProfileGuid) {
         # No icon drawn, no icon line: Terminal shows its own.
-        Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Font "MesloLGS NF" `
-            -ColorScheme "One Half Dark" -IconPath $(if ($IconDrawn) { $IconPath } else { "" })
+        $Theme = [WslTheme]::new($(if ($IconDrawn) { $IconPath } else { "" }), "One Half Dark", "MesloLGS NF", $DistroName)
+        Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Theme $Theme
         Write-Host "  * Terminal profile applied" -ForegroundColor (Get-MessageColour success)
         $TerminalProfileOk = $true
     } else {

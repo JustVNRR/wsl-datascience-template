@@ -45,7 +45,6 @@ if ($HandedOver) {
     $Distro = Select-Distro
     $DistroName = $Distro.Name
 }
-$IconPath = Join-Path $Distro.Path "terminal-icon.png"
 
 # The menus it came through - the way in, the theme menu, the instance it picked
 # - come off the screen: this command asks its own question.
@@ -195,7 +194,7 @@ $Changed = $false
 while ($true) {
     # Read again every turn: the font in use is what the list marks, and the turn
     # before may have changed it.
-    $Current = (Get-InstanceAppearance -Name $DistroName).Font
+    $Current = (Get-InstanceAppearance -Name $DistroName).FontName
 
     # And the one in use is always in the list, sorted in among the others,
     # whether it carries icons or not: on a machine where no font carries them
@@ -231,9 +230,9 @@ while ($true) {
         exit 1
     }
 
-    $Appearance = Get-InstanceAppearance -Name $DistroName
-    Set-InstanceFragment -Name $DistroName -Guid $Guid -Font $Picked.Name `
-        -ColorScheme $Appearance.ColorScheme -IconPath $IconPath
+    $Theme = Get-InstanceAppearance -Name $DistroName
+    $Theme.FontName = $Picked.Name
+    Set-InstanceFragment -Name $DistroName -Guid $Guid -Theme $Theme
     Set-InstanceLook -InstallPath $Distro.Path -Look (New-InstanceLook -Name $DistroName)
 
     if (-not (Test-FontInstalled $Picked.Name)) {

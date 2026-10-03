@@ -182,35 +182,26 @@ function Get-IconRecipe {
 }
 
 # The look, the icon's recipe beside it, in the order the file is written. The
-# font, the colours and Docker come from this machine - or from what an archive
-# held, when a restore or a copy is putting it back. The icon path is always the
-# instance's own: the picture is copied into its folder either way.
+# theme says what it looks like - this machine now, unless a restore or a copy
+# hands over the theme an archive held - and Docker is answered the same way.
+# The icon path is always the instance's own: the picture is copied into its
+# folder either way.
 function New-InstanceLook {
     param(
         [string]$Name,
+        [WslTheme]$Theme,
         [hashtable]$Icon = @{},
-        [PSCustomObject]$From = $null,
-        [string]$IconFrom
+        [string]$Docker
     )
 
-    if ($From) {
-        $Font = $From.Font
-        $Scheme = $From.ColorScheme
-        $Docker = $From.Docker
-        if (-not $IconFrom) { $IconFrom = $From.IconFrom }
-    } else {
-        $Appearance = Get-InstanceAppearance -Name $Name
-        $Font = $Appearance.Font
-        $Scheme = $Appearance.ColorScheme
-        $IconFrom = $Appearance.IconFrom
-        $Docker = Get-DockerState -Name $Name
-    }
+    if (-not $Theme) { $Theme = Get-InstanceAppearance -Name $Name }
+    if (-not $Docker) { $Docker = Get-DockerState -Name $Name }
 
     $Look = [ordered]@{
         Name        = $Name
-        Font        = $Font
-        ColorScheme = $Scheme
-        IconFrom    = $IconFrom
+        Font        = $Theme.FontName
+        ColorScheme = $Theme.ColorScheme
+        IconFrom    = $Theme.IconPath
     }
     if ($Icon.Text) {
         $Look.IconText      = $Icon.Text
@@ -279,12 +270,12 @@ function Get-WslProfileGuid {
 # mark and the reload changed the same day - so this is a rule, not a
 # diagnosis.
 function Set-InstanceFragment {
-    param([string]$Name, [string]$Guid, [string]$Font, [string]$ColorScheme, [string]$IconPath)
+    param([string]$Name, [string]$Guid, [WslTheme]$Theme)
 
     $FragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
     New-Item -ItemType Directory -Force $FragmentDir | Out-Null
-    $IconJson = if ($IconPath -and (Test-Path $IconPath)) {
-        '            "icon": "' + ($IconPath -replace '\\', '\\') + '",'
+    $IconJson = if ($Theme.IconPath -and (Test-Path $Theme.IconPath)) {
+        '            "icon": "' + ($Theme.IconPath -replace '\\', '\\') + '",'
     } else {
         ''
     }
@@ -294,8 +285,8 @@ function Set-InstanceFragment {
         {
             "updates": "$Guid",
 $IconJson
-            "font": { "face": "$Font" },
-            "colorScheme": "$ColorScheme",
+            "font": { "face": "$($Theme.FontName)" },
+            "colorScheme": "$($Theme.ColorScheme)",
             "suppressApplicationTitle": true
         }
     ]
@@ -314,19 +305,14 @@ $IconJson
 function Get-InstanceAppearance {
     param([string]$Name)
 
-    $Appearance = [PSCustomObject]@{
-        Name        = $Name
-        Font        = "MesloLGS NF"
-        ColorScheme = "One Half Dark"
-        IconFrom    = $null
-    }
+    $Theme = [WslTheme]::new($null, "One Half Dark", "MesloLGS NF", $Name)
 
     $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$Name.json"
     if (Test-Path $OurFragment) {
         try {
             $Parsed = (Get-Content $OurFragment -Raw | ConvertFrom-Json).profiles[0]
-            if ($Parsed.font.face) { $Appearance.Font = $Parsed.font.face }
-            if ($Parsed.colorScheme) { $Appearance.ColorScheme = $Parsed.colorScheme }
+            if ($Parsed.font.face) { $Theme.FontName = $Parsed.font.face }
+            if ($Parsed.colorScheme) { $Theme.ColorScheme = $Parsed.colorScheme }
         } catch { }
     }
 
@@ -339,8 +325,8 @@ function Get-InstanceAppearance {
         try {
             foreach ($Profile in (Get-Content $SettingsPath -Raw | ConvertFrom-Json).profiles.list) {
                 if ($Profile.name -eq $Name -and $Profile.source -eq "Microsoft.WSL") {
-                    if ($Profile.font.face) { $Appearance.Font = $Profile.font.face }
-                    if ($Profile.colorScheme) { $Appearance.ColorScheme = $Profile.colorScheme }
+                    if ($Profile.font.face) { $Theme.FontName = $Profile.font.face }
+                    if ($Profile.colorScheme) { $Theme.ColorScheme = $Profile.colorScheme }
                 }
             }
         } catch { }
@@ -350,10 +336,25 @@ function Get-InstanceAppearance {
     $Folder = Get-InstanceFolder -Name $Name
     if ($Folder) {
         $Icon = Join-Path $Folder "terminal-icon.png"
-        if (Test-Path $Icon) { $Appearance.IconFrom = $Icon }
+        if (Test-Path $Icon) { $Theme.IconPath = $Icon }
     }
 
-    return $Appearance
+    return $Theme
+}
+
+# A look as a file keeps it - the instance's own, or an archive's - seen as the
+# theme it holds. The recipe comes along, so a redraw after a restore starts
+# from the letters it was drawn with.
+function ConvertTo-WslTheme {
+    param([PSCustomObject]$Look)
+
+    if (-not $Look) { return $null }
+    $Theme = [WslTheme]::new($Look.IconFrom, $Look.ColorScheme, $Look.Font, $Look.Name)
+    $Theme.IconText      = $Look.IconText
+    $Theme.IconTop       = $Look.IconTop
+    $Theme.IconBottom    = $Look.IconBottom
+    $Theme.IconTextColor = $Look.IconTextColor
+    return $Theme
 }
 
 # Write what Windows knows about an instance next to an archive, so it travels
@@ -370,14 +371,14 @@ function Save-InstanceState {
     if (-not (Test-Path $Folder)) { New-Item -ItemType Directory -Path $Folder -Force | Out-Null }
     $Look | ConvertTo-Json | Set-Content -Path (Join-Path $Folder "instance.json") -Encoding Utf8
 
-    if ($Appearance.IconFrom) {
-        Copy-Item -Path $Appearance.IconFrom -Destination (Join-Path $Folder "terminal-icon.png") -Force
+    if ($Appearance.IconPath) {
+        Copy-Item -Path $Appearance.IconPath -Destination (Join-Path $Folder "terminal-icon.png") -Force
     }
 
-    Write-Host "  * Look             : font '$($Appearance.Font)', colours '$($Appearance.ColorScheme)'$(if ($Appearance.IconFrom) { ", icon copied" })" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "  * Look             : font '$($Appearance.FontName)', colours '$($Appearance.ColorScheme)'$(if ($Appearance.IconPath) { ", icon copied" })" -ForegroundColor (Get-MessageColour muted)
     Write-Host "  * Docker Desktop   : $(if ($Docker -eq "yes") { "knows this instance" } elseif ($Docker -eq "no") { "does not know it" } else { "not installed, or unreadable" })" -ForegroundColor (Get-MessageColour muted)
-    if (-not (Test-FontInstalled $Appearance.Font)) {
-        Write-Host "                       '$($Appearance.Font)' is not installed on Windows" -ForegroundColor (Get-MessageColour warning)
+    if (-not (Test-FontInstalled $Appearance.FontName)) {
+        Write-Host "                       '$($Appearance.FontName)' is not installed on Windows" -ForegroundColor (Get-MessageColour warning)
     }
 }
 
@@ -416,11 +417,13 @@ function Set-InstanceState {
     # The instance keeps its own copy of the file - the same shape, under its own
     # name, the icon pointing at its own folder. The recipe comes with it, or a
     # later change of letters or colours would start again from the name.
-    Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $Name `
-        -From $Appearance -IconFrom $IconPath -Icon (Get-IconRecipe -Look $Appearance))
+    $Theme = ConvertTo-WslTheme $Appearance
+    $Theme.IconPath = $IconPath
 
-    Set-InstanceFragment -Name $Name -Guid $Guid -Font $Appearance.Font `
-        -ColorScheme $Appearance.ColorScheme -IconPath $IconPath
+    Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $Name `
+        -Theme $Theme -Docker $Appearance.Docker -Icon (Get-IconRecipe -Look $Appearance))
+
+    Set-InstanceFragment -Name $Name -Guid $Guid -Theme $Theme
     Write-Host "  * Look             : font '$($Appearance.Font)', colours '$($Appearance.ColorScheme)', icon re-applied" -ForegroundColor (Get-MessageColour success)
 
     if (-not (Test-FontInstalled $Appearance.Font)) {

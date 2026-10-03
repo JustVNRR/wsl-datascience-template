@@ -124,7 +124,7 @@ try {
     # 2. Picking one: the number it had in that list, given to a second run - a
     # font other than the one in use, or picking the current one would be
     # written the same way whether the choice was read or not.
-    $Current = (Get-InstanceAppearance -Name $FakeName).Font
+    $Current = (Get-InstanceAppearance -Name $FakeName).FontName
     $Want = @($Fonts | Where-Object { $_ -ne $Current }) | Select-Object -First 1
     if (-not $Want) { $Want = $Fonts[0] }
     $Wanted = [array]::IndexOf($Fonts, $Want) + 1
@@ -166,7 +166,7 @@ try {
     # no icons - through the profile writer the command reads, and the list has
     # to show it anyway, marked.
     Set-InstanceFragment -Name $FakeName -Guid "{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e6f}" `
-        -Font "Consolas" -ColorScheme "One Half Dark" -IconPath $null
+        -Theme ([WslTheme]::new($null, "One Half Dark", "Consolas", $FakeName))
     $Out2 = Invoke-Font @("$Pick", "0")
     $Fonts2 = @(Get-ListedFonts $Out2)
     Check "the font in use is listed even without icons" ($Fonts2 -contains "Consolas") $true
