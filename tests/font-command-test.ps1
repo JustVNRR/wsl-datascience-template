@@ -8,7 +8,8 @@
 # What is checked is what the command is for: the list is the fonts that carry
 # the glyphs a prompt is drawn with, the font in use is marked, and picking one
 # writes it into the profile this repository owns and into the instance's own
-# file. The list is read from a first run that cancels, so the number given to
+# file - the icon's recipe kept with it. The list is read from a first run
+# that cancels, so the number given to
 # the second was really there. A machine with no Nerd Font has a list of one -
 # the font in use - and that is the list it should draw there.
 #
@@ -104,6 +105,11 @@ try {
 }
 "@
 
+    # The recipe a drawing left behind: a font change must keep it - one change
+    # keeps the others, and the icon command starts from these letters later.
+    Set-InstanceLook -InstallPath $FakeFolder -Look (New-InstanceLook -Name $FakeName -Icon @{
+        Text = "FT"; Top = "#111111"; Bottom = "#222222"; TextColor = "#FFFFFF" })
+
     $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
     $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
@@ -144,6 +150,8 @@ try {
     $Saved = Get-Content $Recipe -Raw | ConvertFrom-Json
     Check "and into the instance's own file" $Saved.Font "$Want"
     Check "which is still the instance's" $Saved.Name $FakeName
+    Check "and the icon's recipe survives the change" $Saved.IconText "FT"
+    Check "  ... colours and all" "$($Saved.IconTop) $($Saved.IconBottom) $($Saved.IconTextColor)" "#111111 #222222 #FFFFFF"
 
     # 3. The way in: the menu asks which instance, hands over, and is drawn
     # again when done. Answers: the instance, "font", Escape on the list, Escape

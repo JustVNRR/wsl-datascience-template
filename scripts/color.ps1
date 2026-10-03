@@ -177,7 +177,8 @@ while ($true) {
     $Theme = Get-InstanceAppearance -Name $DistroName
     $Theme.ColorScheme = $Picked
     Set-InstanceFragment -Name $DistroName -Guid $Guid -Theme $Theme
-    Set-InstanceLook -InstallPath $Distro.Path -Look (New-InstanceLook -Name $DistroName)
+    Set-InstanceLook -InstallPath $Distro.Path -Look (New-InstanceLook -Name $DistroName `
+        -Icon (Get-IconRecipe -Name $DistroName))
 
     Clear-MenuScreen
     $Changed = $true

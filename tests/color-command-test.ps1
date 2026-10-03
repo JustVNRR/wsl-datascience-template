@@ -8,8 +8,9 @@
 #
 # What is checked: the schemes this machine can wear are listed, the one in use
 # is marked, and picking one writes it into the profile this repository owns and
-# into the instance's own file. The list is read from a first run that cancels,
-# so the number given to the second was really in it.
+# into the instance's own file - the icon's recipe kept with it. The list is
+# read from a first run that cancels, so the number given to the second was
+# really in it.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
@@ -113,6 +114,11 @@ try {
 }
 "@
 
+    # The recipe a drawing left behind: a colour change must keep it too - one
+    # change keeps the others, and the icon command starts from these letters.
+    Set-InstanceLook -InstallPath $FakeFolder -Look (New-InstanceLook -Name $FakeName -Icon @{
+        Text = "CT"; Top = "#111111"; Bottom = "#222222"; TextColor = "#FFFFFF" })
+
     $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
     $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
@@ -150,6 +156,8 @@ try {
     $Saved = Get-Content $Recipe -Raw | ConvertFrom-Json
     Check "and into the instance's own file" $Saved.ColorScheme $Schemes[0]
     Check "which is still the instance's" $Saved.Name $FakeName
+    Check "and the icon's recipe survives the change" $Saved.IconText "CT"
+    Check "  ... colours and all" "$($Saved.IconTop) $($Saved.IconBottom) $($Saved.IconTextColor)" "#111111 #222222 #FFFFFF"
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item $WslFragment -Force -ErrorAction SilentlyContinue

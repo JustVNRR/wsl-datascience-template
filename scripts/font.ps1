@@ -233,7 +233,8 @@ while ($true) {
     $Theme = Get-InstanceAppearance -Name $DistroName
     $Theme.FontName = $Picked.Name
     Set-InstanceFragment -Name $DistroName -Guid $Guid -Theme $Theme
-    Set-InstanceLook -InstallPath $Distro.Path -Look (New-InstanceLook -Name $DistroName)
+    Set-InstanceLook -InstallPath $Distro.Path -Look (New-InstanceLook -Name $DistroName `
+        -Icon (Get-IconRecipe -Name $DistroName))
 
     if (-not (Test-FontInstalled $Picked.Name)) {
         Write-Host "  Not installed on Windows: '$($Picked.Name)' - the profile points at it anyway." -ForegroundColor (Get-MessageColour warning)
