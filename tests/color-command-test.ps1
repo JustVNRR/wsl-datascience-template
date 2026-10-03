@@ -21,6 +21,9 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\scripts\instance.ps1")
 
 $ColorScript = Join-Path $PSScriptRoot "..\scripts\color.ps1"
+# Child processes follow the engine this suite runs under, so a pass under 7
+# tests the scripts under 7.
+$Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("color-command-test-" + [Guid]::NewGuid().ToString("N"))
 $FakeName = "color-command-test"
 $FakeFolder = Join-Path $Tmp "instance"
@@ -52,7 +55,7 @@ function Invoke-Color {
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $Lines = $Answers | & powershell -NoProfile -File $ColorScript 2>&1
+        $Lines = $Answers | & $Engine -NoProfile -File $ColorScript 2>&1
     } finally {
         $ErrorActionPreference = $Preference
     }

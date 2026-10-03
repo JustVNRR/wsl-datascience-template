@@ -14,6 +14,9 @@
 $ErrorActionPreference = "Stop"
 
 $IconScript = Join-Path $PSScriptRoot "..\assets\make-icon.ps1"
+# Child processes follow the engine this suite runs under, so a pass under 7
+# tests the scripts under 7.
+$Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
 # The script writes terminal-icon.png into the current folder when -Out is not
 # given: every drawing below names its file, and the check at the end says so.
 # A suite that drops an image in the checkout is a suite that gets committed.
@@ -46,7 +49,7 @@ function Invoke-Icon {
     $Preference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     try {
-        $Lines = & powershell -NoProfile -File $IconScript @Arguments 2>&1
+        $Lines = & $Engine -NoProfile -File $IconScript @Arguments 2>&1
         $Code = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $Preference

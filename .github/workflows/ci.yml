@@ -26,6 +26,8 @@
 # parse under 5.1 first, then eight suites, none of which needs an instance, a
 # console or Docker Desktop. Every bug the scripts themselves have had was
 # caught there, and none of these checks can be replaced by reading the files.
+# It runs twice, once per engine - 5.1 and 7 - since the scripts must satisfy
+# both while 5.1 is supported.
 # ==============================================================================
 
 name: Checks
@@ -341,20 +343,32 @@ jobs:
 
   # The suites that run the code - the only checks here that have ever caught a
   # bug in the scripts themselves - and none needs an instance, a console or
-  # Docker Desktop, so they are free to run on every push.
+  # Docker Desktop, so they are free to run on every push. The job runs twice,
+  # once per engine, and each pass holds the scripts to its own.
   tests-windows:
+    name: tests-windows (${{ matrix.label }})
     runs-on: windows-latest
+    strategy:
+      # Both legs go to the end: a failure under 7 is not answered by cancelling
+      # the 5.1 leg that is passing.
+      fail-fast: false
+      matrix:
+        include:
+          - engine: powershell
+            label: "5.1"
+          - engine: pwsh
+            label: "7"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: PowerShell files parse, under 5.1
-        shell: powershell
+      - name: PowerShell files parse (${{ matrix.label }})
+        shell: ${{ matrix.engine }}
         run: |
           # [Parser]::ParseFile is the reader PowerShell itself uses before it
-          # runs a file; under `shell: powershell` that is 5.1, the engine
-          # these files must satisfy and the suites below run under. A parse
-          # error left here surfaces the day a command runs.
+          # runs a file; the shell of this pass is its engine, and the suites
+          # below run under the same one. A parse error left here surfaces the
+          # day a command runs.
           $files = Get-ChildItem -Recurse -Filter *.ps1
           $bad = 0
           foreach ($f in $files) {
@@ -376,32 +390,32 @@ jobs:
 
       - name: The arrow menu, driven by a scripted keyboard
         shell: bash
-        run: powershell -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
+        run: ${{ matrix.engine }} -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
 
       - name: The pack checklist, and what it applies
         shell: bash
-        run: powershell -NoProfile -File tests/packs-select-test.ps1 < tests/packs-select-test.answers
+        run: ${{ matrix.engine }} -NoProfile -File tests/packs-select-test.ps1 < tests/packs-select-test.answers
 
       - name: build's questions, with a stand-in docker
         shell: bash
-        run: bash tests/build-question-test.sh
+        run: PS_ENGINE=${{ matrix.engine }} bash tests/build-question-test.sh
 
       - name: The icon an instance is given, from its name
         shell: bash
-        run: powershell -NoProfile -File tests/icon-test.ps1
+        run: ${{ matrix.engine }} -NoProfile -File tests/icon-test.ps1
 
       - name: Choosing an instance's icon, on an instance of the test's own
         shell: bash
-        run: powershell -NoProfile -File tests/icon-command-test.ps1
+        run: ${{ matrix.engine }} -NoProfile -File tests/icon-command-test.ps1
 
       - name: Choosing an instance's font, on an instance of the test's own
         shell: bash
-        run: powershell -NoProfile -File tests/font-command-test.ps1
+        run: ${{ matrix.engine }} -NoProfile -File tests/font-command-test.ps1
 
       - name: Choosing an instance's colours, on an instance of the test's own
         shell: bash
-        run: powershell -NoProfile -File tests/color-command-test.ps1
+        run: ${{ matrix.engine }} -NoProfile -File tests/color-command-test.ps1
 
       - name: The colour a message takes, on schemes the test writes out
         shell: bash
-        run: powershell -NoProfile -File tests/message-test.ps1
+        run: ${{ matrix.engine }} -NoProfile -File tests/message-test.ps1

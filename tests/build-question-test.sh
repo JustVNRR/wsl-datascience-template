@@ -16,6 +16,7 @@
 #   - nothing is left behind: no instance, no tar, no folder, exit code 1
 #
 # Usage: bash tests/build-question-test.sh
+#        PS_ENGINE=pwsh bash tests/build-question-test.sh   (under PowerShell 7)
 set -u
 
 TestsDir=$(cd "$(dirname "$0")" && pwd)
@@ -23,6 +24,9 @@ RepoTemplate=$(cd "$TestsDir/.." && pwd)
 # powershell -File wants the Windows form of the path: the checkout may live
 # anywhere, under a Git Bash that spells it /d/...
 Run=$(cygpath -w "$TestsDir/fake-docker-run.ps1")
+# The engine under test: 5.1 by default, or what PS_ENGINE names - the CI runs
+# this suite once per engine.
+PS=${PS_ENGINE:-powershell}
 
 Failures=0
 Out=$(mktemp)
@@ -31,7 +35,7 @@ Out=$(mktemp)
 Before=$(git -C "$RepoTemplate" status --short)
 
 run_build() {
-    printf '%b' "$1" | powershell -NoProfile -ExecutionPolicy Bypass -File "$Run" build > "$Out" 2>&1
+    printf '%b' "$1" | $PS -NoProfile -ExecutionPolicy Bypass -File "$Run" build > "$Out" 2>&1
     Code=$?
 }
 
@@ -107,7 +111,7 @@ $null = $m.WaitOne(0)
 Start-Sleep -Seconds 15
 $m.ReleaseMutex()
 EOF
-powershell -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$Holder")" "$(cygpath -w "$HeldFlag")" &
+$PS -NoProfile -ExecutionPolicy Bypass -File "$(cygpath -w "$Holder")" "$(cygpath -w "$HeldFlag")" &
 HolderPid=$!
 for _ in $(seq 1 60); do [ -f "$HeldFlag" ] && break; sleep 0.25; done
 run_build 'lock-qtest\n'
