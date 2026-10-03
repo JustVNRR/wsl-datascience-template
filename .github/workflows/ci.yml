@@ -8,9 +8,6 @@
 #   - shellcheck on real shell scripts (cheatsheets/*.sh are fcheat data files,
 #     not executable shell - excluded, the socle's and the packs' alike)
 #   - zsh -n on all zsh config files (syntax only, nothing is executed)
-#   - .ps1 files stay 100% ASCII - PowerShell 5.1 reads a BOM-less script as
-#     Windows-1252, where one non-ASCII byte becomes a string delimiter and
-#     breaks the whole file's parse
 #   - the colour codes stay in their files: a `\033[` anywhere else is a call
 #     site that went back to writing the codes itself
 #   - make reads the Makefile and every include; the help menu is asserted with
@@ -23,11 +20,10 @@
 #
 # The second job, on windows-latest, is the one that RUNS the code instead of
 # reading it, because that is where PowerShell and wsl.exe are: every .ps1 must
-# parse under 5.1 first, then eight suites, none of which needs an instance, a
-# console or Docker Desktop. Every bug the scripts themselves have had was
-# caught there, and none of these checks can be replaced by reading the files.
-# It runs twice, once per engine - 5.1 and 7 - since the scripts must satisfy
-# both while 5.1 is supported.
+# parse under PowerShell 7 first, then eight suites, none of which needs an
+# instance, a console or Docker Desktop. Every bug the scripts themselves have
+# had was caught there, and none of these checks can be replaced by reading the
+# files.
 # ==============================================================================
 
 name: Checks
@@ -61,21 +57,6 @@ jobs:
           # would read them.
           find zsh packs -type f \( -name '*.zsh' -o -name '.zshrc' \) -print0 |
             xargs -0 -r -n1 zsh -n
-
-      - name: PowerShell scripts (ASCII only)
-        run: |
-          # tr deletes every ASCII byte: whatever is left is not ASCII - a BOM
-          # included, which is the intended reading of the rule.
-          # find, not a ./*.ps1 glob: a root glob would silently stop checking
-          # anything below it.
-          bad=0
-          while IFS= read -r -d '' f; do
-            if [ -n "$(LC_ALL=C tr -d '\000-\177' < "$f")" ]; then
-              echo "::error file=${f}::non-ASCII byte found - keep .ps1 files 100% ASCII"
-              bad=1
-            fi
-          done < <(find . -type f -name '*.ps1' -not -path './.git/*' -print0)
-          exit $bad
 
       - name: The colour codes stay in their files
         run: |
@@ -343,31 +324,17 @@ jobs:
 
   # The suites that run the code - the only checks here that have ever caught a
   # bug in the scripts themselves - and none needs an instance, a console or
-  # Docker Desktop, so they are free to run on every push. The job runs twice,
-  # once per engine, and each pass holds the scripts to its own. Every suite
-  # still runs when an earlier one failed: one push reports them all.
+  # Docker Desktop, so they are free to run on every push. Every suite still
+  # runs when an earlier one failed: one push reports them all.
   tests-windows:
-    name: tests-windows (${{ matrix.label }})
     runs-on: windows-latest
-    strategy:
-      # Both legs go to the end: a failure under 7 is not answered by cancelling
-      # the 5.1 leg that is passing.
-      fail-fast: false
-      matrix:
-        include:
-          - engine: powershell
-            label: "5.1"
-          - engine: pwsh
-            label: "7"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # A step's shell cannot name the matrix - the workflow file would not
-      # load - so the check is a script, and each pass runs it with its engine.
-      - name: PowerShell files parse (${{ matrix.label }})
+      - name: PowerShell files parse
         shell: bash
-        run: ${{ matrix.engine }} -NoProfile -File tests/parse-check.ps1
+        run: pwsh -NoProfile -File tests/parse-check.ps1
 
       # The answers come from the .answers file beside each suite, never a copy
       # spelled out here: the numbered prompt reads them when there is no
@@ -377,39 +344,39 @@ jobs:
       - name: The arrow menu, driven by a scripted keyboard
         if: always()
         shell: bash
-        run: ${{ matrix.engine }} -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
+        run: pwsh -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
 
       - name: The pack checklist, and what it applies
         if: always()
         shell: bash
-        run: ${{ matrix.engine }} -NoProfile -File tests/packs-select-test.ps1 < tests/packs-select-test.answers
+        run: pwsh -NoProfile -File tests/packs-select-test.ps1 < tests/packs-select-test.answers
 
       - name: build's questions, with a stand-in docker
         if: always()
         shell: bash
-        run: PS_ENGINE=${{ matrix.engine }} bash tests/build-question-test.sh
+        run: bash tests/build-question-test.sh
 
       - name: The icon an instance is given, from its name
         if: always()
         shell: bash
-        run: ${{ matrix.engine }} -NoProfile -File tests/icon-test.ps1
+        run: pwsh -NoProfile -File tests/icon-test.ps1
 
       - name: Choosing an instance's icon, on an instance of the test's own
         if: always()
         shell: bash
-        run: ${{ matrix.engine }} -NoProfile -File tests/icon-command-test.ps1
+        run: pwsh -NoProfile -File tests/icon-command-test.ps1
 
       - name: Choosing an instance's font, on an instance of the test's own
         if: always()
         shell: bash
-        run: ${{ matrix.engine }} -NoProfile -File tests/font-command-test.ps1
+        run: pwsh -NoProfile -File tests/font-command-test.ps1
 
       - name: Choosing an instance's colours, on an instance of the test's own
         if: always()
         shell: bash
-        run: ${{ matrix.engine }} -NoProfile -File tests/color-command-test.ps1
+        run: pwsh -NoProfile -File tests/color-command-test.ps1
 
       - name: The colour a message takes, on schemes the test writes out
         if: always()
         shell: bash
-        run: ${{ matrix.engine }} -NoProfile -File tests/message-test.ps1
+        run: pwsh -NoProfile -File tests/message-test.ps1

@@ -16,7 +16,7 @@
 #   - nothing is left behind: no instance, no tar, no folder, exit code 1
 #
 # Usage: bash tests/build-question-test.sh
-#        PS_ENGINE=pwsh bash tests/build-question-test.sh   (under PowerShell 7)
+#        PS_ENGINE=powershell bash tests/build-question-test.sh   (the old PowerShell)
 set -u
 
 TestsDir=$(cd "$(dirname "$0")" && pwd)
@@ -24,9 +24,8 @@ RepoTemplate=$(cd "$TestsDir/.." && pwd)
 # powershell -File wants the Windows form of the path: the checkout may live
 # anywhere, under a Git Bash that spells it /d/...
 Run=$(cygpath -w "$TestsDir/fake-docker-run.ps1")
-# The engine under test: 5.1 by default, or what PS_ENGINE names - the CI runs
-# this suite once per engine.
-PS=${PS_ENGINE:-powershell}
+# The engine under test: PowerShell 7, or what PS_ENGINE names.
+PS=${PS_ENGINE:-pwsh}
 
 Failures=0
 Out=$(mktemp)

@@ -1,6 +1,6 @@
 # Reads every .ps1 in the checkout with the parser PowerShell itself uses
-# before it runs a file. Run once per engine - 5.1 and 7 - and a parse error
-# left here surfaces the day a command runs.
+# before it runs a file - a parse error left here surfaces the day a command
+# runs.
 #
 # Usage:  pwsh -NoProfile -File tests\parse-check.ps1
 
