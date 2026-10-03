@@ -4,7 +4,7 @@
 # numbered menus read them when there is no console.
 #
 # The paths come from this file's own folder: the repository may sit anywhere.
-$env:PATH = (Join-Path $PSScriptRoot "fake-docker") + ";" + $env:PATH
+$env:PATH = (Join-Path $PSScriptRoot "fake-docker") + [IO.Path]::PathSeparator + $env:PATH
 
 & (Join-Path $PSScriptRoot "..\wsl.ps1") @args
 
