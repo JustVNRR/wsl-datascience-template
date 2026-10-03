@@ -125,7 +125,7 @@ try {
     $Calls = Get-Calls
     Check "restart stops the instance first" (@($Calls | Where-Object { $_ -eq "--terminate $FakeName" }).Count) 1
     Check "and boots it after the stop" `
-        ($Calls.IndexOf("--terminate $FakeName") -lt $Calls.LastIndexOf("-d $FakeName --exec /bin/true")) $true
+        (([array]::IndexOf($Calls, "--terminate $FakeName")) -lt ([array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true"))) $true
     Check "and says it is running again" (@($Out | Where-Object { "$_".Contains("'$FakeName' is running again") }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 } finally {
