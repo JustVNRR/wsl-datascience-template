@@ -22,7 +22,7 @@ if (-not (Test-Path $InstanceLib)) {
 
 # 1. Our instances, running or stopped. Sorted by name, like every list in this
 # family.
-$All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
+$All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
 if ($All.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
@@ -38,7 +38,7 @@ for ($Index = 0; $Index -lt $All.Count; $Index++) {
     $Entry = $All[$Index]
     $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
     Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}  {4}" -f ($Index + 1), $Entry.Name, $State,
-        (Format-Size (Get-VhdxSize $Entry.BasePath)), $Entry.BasePath)
+        (Format-Size (Get-VhdxSize $Entry.Path)), $Entry.Path)
 }
 
 # 2. The archives: everything in that folder was written by archive.ps1, so
@@ -64,7 +64,7 @@ if ($Archives.Count -gt 0) {
 
 # 3. Marked folders that no instance claims - what an interrupted removal, or
 # an outside `wsl --unregister`, leaves behind. The one place they show.
-$RegisteredPaths = @($All | ForEach-Object { $_.BasePath })
+$RegisteredPaths = @($All | ForEach-Object { $_.Path })
 $Forgotten = @()
 if (Test-Path $Root) {
     foreach ($Folder in (Get-ChildItem -Path $Root -Directory -ErrorAction SilentlyContinue)) {

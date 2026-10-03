@@ -38,6 +38,27 @@ if (-not (Test-Path $MessageLib)) {
 }
 . $MessageLib
 
+# ---------------------------------------------------------------------------
+# THE MODEL
+# ---------------------------------------------------------------------------
+# The classes, in the order they must be read: a class settles the types it
+# names the moment its file is parsed, so each file comes after the ones it
+# names. Loaded once - the menu dot-sources this file, and the command it then
+# runs dot-sources it again.
+$ClassLibs = @("WslState.ps1", "WslTheme.ps1", "WslPack.ps1", "WslInstance.ps1", "WslPackCatalog.ps1", "WslInstanceManager.ps1")
+if (-not ("WslInstance" -as [type])) {
+    $ClassesDir = Join-Path $PSScriptRoot "classes"
+    foreach ($ClassLib in $ClassLibs) {
+        $ClassPath = Join-Path $ClassesDir $ClassLib
+        if (-not (Test-Path $ClassPath)) {
+            Write-Host ""
+            Write-Host "[ABORT] scripts\classes\$ClassLib is missing - the scripts\ folder is incomplete." -ForegroundColor (Get-MessageColour error)
+            exit 1
+        }
+        . $ClassPath
+    }
+}
+
 # The marker's name, kept here so that one file knows it and the others ask.
 # It is the repository's own name, like the Windows Terminal fragments folder,
 # so there is one string to remember in the whole project.
@@ -524,19 +545,19 @@ function Test-NativeCommand {
     }
 }
 
-# Every registered instance, with its folder and its WSL version (1 or 2).
-# The registry says what Windows knows; it does not say which of them are ours -
-# Test-TemplateInstance answers that, on the folder's marker.
+# Every registered instance, as a WslInstance: its name, its folder and its WSL
+# version (1 or 2). The registry says what Windows knows; it does not say which
+# of them are ours - Test-TemplateInstance answers that, on the folder's marker.
 function Get-Distros {
     $Found = @()
     foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
         $Props = Get-ItemProperty $Key.PSPath
         if ($Props.DistributionName) {
-            $Found += [PSCustomObject]@{
-                Name     = $Props.DistributionName
-                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
-                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-            }
+            $Instance = [WslInstance]::new()
+            $Instance.Name = $Props.DistributionName
+            $Instance.Path = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+            if ($Props.Version) { $Instance.Version = [int]$Props.Version }
+            $Found += $Instance
         }
     }
     return @($Found)

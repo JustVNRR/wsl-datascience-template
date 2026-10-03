@@ -18,7 +18,7 @@ if (-not (Test-Path $InstanceLib)) {
 # 1. Who can be started: our stopped instances, and only those - offering a
 # running one is a choice with no effect. Sorted by name, like every list in
 # this family.
-$All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
+$All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
 if ($All.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
@@ -38,7 +38,7 @@ if ($Eligible.Count -eq 0) {
 
 $Distro = Select-FromList -Title "Stopped instances - the ones that can be started:" -Items $Eligible -Label {
     param($Entry)
-    "{0,-30} {1,10}" -f $Entry.Name, (Format-Size (Get-VhdxSize $Entry.BasePath))
+    "{0,-30} {1,10}" -f $Entry.Name, (Format-Size (Get-VhdxSize $Entry.Path))
 }
 
 if (-not $Distro) {
@@ -67,6 +67,6 @@ Write-Host "============================================================" -Foreg
 Write-Host "       '$DistroName' is running" -ForegroundColor (Get-MessageColour success)
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
-Write-Host "  * Install folder   : " -NoNewline; Write-Host "$($Distro.BasePath)" -ForegroundColor (Get-MessageColour info)
-Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size (Get-VhdxSize $Distro.BasePath))" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Install folder   : " -NoNewline; Write-Host "$($Distro.Path)" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Disk file        : " -NoNewline; Write-Host "$(Format-Size (Get-VhdxSize $Distro.Path))" -ForegroundColor (Get-MessageColour info)
 Write-Host ""

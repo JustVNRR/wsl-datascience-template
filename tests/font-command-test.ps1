@@ -104,7 +104,7 @@ try {
 }
 "@
 
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
+    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
     $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 

@@ -41,11 +41,11 @@ function Get-Distro {
     foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
         $Props = Get-ItemProperty $Key.PSPath
         if ($Props.DistributionName -eq $Name) {
-            return [PSCustomObject]@{
-                Name     = $Name
-                Version  = if ($Props.Version) { [int]$Props.Version } else { 2 }
-                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-            }
+            $Instance = [WslInstance]::new()
+            $Instance.Name = $Name
+            $Instance.Path = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
+            if ($Props.Version) { $Instance.Version = [int]$Props.Version }
+            return $Instance
         }
     }
     return $null
@@ -62,7 +62,7 @@ if ($DistroName) {
     }
     # Named on the command line, so nothing vouched for it: the check the list
     # does, before anything is written.
-    if (-not (Test-TemplateInstance -Folder $Distro.BasePath)) {
+    if (-not (Test-TemplateInstance -Folder $Distro.Path)) {
         Write-Host ""
         Write-Host "[ABORT] '$DistroName' is not an instance of this template." -ForegroundColor (Get-MessageColour error)
         Write-Host "        An instance is ours when it carries the marker, and only" -ForegroundColor (Get-MessageColour hint)
@@ -75,7 +75,7 @@ if ($DistroName) {
     $DistroName = $Distro.Name
 }
 
-$VhdxPath = Join-Path $Distro.BasePath "ext4.vhdx"
+$VhdxPath = Join-Path $Distro.Path "ext4.vhdx"
 $DiskBytes = if (Test-Path $VhdxPath) { (Get-Item $VhdxPath).Length } else { 0 }
 
 # 2. The export stops the instance - WSL terminates it to read a consistent

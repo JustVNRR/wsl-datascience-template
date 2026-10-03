@@ -46,7 +46,7 @@ if ($HandedOver) {
     $Distro = Select-Distro
     $DistroName = $Distro.Name
 }
-$IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
+$IconPath = Join-Path $Distro.Path "terminal-icon.png"
 
 # The menus it came through come off the screen: a visit of four turns is one
 # screen, not four stacked menus.
@@ -198,7 +198,7 @@ function Invoke-IconChoice {
             Bottom    = $Drawn.Bottom
             TextColor = $Drawn.TextColor
         }
-        Set-InstanceLook -InstallPath $Distro.BasePath -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
+        Set-InstanceLook -InstallPath $Distro.Path -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
     }
 }
 

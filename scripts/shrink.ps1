@@ -41,7 +41,7 @@ $DistroName = $Distro.Name
 # started again at the end.
 $WasRunning = (Get-DistroNames -Running) -contains $DistroName
 
-$BeforeBytes = Get-VhdxSize $Distro.BasePath
+$BeforeBytes = Get-VhdxSize $Distro.Path
 
 Write-Host ""
 Write-Host "==> Reclaiming space in '$DistroName'" -ForegroundColor (Get-MessageColour info)
@@ -88,7 +88,7 @@ try {
     exit 1
 }
 
-$AfterBytes = Get-VhdxSize $Distro.BasePath
+$AfterBytes = Get-VhdxSize $Distro.Path
 $FreedBytes = $BeforeBytes - $AfterBytes
 
 Write-Host ""

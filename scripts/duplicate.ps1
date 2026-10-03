@@ -86,7 +86,7 @@ $FullDestination = [System.IO.Path]::GetFullPath((Join-Path $Root $NewDistroName
 # is refused with ERROR_SHARING_VIOLATION while the WSL virtual machine is up -
 # `--terminate` does not release it, only a full `--shutdown` does, and that
 # stops every other instance. The copy pays the compression instead.
-$VhdxPath = Join-Path $Source.BasePath "ext4.vhdx"
+$VhdxPath = Join-Path $Source.Path "ext4.vhdx"
 $DiskBytes = if (Test-Path $VhdxPath) { (Get-Item $VhdxPath).Length } else { 0 }
 $NeededBytes = 2 * $DiskBytes
 $TempArchive = Join-Path $Root "$NewDistroName-export.tar.gz"

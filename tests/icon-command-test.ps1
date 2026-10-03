@@ -88,7 +88,7 @@ try {
 
     # Which number our instance is in the list the command draws - worked out
     # with the same code, so the answer is right whatever else is installed.
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
+    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
     $Pick = [array]::IndexOf(@($All.Name), $FakeName) + 1
     Check "the test's instance is in the list" ($Pick -ge 1) $true
 

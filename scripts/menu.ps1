@@ -398,7 +398,7 @@ function Select-FromList {
 function Select-Distro {
     param([switch]$AllowCancel)
 
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.BasePath } | Sort-Object Name)
+    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
@@ -410,7 +410,7 @@ function Select-Distro {
     $Chosen = Select-FromList -Title "Our Instances" -Items $All -Label {
         param($Instance)
         $State = if ($Running -contains $Instance.Name) { "running" } else { "stopped" }
-        "{0,-30} {1,-8} {2,10}" -f $Instance.Name, $State, (Format-Size (Get-VhdxSize $Instance.BasePath))
+        "{0,-30} {1,-8} {2,10}" -f $Instance.Name, $State, (Format-Size (Get-VhdxSize $Instance.Path))
     }
 
     if (-not $Chosen) {

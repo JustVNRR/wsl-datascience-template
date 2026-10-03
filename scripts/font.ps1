@@ -45,7 +45,7 @@ if ($HandedOver) {
     $Distro = Select-Distro
     $DistroName = $Distro.Name
 }
-$IconPath = Join-Path $Distro.BasePath "terminal-icon.png"
+$IconPath = Join-Path $Distro.Path "terminal-icon.png"
 
 # The menus it came through - the way in, the theme menu, the instance it picked
 # - come off the screen: this command asks its own question.
@@ -234,7 +234,7 @@ while ($true) {
     $Appearance = Get-InstanceAppearance -Name $DistroName
     Set-InstanceFragment -Name $DistroName -Guid $Guid -Font $Picked.Name `
         -ColorScheme $Appearance.ColorScheme -IconPath $IconPath
-    Set-InstanceLook -InstallPath $Distro.BasePath -Look (New-InstanceLook -Name $DistroName)
+    Set-InstanceLook -InstallPath $Distro.Path -Look (New-InstanceLook -Name $DistroName)
 
     if (-not (Test-FontInstalled $Picked.Name)) {
         Write-Host "  Not installed on Windows: '$($Picked.Name)' - the profile points at it anyway." -ForegroundColor (Get-MessageColour warning)
