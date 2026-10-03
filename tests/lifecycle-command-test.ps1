@@ -1,7 +1,8 @@
 # Drives `start` and `restart` the way a script would: the numbered prompt,
 # answers on standard input, no console anywhere, and a stand-in wsl.exe ahead
-# on the PATH (tests\fake-wsl\) that notes every call and answers from its own
-# log - a distribution counts as running once a boot command has gone through.
+# on the PATH - built from tests\fake-wsl\wsl.cs, logging every call and
+# answering from its own log: a distribution counts as running once a boot
+# command has gone through.
 #
 # The instance it works on exists for the length of the test: a registry key of
 # its own, a folder carrying the marker, and a name of its own. The key is
@@ -32,10 +33,20 @@ $FakeFolder = Join-Path $Tmp "instance"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{2f9f0a4e-58b1-4a3c-9d2e-0c1b2a3d4e5f}"
 $Log = Join-Path $Tmp "wsl-calls.log"
 
-# The stand-in, ahead of the real wsl.exe for every child this suite starts.
-# Its answers come from the log it writes: an empty log is a machine where
-# nothing runs, a boot line makes the instance a running one.
-$env:PATH = (Join-Path $PSScriptRoot "fake-wsl") + [IO.Path]::PathSeparator + $env:PATH
+# The stand-in, ahead of any wsl.exe for every child this suite starts: a real
+# binary of that name, compiled here from tests\fake-wsl\wsl.cs - the scripts
+# call `wsl.exe` with its extension, so only a binary answers to it, never a
+# script. Its answers come from the log it writes: an empty log is a machine
+# where nothing runs, a boot line makes the instance a running one.
+$FakeDir = Join-Path $Tmp "fake-wsl"
+New-Item -ItemType Directory -Path $FakeDir -Force | Out-Null
+$Csc = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+if (-not (Test-Path $Csc)) { $Csc = Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe" }
+& $Csc /nologo /out:"$(Join-Path $FakeDir 'wsl.exe')" (Join-Path $PSScriptRoot "fake-wsl\wsl.cs")
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path (Join-Path $FakeDir "wsl.exe"))) {
+    throw "the stand-in wsl.exe could not be compiled"
+}
+$env:PATH = $FakeDir + [IO.Path]::PathSeparator + $env:PATH
 $env:FAKE_WSL_LOG = $Log
 $env:FAKE_WSL_INSTANCE = $FakeName
 
