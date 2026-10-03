@@ -15,7 +15,7 @@
 # one per line, in the order they are read - and in these exact counts, because
 # each scenario consumes its own:
 #   1, v, (empty)   one box ticked -> it and its requirement, requirement first
-#   2, v, (empty)   the installed box unticked -> one removal
+#   3, v, (empty)   the installed box unticked -> one removal
 #   0               cancelled
 #   v               nothing checked, nothing installed: ONE answer, because
 #                   there is no list to confirm - which is the point of it
@@ -23,9 +23,9 @@
 #   v, (empty)      pre-checked, nothing installed
 #   v               a pack installed here that this checkout does not carry:
 #                   ONE answer, for the same reason as above
-#   3, v, (empty)   a requirement already installed -> only the ticked one travels
-#   3, v, (empty)   the claimant unticked -> it and the invisible one leave
-#   3, v, (empty)   a second claimant installed -> only the ticked one leaves
+#   2, v, (empty)   a requirement already installed -> only the ticked one travels
+#   2, v, (empty)   the claimant unticked -> it and the invisible one leave
+#   2, v, (empty)   a second claimant installed -> only the ticked one leaves
 #   v               an invisible pack among the pre-checked ones: ONE answer,
 #                   because it has no box and nothing else was ticked
 #
@@ -45,59 +45,71 @@ function Check {
     }
 }
 
-# The shape Get-AvailablePacks hands back, declarations included: gcp requires
-# devops, python requires devops AND scaffold - the two invisible ones, packs in
-# no list, travelling with what requires them. Their rows are absent from the
-# checklist, which every numbered answer below counts on: were one offered, the
-# numbering would shift and every scenario would answer about the wrong pack.
+# The catalog, built from a packs folder of this test's own: five folders and
+# their declarations - gcp requires devops, python requires devops AND
+# scaffold - the two invisible ones, in no list, travelling with what requires
+# them. Their rows are absent from the checklist, which every numbered answer
+# below counts on: were one offered, the numbering would shift and every
+# scenario would answer about the wrong pack.
 #
-# Two of them, because a run can hold one and let the other go - and because the
-# requirements of one pack arrive in the order that pack names them.
-$Available = @(
-    [PSCustomObject]@{ Name = "gcp";      Path = "X:\packs\gcp";      Description = "Google Cloud CLI";    Requires = @("devops");            Visible = $true },
-    [PSCustomObject]@{ Name = "vision";   Path = "X:\packs\vision";   Description = "Image and OCR tools"; Requires = @();                    Visible = $true },
-    [PSCustomObject]@{ Name = "python";   Path = "X:\packs\python";   Description = "Python toolchain";    Requires = @("devops","scaffold"); Visible = $true },
-    [PSCustomObject]@{ Name = "devops";   Path = "X:\packs\devops";   Description = "Project targets";     Requires = @();                    Visible = $false },
-    [PSCustomObject]@{ Name = "scaffold"; Path = "X:\packs\scaffold"; Description = "Project scaffolding"; Requires = @();                    Visible = $false }
+# Two of them, because a run can hold one and let the other go - and because
+# the requirements of one pack arrive in the order that pack names them. The
+# folder names sort the list, so the boxes are gcp, python, then vision.
+$PacksRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("packs-select-test-" + [Guid]::NewGuid().ToString("N"))
+$Declarations = @(
+    @{ Name = "gcp";      Description = "Google Cloud CLI";    Requires = "devops" },
+    @{ Name = "vision";   Description = "Image and OCR tools" },
+    @{ Name = "python";   Description = "Python toolchain";    Requires = "devops scaffold" },
+    @{ Name = "devops";   Description = "Project targets";     Visible = "no" },
+    @{ Name = "scaffold"; Description = "Project scaffolding"; Visible = "no" }
 )
+foreach ($Declaration in $Declarations) {
+    $Folder = Join-Path $PacksRoot $Declaration.Name
+    New-Item -ItemType Directory -Path $Folder -Force | Out-Null
+    $Conf = @("PACK_DESCRIPTION := $($Declaration.Description)")
+    if ($Declaration.Requires) { $Conf += "PACK_REQUIRES := $($Declaration.Requires)" }
+    if ($Declaration.Visible) { $Conf += "PACK_VISIBLE := $($Declaration.Visible)" }
+    Set-Content -Path (Join-Path $Folder "pack.conf") -Value $Conf
+}
+$Catalog = Get-PackCatalog -Root $PacksRoot
 
 Write-Output "--- Select-Packs: what the checklist means ---"
 
 # 1. An installed pack arrives checked; ticking one more box adds it - with what
 #    it requires, and before it: gcp requires devops, and a pack is installed on
 #    top of what it needs.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("vision")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision")
 Check "one box ticked -> its requirement comes first, then it" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "devops,gcp / "
 
 # 2. Unticking what is installed, with nothing else ticked, is a removal - and
 #    ONLY a removal. (The additions once came off the available packs instead of
 #    the ticked ones, so a run installed the pack nobody had asked for.)
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("vision")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision")
 Check "unticking -> the pack leaves, the rest is NOT added" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / vision"
 
 # 3. Cancel is cancel.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("vision")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision")
 Check "cancelled -> nothing at all" ($null -eq $Selection) "True"
 
 # 4. Nothing checked and nothing installed is an ANSWER, not a cancellation: the
 #    two lists come back empty and the caller decides what that means. (.Count
 #    answers 0 for $null too, so the $null test is the sharp one; the second
 #    check is what proves the list itself came back.)
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @()
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @()
 Check "empty checklist is not a cancellation" ($null -eq $Selection) "False"
 Check "  ... and both lists are empty" `
     ("$($Selection.ToAdd.Count)$($Selection.ToRemove.Count)") "00"
 
 # 5. "n" at the one confirmation is a cancellation too.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("vision")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision")
 Check "answered n -> nothing at all" ($null -eq $Selection) "True"
 
 # 6. Two different facts. What the instance HAS is not what arrives ticked: at
 #    build time the new instance has no pack yet (nothing can be removed), while
 #    the ticked boxes are the ones its predecessor carried.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @() -Checked @("vision")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @() -Checked @("vision")
 Check "pre-checked is not installed" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "vision / "
 
@@ -105,7 +117,7 @@ Check "pre-checked is not installed" `
 #    in the checklist, so nobody can have unchecked it - it must be left alone.
 #    (The first version read "installed and not ticked" and removed it without
 #    ever showing it.)
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("vision", "foreign")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("vision", "foreign")
 Check "a pack this checkout does not carry is left alone" ($Selection.ToRemove -join ",") ""
 Check "  ... and the answer is still an answer, not a cancellation" ($null -eq $Selection) "False"
 
@@ -117,14 +129,14 @@ Write-Output "--- Select-Packs: the packs nobody picks ---"
 #    over itself - its install.sh does not run again. What is missing still
 #    arrives, and before the pack that requires it: scaffold, then python, in the
 #    order python's own declaration names them.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("devops")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("devops")
 Check "a requirement already installed is not installed again" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) "scaffold,python / "
 
 # 9. An invisible pack has no row, so nobody can untick it - it leaves when the
 #    last pack that requires it does, and in the same answer. python is the only
 #    claimant of the two it requires, so both follow it out.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("python", "devops", "scaffold")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("python", "devops", "scaffold")
 Check "the last claimant leaves -> the invisible ones go too" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python,devops,scaffold"
 
@@ -132,14 +144,14 @@ Check "the last claimant leaves -> the invisible ones go too" `
 #     whole reason they are not offered: another claimant is there to hold it.
 #     gcp requires devops, and nothing requires scaffold: the same run holds one
 #     and lets the other go, which is what a single invisible pack cannot show.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @("python", "gcp", "devops", "scaffold")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @("python", "gcp", "devops", "scaffold")
 Check "another claimant holds it -> it stays, and the other one goes" `
     ((($Selection.ToAdd | ForEach-Object { $_.Name }) -join ",") + " / " + ($Selection.ToRemove -join ",")) " / python,scaffold"
 
 # 11. What an instance carried is not what the checklist shows: a predecessor
 #     that had an invisible pack must not bring it back through a tick nobody
 #     can see. It arrives with the pack that requires it, or not at all.
-$Selection = Select-Packs -Title "T" -Available $Available -Installed @() -Checked @("devops")
+$Selection = Select-Packs -Title "T" -Catalog $Catalog -Installed @() -Checked @("devops")
 Check "a checked invisible pack installs nothing" ($null -eq $Selection) "False"
 Check "  ... and both lists are empty" ("$($Selection.ToAdd.Count)$($Selection.ToRemove.Count)") "00"
 
@@ -269,6 +281,8 @@ Check "a failed copy takes the earlier placed folder back out" `
     ((@($script:Calls | Where-Object { $_ -like "*rm -rf*" }) | ForEach-Object { ($_ -split " :: ", 2)[1] }) -join " | ") `
     "rm -rf $Directory/fake-b | rm -rf $Directory/fake-a"
 Check "  ... and the run names the pack that stopped it" "$($Result.Pack)/$($Result.ExitCode)" "fake-b/1"
+
+Remove-Item -Recurse -Force $PacksRoot -ErrorAction SilentlyContinue
 
 Write-Output ""
 Write-Output ("failures: " + $Failures)

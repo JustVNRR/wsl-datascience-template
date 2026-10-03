@@ -42,7 +42,7 @@ $PacksDirectory = "$InstanceHome/.config/packs"
 # pack.conf is not offered: it leaves with the last pack that requires it. No
 # guard on an empty $Available: a pack installed from another checkout is still
 # a pack this command can take out.
-$Available = @(Get-AvailablePacks)
+$Catalog = Get-PackCatalog
 $Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 if ($Installed.Count -eq 0) {
     Write-Host ""
@@ -52,8 +52,8 @@ if ($Installed.Count -eq 0) {
 
 $Offered = @()
 foreach ($Name in $Installed) {
-    $Pack = @($Available | Where-Object { $_.Name -eq $Name })[0]
-    if ($null -ne $Pack -and -not $Pack.Visible) { continue }
+    $Pack = $Catalog.GetPack($Name)
+    if ($null -ne $Pack -and -not $Pack.Offered) { continue }
     $Offered += $Name
 }
 if ($Offered.Count -eq 0) {
@@ -74,7 +74,7 @@ if (-not $PackName) {
 # packs do not stay with their base pulled out. The chosen pack goes first - the
 # other order would ask a remove.sh whether a neighbour still claims its
 # packages while that neighbour can still say yes.
-$ToRemove = @(Resolve-PackRemoval -Available $Available -Installed $Installed -Leaving @($PackName))
+$ToRemove = @($Catalog.ResolveRemoval($Installed, @($PackName), @()))
 $Also = @($ToRemove | Where-Object { $_ -ne $PackName })
 
 # 3. What is about to happen, and only then the question. A pack without a

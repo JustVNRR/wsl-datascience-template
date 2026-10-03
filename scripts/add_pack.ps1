@@ -41,8 +41,8 @@ if (-not $InstanceHome) {
 $PacksDirectory = "$InstanceHome/.config/packs"
 
 # 2. Which pack - the ones this repository carries and that instance lacks
-$Available = @(Get-AvailablePacks)
-if ($Available.Count -eq 0) {
+$Catalog = Get-PackCatalog
+if ($Catalog.AvailablePacks.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No pack found in $PacksRoot." -ForegroundColor (Get-MessageColour error)
     Write-Host "        A pack is a folder there carrying a pack.conf." -ForegroundColor (Get-MessageColour hint)
@@ -52,7 +52,7 @@ if ($Available.Count -eq 0) {
 $Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 # Only the packs a user chooses: an invisible one arrives with the pack that
 # requires it, never offered.
-$Candidates = @($Available | Where-Object { $_.Visible -and $Installed -notcontains $_.Name })
+$Candidates = @($Catalog.AvailablePacks | Where-Object { $_.Offered -and $Installed -notcontains $_.Name })
 
 if ($Candidates.Count -eq 0) {
     Write-Host ""
@@ -84,8 +84,8 @@ $PackName = $Pack.Name
 # resolved by the same helper the checklist uses, so that "what arrives" means
 # the same thing in both commands.
 $ToInstall = @()
-foreach ($Name in @(Resolve-PackSelection -Available $Available -Names @($PackName) -Installed $Installed)) {
-    $Entry = @($Available | Where-Object { $_.Name -eq $Name })[0]
+foreach ($Name in @($Catalog.ResolveSelection(@($PackName), $Installed))) {
+    $Entry = $Catalog.GetPack($Name)
     if ($null -ne $Entry) { $ToInstall += $Entry }
 }
 
@@ -140,7 +140,7 @@ Write-Host "==> '$PackName' is installed in '$DistroName'." -ForegroundColor (Ge
 # The pack's samples travelled with its folder, but nothing merged them into
 # the user's .env files - those are theirs, and no install writes into them.
 # Said once, and only when a sample travelled.
-if (@($ToInstall | Where-Object { Test-PackShipsSamples -Path $_.Path }).Count -gt 0) {
+if (@($ToInstall | Where-Object { $_.ShipsSamples() }).Count -gt 0) {
     Write-Host "    Then, in there:  gmake env_global_enable   (adds the pack's variables)" -ForegroundColor (Get-MessageColour muted)
 }
 exit 0

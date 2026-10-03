@@ -35,8 +35,8 @@ if (-not $InstanceHome) {
 $PacksDirectory = "$InstanceHome/.config/packs"
 
 # 2. Every pack this checkout carries, and what that instance already has
-$Available = @(Get-AvailablePacks)
-if ($Available.Count -eq 0) {
+$Catalog = Get-PackCatalog
+if ($Catalog.AvailablePacks.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No pack found in $PacksRoot." -ForegroundColor (Get-MessageColour error)
     Write-Host "        A pack is a folder there carrying a pack.conf." -ForegroundColor (Get-MessageColour hint)
@@ -45,7 +45,7 @@ if ($Available.Count -eq 0) {
 $Installed = @(Get-InstalledPacks -DistroName $DistroName -PacksDirectory $PacksDirectory)
 
 # 3. The checklist, and what it says to do
-$Selection = Select-Packs -Title "Packs for '$DistroName'" -Available $Available -Installed $Installed
+$Selection = Select-Packs -Title "Packs for '$DistroName'" -Catalog $Catalog -Installed $Installed
 
 if ($null -eq $Selection) {
     Write-Host ""

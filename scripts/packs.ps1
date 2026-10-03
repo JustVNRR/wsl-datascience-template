@@ -18,139 +18,13 @@
 $PacksRoot = Join-Path (Split-Path $PSScriptRoot -Parent) "packs"
 $OrphanCleanupScript = Join-Path $PSScriptRoot "cleanup_orphans.sh"
 
-# Every pack this checkout carries: the line the menu shows, the folder to copy
-# from, and the two declarations the checklist reads. Sorted by name: a menu
-# whose numbers move is a menu you cannot trust twice.
-#
-# Both declarations are optional, and absent means the ordinary case; only
-# `PACK_VISIBLE := no` hides a pack - a value that is neither yes nor no leaves
-# it visible, where a typo should land.
-function Get-AvailablePacks {
+# The catalog of packs this checkout carries, read by the model: the line a
+# menu shows, the folder to copy from, the declarations both checklists read -
+# and the two resolutions. One list, so add_pack, the checklist and the run
+# cannot disagree about what travels with what.
+function Get-PackCatalog {
     param([string]$Root = $PacksRoot)
-
-    $Found = @()
-    if (-not (Test-Path $Root)) { return @() }
-    foreach ($Folder in (Get-ChildItem -Path $Root -Directory | Sort-Object Name)) {
-        $Conf = Join-Path $Folder.FullName "pack.conf"
-        if (-not (Test-Path $Conf)) { continue }
-
-        $Description = ""
-        $Requires = @()
-        $Visible = $true
-        $Welcome = ""
-        foreach ($Line in (Get-Content -Path $Conf -Encoding UTF8)) {
-            if ($Line -match '^\s*PACK_DESCRIPTION\s*:=\s*(.+?)\s*$') { $Description = $Matches[1] }
-            elseif ($Line -match '^\s*PACK_REQUIRES\s*:=\s*(.*)$') { $Requires = @($Matches[1] -split '\s+' | Where-Object { $_ }) }
-            elseif ($Line -match '^\s*PACK_VISIBLE\s*:=\s*(\S+)') { $Visible = ($Matches[1] -notmatch '^(?i)no$') }
-            elseif ($Line -match '^\s*PACK_WELCOME\s*:=\s*(.+?)\s*$') { $Welcome = $Matches[1] }
-        }
-
-        $Found += [PSCustomObject]@{
-            Name        = $Folder.Name
-            Path        = $Folder.FullName
-            Description = $Description
-            Requires    = $Requires
-            Visible     = $Visible
-            Welcome     = $Welcome
-        }
-    }
-    return @($Found)
-}
-
-# A sample is a file, and a pack that ships none has nothing to merge: this
-# decides whether a command ends by pointing at `gmake env_global_enable`.
-function Test-PackShipsSamples {
-    param([string]$Path)
-
-    return (Test-Path (Join-Path $Path "env.global.sample")) -or (Test-Path (Join-Path $Path "env.project.sample"))
-}
-
-# What a pack requires is placed before it, and a requirement two levels down
-# before both: a pack is installed ON TOP of what it requires.
-function Add-PackRequires {
-    param(
-        [object[]]$Available,
-        [string]$Name,
-        [string[]]$Installed,
-        [hashtable]$Seen,
-        [System.Collections.ArrayList]$Ordered
-    )
-
-    if ($Seen.ContainsKey($Name)) { return }
-    $Seen[$Name] = $true
-
-    # A requirement this checkout does not carry is not a pack that can be
-    # installed; it is named in a pack.conf and absent from packs/. Nothing to
-    # do about it here, and the pack that asked is the one that will fail.
-    $Pack = @($Available | Where-Object { $_.Name -eq $Name })[0]
-    if ($null -eq $Pack) { return }
-
-    # Through it even when it is already there: what IT requires may be missing.
-    foreach ($Need in $Pack.Requires) {
-        Add-PackRequires -Available $Available -Name $Need -Installed $Installed -Seen $Seen -Ordered $Ordered
-    }
-
-    # Not placed twice: a pack the instance already carries is not copied over
-    # and its install.sh does not run again - what travels is what is missing.
-    if ($Installed -notcontains $Name) { [void]$Ordered.Add($Name) }
-}
-
-# The list to install, in order - resolved in one place, so add_pack, the
-# checklist and the run cannot disagree about what travels with what.
-function Resolve-PackSelection {
-    param([object[]]$Available, [string[]]$Names, [string[]]$Installed = @())
-
-    $Seen = @{}
-    $Ordered = New-Object System.Collections.ArrayList
-    foreach ($Name in $Names) {
-        Add-PackRequires -Available $Available -Name $Name -Installed $Installed -Seen $Seen -Ordered $Ordered
-    }
-    return @($Ordered)
-}
-
-# What leaves, with what has to leave with it. An invisible pack is never in the
-# checklist - it leaves when the last pack that requires it does, and $Leaving
-# is what the user let go of.
-#
-# Repeated until nothing changes: an invisible pack may itself require another,
-# and the second loses its claimant the moment the first does.
-function Resolve-PackRemoval {
-    param([object[]]$Available, [string[]]$Installed, [string[]]$Leaving, [string[]]$Arriving = @())
-
-    $Gone = New-Object System.Collections.ArrayList
-    foreach ($Name in $Leaving) { [void]$Gone.Add($Name) }
-
-    do {
-        $Added = 0
-        # Who is there once the run is over: what stays, plus what is arriving in
-        # the same run. A pack that is on its way in is a claimant like any
-        # other - it is the reason the run happens - so an invisible pack it
-        # requires must be left where it is rather than removed and not put back.
-        $Remaining = @($Installed | Where-Object { $Gone -notcontains $_ }) + @($Arriving)
-
-        foreach ($Name in $Installed) {
-            if ($Gone -contains $Name) { continue }
-
-            # Not carried by this checkout: not in the checklist either, and left
-            # alone for the same reason. Same for a visible one, which only ever
-            # leaves because the user unticked it.
-            $Pack = @($Available | Where-Object { $_.Name -eq $Name })[0]
-            if ($null -eq $Pack) { continue }
-            if ($Pack.Visible) { continue }
-
-            $Claimed = $false
-            foreach ($Other in $Remaining) {
-                $OtherPack = @($Available | Where-Object { $_.Name -eq $Other })[0]
-                if ($null -ne $OtherPack -and $OtherPack.Requires -contains $Name) { $Claimed = $true; break }
-            }
-            if (-not $Claimed) {
-                [void]$Gone.Add($Name)
-                $Added++
-            }
-        }
-    } while ($Added -gt 0)
-
-    return @($Gone)
+    return [WslPackCatalog]::new($Root)
 }
 
 # A pack is its folder WITH its pack.conf: that is what the gmake side counts
@@ -323,7 +197,7 @@ function Invoke-PackOrphanCleanup {
 function Select-Packs {
     param(
         [string]$Title,
-        [object[]]$Available,
+        [WslPackCatalog]$Catalog,
         [string[]]$Installed = @(),
         [string[]]$Checked = $null
     )
@@ -333,7 +207,7 @@ function Select-Packs {
     # What the checklist shows: the packs a user chooses. An invisible one is
     # installed by a visible pack that requires it and leaves with the last one,
     # so it is in neither list and is never named here.
-    $Offered = @($Available | Where-Object { $_.Visible })
+    $Offered = @($Catalog.AvailablePacks | Where-Object { $_.Offered })
     $OfferedNames = @($Offered | ForEach-Object { $_.Name })
 
     $CheckedIndexes = @()
@@ -355,7 +229,7 @@ function Select-Packs {
     # asked for.
     $Chosen = @($Chosen)
     $Kept = @($Chosen | ForEach-Object { $_.Name })
-    $Carried = @($Available | ForEach-Object { $_.Name })
+    $Carried = @($Catalog.AvailablePacks | ForEach-Object { $_.Name })
 
     # What leaves is what the checklist showed and the user unchecked - and
     # only that. A folder this checkout does not carry was never shown, so
@@ -374,14 +248,14 @@ function Select-Packs {
     # Ticked and installed is not added: the resolver is given what the
     # instance already has, and answers what is missing.
     $ToAdd = @()
-    foreach ($Name in @(Resolve-PackSelection -Available $Available -Names $Kept -Installed $Installed)) {
-        $Pack = @($Available | Where-Object { $_.Name -eq $Name })[0]
+    foreach ($Name in @($Catalog.ResolveSelection($Kept, $Installed))) {
+        $Pack = $Catalog.GetPack($Name)
         if ($null -ne $Pack) { $ToAdd += $Pack }
     }
-    # -Arriving after -ToAdd, and that order matters: a pack on its way in holds
-    # the invisible pack it requires, so the removal must know about it.
-    $ToRemove = @(Resolve-PackRemoval -Available $Available -Installed $Installed -Leaving $Unticked `
-        -Arriving @($ToAdd | ForEach-Object { $_.Name }))
+    # What arrives is worked out before what leaves, and that order matters: a
+    # pack on its way in holds the invisible pack it requires, so the removal
+    # must know about it.
+    $ToRemove = @($Catalog.ResolveRemoval($Installed, $Unticked, @($ToAdd | ForEach-Object { $_.Name })))
 
     if ($ToAdd.Count -eq 0 -and $ToRemove.Count -eq 0) {
         return [PSCustomObject]@{ ToAdd = @(); ToRemove = @() }

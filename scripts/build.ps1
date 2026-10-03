@@ -639,8 +639,8 @@ if ($WasRegistered) {
 # the machine starts working - the answer waits in a variable and is applied
 # below. Empty, or Escape, means none, and the build goes on either way.
 $PackSelection = $null
-$AvailablePacks = @(Get-AvailablePacks)
-if ($AvailablePacks.Count -gt 0) {
+$PackCatalog = Get-PackCatalog
+if ($PackCatalog.AvailablePacks.Count -gt 0) {
     # The instance being replaced still exists here: what it carries is what
     # the boxes show. A first build opens on an empty checklist.
     $PreChecked = @()
@@ -655,7 +655,7 @@ if ($AvailablePacks.Count -gt 0) {
 
     # -Installed stays at its default: the instance this build makes carries
     # nothing yet - boxes to tick, no removal to compute.
-    $PackSelection = Select-Packs -Title "Packs for '$DistroName'" -Available $AvailablePacks -Checked $PreChecked
+    $PackSelection = Select-Packs -Title "Packs for '$DistroName'" -Catalog $PackCatalog -Checked $PreChecked
 
     if ($null -eq $PackSelection -or $PackSelection.ToAdd.Count -eq 0) {
         Write-Host ""
