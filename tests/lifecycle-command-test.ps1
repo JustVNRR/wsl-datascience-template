@@ -1,17 +1,20 @@
-# Drives `start` and `restart` the way a script would: the numbered prompt,
-# answers on standard input, no console anywhere, and a stand-in wsl.exe ahead
-# on the PATH - built from tests\fake-wsl\wsl.cs, logging every call and
-# answering from its own log: a distribution counts as running once a boot
-# command has gone through.
+# Drives the lifecycle commands - start, stop, restart, shell, shrink, list -
+# the way a script would: the numbered prompt, answers on standard input, no
+# console anywhere, and a stand-in wsl.exe ahead on the PATH - built from
+# tests\fake-wsl\wsl.cs, logging every call and answering from its own log: a
+# distribution counts as running once a boot command has gone through.
 #
 # The instance it works on exists for the length of the test: a registry key of
 # its own, a folder carrying the marker, and a name of its own. The key is
 # taken back out at the end. Nothing real is started or stopped: what is
 # checked is the command emitted, its order, and what is said.
 #
-# What is checked for `start`: the boot names the instance picked, the news is
-# said, and cancelling boots nothing. For `restart`: the stop comes before the
-# boot, and the news comes after both.
+# What is checked: for `start`, the boot names the instance picked, the news
+# is said, and cancelling boots nothing; for `restart`, the stop comes before
+# the boot; for `stop`, the terminate is asked only after the confirmation;
+# for `shell`, the session is asked by name; for `shrink`, the compact, and
+# the restart only when it was running; for `list`, what the machine says -
+# stopped or running.
 #
 # It needs no instance, no console and no Docker Desktop.
 #
@@ -24,6 +27,10 @@ $ErrorActionPreference = "Stop"
 
 $StartScript = Join-Path $PSScriptRoot "..\scripts\start.ps1"
 $RestartScript = Join-Path $PSScriptRoot "..\scripts\restart.ps1"
+$StopScript = Join-Path $PSScriptRoot "..\scripts\stop.ps1"
+$ShellScript = Join-Path $PSScriptRoot "..\scripts\shell.ps1"
+$ShrinkScript = Join-Path $PSScriptRoot "..\scripts\shrink.ps1"
+$ListScript = Join-Path $PSScriptRoot "..\scripts\list.ps1"
 # Child processes follow the engine this suite runs under, so a pass under 7
 # tests the scripts under 7.
 $Engine = if ($PSVersionTable.PSEdition -eq "Core") { "pwsh" } else { "powershell" }
@@ -128,6 +135,81 @@ try {
         (([array]::IndexOf($Calls, "--terminate $FakeName")) -lt ([array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true"))) $true
     Check "and says it is running again" (@($Out | Where-Object { "$_".Contains("'$FakeName' is running again") }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
+
+    # 4. stop: the instance is one of the running ones, the confirmation is
+    # taken, and the terminate names it. An empty answer is a yes - only an
+    # "n" calls it off, and then nothing is asked of WSL.
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
+    $Out = Invoke-Child -Script $StopScript -Answers @("$Pick", "")
+    Check "stop terminates the instance picked" (@(Get-Calls | Where-Object { $_ -eq "--terminate $FakeName" }).Count) 1
+    Check "and says it is stopped" (@($Out | Where-Object { "$_".Contains("'$FakeName' is stopped") }).Count -gt 0) $true
+    Check "and ends on zero" $script:ChildExit 0
+
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
+    $Out = Invoke-Child -Script $StopScript -Answers @("$Pick", "n")
+    Check "answered n: nothing is terminated" (@(Get-Calls | Where-Object { $_ -like "*--terminate*" }).Count) 0
+    Check "and nothing was modified" (@($Out | Where-Object { "$_".Contains("Operation cancelled by user") }).Count -gt 0) $true
+
+    # With nothing running there is nothing to stop: said, not opened.
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    $Out = Invoke-Child -Script $StopScript -Answers @("")
+    Check "nothing running -> stop says so" (@($Out | Where-Object { "$_".Contains("No instance is running") }).Count -gt 0) $true
+    Check "and ends on one" $script:ChildExit 1
+
+    # 5. shell: the session is asked of WSL by name, from the instance's home,
+    # and a stopped one is noted - WSL starts it on the way in. Nothing is
+    # captured from the session: its code is handed back as it came.
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    $Out = Invoke-Child -Script $ShellScript -Answers @("$Pick")
+    Check "shell opens a session on the instance picked" (@(Get-Calls | Where-Object { $_ -eq "-d $FakeName --cd ~" }).Count) 1
+    Check "and says what it is doing" (@($Out | Where-Object { "$_".Contains("Opening a shell in '$FakeName'") }).Count -gt 0) $true
+    Check "and notes a stopped instance" (@($Out | Where-Object { "$_".Contains("It was stopped") }).Count -gt 0) $true
+    Check "and hands the session's code over" $script:ChildExit 0
+
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
+    $Out = Invoke-Child -Script $ShellScript -Answers @("$Pick")
+    Check "a running instance is not noted as stopped" (@($Out | Where-Object { "$_".Contains("It was stopped") }).Count) 0
+
+    # 6. shrink: one command, in place - and the instance comes back up only
+    # if it was up. The archive question is answered no: a yes takes the
+    # archive path, another suite's country.
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    $Out = Invoke-Child -Script $ShrinkScript -Answers @("$Pick", "n")
+    Check "shrink compacts the instance picked" (@(Get-Calls | Where-Object { $_ -eq "--manage $FakeName --compact" }).Count) 1
+    Check "and says it is compacted" (@($Out | Where-Object { "$_".Contains("'$FakeName' compacted") }).Count -gt 0) $true
+    Check "and a stopped one is not started" (@(Get-Calls | Where-Object { $_ -like "*--exec*" }).Count) 0
+    Check "and ends on zero" $script:ChildExit 0
+
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
+    $Out = Invoke-Child -Script $ShrinkScript -Answers @("$Pick", "n")
+    $Calls = Get-Calls
+    Check "a running one is started again after the compact" `
+        (([array]::IndexOf($Calls, "--manage $FakeName --compact")) -lt ([array]::LastIndexOf($Calls, "-d $FakeName --exec /bin/true"))) $true
+    Check "and says it is running again" (@($Out | Where-Object { "$_".Contains("'$FakeName' is running again") }).Count -gt 0) $true
+
+    # 7. list: the row says what the machine says, stopped or running - and an
+    # empty machine is an answer with its own code, not a table over nothing.
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    $Out = Invoke-Child -Script $ListScript -Answers @("")
+    Check "list shows the instance as stopped" `
+        (@($Out | Where-Object { "$_" -match [regex]::Escape($FakeName) -and "$_" -match "stopped" }).Count -gt 0) $true
+    Check "and ends on zero" $script:ChildExit 0
+
+    Remove-Item $Log -Force -ErrorAction SilentlyContinue
+    Add-Content -Path $Log -Value "-d $FakeName --exec /bin/true"
+    $Out = Invoke-Child -Script $ListScript -Answers @("")
+    Check "list shows a running one as running" `
+        (@($Out | Where-Object { "$_" -match [regex]::Escape($FakeName) -and "$_" -match "running" }).Count -gt 0) $true
+
+    Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
+    $Out = Invoke-Child -Script $ListScript -Answers @("")
+    Check "an empty machine is said, not printed over" `
+        (@($Out | Where-Object { "$_".Contains("No instance of this template is registered") }).Count -gt 0) $true
+    Check "and ends on one" $script:ChildExit 1
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $Tmp -ErrorAction SilentlyContinue
