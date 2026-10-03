@@ -2,7 +2,7 @@
 # before it runs a file. Run once per engine - 5.1 and 7 - and a parse error
 # left here surfaces the day a command runs.
 #
-# Usage:  powershell -NoProfile -File tests\parse-check.ps1
+# Usage:  pwsh -NoProfile -File tests\parse-check.ps1
 
 $files = Get-ChildItem -Recurse -Filter *.ps1
 $bad = 0

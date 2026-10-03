@@ -13,7 +13,7 @@
 #
 # It needs no instance, no console and no Docker Desktop.
 #
-# Usage:  powershell -NoProfile -File tests\color-command-test.ps1
+# Usage:  pwsh -NoProfile -File tests\color-command-test.ps1
 
 $ErrorActionPreference = "Stop"
 

@@ -1,7 +1,7 @@
 # Drives scripts\menu.ps1 with a scripted keyboard: the arrow loop runs with no
 # terminal in sight, which is the only way to test it.
 #
-# Usage:  powershell -File tests\menu-test.ps1 < tests\menu-test.answers
+# Usage:  pwsh -File tests\menu-test.ps1 < tests\menu-test.answers
 #
 # The last checks use no -KeyReader at all - the no-console case: they read the
 # numbered prompt's answers from standard input. The .answers file is the ONLY

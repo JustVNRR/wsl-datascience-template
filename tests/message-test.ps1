@@ -9,7 +9,7 @@
 # The colours below are the real values of schemes Windows Terminal ships,
 # except the fourth, written as a list - the other way a scheme may be written.
 #
-# Usage:  powershell -NoProfile -File tests\message-test.ps1
+# Usage:  pwsh -NoProfile -File tests\message-test.ps1
 
 $ErrorActionPreference = "Stop"
 

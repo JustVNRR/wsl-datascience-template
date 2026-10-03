@@ -9,7 +9,7 @@
 #
 # It needs no instance, no console and no Docker.
 #
-# Usage:  powershell -NoProfile -File tests\icon-test.ps1
+# Usage:  pwsh -NoProfile -File tests\icon-test.ps1
 
 $ErrorActionPreference = "Stop"
 

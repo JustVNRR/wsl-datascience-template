@@ -26,7 +26,9 @@ A reproducible WSL2 stack: one PowerShell command builds a fresh Ubuntu 24.04 di
 
 - Windows 10/11 with **WSL2** installed and enabled.
 - **Docker Desktop** (or Docker Engine running via WSL).
-- PowerShell 5.1+ or PowerShell 7+, allowed to run local scripts — check it:
+- **PowerShell 7** recommended (`winget install Microsoft.PowerShell`) — the
+  Windows PowerShell 5.1 that ships with Windows still works. Either way, it
+  must be allowed to run local scripts — check it:
   ```powershell
   Get-ExecutionPolicy # Should return RemoteSigned or Unrestricted
   ```
@@ -357,7 +359,7 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 
 | Workflow | Runs on | What it proves |
 | :--- | :--- | :--- |
-| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck, `zsh -n`, the ASCII-only rule for `.ps1` files, the colour codes confined to their files, the makefile parses with a complete help menu, docs and cheatsheets in sync with the `gmake` modules — then eight suites on Windows drive the real code |
+| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck, `zsh -n`, the ASCII-only rule for `.ps1` files, the colour codes confined to their files, the makefile parses with a complete help menu, docs and cheatsheets in sync with the `gmake` modules — then eight suites on Windows drive the real code twice: once under Windows PowerShell 5.1, once under PowerShell 7 |
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
 They check the **repository** — the files, and the code run against stand-ins,
