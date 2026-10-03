@@ -344,7 +344,8 @@ jobs:
   # The suites that run the code - the only checks here that have ever caught a
   # bug in the scripts themselves - and none needs an instance, a console or
   # Docker Desktop, so they are free to run on every push. The job runs twice,
-  # once per engine, and each pass holds the scripts to its own.
+  # once per engine, and each pass holds the scripts to its own. Every suite
+  # still runs when an earlier one failed: one push reports them all.
   tests-windows:
     name: tests-windows (${{ matrix.label }})
     runs-on: windows-latest
@@ -374,33 +375,41 @@ jobs:
       # day it was written while the suite grew.
 
       - name: The arrow menu, driven by a scripted keyboard
+        if: always()
         shell: bash
         run: ${{ matrix.engine }} -NoProfile -File tests/menu-test.ps1 < tests/menu-test.answers
 
       - name: The pack checklist, and what it applies
+        if: always()
         shell: bash
         run: ${{ matrix.engine }} -NoProfile -File tests/packs-select-test.ps1 < tests/packs-select-test.answers
 
       - name: build's questions, with a stand-in docker
+        if: always()
         shell: bash
         run: PS_ENGINE=${{ matrix.engine }} bash tests/build-question-test.sh
 
       - name: The icon an instance is given, from its name
+        if: always()
         shell: bash
         run: ${{ matrix.engine }} -NoProfile -File tests/icon-test.ps1
 
       - name: Choosing an instance's icon, on an instance of the test's own
+        if: always()
         shell: bash
         run: ${{ matrix.engine }} -NoProfile -File tests/icon-command-test.ps1
 
       - name: Choosing an instance's font, on an instance of the test's own
+        if: always()
         shell: bash
         run: ${{ matrix.engine }} -NoProfile -File tests/font-command-test.ps1
 
       - name: Choosing an instance's colours, on an instance of the test's own
+        if: always()
         shell: bash
         run: ${{ matrix.engine }} -NoProfile -File tests/color-command-test.ps1
 
       - name: The colour a message takes, on schemes the test writes out
+        if: always()
         shell: bash
         run: ${{ matrix.engine }} -NoProfile -File tests/message-test.ps1
