@@ -362,26 +362,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # A step's shell cannot name the matrix - the workflow file would not
+      # load - so the check is a script, and each pass runs it with its engine.
       - name: PowerShell files parse (${{ matrix.label }})
-        shell: ${{ matrix.engine }}
-        run: |
-          # [Parser]::ParseFile is the reader PowerShell itself uses before it
-          # runs a file; the shell of this pass is its engine, and the suites
-          # below run under the same one. A parse error left here surfaces the
-          # day a command runs.
-          $files = Get-ChildItem -Recurse -Filter *.ps1
-          $bad = 0
-          foreach ($f in $files) {
-            $errors = $null
-            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$errors)
-            if ($errors.Count -gt 0) {
-              Write-Host "::error file=$($f.FullName)::$($errors.Count) parse error(s)"
-              foreach ($e in $errors) { Write-Host ("  line {0}: {1}" -f $e.Extent.StartLineNumber, $e.Message) }
-              $bad = 1
-            }
-          }
-          Write-Host "$($files.Count) .ps1 file(s) read, $bad failure(s)."
-          exit $bad
+        shell: bash
+        run: ${{ matrix.engine }} -NoProfile -File tests/parse-check.ps1
 
       # The answers come from the .answers file beside each suite, never a copy
       # spelled out here: the numbered prompt reads them when there is no
