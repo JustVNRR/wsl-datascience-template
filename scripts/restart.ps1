@@ -64,11 +64,11 @@ if ($Confirm -match "^[nN]") {
 
 # 3. In the order that makes the second half a fresh boot: WSL reads
 # /etc/wsl.conf and /etc/resolv.conf when the instance boots - the point of the
-# command. `--exec` runs a command and returns, so no shell opens.
+# command.
 Write-Host ""
 Write-Host "==> Stopping '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 try {
-    Invoke-External { wsl.exe --terminate $DistroName } "Could not stop '$DistroName'."
+    $Distro.Stop()
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
@@ -79,7 +79,7 @@ try {
 Write-Host ""
 Write-Host "==> Starting '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 try {
-    Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."
+    $Distro.Start()
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)

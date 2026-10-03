@@ -66,7 +66,7 @@ if ($Confirm -match "^[nN]") {
 Write-Host ""
 Write-Host "==> Stopping '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 try {
-    Invoke-External { wsl.exe --terminate $DistroName } "Could not stop '$DistroName'."
+    $Distro.Stop()
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)

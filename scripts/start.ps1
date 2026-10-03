@@ -49,12 +49,11 @@ if (-not $Distro) {
 
 $DistroName = $Distro.Name
 
-# 2. Start it: `--exec` runs a command and returns, so it comes back up without
-# this script opening a shell.
+# 2. Start it.
 Write-Host ""
 Write-Host "==> Starting '$DistroName'..." -ForegroundColor (Get-MessageColour info)
 try {
-    Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."
+    $Distro.Start()
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)

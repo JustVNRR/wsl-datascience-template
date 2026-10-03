@@ -3,8 +3,8 @@
 # ==============================================================================
 # One distribution: registered, or left as an archive. Its folder, its user,
 # its WSL version, the look Windows Terminal gives it, the packs it carries -
-# and the gestures: start, stop, restart, shell, shrink, archive, restore,
-# duplicate, unregister.
+# and the gestures: start, stop, restart, shrink, archive, restore, duplicate,
+# unregister.
 class WslInstance {
     [string]$Name
     [string]$Path
@@ -80,29 +80,18 @@ class WslInstance {
             throw "Cannot start an archived instance. Restore it first."
         }
         # --exec runs a command and returns: it comes up without opening a shell.
-        & wsl.exe -d $this.Name --exec /bin/true
-        if ($LASTEXITCODE -ne 0) { throw "Could not start '$($this.Name)'." }
+        Invoke-External { wsl.exe -d $this.Name --exec /bin/true } "Could not start '$($this.Name)'."
         $this.State = [WslState]::Running
     }
 
     [void] Stop() {
-        & wsl.exe --terminate $this.Name
-        if ($LASTEXITCODE -ne 0) { throw "Could not stop '$($this.Name)'." }
+        Invoke-External { wsl.exe --terminate $this.Name } "Could not stop '$($this.Name)'."
         $this.State = [WslState]::Stopped
     }
 
     [void] Restart() {
         $this.Stop()
         $this.Start()
-    }
-
-    # Opens a shell and steps aside: the terminal belongs to it until the user
-    # leaves. Returns the shell's own exit code - handed over, not interpreted.
-    # The tilde is quoted: PowerShell expands a bare one into the Windows home
-    # before wsl.exe sees it.
-    [int] Shell() {
-        & wsl.exe -d $this.Name --cd "~"
-        return $LASTEXITCODE
     }
 
     # The .vhdx's size on disk, not what its filesystem holds.
@@ -116,8 +105,7 @@ class WslInstance {
     # the disk cannot be compacted. Returns the sizes for the caller's report.
     [object] Shrink() {
         $before = $this.DiskSize()
-        & wsl.exe --manage $this.Name --compact
-        if ($LASTEXITCODE -ne 0) { throw "The compact of '$($this.Name)' failed." }
+        Invoke-External { wsl.exe --manage $this.Name --compact } "The compact failed."
         $after = $this.DiskSize()
         return [PSCustomObject]@{ Before = $before; After = $after; Freed = $before - $after }
     }

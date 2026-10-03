@@ -19,20 +19,6 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-function Get-Distro {
-    param([string]$Name)
-    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-        $Props = Get-ItemProperty $Key.PSPath
-        if ($Props.DistributionName -eq $Name) {
-            return [PSCustomObject]@{
-                Name     = $Name
-                BasePath = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-            }
-        }
-    }
-    return $null
-}
-
 # 1. Which instance
 $Distro = Select-Distro
 $DistroName = $Distro.Name
@@ -80,7 +66,7 @@ if ($ArchiveFirst -match "^[nN]") {
 Write-Host ""
 Write-Host "==> Compacting the virtual disk..." -ForegroundColor (Get-MessageColour info)
 try {
-    Invoke-External { wsl.exe --manage $DistroName --compact } "The compact failed."
+    $Result = $Distro.Shrink()
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
@@ -88,28 +74,24 @@ try {
     exit 1
 }
 
-$AfterBytes = Get-VhdxSize $Distro.Path
-$FreedBytes = $BeforeBytes - $AfterBytes
-
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host "       '$DistroName' compacted" -ForegroundColor (Get-MessageColour success)
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
 Write-Host ""
 Write-Host "  * Disk file        : " -NoNewline
-Write-Host "$(Format-Size $BeforeBytes) -> $(Format-Size $AfterBytes)" -ForegroundColor (Get-MessageColour info)
-if ($FreedBytes -gt 0) {
-    Write-Host "  * Reclaimed        : " -NoNewline; Write-Host "$(Format-Size $FreedBytes)" -ForegroundColor (Get-MessageColour success)
+Write-Host "$(Format-Size $Result.Before) -> $(Format-Size $Result.After)" -ForegroundColor (Get-MessageColour info)
+if ($Result.Freed -gt 0) {
+    Write-Host "  * Reclaimed        : " -NoNewline; Write-Host "$(Format-Size $Result.Freed)" -ForegroundColor (Get-MessageColour success)
 } else {
     Write-Host "  * Reclaimed        : " -NoNewline
     Write-Host "nothing - the disk held no space to give back" -ForegroundColor (Get-MessageColour muted)
 }
 
-# 4. Left the way it was found: `--exec` runs a command and returns, so it
-# comes back up without a shell.
+# 4. Left the way it was found.
 if ($WasRunning) {
     try {
-        Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."
+        $Distro.Start()
         Write-Host "'$DistroName' is running again." -ForegroundColor (Get-MessageColour success)
     } catch {
         Write-Host "Could not start '$DistroName' - start it with: wsl -d $DistroName" -ForegroundColor (Get-MessageColour warning)
