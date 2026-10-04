@@ -25,8 +25,7 @@ if ($All.Count -eq 0) {
     exit 1
 }
 
-$Running = Get-DistroNames -Running
-$Eligible = @($All | Where-Object { $Running -contains $_.Name })
+$Eligible = @($All | Where-Object { $_.State -eq [WslState]::Running })
 
 if ($Eligible.Count -eq 0) {
     Write-Host ""

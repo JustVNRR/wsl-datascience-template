@@ -406,10 +406,9 @@ function Select-Distro {
         exit 1
     }
 
-    $Running = Get-DistroNames -Running
     $Chosen = Select-FromList -Title "Our Instances" -Items $All -Label {
         param($Instance)
-        $State = if ($Running -contains $Instance.Name) { "running" } else { "stopped" }
+        $State = if ($Instance.State -eq [WslState]::Running) { "running" } else { "stopped" }
         "{0,-30} {1,-8} {2,10}" -f $Instance.Name, $State, (Format-Size (Get-VhdxSize $Instance.Path))
     }
 

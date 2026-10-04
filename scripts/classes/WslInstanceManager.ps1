@@ -84,10 +84,20 @@ class WslInstanceManager {
     # =========================================================================
 
     # What the commands call "ours": registered, carrying the marker, by name -
-    # the filter every list applies before showing anything. Static, so asking
-    # costs nothing but the scan itself.
+    # the filter every list applies before showing anything. Their state comes
+    # along, from one batched question - wsl --list says what runs, about
+    # everyone at once - so a caller never has to ask a second time.
     static [WslInstance[]] Ours() {
-        return @([WslInstance]::GetAll() | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
+        $Running = Get-DistroNames -Running
+        $ours = @([WslInstance]::GetAll() | Where-Object { Test-TemplateInstance -Folder $_.Path })
+        foreach ($instance in $ours) {
+            if ($Running -contains $instance.Name) {
+                $instance.State = [WslState]::Running
+            } else {
+                $instance.State = [WslState]::Stopped
+            }
+        }
+        return @($ours | Sort-Object Name)
     }
 
     [WslInstance] FindByName([string]$name) {
