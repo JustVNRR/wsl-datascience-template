@@ -30,56 +30,6 @@ if ($Ignored) {
 # Nerd Font (MesloLGS NF), per-user (HKCU, LocalAppData): no admin needed, and
 # the function never throws - the prompt looks worse without the font, and that
 # is not a failed deployment.
-function Install-NerdFont {
-    $FontName = "MesloLGS NF"
-    $FontFile = "MesloLGS NF Regular.ttf"
-
-    $FontRegPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
-    $UserFontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
-    $DestFontPath = Join-Path $UserFontsDir $FontFile
-
-    if (-not (Test-Path $FontRegPath)) {
-        New-Item -Path $FontRegPath -Force | Out-Null
-    }
-
-    # The file and its registry entry are two separate facts, and the font is
-    # there only when both are: one without the other means an interrupted run,
-    # and the install below repairs it.
-    if ((Get-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -ErrorAction SilentlyContinue) -and
-        (Test-Path $DestFontPath)) {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected ($FontName)." -ForegroundColor (Get-MessageColour success)
-        return $true
-    }
-
-    Write-Host "==> Starship prompt requires a Nerd Font. Downloading $FontName..." -ForegroundColor (Get-MessageColour info)
-
-    # Best effort: neither a download that fails nor a registry that refuses may
-    # turn a finished deployment into a failed one. The temporary file belongs
-    # to this run alone and is taken away in the finally either way.
-    $TempFontPath = Join-Path $env:TEMP "$([guid]::NewGuid().ToString('N')).ttf"
-    try {
-        $FontUrl = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
-        Invoke-WebRequest -Uri $FontUrl -OutFile $TempFontPath -UseBasicParsing
-
-        if (-not (Test-Path $UserFontsDir)) {
-            New-Item -ItemType Directory -Path $UserFontsDir -Force | Out-Null
-        }
-        if (-not (Test-Path $DestFontPath)) {
-            Copy-Item -Path $TempFontPath -Destination $DestFontPath -Force
-        }
-        if (-not (Get-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -ErrorAction SilentlyContinue)) {
-            New-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -Value $DestFontPath -PropertyType String -Force | Out-Null
-        }
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed $FontName for current user." -ForegroundColor (Get-MessageColour success)
-        return $false
-    } catch {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $_" -ForegroundColor (Get-MessageColour error)
-        return $false
-    } finally {
-        Remove-Item -Path $TempFontPath -Force -ErrorAction SilentlyContinue
-    }
-}
-
 # Step 0, as a piece of its own: Docker answers before the questions, and a
 # docker that does not aborts with nothing confirmed and nothing touched. It
 # exits rather than throws - there is nothing to catch above it.
@@ -671,8 +621,19 @@ try {
     Stop-WslDistro -Name $DistroName
 
     Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor (Get-MessageColour info)
-    # The function prints its status line; the boolean would print True/False.
-    Install-NerdFont | Out-Null
+    # The font every look starts from: present, installed here, or beyond this
+    # build's reach - the three news there are. Best effort either way.
+    if (-not $Instance.FontMissing()) {
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected (MesloLGS NF)." -ForegroundColor (Get-MessageColour success)
+    } else {
+        Write-Host "==> Starship prompt requires a Nerd Font. Downloading MesloLGS NF..." -ForegroundColor (Get-MessageColour info)
+        $FontStatus = $Instance.EnsureFont()
+        if ($FontStatus.State -eq "installed") {
+            Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed MesloLGS NF for current user." -ForegroundColor (Get-MessageColour success)
+        } else {
+            Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $($FontStatus.Error)" -ForegroundColor (Get-MessageColour error)
+        }
+    }
 
     Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
     $TerminalProfileOk = Configure-TerminalProfile -DistroName $DistroName -InstallPath $InstallPath
