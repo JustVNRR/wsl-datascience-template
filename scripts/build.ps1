@@ -229,26 +229,8 @@ function Remove-DeploymentArtifacts {
     }
 }
 
-# Step 8 in one place: the font the look starts from - fetched when missing
-# (best effort, the mechanics are the look's), then shown as the value it is.
-function Configure-NerdFont {
-    param([WslInstance]$Instance)
-
-    $Problem = ""
-    if ($Instance.Look.FontMissing()) {
-        $FontStatus = $Instance.Look.EnsureFont()
-        if ($FontStatus.State -ne "installed") {
-            $Problem = " - not installed: $($FontStatus.Error)"
-        }
-    }
-    if ($Problem) {
-        Write-Host "  * Font Status       : $($Instance.Look.FontName)$Problem" -ForegroundColor (Get-MessageColour warning)
-    } else {
-        Write-Host "  * Font Status       : $($Instance.Look.FontName)" -ForegroundColor (Get-MessageColour info)
-    }
-}
-
-# Step 9 in one place: the icon drawn from the instance's own name, the ghost
+# Step 8 in one place: the font the look starts from, fetched before the
+# profile applies it, the icon drawn from the instance's own name, the ghost
 # profiles a rebuild orphaned, the fragment this instance is given, and the
 # look left in its folder - the file an archive carries. Answers whether a
 # profile could be applied at all.
@@ -257,6 +239,16 @@ function Configure-TerminalProfile {
 
     $DistroName = $Instance.Name
     $InstallPath = $Instance.Path
+
+    # The profile applies the look's font: Windows must have it first, best
+    # effort - the mechanics are the look's, and a failure is said without
+    # failing the build.
+    if ($Instance.Look.FontMissing()) {
+        $FontStatus = $Instance.Look.EnsureFont()
+        if ($FontStatus.State -ne "installed") {
+            Write-Host "  * Font Status       : $($Instance.Look.FontName) - not installed: $($FontStatus.Error)" -ForegroundColor (Get-MessageColour warning)
+        }
+    }
 
     # The icon is drawn from the instance's own name, letters and colours both.
     # Nothing is said about a drawing that worked. It is decoration: a failure
@@ -635,7 +627,7 @@ try {
     # marked the moment it is registered, before the steps that can still
     # fail - a build that stops at the font step leaves a real instance
     # behind, not an invisible one. It is born with its look, the default one;
-    # the icon joins it at step 9, once it is drawn.
+    # the icon joins it at step 8, once it is drawn.
     $Instance = [WslInstance]::Build($DistroName, $InstallPath, $TarPath, "", [WslTheme]::Default($DistroName))
     $Deployment.DistroRegistered = $true
 
@@ -648,10 +640,7 @@ try {
     Write-Host "==> 7. Shutting down distro to persist systemd and user configuration..." -ForegroundColor (Get-MessageColour info)
     Stop-WslDistro -Name $DistroName
 
-    Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor (Get-MessageColour info)
-    Configure-NerdFont -Instance $Instance
-
-    Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
+    Write-Host "==> 8. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
     $TerminalProfileOk = Configure-TerminalProfile -Instance $Instance
 
     # Terminal is asked to look again: the new profile appears without closing.
