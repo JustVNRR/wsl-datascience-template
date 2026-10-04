@@ -229,93 +229,6 @@ function Remove-DeploymentArtifacts {
     }
 }
 
-# Step 8 in one place: the font the look starts from, fetched before the
-# profile applies it, the icon drawn from the instance's own name, the ghost
-# profiles a rebuild orphaned, the fragment this instance is given, and the
-# look left in its folder - the file an archive carries. Answers whether a
-# profile could be applied at all.
-function Configure-TerminalProfile {
-    param([WslInstance]$Instance)
-
-    $DistroName = $Instance.Name
-    $InstallPath = $Instance.Path
-
-    # The profile applies the look's font: Windows must have it first, best
-    # effort - the mechanics are the look's, and a failure is said without
-    # failing the build.
-    if ($Instance.Look.FontMissing()) {
-        $FontStatus = $Instance.Look.EnsureFont()
-        if ($FontStatus.State -ne "installed") {
-            Write-Host "  * Font Status       : $($Instance.Look.FontName) - not installed: $($FontStatus.Error)" -ForegroundColor (Get-MessageColour warning)
-        }
-    }
-
-    # The icon is drawn from the instance's own name, letters and colours both.
-    # Nothing is said about a drawing that worked. It is decoration: a failure
-    # is reported, leaves no file, and the fragment below drops the icon line.
-    $IconPath = Join-Path $InstallPath "terminal-icon.png"
-    $IconDrawn = $false
-    $Icon = @{}
-    try {
-        # -What: the letters and colours read back into the instance's file, so
-        # a later change of one keeps the other.
-        $Drawn = & "$RepoRoot\assets\make-icon.ps1" -Name $DistroName -Out $IconPath -Quiet -What | ConvertFrom-Json
-        $IconDrawn = $true
-        $Icon = @{ Text = $Drawn.Text; Top = $Drawn.Top; Bottom = $Drawn.Bottom; TextColor = $Drawn.TextColor }
-    } catch {
-        Remove-Item $IconPath -Force -ErrorAction SilentlyContinue
-        Write-Host "  * Terminal profile : no icon ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
-    }
-
-    # WSL writes one fragment per import under Fragments\Microsoft.WSL - the
-    # guid changes on every rebuild. The shared scan gives this name's guid
-    # and the full set of live ones, for the ghost pruning below.
-    $Fragments = Get-WslFragmentGuids -Name $DistroName
-    $ProfileGuid = $Fragments.Guid
-    $LiveGuids = $Fragments.Guids
-
-    # Prune ghost profiles: every rebuild orphans the previous profile into the
-    # user's settings.json. This distro's entries matching no live fragment go;
-    # an orphan Terminal writes after this point waits for the next build.
-    if ($LiveGuids.Count -gt 0) {
-        $Ghosts = Remove-TerminalGhostEntries -Name $DistroName -LiveGuids $LiveGuids
-        foreach ($Pruned in $Ghosts.Files) {
-            Write-Host "  * Terminal profile : pruned $($Pruned.Pruned) ghost '$DistroName' entries from settings.json" -ForegroundColor (Get-MessageColour success)
-        }
-        foreach ($SettingsPath in $Ghosts.Unreadable) {
-            Write-Host "  * Terminal profile : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
-            Write-Host "                       (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
-        }
-    }
-
-    # Our own fragment files whose distro no longer exists go too - one file
-    # per distro, named <DistroName>.json.
-    foreach ($Name in (Remove-StaleAppearanceFragments -LiveGuids $LiveGuids)) {
-        Write-Host "  * Terminal profile : removed stale fragment $Name" -ForegroundColor (Get-MessageColour success)
-    }
-
-    if ($ProfileGuid) {
-        # No icon drawn, no icon line: Terminal shows its own. The look is the
-        # instance's own - the default it was born with - completed with the
-        # icon just drawn.
-        $Theme = $Instance.Look
-        $Theme.IconPath = $(if ($IconDrawn) { $IconPath } else { "" })
-        Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Theme $Theme
-        Write-Host "  * Terminal profile applied" -ForegroundColor (Get-MessageColour success)
-        $TerminalProfileOk = $true
-    } else {
-        Write-Host "  * Terminal profile : no WSL fragment found for '$DistroName'; icon not automated" -ForegroundColor (Get-MessageColour warning)
-        $TerminalProfileOk = $false
-    }
-
-    # What this instance looks like, in its own folder - the file an archive
-    # carries. Written here, the fragment in place, so the font and colours it
-    # reads are the ones just applied, icon recipe included.
-    Set-InstanceLook -InstallPath $InstallPath -Look (New-InstanceLook -Name $DistroName -Icon $Icon)
-
-    return $TerminalProfileOk
-}
-
 # The packs, asked earlier and installed now - in a try of their own, because a
 # pack that fails must not reach the deployment's catch, which would announce
 # "[ERROR] DURING DEPLOYMENT" for an instance that is built, registered and
@@ -627,7 +540,7 @@ try {
     # marked the moment it is registered, before the steps that can still
     # fail - a build that stops at the font step leaves a real instance
     # behind, not an invisible one. It is born with its look, the default one;
-    # the icon joins it at step 8, once it is drawn.
+    # the icon joins it when the profile is applied.
     $Instance = [WslInstance]::Build($DistroName, $InstallPath, $TarPath, "", [WslTheme]::Default($DistroName))
     $Deployment.DistroRegistered = $true
 
@@ -640,8 +553,12 @@ try {
     Write-Host "==> 7. Shutting down distro to persist systemd and user configuration..." -ForegroundColor (Get-MessageColour info)
     Stop-WslDistro -Name $DistroName
 
-    Write-Host "==> 8. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
-    $TerminalProfileOk = Configure-TerminalProfile -Instance $Instance
+    # The profile - the font, the icon, the fragment, the tab - belongs to the
+    # instance; what it could not do is said here.
+    $ProfileResult = $Instance.ApplyTerminalProfile()
+    foreach ($Note in $ProfileResult.Warnings) {
+        Write-Host "  * Terminal profile  : $Note" -ForegroundColor (Get-MessageColour warning)
+    }
 
     # Terminal is asked to look again: the new profile appears without closing.
     Update-TerminalSettings
@@ -659,7 +576,7 @@ try {
     Write-Host ""
     # The instance describes itself; one call shows the lot.
     Write-Host "$Instance"
-    if (-not $TerminalProfileOk) {
+    if (-not $ProfileResult.Applied) {
         Write-Host "  * Terminal profile  : not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor (Get-MessageColour hint)
     }
     Write-Host "  * Packs             : " -NoNewline

@@ -317,11 +317,81 @@ class WslInstance {
         $this.ApplyTerminalProfile()
     }
 
-    [void] ApplyTerminalProfile() {
-        # TODO: write this instance's fragment (Set-InstanceFragment): the
-        # guid WSL gave it, then font, colour scheme and icon - each Set* above
-        # changes one and keeps the others. Also refreshes the instance's own
-        # instance.json, which is what an archive carries.
+    # Makes the look live on the Windows side: the font it names (fetched when
+    # missing, best effort), the icon drawn from the instance's own name, the
+    # fragment Windows Terminal reads under the guid WSL gave the instance,
+    # and the instance's own file - the one an archive carries. Everything
+    # derives from the instance and the look; the caller does the talking.
+    # Answers whether a profile could be applied at all, with the odd news
+    # worth a line.
+    [object] ApplyTerminalProfile() {
+        if (-not $this.Look) { $this.Look = [WslTheme]::Default($this.Name) }
+
+        $Warnings = @()
+
+        # The font the look names: Windows must have it before the fragment
+        # points at it.
+        if ($this.Look.FontMissing()) {
+            $FontStatus = $this.Look.EnsureFont()
+            if ($FontStatus.State -ne "installed") {
+                $Warnings += "the font '$($this.Look.FontName)' would not install: $($FontStatus.Error)"
+            }
+        }
+
+        # The icon is drawn from the instance's own name, letters and colours
+        # both. It is decoration: a failure is said here, leaves no file, and
+        # the fragment below drops the icon line.
+        $IconPath = Join-Path $this.Path "terminal-icon.png"
+        $IconDrawn = $false
+        $Icon = @{}
+        try {
+            # -What: the letters and colours read back into the instance's file,
+            # so a later change of one keeps the other. -Quiet: nothing said
+            # about a drawing that worked. In a method, $PSScriptRoot is this
+            # file's folder - two levels under the repository's root.
+            $IconScript = Join-Path $PSScriptRoot "..\..\assets\make-icon.ps1"
+            $Drawn = & $IconScript -Name $this.Name -Out $IconPath -Quiet -What | ConvertFrom-Json
+            $IconDrawn = $true
+            $Icon = @{ Text = $Drawn.Text; Top = $Drawn.Top; Bottom = $Drawn.Bottom; TextColor = $Drawn.TextColor }
+        } catch {
+            Remove-Item $IconPath -Force -ErrorAction SilentlyContinue
+            $Warnings += "no icon ($($_.Exception.Message))"
+        }
+
+        # WSL writes one fragment per import - the guid changes on every
+        # rebuild. The shared scan gives this name's guid and the full set of
+        # live ones, for the ghost pruning below.
+        $Fragments = Get-WslFragmentGuids -Name $this.Name
+
+        # Every rebuild orphans the previous profile into the user's
+        # settings.json: this instance's entries matching no live fragment go.
+        if ($Fragments.Guids.Count -gt 0) {
+            $Ghosts = Remove-TerminalGhostEntries -Name $this.Name -LiveGuids $Fragments.Guids
+            foreach ($Path in $Ghosts.Unreadable) {
+                $Warnings += "ghost entries NOT pruned in $Path (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)"
+            }
+        }
+
+        # Our own fragment files whose distro no longer exists go too.
+        $null = Remove-StaleAppearanceFragments -LiveGuids $Fragments.Guids
+
+        $Applied = $false
+        if ($Fragments.Guid) {
+            # No icon drawn, no icon line: Terminal shows its own. The look is
+            # the instance's own, completed with the icon just drawn.
+            $this.Look.IconPath = $(if ($IconDrawn) { $IconPath } else { "" })
+            Set-InstanceFragment -Name $this.Name -Guid $Fragments.Guid -Theme $this.Look
+            $Applied = $true
+        } else {
+            $Warnings += "no WSL fragment for '$($this.Name)' - the profile was not applied"
+        }
+
+        # What this instance looks like, in its own folder - the file an
+        # archive carries. Written here, the fragment in place, so the font and
+        # colours it reads are the ones just applied, icon recipe included.
+        Set-InstanceLook -InstallPath $this.Path -Look (New-InstanceLook -Name $this.Name -Icon $Icon)
+
+        return [PSCustomObject]@{ Applied = $Applied; Warnings = @($Warnings) }
     }
 
     # =========================================================================
@@ -393,9 +463,6 @@ class WslInstance {
         $instance.Path        = $installPath
         $instance.DefaultUser = $user
         $instance.Look        = $look
-        if ($look) {
-            $instance.ApplyTerminalProfile()
-        }
         return $instance
     }
 
