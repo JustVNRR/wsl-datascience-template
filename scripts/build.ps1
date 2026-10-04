@@ -587,12 +587,6 @@ try {
     }
     Write-Host ""
 
-    Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
-    Write-Host "To launch your session, run:" -ForegroundColor (Get-MessageColour hint)
-    Write-Host "  wsl -d $DistroName" -ForegroundColor (Get-MessageColour hint)
-    Write-Host "------------------------------------------------------------" -ForegroundColor (Get-MessageColour muted)
-    Write-Host ""
-
     $Deployment.Succeeded = $true
 }
 catch {
