@@ -216,43 +216,70 @@ class WslInstance {
         }
     }
 
-    [void] Unregister([bool]$toArchive) {
-        $this.Stop()
-
-        # The archive first, when asked for: the copy exists before anything is
-        # destroyed.
-        if ($toArchive) {
-            [void]$this.Archive($this.Name)
-        }
-
-        # wsl --unregister right after the terminate would run too early.
+    # Removes the instance from WSL and from the Windows side: the stop whose
+    # own failure is ignored - a distro half gone must not block its own
+    # removal - the archive when asked for, the unregister, what is left of
+    # the install folder, and the Terminal and Docker traces, whose mechanics
+    # are the shared cleanup functions' (the build prunes the same ghosts the
+    # same way). Returns what the caller reports: the folder's fate, the
+    # counts, Docker's answer.
+    [object] Unregister([bool]$toArchive) {
+        # The raw terminate, failure ignored on purpose, then the pause the
+        # command always took: wsl --unregister right after would run too
+        # early.
+        $null = & wsl.exe --terminate $this.Name 2>$null
         Start-Sleep -Seconds 1
-        & wsl.exe --unregister $this.Name
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to unregister WSL distribution '$($this.Name)'."
+
+        # The archive first, when asked for: the copy exists before anything
+        # is destroyed.
+        if ($toArchive) {
+            $ArchiveDir = $this.Archive($this.Name)
+            [void]$this.ArchiveLook($ArchiveDir)
         }
+
+        $FolderExisted = $this.Path -and (Test-Path $this.Path)
+        Invoke-External { wsl.exe --unregister $this.Name } "WSL unregister failed."
 
         # wsl --unregister removes the install folder with the disk; anything
         # left here is the exception.
+        $FolderState = "not found"
         if ($this.Path -and (Test-Path $this.Path)) {
             Remove-Item -Path $this.Path -Recurse -Force
+            $FolderState = "removed"
+        } elseif ($FolderExisted) {
+            $FolderState = "removed with the distribution"
         }
 
-        # Our appearance fragment for this instance.
-        $fragmentPath = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$($this.Name).json"
-        if (Test-Path $fragmentPath) {
-            Remove-Item -Path $fragmentPath -Force -ErrorAction SilentlyContinue
-        }
+        # Our own appearance fragment goes by name; the rest is the shared
+        # cleanup.
+        $Fragments = Get-WslFragmentGuids -Name $this.Name
+        $Ghosts = Remove-TerminalGhostEntries -Name $this.Name -LiveGuids $Fragments.Guids
+        $GhostTotal = 0
+        foreach ($File in $Ghosts.Files) { $GhostTotal += $File.Pruned }
 
-        # TODO: the rest of the Windows-side housekeeping, shared with the
-        # build's profile step: prune the ghost entries left in the user's
-        # settings.json, remove the other fragments pointing at a dead distro,
-        # and take the name out of Docker Desktop's integrated list.
+        $AppearanceRemoved = 0
+        $OwnFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$($this.Name).json"
+        if (Test-Path $OwnFragment) {
+            Remove-Item -Path $OwnFragment -Force -ErrorAction SilentlyContinue
+            $AppearanceRemoved++
+        }
+        $AppearanceRemoved += @(Remove-StaleAppearanceFragments -LiveGuids $Fragments.Guids).Count
+
+        $Docker = Remove-DockerIntegration -Name $this.Name
 
         if ($this.HasArchive) {
             $this.State = [WslState]::Archived
         } else {
             $this.State = [WslState]::Unknown
+        }
+
+        return [PSCustomObject]@{
+            FolderState      = $FolderState
+            GhostsPruned     = $GhostTotal
+            Unreadable       = $Ghosts.Unreadable
+            FragmentsRemoved = $AppearanceRemoved
+            DockerRemoved    = $Docker.Removed
+            DockerError      = $Docker.Error
         }
     }
 

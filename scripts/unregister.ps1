@@ -20,11 +20,6 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-function Get-Distro {
-    param([string]$Name)
-    return (Get-Distros | Where-Object { $_.Name -eq $Name } | Select-Object -First 1)
-}
-
 # ==============================================================================
 # 1. WHICH DISTRO (from the list, always)
 # ==============================================================================
@@ -43,9 +38,7 @@ if ($Ours.Count -eq 0) {
 $Distro = Select-Distro
 $DistroName = $Distro.Name
 
-# Taken before the removal, so that afterwards the two cases can be told apart
 $InstallPath = $Distro.Path
-$FolderExisted = Test-Path $InstallPath
 
 # ==============================================================================
 # 2. CONFIRMATION (destructive) - same style as build.ps1
@@ -99,128 +92,45 @@ if ($Distro) {
         }
     }
 
+    # The destruction belongs to the instance now - the stop (its failure
+    # ignored: a distro half gone must not block its own removal), the
+    # unregister, the install folder and the Windows-side housekeeping; what
+    # it found comes back for the report below. The archive, when asked for
+    # above, was written by archive.ps1 - its own report and its own guards.
     Write-Host "==> Stopping the distro processes..." -ForegroundColor (Get-MessageColour info)
-    wsl.exe --terminate $DistroName 2>$null
-
-    Start-Sleep -Seconds 1
-
     Write-Host "==> Unregistering the distro..." -ForegroundColor (Get-MessageColour info)
-    Invoke-External { wsl.exe --unregister $DistroName } "WSL unregister failed."
+    $Removed = $Distro.Unregister($false)
 }
 
 # ==============================================================================
-# 3. INSTALLATION FOLDER (registry BasePath, or the default location)
+# 3. WHAT BECAME OF IT (reported; the removal itself was the instance's)
 # ==============================================================================
-# wsl --unregister removes the install folder with the distribution: anything
-# left here is the exception, and "removed by WSL" is not "never there".
-if (Test-Path $InstallPath) {
+if ($Removed.FolderState -eq "removed") {
     Write-Host "==> Removing installation folder ($InstallPath)..." -ForegroundColor (Get-MessageColour info)
-    Remove-Item -Recurse -Force $InstallPath
-    $FolderState = "removed"
-} elseif ($FolderExisted) {
+} elseif ($Removed.FolderState -eq "removed with the distribution") {
     Write-Host "==> Installation folder already gone - wsl --unregister removes it with the distribution." -ForegroundColor (Get-MessageColour info)
-    $FolderState = "removed with the distribution"
 } else {
     Write-Host "==> No installation folder found ($InstallPath)." -ForegroundColor (Get-MessageColour info)
-    $FolderState = "not found"
 }
 
 # ==============================================================================
-# 4. WINDOWS TERMINAL CLEANUP (ghost settings entries, our fragments)
+# 4. WINDOWS TERMINAL AND DOCKER (reported; the cleaning was the instance's)
 # ==============================================================================
 Write-Host "==> Cleaning Windows Terminal leftovers..." -ForegroundColor (Get-MessageColour info)
-
-# Live profile guids = the WSL fragments still on disk (WSL removed the dead one)
-$WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
-$LiveGuids = @()
-if (Test-Path $WslFragmentsDir) {
-    foreach ($File in (Get-ChildItem $WslFragmentsDir -Filter *.json)) {
-        try {
-            $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
-            foreach ($Entry in $Fragment.profiles) {
-                if ($Entry.guid) { $LiveGuids += $Entry.guid }
-            }
-        } catch { }
-    }
+foreach ($SettingsPath in $Removed.Unreadable) {
+    Write-Host "  * settings.json : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
+    Write-Host "                    (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
 }
-
-# Ghost entries in the user's settings.json (Terminal persists them when a
-# profile's source disappears). Same pruning as build.ps1 step 9.
-$GhostsPruned = 0
-foreach ($SettingsPath in @(
-    "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
-    "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
-    "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
-)) {
-    if (-not (Test-Path $SettingsPath)) { continue }
-    try {
-        $Settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
-        $All = @($Settings.profiles.list)
-        $Kept = @($All | Where-Object { -not ($_.source -eq "Microsoft.WSL" -and $_.name -eq $DistroName -and $LiveGuids -notcontains $_.guid) })
-        if ($Kept.Count -ne $All.Count) {
-            Copy-Item $SettingsPath "$SettingsPath.bak" -Force
-            $Settings.profiles.list = $Kept
-            $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding Utf8
-            $GhostsPruned += $All.Count - $Kept.Count
-        }
-    } catch {
-        Write-Host "  * settings.json : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
-        Write-Host "                    (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
-    }
+if ($Removed.GhostsPruned -gt 0) {
+    Write-Host "  * settings.json : pruned $($Removed.GhostsPruned) ghost '$DistroName' entries" -ForegroundColor (Get-MessageColour success)
 }
-if ($GhostsPruned -gt 0) {
-    Write-Host "  * settings.json : pruned $GhostsPruned ghost '$DistroName' entries" -ForegroundColor (Get-MessageColour success)
+if ($Removed.FragmentsRemoved -gt 0) {
+    Write-Host "  * fragments     : removed $($Removed.FragmentsRemoved) appearance file(s)" -ForegroundColor (Get-MessageColour success)
 }
-
-# Our appearance fragment files (one per distro, named <DistroName>.json)
-$OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
-$FragmentsRemoved = 0
-if (Test-Path $OurFragmentDir) {
-    $OwnFile = Join-Path $OurFragmentDir "$DistroName.json"
-    if (Test-Path $OwnFile) {
-        Remove-Item $OwnFile -Force
-        $FragmentsRemoved++
-    }
-    # Any other of our files whose target distro no longer exists
-    if ($LiveGuids.Count -gt 0) {
-        foreach ($File in (Get-ChildItem $OurFragmentDir -Filter *.json)) {
-            try {
-                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
-                $Target = ($Fragment.profiles | Where-Object { $_.updates } | Select-Object -First 1).updates
-                if ($Target -and ($LiveGuids -notcontains $Target)) {
-                    Remove-Item $File.FullName -Force
-                    $FragmentsRemoved++
-                }
-            } catch { }
-        }
-    }
-}
-if ($FragmentsRemoved -gt 0) {
-    Write-Host "  * fragments     : removed $FragmentsRemoved appearance file(s)" -ForegroundColor (Get-MessageColour success)
-}
-
-# ==============================================================================
-# 5. DOCKER DESKTOP (its own list of integrated distros)
-# ==============================================================================
-# Docker Desktop reads its integrated-distros list at start; build.ps1 adds the
-# name there, so a removal takes it back out - a name pointing at nothing.
-$DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
-if (Test-Path $DockerSettings) {
-    try {
-        $DockerConfig = Get-Content $DockerSettings -Raw | ConvertFrom-Json
-        if ($DockerConfig.IntegratedWslDistros -contains $DistroName) {
-            Copy-Item $DockerSettings "$DockerSettings.bak" -Force
-            $DockerConfig.IntegratedWslDistros = @($DockerConfig.IntegratedWslDistros | Where-Object { $_ -and $_ -ne $DistroName })
-            # WriteAllText rather than Set-Content: Docker Desktop's file
-            # carries no BOM, and PowerShell's -Encoding Utf8 adds one.
-            $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
-            [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
-            Move-Item "$DockerSettings.tmp" $DockerSettings -Force
-            Write-Host "  * Docker Desktop : '$DistroName' removed from the integrated distros" -ForegroundColor (Get-MessageColour success)
-        }
-    } catch {
-        Write-Host "  * Docker Desktop : list not updated ($($_.Exception.Message))" -ForegroundColor (Get-MessageColour warning)
-    }
+if ($Removed.DockerError) {
+    Write-Host "  * Docker Desktop : list not updated ($($Removed.DockerError))" -ForegroundColor (Get-MessageColour warning)
+} elseif ($Removed.DockerRemoved) {
+    Write-Host "  * Docker Desktop : '$DistroName' removed from the integrated distros" -ForegroundColor (Get-MessageColour success)
 }
 
 # ==============================================================================
@@ -233,15 +143,13 @@ Write-Host "============================================================" -Foreg
 Write-Host ""
 Write-Host "  * Distro          : " -NoNewline; Write-Host "$DistroName" -ForegroundColor (Get-MessageColour info)
 Write-Host "  * Install folder  : " -NoNewline
-if ($FolderState -eq "removed") {
-    Write-Host "$FolderState" -ForegroundColor (Get-MessageColour success)
-} elseif ($FolderState -eq "kept") {
-    Write-Host "$FolderState" -ForegroundColor (Get-MessageColour warning)
+if ($Removed.FolderState -eq "removed") {
+    Write-Host "$($Removed.FolderState)" -ForegroundColor (Get-MessageColour success)
 } else {
-    Write-Host "$FolderState" -ForegroundColor (Get-MessageColour muted)
+    Write-Host "$($Removed.FolderState)" -ForegroundColor (Get-MessageColour muted)
 }
-Write-Host "  * Terminal ghosts : " -NoNewline; Write-Host "$GhostsPruned pruned" -ForegroundColor (Get-MessageColour info)
-Write-Host "  * Fragments       : " -NoNewline; Write-Host "$FragmentsRemoved removed" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Terminal ghosts : " -NoNewline; Write-Host "$($Removed.GhostsPruned) pruned" -ForegroundColor (Get-MessageColour info)
+Write-Host "  * Fragments       : " -NoNewline; Write-Host "$($Removed.FragmentsRemoved) removed" -ForegroundColor (Get-MessageColour info)
 Write-Host ""
 Write-Host " Restart Windows Terminal to refresh the profile list."
 Write-Host ""

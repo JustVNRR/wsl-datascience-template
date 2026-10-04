@@ -460,9 +460,9 @@ function Get-DockerState {
 function Set-DockerState {
     param([string]$Name)
 
-    # The same recipe build.ps1 uses: a backup beside the file, the name
-    # rebuilt rather than appended twice, and a byte-order-mark-free write
-    # because this file, written by Docker Desktop, does not carry one.
+    # The recipe: a backup beside the file, the name rebuilt rather than
+    # appended twice, and a byte-order-mark-free write because this file,
+    # written by Docker Desktop, does not carry one.
     $Settings = Join-Path $env:APPDATA "Docker\settings-store.json"
     $Config = Get-Content $Settings -Raw | ConvertFrom-Json
     Copy-Item $Settings "$Settings.bak" -Force
@@ -470,6 +470,117 @@ function Set-DockerState {
     $Json = ($Config | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
     [System.IO.File]::WriteAllText("$Settings.tmp", $Json, (New-Object System.Text.UTF8Encoding($false)))
     Move-Item "$Settings.tmp" $Settings -Force
+}
+
+# ---------------------------------------------------------------------------
+# WINDOWS-SIDE CLEANUP
+# ---------------------------------------------------------------------------
+# The Windows Terminal and Docker traces an instance leaves: the build prunes
+# the same ghosts the same way, so the mechanics live here, once.
+
+# What Windows Terminal can still match: WSL writes one fragment per import
+# under Fragments\Microsoft.WSL, and every guid those fragments carry is a
+# live profile - anything else in the user's files is a ghost. Newest first,
+# and the guid of the name asked for comes from the newest fragment naming it.
+function Get-WslFragmentGuids {
+    param([string]$Name)
+
+    $WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
+    $LiveGuids = @()
+    $Match = $null
+    if (Test-Path $WslFragmentsDir) {
+        foreach ($File in (Get-ChildItem $WslFragmentsDir -Filter *.json | Sort-Object LastWriteTime -Descending)) {
+            try {
+                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
+                foreach ($Entry in $Fragment.profiles) {
+                    if ($Entry.guid) { $LiveGuids += $Entry.guid }
+                    if (-not $Match -and $Name -and $Entry.name -eq $Name -and $Entry.guid) { $Match = $Entry.guid }
+                }
+            } catch { }
+        }
+    }
+    return [PSCustomObject]@{ Guids = @($LiveGuids); Guid = $Match }
+}
+
+# The user's settings.json keeps a profile entry for every distro Terminal has
+# seen; a rebuild or a removal orphans the old guid, and the entry points at
+# nothing. This distro's entries whose guid no fragment carries are pruned -
+# the file is backed up first. Answers what was pruned, per file, and the
+# files it could not read.
+function Remove-TerminalGhostEntries {
+    param([string]$Name, [string[]]$LiveGuids)
+
+    $Files = @()
+    $Unreadable = @()
+    foreach ($SettingsPath in @(
+        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
+        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
+        "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+    )) {
+        if (-not (Test-Path $SettingsPath)) { continue }
+        try {
+            $Settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
+            $All = @($Settings.profiles.list)
+            $Kept = @($All | Where-Object { -not ($_.source -eq "Microsoft.WSL" -and $_.name -eq $Name -and $LiveGuids -notcontains $_.guid) })
+            if ($Kept.Count -ne $All.Count) {
+                Copy-Item $SettingsPath "$SettingsPath.bak" -Force
+                $Settings.profiles.list = $Kept
+                $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding Utf8
+                $Files += [PSCustomObject]@{ Path = $SettingsPath; Pruned = $All.Count - $Kept.Count }
+            }
+        } catch {
+            $Unreadable += $SettingsPath
+        }
+    }
+    return [PSCustomObject]@{ Files = @($Files); Unreadable = @($Unreadable) }
+}
+
+# Our appearance fragments - one file per distro under Fragments\wsl-stack -
+# whose target guid no fragment carries: the distro is gone and the file
+# points at nothing. Answers the file names removed.
+function Remove-StaleAppearanceFragments {
+    param([string[]]$LiveGuids)
+
+    $Removed = @()
+    if ($LiveGuids.Count -eq 0) { return @() }
+    $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
+    if (-not (Test-Path $OurFragmentDir)) { return @() }
+    foreach ($File in (Get-ChildItem $OurFragmentDir -Filter *.json)) {
+        try {
+            $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
+            $Target = ($Fragment.profiles | Where-Object { $_.updates } | Select-Object -First 1).updates
+            if ($Target -and ($LiveGuids -notcontains $Target)) {
+                Remove-Item $File.FullName -Force
+                $Removed += $File.Name
+            }
+        } catch { }
+    }
+    return @($Removed)
+}
+
+# Docker Desktop reads its integrated-distros list only when it starts: a name
+# pointing at nothing goes back out, the file backed up first and rewritten
+# byte-order-mark-free, like Set-DockerState does. Answers whether the name was
+# there, or why the file could not be updated.
+function Remove-DockerIntegration {
+    param([string]$Name)
+
+    $DockerSettings = Join-Path $env:APPDATA "Docker\settings-store.json"
+    if (-not (Test-Path $DockerSettings)) { return [PSCustomObject]@{ Removed = $false; Error = "" } }
+    try {
+        $DockerConfig = Get-Content $DockerSettings -Raw | ConvertFrom-Json
+        if ($DockerConfig.IntegratedWslDistros -contains $Name) {
+            Copy-Item $DockerSettings "$DockerSettings.bak" -Force
+            $DockerConfig.IntegratedWslDistros = @($DockerConfig.IntegratedWslDistros | Where-Object { $_ -and $_ -ne $Name })
+            $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
+            [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
+            Move-Item "$DockerSettings.tmp" $DockerSettings -Force
+            return [PSCustomObject]@{ Removed = $true; Error = "" }
+        }
+        return [PSCustomObject]@{ Removed = $false; Error = "" }
+    } catch {
+        return [PSCustomObject]@{ Removed = $false; Error = $_.Exception.Message }
+    }
 }
 
 # ---------------------------------------------------------------------------

@@ -309,65 +309,30 @@ function Configure-TerminalProfile {
     }
 
     # WSL writes one fragment per import under Fragments\Microsoft.WSL - the
-    # guid changes on every rebuild. Newest-first scan, and the full set of
-    # live guids is kept for the ghost pruning below.
-    $WslFragmentsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\Microsoft.WSL"
-    $ProfileGuid = $null
-    $LiveGuids = @()
-    if (Test-Path $WslFragmentsDir) {
-        foreach ($File in (Get-ChildItem $WslFragmentsDir -Filter *.json | Sort-Object LastWriteTime -Descending)) {
-            try {
-                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
-                foreach ($Entry in $Fragment.profiles) {
-                    if ($Entry.guid) { $LiveGuids += $Entry.guid }
-                    if (-not $ProfileGuid -and $Entry.name -eq $DistroName -and $Entry.guid) { $ProfileGuid = $Entry.guid }
-                }
-            } catch { }
-        }
-    }
-
-    $OurFragmentDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
+    # guid changes on every rebuild. The shared scan gives this name's guid
+    # and the full set of live ones, for the ghost pruning below.
+    $Fragments = Get-WslFragmentGuids -Name $DistroName
+    $ProfileGuid = $Fragments.Guid
+    $LiveGuids = $Fragments.Guids
 
     # Prune ghost profiles: every rebuild orphans the previous profile into the
     # user's settings.json. This distro's entries matching no live fragment go;
     # an orphan Terminal writes after this point waits for the next build.
     if ($LiveGuids.Count -gt 0) {
-        foreach ($SettingsPath in @(
-            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
-            "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\LocalState\settings.json",
-            "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
-        )) {
-            if (-not (Test-Path $SettingsPath)) { continue }
-            try {
-                $Settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
-                $All = @($Settings.profiles.list)
-                $Kept = @($All | Where-Object { -not ($_.source -eq "Microsoft.WSL" -and $_.name -eq $DistroName -and $LiveGuids -notcontains $_.guid) })
-                if ($Kept.Count -ne $All.Count) {
-                    Copy-Item $SettingsPath "$SettingsPath.bak" -Force
-                    $Settings.profiles.list = $Kept
-                    $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding Utf8
-                    Write-Host "  * Terminal profile : pruned $($All.Count - $Kept.Count) ghost '$DistroName' entries from settings.json" -ForegroundColor (Get-MessageColour success)
-                }
-            } catch {
-                Write-Host "  * Terminal profile : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
-                Write-Host "                       (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
-            }
+        $Ghosts = Remove-TerminalGhostEntries -Name $DistroName -LiveGuids $LiveGuids
+        foreach ($Pruned in $Ghosts.Files) {
+            Write-Host "  * Terminal profile : pruned $($Pruned.Pruned) ghost '$DistroName' entries from settings.json" -ForegroundColor (Get-MessageColour success)
+        }
+        foreach ($SettingsPath in $Ghosts.Unreadable) {
+            Write-Host "  * Terminal profile : ghost entries NOT pruned in $SettingsPath" -ForegroundColor (Get-MessageColour warning)
+            Write-Host "                       (unreadable JSON - a // comment breaks ConvertFrom-Json; remove them by hand)" -ForegroundColor (Get-MessageColour muted)
         }
     }
 
     # Our own fragment files whose distro no longer exists go too - one file
     # per distro, named <DistroName>.json.
-    if ((Test-Path $OurFragmentDir) -and ($LiveGuids.Count -gt 0)) {
-        foreach ($File in (Get-ChildItem $OurFragmentDir -Filter *.json)) {
-            try {
-                $Fragment = Get-Content $File.FullName -Raw | ConvertFrom-Json
-                $Target = ($Fragment.profiles | Where-Object { $_.updates } | Select-Object -First 1).updates
-                if ($Target -and ($LiveGuids -notcontains $Target)) {
-                    Remove-Item $File.FullName -Force
-                    Write-Host "  * Terminal profile : removed stale fragment $($File.Name)" -ForegroundColor (Get-MessageColour success)
-                }
-            } catch { }
-        }
+    foreach ($Name in (Remove-StaleAppearanceFragments -LiveGuids $LiveGuids)) {
+        Write-Host "  * Terminal profile : removed stale fragment $Name" -ForegroundColor (Get-MessageColour success)
     }
 
     if ($ProfileGuid) {
@@ -467,20 +432,10 @@ function Configure-DockerDesktopIntegration {
         $AddToDocker = Read-Host "Restart Docker Desktop to add support for '$DistroName'? [Y/n]"
         if ($AddToDocker -match "^[nN]$") { return $null }
 
-        $DockerConfig = Get-Content $DockerSettings -Raw | ConvertFrom-Json
-        Copy-Item $DockerSettings "$DockerSettings.bak" -Force
-        # Rebuilt without this distro and without empty entries, then appended
-        # once: a name already there would be added twice.
-        $DockerConfig.IntegratedWslDistros =
-            @($DockerConfig.IntegratedWslDistros | Where-Object { $_ -and $_ -ne $DistroName }) + $DistroName
-        # Written beside the file and swapped in, so an interrupted write cannot
-        # leave Docker Desktop with half a JSON - and with WriteAllText rather
-        # than Set-Content, because PowerShell's -Encoding Utf8 prepends a
-        # byte-order mark that this file, written by Docker Desktop, does not
-        # carry.
-        $DockerJson = ($DockerConfig | ConvertTo-Json -Depth 10) -replace "`r`n", "`n"
-        [System.IO.File]::WriteAllText("$DockerSettings.tmp", $DockerJson, (New-Object System.Text.UTF8Encoding($false)))
-        Move-Item "$DockerSettings.tmp" $DockerSettings -Force
+        # The shared recipe: a backup beside the file, the name rebuilt rather
+        # than appended twice, and a byte-order-mark-free write - Docker
+        # Desktop's file carries none.
+        Set-DockerState -Name $DistroName
 
         if (Test-NativeCommand { docker desktop restart }) {
             # The restart says nothing about what happened inside: the client is
