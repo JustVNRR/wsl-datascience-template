@@ -164,6 +164,12 @@ try {
     Remove-Item $Log -Force -ErrorAction SilentlyContinue
     $Out = Invoke-Child -Script $ShellScript -Answers @("$Pick")
     Check "shell opens a session on the instance picked" (@(Get-Calls | Where-Object { $_ -eq "-d $FakeName --cd ~" }).Count) 1
+    # wsl.exe parses its own command line and does not strip quotes: a quoted
+    # name stops matching (seen on a real machine - the same name unquoted
+    # works). The joined arguments above cannot show that; the raw line can.
+    Check "and the raw command line is on record" (@(Get-Calls | Where-Object { $_ -like "raw:*" }).Count -gt 0) $true
+    Check "and the name reaches wsl unquoted" `
+        (@(Get-Calls | Where-Object { $_ -like "raw:*" -and $_ -like "*`"$FakeName`"*" }).Count) 0
     Check "and says what it is doing" (@($Out | Where-Object { "$_".Contains("Opening a shell in '$FakeName'") }).Count -gt 0) $true
     Check "and notes a stopped instance" (@($Out | Where-Object { "$_".Contains("It was stopped") }).Count -gt 0) $true
     Check "and hands the session's code over" $script:ChildExit 0

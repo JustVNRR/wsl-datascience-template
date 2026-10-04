@@ -97,11 +97,12 @@ class WslInstance {
     # Opens a shell on the caller's console and steps aside: the terminal
     # belongs to it until the user leaves. A process of its own (Start-Process),
     # because run from here the session's output would fall under the method's
-    # own rule - swallowed. `--cd "~"` opens it in the instance's home, and the
-    # `~` rides inside the argument string, where nothing expands it. The
-    # shell's own exit code comes back - handed over, not read.
+    # own rule - swallowed. The name goes in unquoted - wsl.exe parses its own
+    # line and does not strip quotes, so a quoted name stops matching - and the
+    # `~` rides inside the string, where nothing expands it. The shell's own
+    # exit code comes back - handed over, not read.
     [int] Shell() {
-        $Arguments = '-d "{0}" --cd ~' -f $this.Name
+        $Arguments = '-d {0} --cd ~' -f $this.Name
         $Process = Start-Process wsl.exe -ArgumentList $Arguments -NoNewWindow -Wait -PassThru
         return $Process.ExitCode
     }

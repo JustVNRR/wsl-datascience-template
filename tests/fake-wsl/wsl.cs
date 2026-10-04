@@ -19,6 +19,9 @@ public class Program
         if (!String.IsNullOrEmpty(log))
         {
             File.AppendAllText(log, String.Join(" ", args) + Environment.NewLine);
+            // The raw command line too: real wsl.exe parses its own and does not
+            // strip quotes, which the joined arguments above cannot show.
+            File.AppendAllText(log, "raw: " + Environment.CommandLine + Environment.NewLine);
         }
 
         if (args.Length >= 1 && args[0] == "--list")
