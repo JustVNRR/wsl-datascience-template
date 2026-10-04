@@ -7,11 +7,11 @@
 # its own, a folder carrying the marker, the disk, the icon and the look
 # (instance.json, recipe included) a real instance would carry. The commands'
 # root is followed the way they compute it - D:\WSL when there is a D:, the
-# profile otherwise, redirected into the test's folder - and LOCALAPPDATA and
-# APPDATA are redirected too, so the archives, the install folders and the
-# Windows Terminal fragments all land in the test's world, never in the real
-# ones: a root that already exists is refused, not touched. Everything the
-# test made is taken back out at the end.
+# redirected profile otherwise - and only the suite's own paths are ever
+# written under it: names no real machine carries, all taken back out at the
+# end, and a run that finds one of them already there stops and says which.
+# The Windows Terminal fragments go to the redirected LOCALAPPDATA and APPDATA,
+# never the real ones.
 #
 # What is checked: for `archive`, the export and its format, the tar written,
 # the look saved beside it - recipe included - a running instance stopped
@@ -36,17 +36,34 @@ $Log = Join-Path $Tmp "wsl-calls.log"
 
 # The commands work under one root: D:\WSL when there is a D:, the profile
 # otherwise - the rule the family follows, so the suite follows it too and its
-# expectations land where the children write. The profile is redirected anyway,
-# for the machines without a D:. A root that already exists is refused: this
-# suite writes under it and empties it again, not what a real one deserves.
+# expectations land where the children write. The root may already exist - a
+# runner's own, an earlier step's - so nothing but the suite's own paths below
+# is ever touched.
 $env:USERPROFILE = $Tmp
 $env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
 $env:APPDATA = Join-Path $Tmp "AppData"
 New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { Join-Path $Tmp "WSL" }
-if (Test-Path $Root) {
-    throw "$Root already exists - this suite writes under it and leaves it empty again; refusing to touch one that is already there"
+
+# The paths this suite writes, and takes back out in the end - names no real
+# machine carries. One of them already there means a run was stopped half way:
+# said, not cleaned - it is nobody else's to remove.
+$OurPaths = @(
+    (Join-Path $Root "copied-one-export.tar.gz"),
+    (Join-Path $Root "copied-two-export.tar.gz"),
+    (Join-Path $Root $FakeName),
+    (Join-Path $Root "restored-one"),
+    (Join-Path $Root "copied-one"),
+    (Join-Path $Root "copied-two"),
+    (Join-Path $Root "archives\$FakeName"),
+    (Join-Path $Root "archives\second-backup")
+)
+$InTheWay = @($OurPaths | Where-Object { Test-Path $_ })
+if ($InTheWay.Count -gt 0) {
+    Write-Output "already there under $Root:"
+    $InTheWay | ForEach-Object { Write-Output "  $_" }
+    throw "a run of this suite was stopped half way - remove those paths, then run it again"
 }
 
 # For Get-Distros and the marker test: the list the commands themselves build.
@@ -166,11 +183,18 @@ try {
     $TarPath = Join-Path $ArchiveDir "$FakeName.tar.gz"
     $Fragments = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack"
 
-    # 0. restore first, with no archive anywhere: it says how to make one
-    # instead of printing a list over nothing.
-    $Out = Invoke-Child -Script $RestoreScript -Answers @("")
-    Check "restore with no archives says where they go" (@($Out | Where-Object { "$_".Contains("There are no archives") }).Count -gt 0) $true
-    Check "and ends on one" $script:ChildExit 1
+    # 0. restore with no archive anywhere: it says how to make one instead of
+    # printing a list over nothing. Skipped when the root already holds
+    # archives - a runner's own, an earlier step's - there a list is right.
+    $ArchivesFolder = Join-Path $Root "archives"
+    $ArchivesThere = (Test-Path $ArchivesFolder) -and (@(Get-ChildItem $ArchivesFolder -Directory -ErrorAction SilentlyContinue).Count -gt 0)
+    if ($ArchivesThere) {
+        Write-Output "note: archives already under $ArchivesFolder - the empty-machine checks are skipped"
+    } else {
+        $Out = Invoke-Child -Script $RestoreScript -Answers @("")
+        Check "restore with no archives says what to do" (@($Out | Where-Object { "$_".Contains("Nothing to restore") }).Count -gt 0) $true
+        Check "and ends on one" $script:ChildExit 1
+    }
 
     # 1. archive: the export is asked for by name and format, and the look is
     # saved beside the tar, recipe included - a stopped instance is left
@@ -299,7 +323,15 @@ try {
     Check "and ends on one" $script:ChildExit 1
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
-    Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
+    foreach ($Path in $OurPaths) {
+        Remove-Item -Recurse -Force $Path -ErrorAction SilentlyContinue
+    }
+    # The archives folder itself only when this run left it empty - a root
+    # that had one, or an entry in it, keeps it.
+    $ArchivesFolder = Join-Path $Root "archives"
+    if ((Test-Path $ArchivesFolder) -and (@(Get-ChildItem $ArchivesFolder -Force -ErrorAction SilentlyContinue).Count -eq 0)) {
+        Remove-Item -Force $ArchivesFolder -ErrorAction SilentlyContinue
+    }
     Remove-Item -Recurse -Force $Tmp -ErrorAction SilentlyContinue
 }
 
