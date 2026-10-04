@@ -5,10 +5,13 @@
 #
 # The instance it works on exists for the length of the test: a registry key of
 # its own, a folder carrying the marker, the disk, the icon and the look
-# (instance.json, recipe included) a real instance would carry. USERPROFILE,
-# LOCALAPPDATA and APPDATA are redirected into the test's own folder, so the
-# archives, the install folders and the Windows Terminal fragments all land
-# there - never in the real ones. Everything is taken back out at the end.
+# (instance.json, recipe included) a real instance would carry. The commands'
+# root is followed the way they compute it - D:\WSL when there is a D:, the
+# profile otherwise, redirected into the test's folder - and LOCALAPPDATA and
+# APPDATA are redirected too, so the archives, the install folders and the
+# Windows Terminal fragments all land in the test's world, never in the real
+# ones: a root that already exists is refused, not touched. Everything the
+# test made is taken back out at the end.
 #
 # What is checked: for `archive`, the export and its format, the tar written,
 # the look saved beside it - recipe included - a running instance stopped
@@ -31,14 +34,20 @@ $FakeFolder = Join-Path $Tmp "instance"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{4c1d2e3f-6a7b-4c8d-9e0f-1a2b3c4d5e6f}"
 $Log = Join-Path $Tmp "wsl-calls.log"
 
-# The commands work under the user's home; the test's own home, so nothing
-# real is read or written there.
+# The commands work under one root: D:\WSL when there is a D:, the profile
+# otherwise - the rule the family follows, so the suite follows it too and its
+# expectations land where the children write. The profile is redirected anyway,
+# for the machines without a D:. A root that already exists is refused: this
+# suite writes under it and empties it again, not what a real one deserves.
 $env:USERPROFILE = $Tmp
 $env:LOCALAPPDATA = Join-Path $Tmp "LocalAppData"
 $env:APPDATA = Join-Path $Tmp "AppData"
 New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
-$Root = Join-Path $Tmp "WSL"
+$Root = if (Test-Path "D:\") { "D:\WSL" } else { Join-Path $Tmp "WSL" }
+if (Test-Path $Root) {
+    throw "$Root already exists - this suite writes under it and leaves it empty again; refusing to touch one that is already there"
+}
 
 # For Get-Distros and the marker test: the list the commands themselves build.
 . (Join-Path $PSScriptRoot "..\scripts\instance.ps1")
@@ -99,6 +108,14 @@ function Invoke-Child {
 function Get-Calls {
     if (-not (Test-Path $Log)) { return @() }
     return @(Get-Content $Log | Where-Object { $_ -and $_ -notlike "raw:*" })
+}
+
+# What a step above should have written, read back - or an empty string, so a
+# missing file fails its check instead of stopping the suite.
+function Get-FileText {
+    param([string]$Path)
+    if (Test-Path $Path) { return (Get-Content $Path -Raw) }
+    return ""
 }
 
 # The instance: a folder carrying the marker, the disk, the icon, and a look
@@ -165,7 +182,8 @@ try {
     Check "and leaves the instance stopped, the default of a stopped one" (@($Out | Where-Object { "$_".Contains("left stopped") }).Count -gt 0) $true
     Check "and ends on zero" $script:ChildExit 0
 
-    $Saved = Get-Content (Join-Path $ArchiveDir "instance.json") -Raw | ConvertFrom-Json
+    $Raw = Get-FileText (Join-Path $ArchiveDir "instance.json")
+    $Saved = if ($Raw) { $Raw | ConvertFrom-Json } else { $null }
     Check "the archive carries the icon recipe" "$($Saved.IconText)/$($Saved.IconTop)/$($Saved.IconBottom)/$($Saved.IconTextColor)" "TR/#010203/#040506/#070809"
     Check "and names the archive after the instance" "$($Saved.Name)" $FakeName
     Check "and the icon itself waits beside the tar" (Test-Path (Join-Path $ArchiveDir "terminal-icon.png")) $true
@@ -201,15 +219,18 @@ try {
     $Install = Join-Path $Root "restored-one"
     Check "restore imports the tar it picked, as version 2" (@(Get-Calls | Where-Object { $_ -eq "--import restored-one $Install $TarPath --version 2" }).Count) 1
     Check "and says the instance came back" (@($Out | Where-Object { "$_".Contains("'restored-one' restored from an archive") }).Count -gt 0) $true
-    Check "and the marker is written, credited to restore" ((Get-Content (Join-Path $Install ".wsl-stack") -Raw | ConvertFrom-Json).by) "restore"
+    $Raw = Get-FileText (Join-Path $Install ".wsl-stack")
+    $Marker = if ($Raw) { ($Raw | ConvertFrom-Json).by } else { "" }
+    Check "and the marker is written, credited to restore" "$Marker" "restore"
     Check "and ends on zero" $script:ChildExit 0
 
-    $Restored = Get-Content (Join-Path $Install "instance.json") -Raw | ConvertFrom-Json
+    $Raw = Get-FileText (Join-Path $Install "instance.json")
+    $Restored = if ($Raw) { $Raw | ConvertFrom-Json } else { $null }
     Check "and the recipe comes back" "$($Restored.IconText)/$($Restored.IconTop)/$($Restored.IconBottom)/$($Restored.IconTextColor)" "TR/#010203/#040506/#070809"
     Check "and the icon is copied into the instance" (Test-Path (Join-Path $Install "terminal-icon.png")) $true
     Check "and the file points at the instance's own icon" "$($Restored.IconFrom)" (Join-Path $Install "terminal-icon.png")
     Check "and the look is reported re-applied" (@($Out | Where-Object { "$_".Contains("icon re-applied") }).Count -gt 0) $true
-    Check "and the Terminal fragment carries the guid WSL gave it" ((Get-Content (Join-Path $Fragments "restored-one.json") -Raw).Contains("{11111111-2222-3333-4444-555555555555}")) $true
+    Check "and the Terminal fragment carries the guid WSL gave it" ("$(Get-FileText (Join-Path $Fragments "restored-one.json"))".Contains("{11111111-2222-3333-4444-555555555555}")) $true
 
     # A name already registered, then a name whose folder exists: refused, said,
     # nothing imported. An empty answer cancels, an unusable name is refused.
@@ -241,13 +262,16 @@ try {
     Check "and imports the copy at the source's own version" (@($Calls | Where-Object { $_ -eq "--import copied-one $CopyDir $TempTar --version 1" }).Count) 1
     Check "and the temporary tar is removed" (Test-Path $TempTar) $false
     Check "and says what it made" (@($Out | Where-Object { "$_".Contains("'copied-one' is a copy of '$FakeName'") }).Count -gt 0) $true
-    Check "and the marker is written, credited to duplicate" ((Get-Content (Join-Path $CopyDir ".wsl-stack") -Raw | ConvertFrom-Json).by) "duplicate"
+    $Raw = Get-FileText (Join-Path $CopyDir ".wsl-stack")
+    $Marker = if ($Raw) { ($Raw | ConvertFrom-Json).by } else { "" }
+    Check "and the marker is written, credited to duplicate" "$Marker" "duplicate"
     Check "and ends on zero" $script:ChildExit 0
 
-    $Copy = Get-Content (Join-Path $CopyDir "instance.json") -Raw | ConvertFrom-Json
+    $Raw = Get-FileText (Join-Path $CopyDir "instance.json")
+    $Copy = if ($Raw) { $Raw | ConvertFrom-Json } else { $null }
     Check "and the recipe travels to the copy" "$($Copy.IconText)/$($Copy.IconTop)/$($Copy.IconBottom)/$($Copy.IconTextColor)" "TR/#010203/#040506/#070809"
     Check "and the copy's icon points at its own folder" "$($Copy.IconFrom)" (Join-Path $CopyDir "terminal-icon.png")
-    Check "and the copy gets its own Terminal fragment" ((Get-Content (Join-Path $Fragments "copied-one.json") -Raw).Contains("{66666666-7777-8888-9999-000000000000}")) $true
+    Check "and the copy gets its own Terminal fragment" ("$(Get-FileText (Join-Path $Fragments "copied-one.json"))".Contains("{66666666-7777-8888-9999-000000000000}")) $true
 
     # A running source: asked, stopped on the answer, restarted once the copy
     # is registered - never before.
@@ -275,6 +299,7 @@ try {
     Check "and ends on one" $script:ChildExit 1
 } finally {
     Remove-Item $Key -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -Recurse -Force $Root -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $Tmp -ErrorAction SilentlyContinue
 }
 
