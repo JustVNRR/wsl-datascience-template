@@ -1,13 +1,11 @@
 # ==============================================================================
 # THE WHOLE SET, AND WHAT THE COMMANDS ASK IT
 # ==============================================================================
-# The instances - registered, or left as an archive - the catalog of packs this
-# checkout carries, the name and path conflicts, and the fleet gestures:
-# create, restore, stop everything.
+# The instances - registered, or left as an archive - the name and path
+# conflicts, and the fleet gestures: create, restore, stop everything.
 class WslInstanceManager {
     [string]$InstancesRoot
     [string]$ArchivesRoot
-    [WslPackCatalog]$Catalog
     [WslInstance[]]$Instances = @()
 
     # Folders under the root carrying the marker that no registered instance
@@ -16,15 +14,9 @@ class WslInstanceManager {
     # deletes them.
     [string[]]$ForgottenFolders = @()
 
-    WslInstanceManager([string]$instancesRoot, [string]$catalogPath) {
+    WslInstanceManager([string]$instancesRoot) {
         $this.InstancesRoot = $instancesRoot.TrimEnd('\')
         $this.ArchivesRoot  = Join-Path $this.InstancesRoot "archives"
-        $this.Catalog       = [WslPackCatalog]::new($catalogPath)
-
-        if (-not (Test-Path $this.ArchivesRoot)) {
-            New-Item -ItemType Directory -Path $this.ArchivesRoot -Force | Out-Null
-        }
-
         $this.Refresh()
     }
 
@@ -38,12 +30,17 @@ class WslInstanceManager {
         $knownNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
         $registeredPaths = @()
 
-        # 1. The distributions registered in the Windows registry
-        $registered = [WslInstance]::GetAll()
-        foreach ($inst in $registered) {
-            # Refresh state and archive
+        # 1. The distributions registered in the Windows registry. Their state
+        # comes from one batched question - wsl --list says what runs, about
+        # everyone at once - not from one wsl.exe per instance.
+        $Running = Get-DistroNames -Running
+        foreach ($inst in [WslInstance]::GetAll()) {
             $inst.RefreshArchiveStatus()
-            $inst.RefreshState()
+            if ($Running -contains $inst.Name) {
+                $inst.State = [WslState]::Running
+            } else {
+                $inst.State = [WslState]::Stopped
+            }
             $this.Instances += $inst
             $registeredPaths += $inst.Path
             $null = $knownNames.Add($inst.Name)
@@ -74,7 +71,7 @@ class WslInstanceManager {
         # 3. Marked folders that no instance claims
         if (Test-Path $this.InstancesRoot) {
             foreach ($folder in (Get-ChildItem -Path $this.InstancesRoot -Directory -ErrorAction SilentlyContinue)) {
-                if ((Test-Path (Join-Path $folder.FullName ".wsl-stack")) -and
+                if ((Test-TemplateInstance -Folder $folder.FullName) -and
                     ($registeredPaths -notcontains $folder.FullName)) {
                     $this.ForgottenFolders += $folder.FullName
                 }
@@ -85,6 +82,13 @@ class WslInstanceManager {
     # =========================================================================
     # LOOKUP & VALIDATION
     # =========================================================================
+
+    # What the commands call "ours": registered, carrying the marker, by name -
+    # the filter every list applies before showing anything. Static, so asking
+    # costs nothing but the scan itself.
+    static [WslInstance[]] Ours() {
+        return @([WslInstance]::GetAll() | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
+    }
 
     [WslInstance] FindByName([string]$name) {
         return ($this.Instances | Where-Object { $_.Name -eq $name } | Select-Object -First 1)

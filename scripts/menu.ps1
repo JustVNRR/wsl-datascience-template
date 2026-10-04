@@ -398,7 +398,7 @@ function Select-FromList {
 function Select-Distro {
     param([switch]$AllowCancel)
 
-    $All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
+    $All = @([WslInstanceManager]::Ours())
     if ($All.Count -eq 0) {
         Write-Host ""
         Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)

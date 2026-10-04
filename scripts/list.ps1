@@ -20,9 +20,11 @@ if (-not (Test-Path $InstanceLib)) {
 }
 . $InstanceLib
 
-# 1. Our instances, running or stopped. Sorted by name, like every list in this
-# family.
-$All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
+# 1. Our instances, running or stopped, by name like every list in this family -
+# through the manager, which holds the whole fleet; what runs comes from its
+# batched question, asked once.
+$Manager = [WslInstanceManager]::new($Root)
+$All = @($Manager.Ours())
 if ($All.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
@@ -30,13 +32,11 @@ if ($All.Count -eq 0) {
     exit 1
 }
 
-$Running = Get-DistroNames -Running
-
 Write-Host ""
 Write-Host "Instances of this template:" -ForegroundColor (Get-MessageColour info)
 for ($Index = 0; $Index -lt $All.Count; $Index++) {
     $Entry = $All[$Index]
-    $State = if ($Running -contains $Entry.Name) { "running" } else { "stopped" }
+    $State = if ($Entry.State -eq [WslState]::Running) { "running" } else { "stopped" }
     Write-Host ("  {0,2}.  {1,-30} {2,-8} {3,10}  {4}" -f ($Index + 1), $Entry.Name, $State,
         (Format-Size (Get-VhdxSize $Entry.Path)), $Entry.Path)
 }
@@ -64,20 +64,14 @@ if ($Archives.Count -gt 0) {
 
 # 3. Marked folders that no instance claims - what an interrupted removal, or
 # an outside `wsl --unregister`, leaves behind. The one place they show.
-$RegisteredPaths = @($All | ForEach-Object { $_.Path })
-$Forgotten = @()
-if (Test-Path $Root) {
-    foreach ($Folder in (Get-ChildItem -Path $Root -Directory -ErrorAction SilentlyContinue)) {
-        if ((Test-TemplateInstance -Folder $Folder.FullName) -and ($RegisteredPaths -notcontains $Folder.FullName)) {
-            $Forgotten += $Folder
-        }
-    }
-}
+$Forgotten = @($Manager.ForgottenFolders)
 
 if ($Forgotten.Count -gt 0) {
     Write-Host ""
     Write-Host "Folders left behind by an instance that is gone:" -ForegroundColor (Get-MessageColour hint)
-    foreach ($Folder in $Forgotten) {
+    foreach ($FolderPath in $Forgotten) {
+        $Folder = Get-Item -Path $FolderPath -ErrorAction SilentlyContinue
+        if (-not $Folder) { continue }
         Write-Host ("      {0,-30} {1,10}  {2}" -f $Folder.Name,
             (Format-Size (Get-VhdxSize $Folder.FullName)), $Folder.FullName) -ForegroundColor (Get-MessageColour hint)
     }

@@ -25,7 +25,7 @@ if (-not (Test-Path $InstanceLib)) {
 # ==============================================================================
 # The list is the only way in. A folder left behind by an earlier removal is
 # deleted by hand, not by naming it here.
-$Ours = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path })
+$Ours = @([WslInstanceManager]::Ours())
 if ($Ours.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)

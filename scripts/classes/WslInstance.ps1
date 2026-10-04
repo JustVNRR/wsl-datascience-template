@@ -422,6 +422,9 @@ class WslInstance {
         return ($all | Where-Object { $_.Name -eq $name } | Select-Object -First 1)
     }
 
+    # Every registered instance: name, folder, WSL version (1 or 2). The empty
+    # constructor on purpose - the four-argument one asks wsl.exe about the
+    # state, and asking once per instance is not this call's business.
     static [WslInstance[]] GetAll() {
         $found = @()
         $regPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss"
@@ -430,8 +433,9 @@ class WslInstance {
         foreach ($key in Get-ChildItem $regPath) {
             $props = Get-ItemProperty $key.PSPath
             if ($props.DistributionName) {
-                $basePath = ($props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-                $instance = [WslInstance]::new($props.DistributionName, $basePath, "root", $null)
+                $instance = [WslInstance]::new()
+                $instance.Name = $props.DistributionName
+                $instance.Path = ($props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
                 if ($props.Version) { $instance.Version = [int]$props.Version }
                 $found += $instance
             }

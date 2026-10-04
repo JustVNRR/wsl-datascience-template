@@ -635,19 +635,9 @@ function Test-NativeCommand {
 # Every registered instance, as a WslInstance: its name, its folder and its WSL
 # version (1 or 2). The registry says what Windows knows; it does not say which
 # of them are ours - Test-TemplateInstance answers that, on the folder's marker.
+# The scan itself lives on the class; this is the name the commands know.
 function Get-Distros {
-    $Found = @()
-    foreach ($Key in Get-ChildItem HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss -ErrorAction SilentlyContinue) {
-        $Props = Get-ItemProperty $Key.PSPath
-        if ($Props.DistributionName) {
-            $Instance = [WslInstance]::new()
-            $Instance.Name = $Props.DistributionName
-            $Instance.Path = ($Props.BasePath -replace '^\\\\\?\\', '').TrimEnd('\')
-            if ($Props.Version) { $Instance.Version = [int]$Props.Version }
-            $Found += $Instance
-        }
-    }
-    return @($Found)
+    return @([WslInstance]::GetAll())
 }
 
 # What WSL answers about the instances it knows, which is the only source that

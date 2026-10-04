@@ -18,7 +18,7 @@ if (-not (Test-Path $InstanceLib)) {
 # 1. Who can be started: our stopped instances, and only those - offering a
 # running one is a choice with no effect. Sorted by name, like every list in
 # this family.
-$All = @(Get-Distros | Where-Object { Test-TemplateInstance -Folder $_.Path } | Sort-Object Name)
+$All = @([WslInstanceManager]::Ours())
 if ($All.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
