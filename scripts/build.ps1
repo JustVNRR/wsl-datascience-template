@@ -236,11 +236,6 @@ function Export-DockerContainer {
     Invoke-NativeCommand { docker export -o $OutputPath $Container } "Docker export failed."
 }
 
-function Import-WslDistro {
-    param([string]$Name, [string]$InstallPath, [string]$TarPath)
-    Invoke-NativeCommand { wsl.exe --import $Name $InstallPath $TarPath --version 2 } "WSL import failed."
-}
-
 function Stop-WslDistro {
     param([string]$Name)
     Invoke-NativeCommand { wsl.exe --terminate $Name } "Could not stop '$Name'." -SuppressOutput
@@ -661,13 +656,12 @@ try {
     New-Item -ItemType Directory -Path $InstallPath -Force | Out-Null
 
     Write-Host "==> 5. Importing into WSL ($DistroName)..." -ForegroundColor (Get-MessageColour info)
-    Import-WslDistro -Name $DistroName -InstallPath $InstallPath -TarPath $TarPath
+    # The import and the marker in one gesture, on the model: the instance is
+    # marked the moment it is registered, before the steps that can still
+    # fail - a build that stops at the font step leaves a real instance
+    # behind, not an invisible one.
+    $Instance = [WslInstance]::Build($DistroName, $InstallPath, $TarPath, "", $null)
     $Deployment.DistroRegistered = $true
-
-    # Marked the moment it is registered, before the steps that can still fail:
-    # a build that stops at the font step leaves a real instance behind, not an
-    # invisible one.
-    New-InstanceMarker -Folder $InstallPath -By "build"
 
     Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor (Get-MessageColour info)
     Invoke-WslFirstBoot -DistroName $DistroName
@@ -799,11 +793,9 @@ if ($Deployment.Succeeded) {
         $DockerReportColour = $Docker.Colour
     }
 
-    # The shell the user came for, in the fresh instance: --cd "~" lands in
-    # their home rather than the Windows folder the script was launched from -
-    # the tilde is quoted, or PowerShell expands it into the Windows home
-    # before wsl.exe sees it. Two lines first, so it opens on "who am I, where,
-    # and what now" instead of an anonymous prompt.
+    # The shell the user came for, in the fresh instance - the instance's own
+    # gesture, the same one the shell command uses. Two lines first, so it
+    # opens on "who am I, where, and what now" instead of an anonymous prompt.
     #
     # A pack's welcome line (scaffold's points at fnew) comes from its own
     # pack.conf: no sentence of this script names a pack or a command.
@@ -825,7 +817,7 @@ if ($Deployment.Succeeded) {
         foreach ($Line in $DockerReport) { Write-Host $Line -ForegroundColor $DockerReportColour }
     }
     Write-Host ""
-    wsl.exe -d $DistroName --cd "~"
+    $null = $Instance.Shell()
 }
 
 # A failed deployment must not look like a success to whatever called this

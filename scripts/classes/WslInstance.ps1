@@ -371,16 +371,18 @@ class WslInstance {
             New-Item -ItemType Directory -Path $installPath -Force | Out-Null
         }
 
-        & wsl.exe --import $name $installPath $tarPath --version 2
-        if ($LASTEXITCODE -ne 0) {
-            throw "WSL import failed for '$name'."
-        }
+        Invoke-External { wsl.exe --import $name $installPath $tarPath --version 2 } "WSL import failed."
 
-        # TODO: write the marker (.wsl-stack, by "build") right here - before
-        # anything else can fail, so the other commands see the instance even
-        # when a later step stops the run.
+        # Ours from here on, whatever happens next - written before the steps
+        # that can still fail, so a build that stops later leaves a real
+        # instance behind, not an invisible one.
+        New-InstanceMarker -Folder $installPath -By "build"
 
-        $instance = [WslInstance]::new($name, $installPath, $user, $look)
+        $instance = [WslInstance]::new()
+        $instance.Name        = $name
+        $instance.Path        = $installPath
+        $instance.DefaultUser = $user
+        $instance.Look        = $look
         if ($look) {
             $instance.ApplyTerminalProfile()
         }
