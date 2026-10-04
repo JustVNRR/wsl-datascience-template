@@ -27,6 +27,15 @@ public class Program
             File.AppendAllText(log, "raw: " + Environment.CommandLine + Environment.NewLine);
         }
 
+        // FAKE_WSL_FAIL: a substring of the arguments - a call carrying it
+        // answers 1 and does nothing, so a suite can make one step fail. The
+        // call is logged first: a refusal is worth asserting on too.
+        string fail = Environment.GetEnvironmentVariable("FAKE_WSL_FAIL");
+        if (!String.IsNullOrEmpty(fail) && String.Join(" ", args).Contains(fail))
+        {
+            return 1;
+        }
+
         // --export <name> <path> [--format f]: the archive the caller will read
         // back - its size, its presence - lands where it asked.
         if (args.Length >= 3 && args[0] == "--export")

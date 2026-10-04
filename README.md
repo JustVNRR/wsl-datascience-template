@@ -301,10 +301,10 @@ the repository at runtime.
 │                            # draws, the icon, font and colour commands, the
 │                            # colour a message takes, starting and restarting
 │                            # over a stand-in wsl, archiving and coming back
-│                            # from an archive, doc drift
+│                            # from an archive, removing an instance, doc drift
 │   ├── fake-docker/         # That stand-in: answers the preflight, fails the import
-│   └── fake-wsl/            # And the lifecycle's and the archives': logs every call,
-│                            # writes what an export would, creates what an import would
+│   └── fake-wsl/            # And the suites that drive wsl: logs every call, writes
+│                            # what an export would, creates what an import would
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml           # Static checks, then the code suites on Windows
@@ -362,7 +362,7 @@ Two GitHub Actions workflows, in `.github/workflows/`:
 
 | Workflow | Runs on | What it proves |
 | :--- | :--- | :--- |
-| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck, `zsh -n`, the colour codes confined to their files, the makefile parses with a complete help menu, docs and cheatsheets in sync with the `gmake` modules — then ten suites on Windows drive the real code under PowerShell 7 |
+| `ci.yml` — Checks | every push, PRs onto `main` | shellcheck, `zsh -n`, the colour codes confined to their files, the makefile parses with a complete help menu, docs and cheatsheets in sync with the `gmake` modules — then eleven suites on Windows drive the real code under PowerShell 7 |
 | `image.yml` — Rootfs image build | every push, PRs onto `main`, weekly, manual | the Dockerfile still resolves end to end: apt repositories, download URLs, git clones |
 
 They check the **repository** — the files, and the code run against stand-ins,

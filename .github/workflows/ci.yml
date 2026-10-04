@@ -20,7 +20,7 @@
 #
 # The second job, on windows-latest, is the one that RUNS the code instead of
 # reading it, because that is where PowerShell and wsl.exe are: every .ps1 must
-# parse under PowerShell 7 first, then ten suites, none of which needs an
+# parse under PowerShell 7 first, then eleven suites, none of which needs an
 # instance, a console or Docker Desktop. Every bug the scripts themselves have
 # had was caught there, and none of these checks can be replaced by reading the
 # files.
@@ -390,3 +390,8 @@ jobs:
         if: always()
         shell: bash
         run: pwsh -NoProfile -File tests/archive-command-test.ps1
+
+      - name: Removing an instance, with a stand-in wsl
+        if: always()
+        shell: bash
+        run: pwsh -NoProfile -File tests/unregister-command-test.ps1
