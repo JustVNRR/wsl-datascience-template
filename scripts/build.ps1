@@ -229,24 +229,22 @@ function Remove-DeploymentArtifacts {
     }
 }
 
-# Step 8 in one place: the font the look starts from, announced the way the
-# build announces things - present, installed here, or beyond this build's
-# reach, best effort either way. The mechanics are the instance's, and mute;
-# this is the report.
+# Step 8 in one place: the font the look starts from - fetched when missing
+# (best effort, the mechanics are the look's), then shown as the value it is.
 function Configure-NerdFont {
     param([WslInstance]$Instance)
 
-    if (-not $Instance.Look.FontMissing()) {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected ($($Instance.Look.FontName))." -ForegroundColor (Get-MessageColour success)
-        return
+    $Problem = ""
+    if ($Instance.Look.FontMissing()) {
+        $FontStatus = $Instance.Look.EnsureFont()
+        if ($FontStatus.State -ne "installed") {
+            $Problem = " - not installed: $($FontStatus.Error)"
+        }
     }
-
-    Write-Host "==> Starship prompt requires a Nerd Font. Downloading $($Instance.Look.FontName)..." -ForegroundColor (Get-MessageColour info)
-    $FontStatus = $Instance.Look.EnsureFont()
-    if ($FontStatus.State -eq "installed") {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed $($Instance.Look.FontName) for current user." -ForegroundColor (Get-MessageColour success)
+    if ($Problem) {
+        Write-Host "  * Font Status       : $($Instance.Look.FontName)$Problem" -ForegroundColor (Get-MessageColour warning)
     } else {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $($FontStatus.Error)" -ForegroundColor (Get-MessageColour error)
+        Write-Host "  * Font Status       : $($Instance.Look.FontName)" -ForegroundColor (Get-MessageColour info)
     }
 }
 
@@ -644,6 +642,8 @@ try {
     Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor (Get-MessageColour info)
     Invoke-WslFirstBoot -DistroName $DistroName
     $ConfiguredUser = Get-ConfiguredWslUser -DistroName $DistroName
+    # Born without one at step 5: the instance learns its user here.
+    $Instance.DefaultUser = $ConfiguredUser
 
     Write-Host "==> 7. Shutting down distro to persist systemd and user configuration..." -ForegroundColor (Get-MessageColour info)
     Stop-WslDistro -Name $DistroName
@@ -668,14 +668,10 @@ try {
     Write-Host "         WSL Stack Instance Successfully Deployed!          " -ForegroundColor (Get-MessageColour success)
     Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
     Write-Host ""
-    Write-Host "  * Distribution Name : " -NoNewline; Write-Host "$DistroName" -ForegroundColor (Get-MessageColour info)
-    Write-Host "  * Default User      : " -NoNewline; Write-Host "$ConfiguredUser" -ForegroundColor (Get-MessageColour info)
-    Write-Host "  * Install Path      : " -NoNewline; Write-Host "$InstallPath" -ForegroundColor (Get-MessageColour muted)
-    Write-Host "  * Terminal profile  : " -NoNewline
-    if ($TerminalProfileOk) {
-        Write-Host "icon, font, color scheme, tab title" -ForegroundColor (Get-MessageColour success)
-    } else {
-        Write-Host "not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor (Get-MessageColour hint)
+    # The instance describes itself; one call shows the lot.
+    Write-Host "$Instance"
+    if (-not $TerminalProfileOk) {
+        Write-Host "  * Terminal profile  : not automated - configure the appearance manually (Ctrl+,)" -ForegroundColor (Get-MessageColour hint)
     }
     Write-Host "  * Packs             : " -NoNewline
     if ($PackReport.Count -eq 0) {

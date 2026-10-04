@@ -32,6 +32,12 @@ class WslTheme {
         return [WslTheme]::new($null, "One Half Dark", "MesloLGS NF", $tabTitle)
     }
 
+    # The look as one line - the font and the colours. Whoever shows it
+    # decides where and when; the class only says what it is.
+    [string] ToString() {
+        return "font '$($this.FontName)', colours '$($this.ColorScheme)'"
+    }
+
     # The font the Default names - the only one this repository installs. Is
     # it on Windows? Present only when both halves are: the file, and its
     # registry entry - one without the other is an interrupted install.
