@@ -391,6 +391,10 @@ class WslInstance {
         # colours it reads are the ones just applied, icon recipe included.
         Set-InstanceLook -InstallPath $this.Path -Look (New-InstanceLook -Name $this.Name -Icon $Icon)
 
+        # Asked to look again, so the new profile appears without closing
+        # anything.
+        Update-TerminalSettings
+
         return [PSCustomObject]@{ Applied = $Applied; Warnings = @($Warnings) }
     }
 

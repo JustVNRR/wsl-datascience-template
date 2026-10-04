@@ -560,9 +560,6 @@ try {
         Write-Host "  * Terminal profile  : $Note" -ForegroundColor (Get-MessageColour warning)
     }
 
-    # Terminal is asked to look again: the new profile appears without closing.
-    Update-TerminalSettings
-
     # Installed after the instance exists; the news lands in the summary below
     # and on the screen the shell opens on.
     $PackResult = Install-SelectedPacks -DistroName $DistroName -PackSelection $PackSelection
