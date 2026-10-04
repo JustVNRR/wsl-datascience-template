@@ -24,7 +24,7 @@ if (-not (Test-Path $InstanceLib)) {
 # through the manager, which holds the whole fleet; what runs comes from its
 # batched question, asked once.
 $Manager = [WslInstanceManager]::new($Root)
-$All = @($Manager.Ours())
+$All = @([WslInstanceManager]::Ours())
 if ($All.Count -eq 0) {
     Write-Host ""
     Write-Host "[ABORT] No instance of this template is registered on this machine." -ForegroundColor (Get-MessageColour error)
