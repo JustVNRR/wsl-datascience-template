@@ -61,7 +61,7 @@ $OurPaths = @(
 )
 $InTheWay = @($OurPaths | Where-Object { Test-Path $_ })
 if ($InTheWay.Count -gt 0) {
-    Write-Output "already there under $Root:"
+    Write-Output "already there under ${Root}:"
     $InTheWay | ForEach-Object { Write-Output "  $_" }
     throw "a run of this suite was stopped half way - remove those paths, then run it again"
 }
