@@ -236,15 +236,15 @@ function Remove-DeploymentArtifacts {
 function Configure-NerdFont {
     param([WslInstance]$Instance)
 
-    if (-not $Instance.FontMissing()) {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected (MesloLGS NF)." -ForegroundColor (Get-MessageColour success)
+    if (-not $Instance.Look.FontMissing()) {
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected ($($Instance.Look.FontName))." -ForegroundColor (Get-MessageColour success)
         return
     }
 
-    Write-Host "==> Starship prompt requires a Nerd Font. Downloading MesloLGS NF..." -ForegroundColor (Get-MessageColour info)
-    $FontStatus = $Instance.EnsureFont()
+    Write-Host "==> Starship prompt requires a Nerd Font. Downloading $($Instance.Look.FontName)..." -ForegroundColor (Get-MessageColour info)
+    $FontStatus = $Instance.Look.EnsureFont()
     if ($FontStatus.State -eq "installed") {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed MesloLGS NF for current user." -ForegroundColor (Get-MessageColour success)
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed $($Instance.Look.FontName) for current user." -ForegroundColor (Get-MessageColour success)
     } else {
         Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $($FontStatus.Error)" -ForegroundColor (Get-MessageColour error)
     }
@@ -255,7 +255,10 @@ function Configure-NerdFont {
 # look left in its folder - the file an archive carries. Answers whether a
 # profile could be applied at all.
 function Configure-TerminalProfile {
-    param([string]$DistroName, [string]$InstallPath)
+    param([WslInstance]$Instance)
+
+    $DistroName = $Instance.Name
+    $InstallPath = $Instance.Path
 
     # The icon is drawn from the instance's own name, letters and colours both.
     # Nothing is said about a drawing that worked. It is decoration: a failure
@@ -302,8 +305,11 @@ function Configure-TerminalProfile {
     }
 
     if ($ProfileGuid) {
-        # No icon drawn, no icon line: Terminal shows its own.
-        $Theme = [WslTheme]::new($(if ($IconDrawn) { $IconPath } else { "" }), "One Half Dark", "MesloLGS NF", $DistroName)
+        # No icon drawn, no icon line: Terminal shows its own. The look is the
+        # instance's own - the default it was born with - completed with the
+        # icon just drawn.
+        $Theme = $Instance.Look
+        $Theme.IconPath = $(if ($IconDrawn) { $IconPath } else { "" })
         Set-InstanceFragment -Name $DistroName -Guid $ProfileGuid -Theme $Theme
         Write-Host "  * Terminal profile applied" -ForegroundColor (Get-MessageColour success)
         $TerminalProfileOk = $true
@@ -630,8 +636,9 @@ try {
     # The import and the marker in one gesture, on the model: the instance is
     # marked the moment it is registered, before the steps that can still
     # fail - a build that stops at the font step leaves a real instance
-    # behind, not an invisible one.
-    $Instance = [WslInstance]::Build($DistroName, $InstallPath, $TarPath, "", $null)
+    # behind, not an invisible one. It is born with its look, the default one;
+    # the icon joins it at step 9, once it is drawn.
+    $Instance = [WslInstance]::Build($DistroName, $InstallPath, $TarPath, "", [WslTheme]::Default($DistroName))
     $Deployment.DistroRegistered = $true
 
     Write-Host "==> 6. Running initial onboarding setup..." -ForegroundColor (Get-MessageColour info)
@@ -645,7 +652,7 @@ try {
     Configure-NerdFont -Instance $Instance
 
     Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
-    $TerminalProfileOk = Configure-TerminalProfile -DistroName $DistroName -InstallPath $InstallPath
+    $TerminalProfileOk = Configure-TerminalProfile -Instance $Instance
 
     # Terminal is asked to look again: the new profile appears without closing.
     Update-TerminalSettings

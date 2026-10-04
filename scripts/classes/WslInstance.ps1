@@ -281,51 +281,6 @@ class WslInstance {
     # INSTANCE METHODS: Terminal Appearance
     # =========================================================================
 
-    # The font every look starts from - the only one this repository ships.
-    # Present only when both halves are: the file, and its registry entry -
-    # one without the other is an interrupted install.
-    [bool] FontMissing() {
-        $FontRegPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
-        $DestFontPath = Join-Path (Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts") "MesloLGS NF Regular.ttf"
-        return -not ((Get-ItemProperty -Path $FontRegPath -Name "MesloLGS NF (TrueType)" -ErrorAction SilentlyContinue) -and (Test-Path $DestFontPath))
-    }
-
-    # Installs that font for the user, best effort: a download that fails must
-    # not fail a build. Answers what happened for the caller to report.
-    [object] EnsureFont() {
-        $FontName = "MesloLGS NF"
-        $FontRegPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
-        $UserFontsDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
-        $DestFontPath = Join-Path $UserFontsDir "MesloLGS NF Regular.ttf"
-
-        if (-not (Test-Path $FontRegPath)) {
-            New-Item -Path $FontRegPath -Force | Out-Null
-        }
-
-        # The temporary file belongs to this run alone and is taken away in
-        # the finally either way.
-        $TempFontPath = Join-Path $env:TEMP "$([guid]::NewGuid().ToString('N')).ttf"
-        try {
-            $FontUrl = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
-            Invoke-WebRequest -Uri $FontUrl -OutFile $TempFontPath -UseBasicParsing
-
-            if (-not (Test-Path $UserFontsDir)) {
-                New-Item -ItemType Directory -Path $UserFontsDir -Force | Out-Null
-            }
-            if (-not (Test-Path $DestFontPath)) {
-                Copy-Item -Path $TempFontPath -Destination $DestFontPath -Force
-            }
-            if (-not (Get-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -ErrorAction SilentlyContinue)) {
-                New-ItemProperty -Path $FontRegPath -Name "$FontName (TrueType)" -Value $DestFontPath -PropertyType String -Force | Out-Null
-            }
-            return [PSCustomObject]@{ State = "installed"; Error = "" }
-        } catch {
-            return [PSCustomObject]@{ State = "failed"; Error = "$($_.Exception.Message)" }
-        } finally {
-            Remove-Item -Path $TempFontPath -Force -ErrorAction SilentlyContinue
-        }
-    }
-
     [void] SetFont([string]$fontName) {
         if (-not $this.Look) { $this.Look = [WslTheme]::new() }
         $this.Look.FontName = $fontName

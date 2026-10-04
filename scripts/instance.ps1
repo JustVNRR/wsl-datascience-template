@@ -303,7 +303,7 @@ $IconJson
 function Get-InstanceAppearance {
     param([string]$Name)
 
-    $Theme = [WslTheme]::new($null, "One Half Dark", "MesloLGS NF", $Name)
+    $Theme = [WslTheme]::Default($Name)
 
     $OurFragment = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\Fragments\wsl-stack\$Name.json"
     if (Test-Path $OurFragment) {
