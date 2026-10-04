@@ -111,7 +111,7 @@ Write-Host "  * Install folder   : $InstallPath" -ForegroundColor (Get-MessageCo
 Write-Host ""
 
 try {
-    Invoke-External { wsl.exe --import $Name $InstallPath $ChosenTar.FullName --version 2 } "The import failed."
+    $null = [WslInstance]::Restore($Chosen.FullName, $Name, $InstallPath)
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
@@ -120,10 +120,8 @@ try {
     exit 1
 }
 
-# Our mark, so every other command sees the instance - then the look and
-# Docker's entry, which a tar carries neither of.
-New-InstanceMarker -Folder $InstallPath -By "restore"
-
+# The look and Docker's entry, which a tar carries neither of - the marker
+# was written by Restore, right after the import.
 Set-InstanceState -Name $Name -InstallPath $InstallPath -Folder $Chosen.FullName
 
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)

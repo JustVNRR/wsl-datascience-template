@@ -155,7 +155,7 @@ try {
     # recipe inside - and the picture beside it
     $Archive = Join-Path $Tmp "archive"
     New-Item -ItemType Directory -Path $Archive -Force | Out-Null
-    Save-InstanceState -Name $FakeName -Folder $Archive
+    $null = [WslInstance]::GetByName($FakeName).ArchiveLook($Archive)
     Check "an archive carries the instance's file" (Test-Path (Join-Path $Archive "instance.json")) $true
     Check "and its picture" (Test-Path (Join-Path $Archive "terminal-icon.png")) $true
     $Kept = Get-Content (Join-Path $Archive "instance.json") -Raw | ConvertFrom-Json

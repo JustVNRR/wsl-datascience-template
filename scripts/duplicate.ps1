@@ -26,10 +26,6 @@ $AllDistros = Get-Distros
 $Source = Select-Distro
 $SourceDistro = $Source.Name
 
-# Captured now, while the source still has it - recipe included, so the copy
-# can be redrawn: a copy that comes out bare is not a copy.
-$Look = New-InstanceLook -Name $SourceDistro -Icon (Get-IconRecipe -Name $SourceDistro)
-
 # 0-bis. The copy's name: typed, because there is nothing to pick from. The
 # question comes back until the name is usable.
 while ($true) {
@@ -69,7 +65,7 @@ if ((Get-DistroNames -Running) -contains $SourceDistro) {
         Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
-    Invoke-External { wsl.exe --terminate $SourceDistro } "Could not stop '$SourceDistro'."
+    $Source.Stop()
     Write-Host "  Stopped." -ForegroundColor (Get-MessageColour muted)
     $StoppedByUs = $true
 }
@@ -89,7 +85,6 @@ $FullDestination = [System.IO.Path]::GetFullPath((Join-Path $Root $NewDistroName
 $VhdxPath = Join-Path $Source.Path "ext4.vhdx"
 $DiskBytes = if (Test-Path $VhdxPath) { (Get-Item $VhdxPath).Length } else { 0 }
 $NeededBytes = 2 * $DiskBytes
-$TempArchive = Join-Path $Root "$NewDistroName-export.tar.gz"
 
 $DriveLetter = (Split-Path -Qualifier $FullDestination).TrimEnd(':')
 $FreeBytes = (Get-PSDrive -Name $DriveLetter).Free
@@ -115,15 +110,13 @@ if (-not (Test-Path -Path $DestinationDir)) {
     New-Item -ItemType Directory -Path $DestinationDir -Force | Out-Null
 }
 
-# 3. Copy: the source is only read. The temporary image is removed in all
-# cases - it is worth twice the disk, and leaving it would eat the room just
-# checked for.
+# 3. Copy: the source is only read. The temporary image is removed by the
+# copy itself, in all cases - it is worth twice the disk, and leaving it
+# would eat the room just checked for.
 try {
     Write-Host "==> 1. Reading the source (the source itself is not modified)..." -ForegroundColor (Get-MessageColour info)
-    Invoke-External { wsl.exe --export $SourceDistro $TempArchive --format tar.gz } "The export failed."
-
     Write-Host "==> 2. Registering '$NewDistroName' from it..." -ForegroundColor (Get-MessageColour info)
-    Invoke-External { wsl.exe --import $NewDistroName $FullDestination $TempArchive --version $($Source.Version) } "The import failed."
+    $Copy = $Source.Duplicate($NewDistroName)
 } catch {
     Write-Host ""
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor (Get-MessageColour error)
@@ -133,22 +126,15 @@ try {
         Write-Host "        remove it with  .\wsl.ps1 unregister        (pick '$NewDistroName' in the list)" -ForegroundColor (Get-MessageColour hint)
     }
     exit 1
-} finally {
-    if (Test-Path -Path $TempArchive) {
-        Remove-Item -Path $TempArchive -Force -ErrorAction SilentlyContinue
-    }
 }
 
 $CopyVhdx = Join-Path $FullDestination "ext4.vhdx"
 $CopyBytes = if (Test-Path $CopyVhdx) { (Get-Item $CopyVhdx).Length } else { 0 }
 
-# Ours from here on, like the source it was copied from.
-New-InstanceMarker -Folder $FullDestination -By "duplicate"
-
 # The copy has its own profile and its own guid: the look is re-applied from
 # the values captured before the export - Docker Desktop's entry too, keyed by
 # name.
-Set-InstanceState -Name $NewDistroName -InstallPath $FullDestination -Appearance $Look
+Set-InstanceState -Name $NewDistroName -InstallPath $FullDestination -Appearance $Copy.Look
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor (Get-MessageColour success)
@@ -163,11 +149,10 @@ Write-Host "  Windows Terminal: the copy gets a profile of its own, with the ico
 Write-Host "  the font and the colours of the source. Restart Terminal to see it." -ForegroundColor (Get-MessageColour muted)
 Write-Host ""
 
-# Left the way it was found: `--exec` runs a command and returns, so it comes
-# back up without this script opening a shell.
+# Left the way it was found.
 if ($StoppedByUs) {
     try {
-        Invoke-External { wsl.exe -d $SourceDistro --exec /bin/true } "Could not restart '$SourceDistro'."
+        $Source.Start()
         Write-Host "'$SourceDistro' is running again." -ForegroundColor (Get-MessageColour success)
     } catch {
         Write-Host "Could not restart '$SourceDistro' - start it with: wsl -d $SourceDistro" -ForegroundColor (Get-MessageColour warning)

@@ -355,31 +355,6 @@ function ConvertTo-WslTheme {
     return $Theme
 }
 
-# Write what Windows knows about an instance next to an archive, so it travels
-# with it
-function Save-InstanceState {
-    param([string]$Name, [string]$Folder)
-
-    $Appearance = Get-InstanceAppearance -Name $Name
-    # The same file the instance keeps in its own folder, refreshed: what this
-    # machine has right now, and the icon's recipe as the instance noted it.
-    $Look = New-InstanceLook -Name $Name -Icon (Get-IconRecipe -Name $Name)
-    $Docker = $Look.Docker
-
-    if (-not (Test-Path $Folder)) { New-Item -ItemType Directory -Path $Folder -Force | Out-Null }
-    $Look | ConvertTo-Json | Set-Content -Path (Join-Path $Folder "instance.json") -Encoding Utf8
-
-    if ($Appearance.IconPath) {
-        Copy-Item -Path $Appearance.IconPath -Destination (Join-Path $Folder "terminal-icon.png") -Force
-    }
-
-    Write-Host "  * Look             : font '$($Appearance.FontName)', colours '$($Appearance.ColorScheme)'$(if ($Appearance.IconPath) { ", icon copied" })" -ForegroundColor (Get-MessageColour muted)
-    Write-Host "  * Docker Desktop   : $(if ($Docker -eq "yes") { "knows this instance" } elseif ($Docker -eq "no") { "does not know it" } else { "not installed, or unreadable" })" -ForegroundColor (Get-MessageColour muted)
-    if (-not (Test-FontInstalled $Appearance.FontName)) {
-        Write-Host "                       '$($Appearance.FontName)' is not installed on Windows" -ForegroundColor (Get-MessageColour warning)
-    }
-}
-
 # Give an instance back the look it had. Either from an archive folder, or from
 # an appearance object captured a moment ago (duplicate.ps1, shrink.ps1).
 function Set-InstanceState {

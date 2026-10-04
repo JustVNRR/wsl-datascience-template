@@ -127,44 +127,39 @@ class WslInstance {
     # INSTANCE METHODS: Duplication, Archival & Destruction
     # =========================================================================
 
-    [WslInstance] Duplicate([string]$newName) {
-        # TODO: capture the look before the export and re-apply it to the copy
-        # (instance.json refreshed, then reapplied once the copy exists - the
-        # same pair the restore uses).
-        $this.Stop()
+    # Copies the instance under another name: the export to a temporary tar,
+    # the import at THIS instance's version, the marker, and a fresh capture
+    # of the look for the caller to re-apply once the copy exists. The caller
+    # stops the source first - stopping is a decision, and decisions belong to
+    # the commands. Returns the copy's folder and that look.
+    [PSCustomObject] Duplicate([string]$newName) {
+        # Not named $Look: that is the instance's own member (and PowerShell
+        # does not tell the two cases apart).
+        $LookFile = New-InstanceLook -Name $this.Name -Icon (Get-IconRecipe -Name $this.Name)
 
         $targetRoot = Split-Path $this.Path -Parent
         $newPath = Join-Path $targetRoot $newName
         $tempTar = Join-Path $targetRoot "$newName-export.tar.gz"
 
         try {
-            & wsl.exe --export $this.Name $tempTar --format tar.gz
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to export '$($this.Name)' for duplication."
-            }
+            Invoke-External { wsl.exe --export $this.Name $tempTar --format tar.gz } "The export failed."
             # The copy is imported as the version of its source.
-            & wsl.exe --import $newName $newPath $tempTar --version $this.Version
-            if ($LASTEXITCODE -ne 0) {
-                throw "Failed to import '$newName'."
-            }
-
-            # TODO: write the marker (.wsl-stack, by "duplicate") right after
-            # the import, then re-apply the captured look.
-
-            $newLook = $null
-            if ($this.Look) {
-                $newLook = [WslTheme]::new($this.Look.IconPath, $this.Look.ColorScheme, $this.Look.FontName, $newName)
-            }
-            return [WslInstance]::new($newName, $newPath, $this.DefaultUser, $newLook)
+            Invoke-External { wsl.exe --import $newName $newPath $tempTar --version $this.Version } "The import failed."
         } finally {
             if (Test-Path $tempTar) {
                 Remove-Item -Path $tempTar -Force -ErrorAction SilentlyContinue
             }
         }
+
+        # Ours from here on, whatever happens next.
+        New-InstanceMarker -Folder $newPath -By "duplicate"
+        return [PSCustomObject]@{ Path = $newPath; Look = $LookFile }
     }
 
-    # Writes the instance to <root>\archives\<name>: the tar (<name>.<format>),
-    # and the look beside it - a tar carries neither the icon nor the colours.
+    # Writes the instance to <root>\archives\<name>: the tar
+    # (<name>.<format>). The look follows with ArchiveLook - a tar carries
+    # neither the icon nor the colours - and the caller stops the instance
+    # first: stopping is a decision, and decisions belong to the commands.
     # Returns the archive folder. Two signatures because a class method takes
     # no default: the one-argument call is the ordinary tar.gz.
     [string] Archive([string]$name) {
@@ -172,30 +167,53 @@ class WslInstance {
     }
 
     [string] Archive([string]$name, [string]$format) {
-        $this.Stop()
-
         $archiveDir = Join-Path (Split-Path $this.Path -Parent) "archives\$name"
         if (-not (Test-Path $archiveDir)) {
             New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
         }
 
         $archiveFile = Join-Path $archiveDir "$name.$format"
-        & wsl.exe --export $this.Name $archiveFile --format $format
-        if ($LASTEXITCODE -ne 0) {
+        try {
+            Invoke-External { wsl.exe --export $this.Name $archiveFile --format $format } "The export failed."
+        } catch {
             # A partial archive left on disk would look like a backup later.
             if (Test-Path $archiveFile) {
                 Remove-Item -Path $archiveFile -Force -ErrorAction SilentlyContinue
             }
-            throw "The export of '$($this.Name)' failed."
+            throw
         }
-
-        # TODO: capture the look into the archive folder (instance.json and
-        # terminal-icon.png), once the export succeeded - a half-written
-        # archive folder is worse than one missing the look.
 
         $this.HasArchive  = $true
         $this.ArchivePath = $archiveDir
         return $archiveDir
+    }
+
+    # The other half of an archive: what Windows knows about the instance,
+    # written beside the tar - the instance's own file, refreshed, and the
+    # icon. Returns what the caller reports (a class does not write to the
+    # screen): the font, the colours, whether the icon came, Docker's answer.
+    [object] ArchiveLook([string]$folder) {
+        $Appearance = Get-InstanceAppearance -Name $this.Name
+        # The same file the instance keeps in its own folder, refreshed: what
+        # this machine has right now, and the icon's recipe as the instance
+        # noted it. Not named $Look: that is the instance's own member.
+        $LookFile = New-InstanceLook -Name $this.Name -Icon (Get-IconRecipe -Name $this.Name)
+
+        if (-not (Test-Path $folder)) { New-Item -ItemType Directory -Path $folder -Force | Out-Null }
+        $LookFile | ConvertTo-Json | Set-Content -Path (Join-Path $folder "instance.json") -Encoding Utf8
+
+        $IconCopied = $false
+        if ($Appearance.IconPath) {
+            Copy-Item -Path $Appearance.IconPath -Destination (Join-Path $folder "terminal-icon.png") -Force
+            $IconCopied = $true
+        }
+
+        return [PSCustomObject]@{
+            Font        = $Appearance.FontName
+            ColorScheme = $Appearance.ColorScheme
+            IconCopied  = $IconCopied
+            Docker      = $LookFile.Docker
+        }
     }
 
     [void] Unregister([bool]$toArchive) {
@@ -343,15 +361,23 @@ class WslInstance {
     }
 
     # From an archive folder: the tar inside it is the one to import (the
-    # newest *.tar*), and the look comes back from the instance.json beside it.
-    # TODO: re-apply that look - the instance.json beside the tar.
+    # newest *.tar*), and the marker lands right after - before the look,
+    # which the caller re-applies from the instance.json beside the tar. A tar
+    # does not carry the version it came from, and WSL 1 is not what this
+    # repository builds: the import is version 2, like the build's.
     static [WslInstance] Restore([string]$archiveDir, [string]$name, [string]$installPath) {
         $tar = Get-ChildItem -Path $archiveDir -Filter "*.tar*" -File |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
         if (-not $tar) {
             throw "No tar in the archive folder: $archiveDir"
         }
-        return [WslInstance]::Build($name, $installPath, $tar.FullName, "root", $null)
+
+        Invoke-External { wsl.exe --import $name $installPath $tar.FullName --version 2 } "The import failed."
+
+        # Ours from here on, whatever happens next.
+        New-InstanceMarker -Folder $installPath -By "restore"
+
+        return [WslInstance]::new($name, $installPath, "root", $null)
     }
 
     static [void] Unregister([string]$name, [bool]$toArchive) {

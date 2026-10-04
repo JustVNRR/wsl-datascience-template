@@ -30,7 +30,6 @@ $ErrorActionPreference = "Stop"
 
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("archive-command-test-" + [Guid]::NewGuid().ToString("N"))
 $FakeName = "archive-command-test"
-$FakeFolder = Join-Path $Tmp "instance"
 $Key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss\{4c1d2e3f-6a7b-4c8d-9e0f-1a2b3c4d5e6f}"
 $Log = Join-Path $Tmp "wsl-calls.log"
 
@@ -45,6 +44,10 @@ $env:APPDATA = Join-Path $Tmp "AppData"
 New-Item -ItemType Directory -Path $env:LOCALAPPDATA -Force | Out-Null
 New-Item -ItemType Directory -Path $env:APPDATA -Force | Out-Null
 $Root = if (Test-Path "D:\") { "D:\WSL" } else { Join-Path $Tmp "WSL" }
+# The fake instance lives where a real one would - under the root, so the
+# paths the commands derive from its folder (the archives folder, a copy's)
+# land where a real machine would put them.
+$FakeFolder = Join-Path $Root $FakeName
 
 # The paths this suite writes, and takes back out in the end - names no real
 # machine carries. One of them already there means a run was stopped half way:

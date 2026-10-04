@@ -91,7 +91,7 @@ if ((Get-DistroNames -Running) -contains $DistroName) {
         Write-Host "[ABORT] Operation cancelled by user. Nothing was modified." -ForegroundColor (Get-MessageColour success)
         exit 0
     }
-    Invoke-External { wsl.exe --terminate $DistroName } "Could not stop '$DistroName'."
+    $Distro.Stop()
     Write-Host "  Stopped." -ForegroundColor (Get-MessageColour muted)
     $StoppedByUs = $true
 }
@@ -173,7 +173,7 @@ if ($DiskBytes -gt 0 -and $FreeBytes -lt $DiskBytes) {
 # 5. Export
 $Started = Get-Date
 try {
-    Invoke-External { wsl.exe --export $DistroName $Destination --format $Format } "The export failed."
+    $null = $Distro.Archive($Chosen, $Format)
 } catch {
     # A partial archive left on disk would look exactly like a backup later on.
     if (Test-Path -Path $Destination) {
@@ -195,7 +195,12 @@ Write-Host "============================================================" -Foreg
 Write-Host ""
 # The look goes next to the tar, once the export succeeded: a half-written
 # archive folder is worse than one missing the look.
-Save-InstanceState -Name $DistroName -Folder $ArchiveDir
+$Look = $Distro.ArchiveLook($ArchiveDir)
+Write-Host "  * Look             : font '$($Look.Font)', colours '$($Look.ColorScheme)'$(if ($Look.IconCopied) { ", icon copied" })" -ForegroundColor (Get-MessageColour muted)
+Write-Host "  * Docker Desktop   : $(if ($Look.Docker -eq "yes") { "knows this instance" } elseif ($Look.Docker -eq "no") { "does not know it" } else { "not installed, or unreadable" })" -ForegroundColor (Get-MessageColour muted)
+if (-not (Test-FontInstalled $Look.Font)) {
+    Write-Host "                       '$($Look.Font)' is not installed on Windows" -ForegroundColor (Get-MessageColour warning)
+}
 
 Write-Host "  * Archive          : " -NoNewline; Write-Host "$ArchiveDir" -ForegroundColor (Get-MessageColour info)
 Write-Host "  * Tar              : " -NoNewline; Write-Host "$($Archive.Name) ($(Format-Size $Archive.Length))" -ForegroundColor (Get-MessageColour info)
@@ -234,7 +239,7 @@ if ($AfterExport -eq "Start") {
     # `--exec` runs a command and returns: the instance comes back up without
     # this script opening a shell in it.
     try {
-        Invoke-External { wsl.exe -d $DistroName --exec /bin/true } "Could not start '$DistroName'."
+        $Distro.Start()
         Write-Host "'$DistroName' is running." -ForegroundColor (Get-MessageColour success)
     } catch {
         Write-Host "Could not start '$DistroName' - start it with: wsl -d $DistroName" -ForegroundColor (Get-MessageColour warning)
