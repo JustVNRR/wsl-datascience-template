@@ -229,6 +229,27 @@ function Remove-DeploymentArtifacts {
     }
 }
 
+# Step 8 in one place: the font the look starts from, announced the way the
+# build announces things - present, installed here, or beyond this build's
+# reach, best effort either way. The mechanics are the instance's, and mute;
+# this is the report.
+function Configure-NerdFont {
+    param([WslInstance]$Instance)
+
+    if (-not $Instance.FontMissing()) {
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected (MesloLGS NF)." -ForegroundColor (Get-MessageColour success)
+        return
+    }
+
+    Write-Host "==> Starship prompt requires a Nerd Font. Downloading MesloLGS NF..." -ForegroundColor (Get-MessageColour info)
+    $FontStatus = $Instance.EnsureFont()
+    if ($FontStatus.State -eq "installed") {
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed MesloLGS NF for current user." -ForegroundColor (Get-MessageColour success)
+    } else {
+        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $($FontStatus.Error)" -ForegroundColor (Get-MessageColour error)
+    }
+}
+
 # Step 9 in one place: the icon drawn from the instance's own name, the ghost
 # profiles a rebuild orphaned, the fragment this instance is given, and the
 # look left in its folder - the file an archive carries. Answers whether a
@@ -621,19 +642,7 @@ try {
     Stop-WslDistro -Name $DistroName
 
     Write-Host "==> 8. Checking Windows Terminal Font compatibility..." -ForegroundColor (Get-MessageColour info)
-    # The font every look starts from: present, installed here, or beyond this
-    # build's reach - the three news there are. Best effort either way.
-    if (-not $Instance.FontMissing()) {
-        Write-Host "  * Font Status       : " -NoNewline; Write-Host "Compatible Nerd Font detected (MesloLGS NF)." -ForegroundColor (Get-MessageColour success)
-    } else {
-        Write-Host "==> Starship prompt requires a Nerd Font. Downloading MesloLGS NF..." -ForegroundColor (Get-MessageColour info)
-        $FontStatus = $Instance.EnsureFont()
-        if ($FontStatus.State -eq "installed") {
-            Write-Host "  * Font Status       : " -NoNewline; Write-Host "Successfully installed MesloLGS NF for current user." -ForegroundColor (Get-MessageColour success)
-        } else {
-            Write-Host "  * Font Status       : " -NoNewline; Write-Host "Could not auto-install font: $($FontStatus.Error)" -ForegroundColor (Get-MessageColour error)
-        }
-    }
+    Configure-NerdFont -Instance $Instance
 
     Write-Host "==> 9. Configuring the Windows Terminal profile (icon, font, color scheme, tab title)..." -ForegroundColor (Get-MessageColour info)
     $TerminalProfileOk = Configure-TerminalProfile -DistroName $DistroName -InstallPath $InstallPath
